@@ -1,1 +1,1 @@
-# spatail_HYP
+# spatial_HYP
