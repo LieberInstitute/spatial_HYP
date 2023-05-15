@@ -20,7 +20,7 @@ echo "Hostname: ${HOSTNAME}"
 echo "Task id: ${SGE_TASK_ID}"
 
 ## load SpaceRanger
-module load spaceranger/1.3.1
+module load spaceranger/2.0.0
 
 ## List current modules for reproducibility
 module list
