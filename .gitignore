@@ -4,5 +4,6 @@
 .Ruserdata
 
 #Data directories
-/processed-data/01_spaceranger/Images/*/*
+/processed-data/01_spaceranger/Images/*.tif
+/processed-data/01_spaceranger/Images/loupe/*.png
 /raw-data/Images/*
