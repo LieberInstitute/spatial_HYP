@@ -4,7 +4,7 @@
 ##Internal: `/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/`
 
 
-##Code Directories:
+## /Code Directories:
 
 ###01_Spaceranger: Initial data handling through Spaceranger (Ryan M)
 
@@ -17,3 +17,9 @@
 ###REDCAP: ?
 
 ###Vistoseg: Align section image data with spaceranger (Ryan M) 
+
+
+
+## /analysis/code directories:
+
+###01_feature_selection: HVGs, nnSVG, others(? future)
