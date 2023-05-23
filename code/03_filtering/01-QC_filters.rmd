@@ -6,6 +6,10 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
 library(data.table)
 library(SpatialExperiment)
 library(ggspavis)
@@ -13,11 +17,11 @@ library(scater) # addPerCellQC
 library(nnSVG)
 library(BiocParallel)
 library(scran)
-# library(STexampleData)
 ```
 
 ## load assembled, unfiltered data
 ```{r}
+# from dcs04; in gitignore
 load("data/spe_raw.Rdata")
 hyp <- spe
 rm(spe)
@@ -32,12 +36,12 @@ tail(colData(splc))
 ## oo % mitochondrial already added in! Thanks Ryan!
 
 ### Ch9: QC / filtering
-1. Is the tissue oriented correctly? -- REVISIT (not all anatomy/ish/slide images cross-mapped yet)
+1. Is the tissue oriented correctly? -- REVISIT (not all anatomy/ish/slide images cross-mapped yet) (and it's impossible to tell just plotting spots since these are almost all perfect squares)
 ```{r}
-ggspavis::plotSpots(splc)
 
 # get rid of non-tissue spots
 hyp2 <- hyp[,colData(hyp)$in_tissue]
+ggspavis::plotSpots(hyp2)
 sum(colData(hyp2)$in_tissue != 1, na.rm = T)
 # qed
 ```
@@ -66,331 +70,94 @@ nrow(tmp)
 
 tmp[!(expr_chrM_ratio>=subsets_Mito_percent-0.1)&!(expr_chrM_ratio<=subsets_Mito_percent+0.1)]
 
-# k, not non-equivalency per se
+# k, not non-equivalency per se -- these are spots with zero genes, which will drop later
 tmp[is.na(expr_chrM_ratio)]
 
-# just zero MT counts --> NA for the auto % calculation. so we're okay as long as we use the already-calculated column.
+# just that zero MT counts --> NA for the auto % calculation. so we're okay as long as we use the already-calculated column.
 rm(tmp,mitogenes)
 # 
 
 # revert to spe without mito count columns added for sake of tidiness
 hyp2 <- hyp[,colData(hyp)$in_tissue]
-```
 
-
-#### now the next step, totalling reads per spot might need a vector of length nrow to work. let's find out.
-```{r}
-# working from the t/f vector for matching "MT-" (mitogenes)
-hyp2 <- addPerCellQC(hyp2, subsets = list(Mito = mitogenes))
-# as expected
-
-# as coded in tutorial
-hyp3 <- addPerCellQC(hyp2, subsets = list(mito = is_mito))
-
-
-stopifnot(sum(mitogenes == is_mito) == length(mitogenes))
-# ^ approaches are equiv.
-
-# splc4 <- addPerCellQC(splc,subsets=list(Mito=mitogenesymbs))
-# THAT doesn't work though--expects indices
-rm(splc3, splc4, mitogenesymbs, is_mito)
-
-
-# these data now are in our coldata ('sample'/'cell' data)
-colData(splc2)$subsets_Mito_percent
-sum(colData(splc2)$subsets_Mito_percent > 20)
-# ouch. let's call our cutoff 50%.
-colData(splc2)$excessmito <- colData(splc2)$subsets_Mito_percent>50
 ```
 
 plot some qc stats
-### coldata()$sum represents # of UMIs per spot
+### mitochondrial read %age
+```{r}
+hist(colData(hyp2)$expr_chrM_ratio)
+# nothing over ~50%, so that's good.
+plotSpots(hyp2,annotate = "expr_chrM_ratio",palette = palette(value = "ggplot2"))
+# and this is gradated over each slice rather than like distinct areas, so we're prob ok.
+sum(colData(hyp2)$expr_chrM_ratio > 0.2,na.rm=T)
+# 33 % of spots
+sum(colData(hyp2)$expr_chrM_ratio > 0.3,na.rm=T)
+# 9% of spots
+sum(colData(hyp2)$expr_chrM_ratio > 0.35,na.rm=T)
+# 5% of spots--lets start here so we know what we might be throwing away if raising later
+```
+
+### UMIs per spot
 ### standard threshold is 600 UMIs
 ```{r}
-ggplot(as.data.frame(colData(splc))[which(as.data.frame(colData(splc))$sum<10000),], aes(x = sum)) +
+ggplot(as.data.frame(colData(hyp2)), aes(x = sum_umi)) +
     geom_histogram(binwidth = 100)+
   geom_vline(xintercept = 600,col="red")
 dev.off()
-# again, ouch
+
+sum(colData(hyp2)$sum_umi<600,na.rm=T)
+# well 600 will do nicely! 4% of spots.
 ```
 
-### also look at sum PER # cells per spot. using ggspavis::plotQC. set threshold_y to the value we might plan to use--this function will draw on a horiz line to show what would be getting clipped off
-
-### oh, LC data doesn't have this (but those values would usually be there from VistoSeg)
-### we'll throw in some random values based on the dlpfc tutorial and just not actually filter on them at the end.
+### also look at sum UMIs PER # cells per spot, if available (REVISIT-not available 052323). using ggspavis::plotQC. set threshold_y to the value we might plan to use--this function will draw on a horiz line to show what would be getting clipped off
+# in the meantime, just use the cutoff of 600.
 ```{r}
-# plotQC(splc,type = "scatter",metric_x = "cell_count",metric_y ="sum",threshold_y = 600)
+# plotQC(hyp2,type = "scatter",metric_x = "cell_count",metric_y ="sum_umi",threshold_y = 600)
 # splc@colData$cell_count <- sample(x=c(1:7),size=nrow(splc@colData),replace = T)
 # hist(colData(splc)$cell_count,breaks = 20)
-
-###  der no we want a neg binom? gamma? dist for these fake values
-coldat.tmp <- as.data.table(colData(splc2))
-# coldat.tmp[,cell_count:=]
-# n = number of spots per sample
-coldat.tmp[, cell_count := sample(
-    ceiling(rgamma(nrow(.SD),shape = 3,scale=2)),
-    size = nrow(.SD), replace = T
-), .SDcols = "sample_id"]
-
-hist(coldat.tmp$cell_count,breaks = 20)
-dev.off()
-### ok that looks decently like the dlpfc data. (not that this is really true for LC)
-
-colData(splc2) <- DataFrame(coldat.tmp)
-rm(coldat.tmp)
 ```
 
-# so anyhow, we would look at counts per spot as a function of cells per spot like this
+### genes per spot (sum_gene)
 ```{r}
-plotQC(splc2,type = "scatter",metric_x = "cell_count",metric_y ="sum",threshold_y = 600)
+ggplot(as.data.table(colData(hyp2)),aes(x=sum_gene)) +
+    geom_histogram(binwidth = 100)+
+    geom_vline(xintercept = 450,col="red")
+dev.off()
+
+### hm..there's this little jump in the ~1k-1.1k genes range. but otherwise ~450 genes looks like it cuts the very tail (and we certainly could have < 600 genes with 600 umis). so let's start with 450 genes minimum detected.
+```
+
+# we would look at # unique genes per spot as a function of cells per spot like this
+```{r}
+# plotQC(hyp2,type = "scatter",metric_x = "cell_count",metric_y ="sum",threshold_y = 600)
 dev.off()
 # as before, if we wanted to flag spots with more than 10 cells for exclusion (e.g., if that seems to be where the number of genes per spot dives off), then we add a new column to coldata as T/F:
-colData(splc2)$overtencells <- colData(splc2)$cell_count>10
 ```
 
-### now, let's visually check that these spots with >10 cells are not all in one area of their tissue sections (which would indicate something biology-y happening)
+### and eventually, let's visually check that spots with higher cell content are not all in one area of their tissue sections (which would indicate something biology-y happening)
 ```{r}
-plotSpots(splc2,annotate = "overtencells")
-# and our randomlly generated values are randomly assorted. v good v good. so if this is what real cell count data looked like, we'd be ok to eventually throw those spots
+# plotSpots(hyp2,annotate = "cell_count")
+# dev.off()
+```
+
+### double check UMI and gene count cutoffs against spots for spatial patterns
+```{r}
+plotSpots(hyp2,annotate = "sum_umi",palette = palette("ggplot2"))
+### umis are definitely spatially differential to distinct areas (and not in a soft gradient at all like mitochondrial %age)
+plotSpots(hyp2,annotate="sum_gene",palette=palette("ggplot2"))
+
+### and as a rough estimator of gene diversity per RNA density andor seq depth:
+colData(hyp2)$g_per_u <- colData(hyp2)$sum_gene/colData(hyp2)$sum_umi
+plotSpots(hyp2,annotate="g_per_u",palette=palette("ggplot2"))
+### i bet if and when we have cell counts, this correlates decently to it. but meanwhile, nothing too wild going on. most spots pick up a new gene for every 1-2 additional UMIs. a few are very low xscriptional complexity, e.g. lower RH of 075-D1.
 dev.off()
 ```
 
-### 9.5.2: filtering for number of genes detected (coldata(spe)$detected)
+### apply mitochondria, UMI, unique gene cutoffs per above (35%, over 600, over 450)
 ```{r}
-# again, we want a histogram and then a plotqc to examine the # cells relationship
-hist(colData(splc2)$detected)
-# let's look first, then plot again with some estimated threshold out a threshold estimate
-plotQC(splc2,type = "scatter",metric_y= "detected",metric_x = "cell_count")
-# since there are ~0 gene-detected spots across the (fake) cell count let's try  1750 and see what that trendline looks like
-dtct1750 <- colData(splc2)$detected<1750
-colData(splc2)$dtct1750 <- dtct1750 
-splc3 <- splc2[,dtct1750==F]
-plotQC(splc3,type = "scatter",metric_y= "detected",metric_x = "cell_count")
-# naw, naw let's try 200
-dtct200 <- colData(splc2)$detected<200
-colData(splc2)$dtct200 <- dtct200
-### make a temporary spe object with only the hypothetically remaining data to see what the outcome would be 
-splc3 <- splc2[,dtct200==F]
-plotQC(splc3,type = "scatter",metric_y= "detected",metric_x = "cell_count",threshold_y = 200)
-
-# visualize to check for (biological) spatial pattern
-plotSpots(splc2,annotate = "dtct200")
-## looks like this mostly tracks with tissue edges, which would not represent anything biological here, so that's a fine cutoff.
-rm(splc3)
+ncol(hyp2[,colData(hyp2)$sum_umi>600&colData(hyp2)$sum_gene>450&colData(hyp2)$expr_chrM_ratio<0.35])/ncol(hyp2)
+# 91.7% spots retained for now!
+hyp2 <- hyp2[,colData(hyp2)$sum_umi>600&colData(hyp2)$sum_gene>450&colData(hyp2)$expr_chrM_ratio<0.35]
+# saveRDS(hyp2,"data/processing/hyp_umi600_gene450_chrm35.RDS")
+rm(hyp)
 ```
-
-# we worked out of order and already did mitochondrial reads. so onto the spot filtering summary
-```{r}
-colSums(as.data.frame(colData(splc2)[,c("dtct200","excessmito","overtencells")]))
-# so 9822 dropped for low gene detection, 3088 dropped for mitochondria, and 2535 hypothetically dropped for too many cells
-
-toss <- dtct200 | colData(splc2)$excessmito
-splc2 <- splc2[,toss==F]
-# what's left?
-dim(splc2)
-# about 48% of the data.
-
-```
-
-
-###################
-###### CH 10 ######
-###################
-
-### we will be continuing with scater as well as scran functions to apply library-size normalized, LOG COUNT normalization AFTER filtering the data.
-```{r}
-library(scran)
-splc2 <- computeLibraryFactors(splc2)
-# peek
-summary(sizeFactors(splc2))
-hist(sizeFactors(splc2),breaks=100)
-# append log counts using scater (don't use the SpatialExpt:: function here, that's for RETRIEVING an assay by the name of "logcounts" from spe objs)
-splc2 <- scater::logNormCounts(splc2)
-# this is stored as a separate DF the ASSAYS component of the SpatialExpt obj
-names(splc2@assays)
-stopifnot(dim(counts(splc2))==dim(logcounts(splc2)))
-# o this was easy chapt
-rm(toss,dtct200,dtct1750)
-gc(full=T)
-dev.off()
-# saveRDS(splc2,"splc2_line201.RDS")
-```
-
-###################
-###### CH 11 ######
-###################
-
-## FEATURE SELECTION
-### e.g., highly variable genes, spatially variable genes, etc
-
-##### scran - variable genes, (HVG), spatially agnostic
-##### OSTA verbatim: "If the biologically meaningful spatial information in this dataset mainly reflects spatial distributions of major cell types, then relying on HVGs for downstream analyses may be sufficient. But if there are additional important spatial features in the dataset, then it may be more meaningful to define spatially variable genes."
-```{r}
-# ordinarily, we exclude mitochondrial genes as not of interest. but the LC spatial preprint highlighted that LC neurons had very high mitochondrial reads, so what the hey, we'll keep them in here and just grab extra top HVGs to account for the fact that the 12 mito genes might take up some of the list.
-
-splc2 <- readRDS("splc2_line201.RDS")
-# splc2 <- splc2[!mitogenes]
-
-# first, we model gene-level mean-variance relationships
-splc2.vars <- modelGeneVar(splc2)
-splc2.vars.fit <- metadata(splc2.vars)
-
-# plot in base R:
-plot(splc2.vars.fit$mean, splc2.vars.fit$var, 
-     xlab = "mean of log-expression", ylab = "variance of log-expression")
-curve(splc2.vars.fit$trend(x), col = "blue", add = TRUE, lwd = 2)
-dev.off()
-# plot in ggplot2
-splc2.vars.dt <- as.data.table(splc2.vars.fit$var,keep.rownames=T)
-splc2.means.dt <- as.data.table(splc2.vars.fit$mean,keep.rownames=T)
-sum(splc2.means.dt$V1==splc2.vars.dt$V1)==nrow(splc2.means.dt)
-setnames(splc2.vars.dt,2,"var_log_xpr")
-setnames(splc2.means.dt,2,"mean_log_xpr")
-splc2.mnvar.pltdat <- merge(splc2.means.dt,splc2.vars.dt,by="V1")
-
-rm(splc2.vars.dt,splc2.means.dt)
-# ggplot(splc2.mnvar.pltdat,aes(x=mean_log_xpr,y=var_log_xpr))+
-#   geom_point()+
-# geom_line(data=environment(splc2.vars.fit$trend),aes(x=x,y=y),inherit.aes = F)
-
-# ^ "`data` must be a <data.frame>, or an object coercible by `fortify()`, not an environment."
-
-ggplot(splc2.mnvar.pltdat, aes(x = mean_log_xpr, y = var_log_xpr)) +
-    geom_point() +
-    geom_function(fun=splc2.vars.fit$trend,col="blue")
-dev.off()
-rm(splc2.mnvar.pltdat)
-```
-
-#### HVGs continued: pull out the top p % of variable genes (returns a vector of identifiers,no stats etc)
-```{r}
-splc2.hvgs <- scran::getTopHVGs(splc2.vars,prop = 0.1)
-
-
-```
-
-
-### 11.5: Spatially variable genes
-#### Uses autocorrelation statistics Moran's I (global/local) or Geary's C (local)
-##### Useful intro to autocorrelation and Moran's I: https://mgimond.github.io/Spatial/spatial-autocorrelation.html#global-morans-i
-
-###### Global autocorrelation draws polygons ("neighborhoods") with their vertices on the center of spatial areas, with neighbors considered other spatial domains falling in the polygon. Then, an "Xlag" value is calculated as a composite of that neighborhood, e.g., mean. The individual spatial domains' values are input to an ordinary least squares model of neighborhood composite values, creating a line whose slope is the global Moran I.
-
-###### Local autocorrelation basically considers just these correlations within a polygon, directly via Geary's C or through monte carlo significance testing using Moran I.
-
-
-#### Turns out that Ch11.5 doesn't actually have any examples of SVG analyses written in (yet). But author Lukas Weber has also put a pkg on BioC called "nnSVG", so we'll start there and see what other tools LIBD folks suggest.
-
-#### Coveniently, the nnSVG vignette uses the LC spatial dataset as a multi-sample example. So that's easy.
-```{r}
-# X = covariates
-# default n_neighbors = 10, but can also be bumped up to 15
-
-# first, filter the data with nnSVG's built in filtering function. Per Lukas Weber, subsequent nnSVG may get slowed down by trying to hnadle very low-expressed genes.
-
-# filter_genes_ncounts (N) and filter_genes_pcspots (S) work together: genes will be filtered to those with at least N counts in at least S% of spots.  filter_genes_pcspots expects a %age as 0-100, NOT a fraction.
-# let's try being a little gentler than respective defaults of 3 and 0.5, since there's a lot of low-diversity / low-lib-size spots in our data.
-# we also want to keep mitochondrial reads since they were very abundant in LC neurons especially
-splc3 <- nnSVG::filter_genes(splc2,filter_genes_ncounts = 2,filter_genes_pcspots = 0.25, filter_mito = F)
-# even w/ these parmeters, we've cut the data down to about 7k genes from 23k!
-
-# now the workhorse function nnSVG, which can use parallel processing through BiocParallel. Set up the preferred (i.e., compatible) param:
-sbp <- SnowParam(10,type="FORK",fallback=F)
-
-# SUPER CRITICAL IMPORTANT NOTES: 
-# 1. RECALCULATE LOG COUNTS AFTER FILTERING ^
-# 2.nnSVG works ONE SAMPLE (one capture area) at a time. So need to wrap this in a loop. 
-# 3. as such, perform filtering PER SAMPLE. 
-rm(splc3)
-# With vignette as a guide...:
-caps <- unique(colData(splc2)$sample_id)
-res_list2 <- as.list(rep(NA, length(caps)))
-names(res_list2) <- caps
-
-i<-1
-for (i in c(1:length(caps))){
-  cap <- caps[i]
-  splc2.samp <- splc2[,colData(splc2)$sample_id==cap]
-  # dim(splc2.samp)
-  splc2.samp <- filter_genes(splc2.samp,filter_genes_ncounts = 2,filter_genes_pcspots = 0.25,filter_mito = F)
-  #recalculate logcounts
-  splc2.samp <- computeLibraryFactors(splc2.samp)
-  splc2.samp <- logNormCounts(splc2.samp)
-  # main call -- defaults to logcounts but shown for posterity; X if using covariates; n_neighbors defaults to 10, slower but potentially more granular with higher values eg 15, order = don't touch unless you have < 70 spots total; n_threads or BPPARAM for parallelization
-  res_list2[[i]] <- nnSVG(splc2.samp,assay_name = "logcounts",BPPARAM = sbp)
-  rm(splc2.samp,cap)
-  gc(full=T)
-}
-# computer slept on me and stopped the run mid-sample #5. but whatever this is for demonstrative purposes so that's sufficient.
-# res_list <- res_list[1:4]
-# saveRDS(nnsvg_res_list,"nnSVG_results_4of8samples_050423.RDS")
-rm(i,caps,sbp)
-gc(full=T)
-```
-
-
-### Let's take a look at one set of nnSVG results (which are 12 columns appended to rowData including spatial covariance, pval/padj, and rank)
-```{r}
-nnsvg_res_list <- readRDS("nnSVG_results_4of8samples_050423.RDS")
-rD <- as.data.table(rowData(nnsvg_res_list[[1]]),keep.rownames=T)
-```
-### To determine experiment-wide nnSVG-derived SVGs, average the ranks from each sample in our results list.
-
-```{r}
-i<-1
-for (i in c(1:sum(unique(colData(splc2)$sample_id)%in%names(nnsvg_res_list)))){
-  if(i==1){
-  nnsvg_ranks <- as.data.table(rowData(nnsvg_res_list[[i]]),keep.rownames=T)
-  nnsvg_ranks <- nnsvg_ranks[,.(rn,gene_name,rank)]
-  setnames(nnsvg_ranks,3,names(nnsvg_res_list)[i])
-  }
-  else{
-  tmp <- as.data.table(rowData(nnsvg_res_list[[i]]),keep.rownames=T)
-  tmp <- tmp[,.(rn,gene_name,rank)]
-  setnames(tmp,3,names(nnsvg_res_list)[i])
-  nnsvg_ranks <- merge.data.table(nnsvg_ranks,tmp,by=c("rn","gene_name"))
-  rm(tmp)
-  }
-}
-rm(i)
-
-nnsvg_ranks[,meanrank:=rowMeans(.SD),.SDcols=c(3:6)]
-```
-
-There are 1310 HVGs; let's compare what's unique and shared between the 1310 HVGs and top 1310 SVGs by mean rank.
-```{r}
-setorder(nnsvg_ranks,meanrank)
-sum(splc2.hvgs %in% nnsvg_ranks$rn[1:1310])
-# 402 shared
-# let's plot how many of the SVGs are in the 1310 HVGs over a step series of 25 genes
-olap.plt <- as.data.frame(matrix(nrow=1300/25,ncol=2))
-olap.plt[,1] <- seq(from=26,to=1301,by=25)
-i <- 1
-for (i in c(1:nrow(olap.plt))){
-  olap.plt[i,2] <- sum(splc2.hvgs %in% nnsvg_ranks$rn[c(1:olap.plt[i,1])])/(olap.plt[i,1])
-}
-rm(i)
-
-colnames(olap.plt) <- c("Top n SVGs","% in 1310 HVGs")
-
-ggplot(olap.plt,aes(x=`Top n SVGs`,y=`% in 1310 HVGs`))+
-  geom_col()
-dev.off()
-
-## lets make sets of the top 1310 SVGs and the top 1310 SVGs + all 1310 HVGs as a second vector so we can visualize the different sets in clusters downstream. also the equivalent length of unique hvgs + top 1310 svgs in top svgs alone. 
-splc2.svgs <- nnsvg_ranks[1:1310,rn]
-splc2.hsvgs <- unique(c(splc2.hvgs,splc2.svgs))
-splc2.2218svgs <- nnsvg_ranks[1:2218,rn]
-
-rm(rD,olap.plt,nnsvg_ranks,nnsvg_res_list)
-gc(full=T)
-
-vargenes <- as.data.table(splc2.2218svgs)
-vargenes <- cbind(vargenes,splc2.hsvgs,c(splc2.hvgs,rep("",nrow(vargenes)-length(splc2.hvgs))),c(splc2.svgs,rep("",nrow(vargenes)-length(splc2.svgs))))
-setnames(vargenes,c("svgs2k","HandSvgs","hvgs","svgs"))
-# write.table(vargenes,"Top 1310 ea SVGs and HVGs, union, and n union top SVGs.txt",sep='\t',quote=F,row.names=F,col.names=T)
-```
-
-
-### so we can see that the majority of super-SVGs are also considered HVGs, whereas these drop to about 50% to 30 % shared as we consider more of each, confirming that the two datatypes (have potential to) confer distinct information.
-
