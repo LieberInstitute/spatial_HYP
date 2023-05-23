@@ -158,6 +158,21 @@ dev.off()
 ncol(hyp2[,colData(hyp2)$sum_umi>600&colData(hyp2)$sum_gene>450&colData(hyp2)$expr_chrM_ratio<0.35])/ncol(hyp2)
 # 91.7% spots retained for now!
 hyp2 <- hyp2[,colData(hyp2)$sum_umi>600&colData(hyp2)$sum_gene>450&colData(hyp2)$expr_chrM_ratio<0.35]
-# saveRDS(hyp2,"data/processing/hyp_umi600_gene450_chrm35.RDS")
+```
+
+### apply library-size normalized, LOG COUNT normalization AFTER filtering the data.
+```{r}
+library(scran)
+hyp2 <- computeLibraryFactors(hyp2)
+# peek
+summary(sizeFactors(hyp2))
+hist(sizeFactors(hyp2),breaks=100)
+dev.off()
+# append log counts using scater (don't use the SpatialExpt:: function here, that's for RETRIEVING an assay by the name of "logcounts" from spe objs)
+hyp2 <- scater::logNormCounts(hyp2)
+stopifnot(dim(counts(hyp2))==dim(logcounts(hyp2)))
+# saveRDS(hyp2,"data/processing/hyp_umi600_gene450_chrm35_lognorm.RDS")
+
 rm(hyp)
+gc(full=T)
 ```

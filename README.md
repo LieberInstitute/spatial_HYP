@@ -12,6 +12,8 @@
 
 ###03_filtering: QC and filtering on technical variables (mitochondrial reads, number genes detected, etc) (Bernie M)
 
+###04_feature_selection: HVGs, nnSVG, others(? future)
+
 ###REDCAP: ?
 
 ###Vistoseg: Align section image data with spaceranger (Ryan M) 
