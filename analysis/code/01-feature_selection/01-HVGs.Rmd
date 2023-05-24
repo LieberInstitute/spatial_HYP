@@ -15,6 +15,8 @@ library(ggspavis)
 library(scater) # addPerCellQC
 library(BiocParallel)
 library(scran)
+library(parallel)
+library(nnSVG)
 
 theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
@@ -69,30 +71,19 @@ hyp2.hvg20 <- scran::getTopHVGs(hyp2.vars,prop=0.2)
 ```
 
 
-### Spatially variable genes--nnSVG
+### Spatially variable genes--nnSVG, per sample
+### the workhorse function nnSVG can use parallel processing through BiocParallel. Set up the preferred (i.e., compatible) param. the parallelization is within the nnsvg call, so no need to match cpu # to sample #
 ```{r}
-# X = covariates
-# default n_neighbors = 10, but can also be bumped up to 15
-
-# first, filter the data with nnSVG's built in filtering function. Per Lukas Weber, subsequent nnSVG may get slowed down by trying to handle very low-expressed genes.
-
-
-# let's also keep mitochondrial genes for now.
-hyp3 <- nnSVG::filter_genes(hyp2,filter_genes_ncounts = 2,filter_genes_pcspots = 0.5, filter_mito = F)
-# even w/ these parmeters, we've cut the data down to about 10k genes from 36k!
-```
-
-
-# now the workhorse function nnSVG, which can use parallel processing through BiocParallel. Set up the preferred (i.e., compatible) param. the parallelization is within nnsvg, so no need to match cpu # to sample #
-```{r}
-sbp <- SnowParam(10,type="FORK",fallback=F)
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm.RDS")
+sbp <- MulticoreParam(10)
+register(sbp)
 
 # SUPER CRITICAL IMPORTANT NOTES: 
 # 1. RECALCULATE LOG COUNTS AFTER FILTERING ^
 # 2.nnSVG works ONE SAMPLE (one capture area) at a time. So need to wrap this in a loop. 
 # 3. as such, perform filtering PER SAMPLE. 
 # filter_genes_ncounts (N) and filter_genes_pcspots (S) work together: genes will be filtered to those with at least N counts in at least S% of spots.  filter_genes_pcspots expects a %age as 0-100, NOT a fraction.
-# since most spots are pretty diverse and high-depth (but the cell type diversity is also unknown), we'll come down a bit from the respective N default to 2 counts in at least S=0.5% of spots (default).
+# tried N=2 (instead of 3) and S = 0.25 instead of 0.5, since most spots are pretty diverse and high-depth (and the cell type diversity is also unknown), but didn't get past the first sample in 3 hours on 10 CPUs. so now trying 3, 0.5 .
 
 # With vignette as a guide...:
 caps <- unique(colData(hyp2)$sample_id)
@@ -101,55 +92,59 @@ names(res_list2) <- caps
 
 i<-1
 for (i in c(1:length(caps))){
-  cap <- caps[i]
-  hyp2.samp <- hyp2[,colData(hyp2)$sample_id==cap]
-  # dim(hyp2.samp)
-  hyp2.samp <- filter_genes(hyp2.samp,filter_genes_ncounts = 2,filter_genes_pcspots = 0.25,filter_mito = F)
-  #recalculate logcounts
-  hyp2.samp <- computeLibraryFactors(hyp2.samp)
-  hyp2.samp <- logNormCounts(hyp2.samp)
-  # main call -- defaults to logcounts but shown for posterity; X if using covariates; n_neighbors defaults to 10, slower but potentially more granular with higher values eg 15, order = don't touch unless you have < 70 spots total; n_threads or BPPARAM for parallelization
+    cap <- caps[i]
+    message(paste0("Starting sample ",i," of ",length(caps)))
+    hyp2.samp <- hyp2[,colData(hyp2)$sample_id==cap]
+    # dim(hyp2.samp)
+    hyp2.samp <- filter_genes(hyp2.samp,filter_genes_ncounts = 5,filter_genes_pcspots = 1,filter_mito = F)
+    #recalculate logcounts
+    hyp2.samp <- computeLibraryFactors(hyp2.samp)
+    hyp2.samp <- logNormCounts(hyp2.samp)
+    # main call -- defaults to logcounts but shown for posterity; X if using covariates; n_neighbors defaults to 10, slower but potentially more granular with higher values eg 15, order = don't touch unless you have < 70 spots total; n_threads or BPPARAM for parallelization
   res_list2[[i]] <- nnSVG(hyp2.samp,assay_name = "logcounts",BPPARAM = sbp)
   rm(hyp2.samp,cap)
   gc(full=T)
 }
-# computer slept on me and stopped the run mid-sample #5. but whatever this is for demonstrative purposes so that's sufficient.
-# res_list <- res_list[1:4]
-# saveRDS(nnsvg_res_list,"nnSVG_results_4of8samples_050423.RDS")
-rm(i,caps,sbp)
+
+# extract SVG results
+res_list3 <- lapply(res_list2,FUN=function(x){
+    # this first line renders rownames invalid, so don't carry them along
+    rowData(x) <- rowData(x)[order(rowData(x)$rank),]
+    colnames(rowData(x))[8:21] <- paste0("nnSVG_",colnames(rowData(x))[8:21])
+    as.data.table(as.data.frame(rowData(x)),keep.rownames=F)
+})
+
+# saveRDS(res_list3,"analysis/data/01-feature_selection/nnSVG_samplewise_n3s0.5_052423.RDS")
+nnsvg_N3Spt5 <- res_list3
+rm(i,caps,sbp,res_list2,res_list3)
 gc(full=T)
 ```
 
-
-### Let's take a look at one set of nnSVG results (which are 12 columns appended to rowData including spatial covariance, pval/padj, and rank)
-```{r}
-nnsvg_res_list <- readRDS("nnSVG_results_4of8samples_050423.RDS")
-rD <- as.data.table(rowData(nnsvg_res_list[[1]]),keep.rownames=T)
-```
 ### To determine experiment-wide nnSVG-derived SVGs, average the ranks from each sample in our results list.
 
 ```{r}
 i<-1
-for (i in c(1:sum(unique(colData(splc2)$sample_id)%in%names(nnsvg_res_list)))){
+for (i in c(1:sum(unique(colData(hyp2)$sample_id)%in%names(nnsvg_N3Spt5)))){
   if(i==1){
-  nnsvg_ranks <- as.data.table(rowData(nnsvg_res_list[[i]]),keep.rownames=T)
-  nnsvg_ranks <- nnsvg_ranks[,.(rn,gene_name,rank)]
-  setnames(nnsvg_ranks,3,names(nnsvg_res_list)[i])
+  nnsvg_ranks <- nnsvg_N3Spt5[[i]][nnSVG_padj<0.05]
+  nnsvg_ranks <- nnsvg_ranks[,.(gene_id,gene_name,nnSVG_rank)]
+  setnames(nnsvg_ranks,3,names(nnsvg_N3Spt5)[i])
   }
   else{
-  tmp <- as.data.table(rowData(nnsvg_res_list[[i]]),keep.rownames=T)
-  tmp <- tmp[,.(rn,gene_name,rank)]
-  setnames(tmp,3,names(nnsvg_res_list)[i])
-  nnsvg_ranks <- merge.data.table(nnsvg_ranks,tmp,by=c("rn","gene_name"))
+  tmp <- nnsvg_N3Spt5[[i]][nnSVG_padj<0.05]
+  tmp <- tmp[,.(gene_id,gene_name,nnSVG_rank)]
+  setnames(tmp,3,names(nnsvg_N3Spt5)[i])
+  nnsvg_ranks <- merge.data.table(nnsvg_ranks,tmp,by=c("gene_id","gene_name"),all.x=T,all.y=T,incomparables = NA)
   rm(tmp)
   }
 }
 rm(i)
 
-nnsvg_ranks[,meanrank:=rowMeans(.SD),.SDcols=c(3:6)]
+nnsvg_ranks[,meanrank:=rowMeans(.SD,na.rm=T),.SDcols=c(3:10)]
+# write.table(nnsvg_ranks,"analysis/data/01-feature_selection/meangeneranks_nnSVG_samplewise_n3s0.5.txt",sep='\t',quote=F,row.names=F,col.names=T)
 ```
 
-There are 1310 HVGs; let's compare what's unique and shared between the 1310 HVGs and top 1310 SVGs by mean rank.
+There are M HVGs (top 10%ile), N HVGs (top 20%ile); 7767 HVGs significant in at least 1 sample. let's compare what's unique and shared between the M or N HVGs and top (by mean rank) M or N SVGs.
 ```{r}
 setorder(nnsvg_ranks,meanrank)
 sum(splc2.hvgs %in% nnsvg_ranks$rn[1:1310])
