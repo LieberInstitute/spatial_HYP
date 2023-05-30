@@ -43,7 +43,7 @@ names(hyp2.vgs.list)[8] <- "apriori"
 rm(goi.ens,genesofinterest)
 # lists 1 and 2 are the same at the top end -- list 2 just runs 1800 genes further down the rank list
 
-### NOT WORKING ###
+### Workaround for plotMolecules not working--set gene count values as "label". plotMolecules gives this: ###
 # Error in `combine_vars()`:
 # ! At least one layer must contain all faceting variables: `sample_id`
 # ✖ Plot is missing `sample_id`
@@ -58,7 +58,7 @@ for (i in c(2,3,8)){
     for (k in c(1:length(genes))){
         genesymb <- rowData(hyp2)[paste0(genes[k]),"gene_name"]
         colLabels(hyp2) <- logcounts(hyp2)[genes[k],]
-        plt <- plotSpots(hyp2,annotate="label")+
+        plt <- plotSpots(hyp2,annotate="label",palette = c("darkgray","red"))+
             ggtitle(paste0(names(hyp2.vgs.list)[i],"_gene number_",k,"-",genesymb))
         pdf(paste0("plots/01-feature_selection/",names(hyp2.vgs.list)[i],"_gene number_",k,"-",genesymb,".pdf"),width=10,height=10)
         print(plt)
