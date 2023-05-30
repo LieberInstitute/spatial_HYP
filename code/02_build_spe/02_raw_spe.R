@@ -79,11 +79,80 @@ spe <- add_design(spe)
 # dir.create(here::here("processed-data", "pilot_data_checks"), showWarnings = FALSE)
 save(spe, file = here::here("processed-data", "02_build_spe", "spe_raw.Rdata"))
 
+## Read in cell counts and segmentation results
+segmentations_list <-
+  lapply(sample_info$sample_id, function(sampleid) {
+    file <-
+      here(
+        "processed-data",
+        "01_spaceranger_re-run",
+        sampleid,
+        "outs",
+        "spatial",
+        "tissue_spot_counts.csv"
+      )
+    if (!file.exists(file)) {
+      return(NULL)
+    }
+    x <- read.csv(file)
+    x$key <- paste0(x$barcode, "_", sampleid)
+    return(x)
+  })
+
+## Merge them (once the these files are done, this could be replaced by an rbind)
+segmentations <-
+  Reduce(function(...) {
+    merge(..., all = TRUE)
+  }, segmentations_list[lengths(segmentations_list) > 0])
+
+## Add the information
+segmentation_match <- match(spe$key, segmentations$key)
+segmentation_info <-
+  segmentations[segmentation_match, -which(
+    colnames(segmentations) %in% c("barcode", "tissue", "row", "col", "imagerow", "imagecol", "key")
+  )]
+colData(spe) <- cbind(colData(spe), segmentation_info)
+
+## Remove genes with no data
+no_expr <- which(rowSums(counts(spe)) == 0)
+length(no_expr)
+# [1] 6384
+length(no_expr) / nrow(spe) * 100
+# [1] 17.44215
+spe <- spe[-no_expr, ]
+
+
+## For visualizing this later with spatialLIBD
+spe$overlaps_tissue <-
+  factor(ifelse(spe$in_tissue, "in", "out"))
+
+## Save with and without dropping spots outside of the tissue
+spe_raw <- spe
+
+saveRDS(spe_raw, file.path(dir_rdata, "spe_raw.rds"))
+
 ## Size in Gb
-lobstr::obj_size(spe)
-# 5.141452 B
+lobstr::obj_size(spe_raw)
+# 3.50 GB
+
+## Now drop the spots outside the tissue
+spe <- spe_raw[, spe_raw$in_tissue]
 dim(spe)
-# 36601 159744
+# [1] 30217 75214
+## Remove spots without counts
+if (any(colSums(counts(spe)) == 0)) {
+  message("removing spots without counts for spe")
+  spe <- spe[, -which(colSums(counts(spe)) == 0)]
+  dim(spe)
+}
+
+# removing spots without counts for spe
+# [1] 30217 75209
+
+lobstr::obj_size(spe)
+# 3.47 GB
+
+saveRDS(spe, file.path(dir_rdata, "spe.rds"))
 
 ## Reproducibility information
 print("Reproducibility information:")
