@@ -214,3 +214,85 @@ Warning messages:
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 **** Job ends ****
 Wed May 17 15:35:27 EDT 2023
+Adding LIBD modules
+Loading git
+Loading LIBD module for git-status-size/github
+Loading LIBD module for git-lfs/2.8.0
+Loading LIBD module for rmate/1.5.10
+Loading LIBD module for ruby/3.1.2
+Loading conda_R/4.3
+**** Job starts ****
+Tue May 30 16:11:48 EDT 2023
+**** JHPCE info ****
+User: rmiller
+Job id: 3210309
+Job name: spatialHYP_build_spe
+Hostname: compute-147.cm.cluster
+Task id: undefined
+Unloading conda_R/4.3
+Loading conda_R/4.3
+
+Currently Loaded Modules:
+  1) matlab/R2019a     6) COMMUNITY_CENTOS7_DEFAULT_ENV  11) ruby/3.1.2
+  2) stata/17          7) JHPCE_CENTOS7_DEFAULT_ENV      12) rmate/1.5.10
+  3) JHPCE_tools/1.0   8) git-status-size/github         13) conda/3-4.11.0
+  4) sge/8.1.9         9) git/2.28.0                     14) conda_R/4.3
+  5) gcc/4.4.7        10) git-lfs/2.8.0
+
+ 
+
+[1] "2023-05-30 16:12:13 EDT"
+2023-05-30 16:12:13.601952 SpatialExperiment::read10xVisium: reading basic data from SpaceRanger
+2023-05-30 16:13:46.566987 read10xVisiumAnalysis: reading analysis output from SpaceRanger
+2023-05-30 16:13:51.707984 add10xVisiumAnalysis: adding analysis output from SpaceRanger
+2023-05-30 16:13:53.357355 rtracklayer::import: reading the reference GTF file
+2023-05-30 16:14:29.537738 adding gene information to the SPE object
+2023-05-30 16:14:29.684916 adding information used by spatialLIBD
+[1] "2023-05-30 16:14:34 EDT"
+Error in DataFrame(..., check.names = FALSE) : 
+  different row counts implied by arguments
+Calls: cbind ... eval -> eval -> eval -> cbind -> cbind -> DataFrame
+Execution halted
+**** Job ends ****
+Tue May 30 16:18:55 EDT 2023
+Adding LIBD modules
+Loading git
+Loading LIBD module for git-status-size/github
+Loading LIBD module for git-lfs/2.8.0
+Loading LIBD module for rmate/1.5.10
+Loading LIBD module for ruby/3.1.2
+Loading conda_R/4.3
+**** Job starts ****
+Tue May 30 16:27:55 EDT 2023
+**** JHPCE info ****
+User: rmiller
+Job id: 3210313
+Job name: spatialHYP_build_spe
+Hostname: compute-127.cm.cluster
+Task id: undefined
+Unloading conda_R/4.3
+Loading conda_R/4.3
+
+Currently Loaded Modules:
+  1) matlab/R2019a     6) COMMUNITY_CENTOS7_DEFAULT_ENV  11) ruby/3.1.2
+  2) stata/17          7) JHPCE_CENTOS7_DEFAULT_ENV      12) rmate/1.5.10
+  3) JHPCE_tools/1.0   8) git-status-size/github         13) conda/3-4.11.0
+  4) sge/8.1.9         9) git/2.28.0                     14) conda_R/4.3
+  5) gcc/4.4.7        10) git-lfs/2.8.0
+
+ 
+
+[1] "2023-05-30 16:28:23 EDT"
+2023-05-30 16:28:23.608243 SpatialExperiment::read10xVisium: reading basic data from SpaceRanger
+2023-05-30 16:30:04.142837 read10xVisiumAnalysis: reading analysis output from SpaceRanger
+2023-05-30 16:30:10.43551 add10xVisiumAnalysis: adding analysis output from SpaceRanger
+2023-05-30 16:30:12.31828 rtracklayer::import: reading the reference GTF file
+2023-05-30 16:30:51.462266 adding gene information to the SPE object
+2023-05-30 16:30:51.622128 adding information used by spatialLIBD
+[1] "2023-05-30 16:30:56 EDT"
+Error in DataFrame(..., check.names = FALSE) : 
+  different row counts implied by arguments
+Calls: cbind ... eval -> eval -> eval -> cbind -> cbind -> DataFrame
+Execution halted
+**** Job ends ****
+Tue May 30 16:34:56 EDT 2023
