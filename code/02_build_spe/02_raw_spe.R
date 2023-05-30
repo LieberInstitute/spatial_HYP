@@ -127,18 +127,20 @@ spe$overlaps_tissue <-
   factor(ifelse(spe$in_tissue, "in", "out"))
 
 ## Save with and without dropping spots outside of the tissue
-spe_raw <- spe
+#spe_raw <- spe
 
-saveRDS(spe_raw, file.path(dir_rdata, "spe_raw.rds"))
+save(spe, file = here::here("processed-data", "02_build_spe", "spe_raw.Rdata"))
 
 ## Size in Gb
-lobstr::obj_size(spe_raw)
-# 3.50 GB
+lobstr::obj_size(spe)
+# 2.07GB
+
 
 ## Now drop the spots outside the tissue
+spe_raw <- spe
 spe <- spe_raw[, spe_raw$in_tissue]
 dim(spe)
-# [1] 30217 75214
+# [1] 36601 37298
 ## Remove spots without counts
 if (any(colSums(counts(spe)) == 0)) {
   message("removing spots without counts for spe")
@@ -147,12 +149,12 @@ if (any(colSums(counts(spe)) == 0)) {
 }
 
 # removing spots without counts for spe
-# [1] 30217 75209
+# [1] 36601 37290
 
 lobstr::obj_size(spe)
-# 3.47 GB
+# 2.04 GB
 
-saveRDS(spe, file.path(dir_rdata, "spe.rds"))
+save(spe, file = here::here("processed-data", "02_build_spe", "spe.Rdata"))
 
 ## Reproducibility information
 print("Reproducibility information:")
