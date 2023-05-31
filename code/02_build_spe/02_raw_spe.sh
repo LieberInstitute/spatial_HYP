@@ -1,10 +1,9 @@
 #!/bin/bash
 #$ -cwd
-#$ -l mem_free=20G,h_vmem=20G,h_fsize=100G
+#$ -l h_fsize=100G
 #$ -N spatialHYP_build_spe
 #$ -o logs/raw_spe.txt
 #$ -e logs/raw_spe.txt
-#$ -m e
 
 echo "**** Job starts ****"
 date

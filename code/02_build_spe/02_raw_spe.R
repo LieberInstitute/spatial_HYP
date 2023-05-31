@@ -85,7 +85,8 @@ segmentations_list <-
     file <-
       here(
         "processed-data",
-        "01_spaceranger_re-run",
+        "01_spaceranger",
+        "spaceranger_230511",
         sampleid,
         "outs",
         "spatial",
@@ -116,9 +117,9 @@ colData(spe) <- cbind(colData(spe), segmentation_info)
 ## Remove genes with no data
 no_expr <- which(rowSums(counts(spe)) == 0)
 length(no_expr)
-# [1] 6384
+# [1] 6345
 length(no_expr) / nrow(spe) * 100
-# [1] 17.44215
+# [1] 17.33559
 spe <- spe[-no_expr, ]
 
 
@@ -127,18 +128,20 @@ spe$overlaps_tissue <-
   factor(ifelse(spe$in_tissue, "in", "out"))
 
 ## Save with and without dropping spots outside of the tissue
-spe_raw <- spe
+#spe_raw <- spe
 
-saveRDS(spe_raw, file.path(dir_rdata, "spe_raw.rds"))
+save(spe, file = here::here("processed-data", "02_build_spe", "spe_raw.Rdata"))
 
 ## Size in Gb
-lobstr::obj_size(spe_raw)
-# 3.50 GB
+lobstr::obj_size(spe)
+# 2.07GB
+
 
 ## Now drop the spots outside the tissue
+spe_raw <- spe
 spe <- spe_raw[, spe_raw$in_tissue]
 dim(spe)
-# [1] 30217 75214
+# [1] 36601 37298
 ## Remove spots without counts
 if (any(colSums(counts(spe)) == 0)) {
   message("removing spots without counts for spe")
@@ -147,12 +150,12 @@ if (any(colSums(counts(spe)) == 0)) {
 }
 
 # removing spots without counts for spe
-# [1] 30217 75209
+# [1] 30256 37290
 
 lobstr::obj_size(spe)
-# 3.47 GB
+# 2.04 GB
 
-saveRDS(spe, file.path(dir_rdata, "spe.rds"))
+save(spe, file = here::here("processed-data", "02_build_spe", "spe.Rdata"))
 
 ## Reproducibility information
 print("Reproducibility information:")
