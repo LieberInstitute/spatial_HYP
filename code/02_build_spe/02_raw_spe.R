@@ -85,7 +85,8 @@ segmentations_list <-
     file <-
       here(
         "processed-data",
-        "01_spaceranger_re-run",
+        "01_spaceranger",
+        "spaceranger_230511",
         sampleid,
         "outs",
         "spatial",
@@ -116,9 +117,9 @@ colData(spe) <- cbind(colData(spe), segmentation_info)
 ## Remove genes with no data
 no_expr <- which(rowSums(counts(spe)) == 0)
 length(no_expr)
-# [1] 6384
+# [1] 6345
 length(no_expr) / nrow(spe) * 100
-# [1] 17.44215
+# [1] 17.33559
 spe <- spe[-no_expr, ]
 
 
@@ -149,7 +150,7 @@ if (any(colSums(counts(spe)) == 0)) {
 }
 
 # removing spots without counts for spe
-# [1] 36601 37290
+# [1] 30256 37290
 
 lobstr::obj_size(spe)
 # 2.04 GB
