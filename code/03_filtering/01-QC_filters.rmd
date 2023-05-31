@@ -21,8 +21,8 @@ library(scran)
 
 ## load assembled, unfiltered data
 ```{r}
-# from dcs04; in gitignore
-load("data/spe_raw.Rdata")
+# from dcs04; in gitignore; new version from Ryan M 053123
+load("data/spe_raw_053123.Rdata")
 hyp <- spe
 rm(spe)
 ```
@@ -30,7 +30,7 @@ rm(spe)
 ```{r}
 dim(hyp)
 head(colData(hyp))
-tail(colData(splc))
+tail(colData(hyp))
 ```
 
 ## oo % mitochondrial already added in! Thanks Ryan!
@@ -145,11 +145,17 @@ dev.off()
 plotSpots(hyp2,annotate = "sum_umi",palette = palette("ggplot2"))
 ### umis are definitely spatially differential to distinct areas (and not in a soft gradient at all like mitochondrial %age)
 plotSpots(hyp2,annotate="sum_gene",palette=palette("ggplot2"))
-
+dev.off()
 ### and as a rough estimator of gene diversity per RNA density andor seq depth:
 colData(hyp2)$g_per_u <- colData(hyp2)$sum_gene/colData(hyp2)$sum_umi
 plotSpots(hyp2,annotate="g_per_u",palette=palette("ggplot2"))
-### i bet if and when we have cell counts, this correlates decently to it. but meanwhile, nothing too wild going on. most spots pick up a new gene for every 1-2 additional UMIs. a few are very low xscriptional complexity, e.g. lower RH of 075-D1.
+#nothing too wild going on. most spots pick up a new gene for every 1-2 additional UMIs. a few are very low xscriptional complexity, e.g. lower RH of 075-D1.
+
+tmpdat <- as.data.table(colData(hyp2))
+### now that we have cell auto-counts, i bet this g per u correlates decently to number of cells... 
+ggplot(colData(hyp2),aes(x=g_per_u,y=Nmask_dark_blue))+geom_point()
+## eh..correlates mediocrely
+
 dev.off()
 ```
 
@@ -171,7 +177,7 @@ dev.off()
 # append log counts using scater (don't use the SpatialExpt:: function here, that's for RETRIEVING an assay by the name of "logcounts" from spe objs)
 hyp2 <- scater::logNormCounts(hyp2)
 stopifnot(dim(counts(hyp2))==dim(logcounts(hyp2)))
-# saveRDS(hyp2,"data/processing/hyp_umi600_gene450_chrm35_lognorm.RDS")
+# saveRDS(hyp2,"data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
 
 rm(hyp)
 gc(full=T)
