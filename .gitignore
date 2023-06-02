@@ -1,0 +1,31 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+#Data directories
+/processed-data/01_spaceranger/Images/*.tif
+/processed-data/01_spaceranger/Images/loupe/*.png
+/raw-data/Images/*
+/processed-data/processed-data/02_build_spe/*
+/processed-data/processed-data/Images/*.csv
+/processed-data/Images/VistoSeg/Capture_areas/*.csv
+/code/VistoSeg/
+
+*mri.tgz
+*bam
+*bam.bai
+*h5
+<<<<<<< HEAD
+=======
+# analysis
+>>>>>>> 0ee5159bad9f739460322c15f37b137998f67013
+*spatial_enrichment.csv
+*cloupe
+SPATIAL_RNA_COUNTER_CS
+*.gz
+*.rda
+*.Rdata
+*.rds
+*.tif
+*.mat
