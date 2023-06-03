@@ -93,46 +93,72 @@ for (i in c(1:length(varperblock))){
 }
 
 library(gridExtra)
-pdf("plots/H01-feature_selection_and_harmony/samplewiseblocking_meanvars.pdf",height=14,width=10)
+# pdf("plots/H01-feature_selection_and_harmony/samplewiseblocking_meanvars.pdf",height=14,width=10)
 do.call("grid.arrange",c(plts,nrow=4,ncol=2))
 dev.off()
 rm(plts,varperblock)
 ```
 
-get top 10, 20 %ile HVGs from sample_id-blocking'd variances
+#### nnSVG-run:
+does not take batch variables nor does it take in reduced dims. So these results are actually unchanged from pre-harmony.
+
+# filepath to those results are therefore in the harmony-less data directories: analysis/data/01-feature_selection/nnSVG_samplewise_n3s0.5_052423.RDS and analysis/data/01-feature_selection/meangeneranks_nnSVG_samplewise_n3s0.5.txt
+#### 
+
+get top 10, 20 %ile HVGs from sample_id-blocking'd variances; run harmony on top 10 and 20 HVGs and top 10, 20 nnsvg
 ```{r}
+nnsvgs <- fread("analysis/data/01-feature_selection/meangeneranks_nnSVG_samplewise_n3s0.5.txt")
+setorderv(nnsvgs,"meanrank",1)
+# for simplicity, retrieve ENS ids here since that's whta the HVGs are
+nnsvg10 <- nnsvgs[c(1:length(hyp2.hvg10)),gene_id]
+nnsvg20 <- nnsvgs[c(1:length(hyp2.hvg20)),gene_id]
+
 hyp2.hvg10 <- scran::getTopHVGs(hyp2.vars,prop = 0.1)
 hyp2.hvg20 <- scran::getTopHVGs(hyp2.vars,prop=0.2)
 
-
-saveRDS(hyp2.hvg10,"analysis/data/H01-feature_selection/HVG10pctile_sample-blocked.RDS")
-saveRDS(hyp2.hvg20,"analysis/data/H01-feature_selection/HVG20pctile_sample-blocked.RDS")
+# saveRDS(hyp2.hvg10,"analysis/data/H01-feature_selection/HVG10pctile_sample-blocked.RDS")
+# saveRDS(hyp2.hvg20,"analysis/data/H01-feature_selection/HVG20pctile_sample-blocked.RDS")
 
 pcas <- list()
 set.seed(42)
 pcas[[1]] <- scater::runPCA(hyp2,subset_row=hyp2.hvg10)
 set.seed(42)
 pcas[[2]] <- scater::runPCA(hyp2,subset_row=hyp2.hvg20)
+set.seed(42)
+pcas[[3]] <- scater::runPCA(hyp2,subset_row=nnsvg10)
+set.seed(42)
+pcas[[4]] <- scater::runPCA(hyp2,subset_row=nnsvg20)
 
 set.seed(42)
 pcas[[1]] <- scater::runUMAP(pcas[[1]],dimred="PCA")
 set.seed(42)
 pcas[[2]] <- scater::runUMAP(pcas[[2]],dimred="PCA")
+set.seed(42)
+pcas[[3]] <- scater::runUMAP(pcas[[3]],dimred="PCA")
+set.seed(42)
+pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="PCA")
+
 
 set.seed(42)
-pcas[[1]] <- RunHarmony(pcas[[1]],group.by.vars = "brnum")
+pcas[[1]] <- RunHarmony(pcas[[1]],group.by.vars = "sample_id")
 set.seed(42)
-pcas[[2]] <- RunHarmony(pcas[[2]],group.by.vars = "brnum")
+pcas[[2]] <- RunHarmony(pcas[[2]],group.by.vars = "sample_id")
+set.seed(42)
+pcas[[3]] <- RunHarmony(pcas[[3]],group.by.vars = "sample_id")
+set.seed(42)
+pcas[[4]] <- RunHarmony(pcas[[4]],group.by.vars = "sample_id")
+
 
 set.seed(42)
 pcas[[1]] <- scater::runUMAP(pcas[[1]],dimred="HARMONY",name="HARMONY_UMAP")
 set.seed(42)
 pcas[[2]] <- scater::runUMAP(pcas[[2]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[3]] <- scater::runUMAP(pcas[[3]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="HARMONY",name="HARMONY_UMAP")
 
-names(pcas) <- c("hvg10pctile","hvg20pctile")
+names(pcas) <- c("hvg10pctile","hvg20pctile","nnsvg10pctile","nnsvg20pctile")
 
-# saveRDS(pcas,"analysis/data/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_brnumBlock-Harmony-PCA-UMAP.RDS")
-
-rm(hyp2,hyp2.vars,hyp2.hvg10,hyp2.hvg20,i,rn)
-gc(full=T)
+saveRDS(pcas,"analysis/data/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
 ```

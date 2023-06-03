@@ -1,0 +1,160 @@
+---
+title: "01-plot k5-10 hvg10-20 nnsvg10-20 walktrap cut9-15-20-31 on harmony corrected UMAP, PCA, spots.Rmd"
+author: "Bernie Mulvey"
+date: "2023-05-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater) # addPerCellQC
+# library(nnSVG)
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(Polychrome)
+# library(fasthplus)
+library(scCustomize)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+# load required objs
+```{r}
+walktraps <- readRDS("analysis/data/H02-clustering/walktraps_snn5.10_HVG1020-OR-SVG-1020_cut9.15.20.31.RDS")
+
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+
+hyp2.hvgs.list <- list()
+hyp2.hvgs.list[[1]] <- readRDS("analysis/data/H01-feature_selection/HVG10pctile_sample-blocked.RDS")
+hyp2.hvgs.list[[2]] <- readRDS("analysis/data/H01-feature_selection/HVG20pctile_sample-blocked.RDS")
+
+pcas <- readRDS("analysis/data/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
+
+```
+
+
+## plot cluster assignments onto spatial spots
+```{r}
+hyp2.tmp <- hyp2
+
+k<-1
+for (k in c(1:length(walktraps))){
+    colLabels(hyp2.tmp) <- factor(walktraps[[k]])
+    # the much simpler call to polychrome is not resulting in any actual colors assigned to the plots for some reason. but this roundabout way works. something's gone real wonky with my ggspavis installation.
+    plt <- ggspavis::plotSpots(hyp2.tmp, annotate = "label",palette = DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(
+          hyp2.tmp
+      )$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)]
+  )+
+ggtitle(paste0("harmony_walktrap_",names(walktraps)[k]))
+
+    pdf(paste0("plots/H02-clustering/",names(walktraps)[k],"_cluster_spotplot.pdf"),height=8,width=10)
+    print(plt)
+    dev.off()
+    rm(plt)
+}
+rm(k)
+```
+
+### ...and onto Harmony PCA...
+```{r}
+hyp2.tmp <- hyp2
+
+k<-1
+i<-1
+for (i in c(1:length(pcas))){
+    if (i==1){
+        # PCA of hvg10, snn5, cut_at 9 15 20 31
+        ks <- grep(names(walktraps),pattern="hvg10")
+    }
+    else if (i==2){
+        ks <- grep(names(walktraps),pattern="hvg20")
+    }
+    else if (i==3){
+        ks <- grep(names(walktraps),pattern="nnsvg10")
+    }
+    else if (i==4){
+        ks <- grep(names(walktraps),pattern="nnsvg20")
+    }
+    for (k in ks){
+        colLabels(hyp2.tmp) <- walktraps[[k]]
+        # ^ making this a factor downstream since d.t. will coerce back to numeric
+        pltdat <- cbind(reducedDims(pcas[[i]])$HARMONY[,c(1,2)],colData(hyp2.tmp)$label)
+        pltdat <- as.data.table(pltdat)
+        setnames(pltdat,c("HARMONY_Dim1","HARMONY_Dim2","label"))
+        pltdat[,label:=factor(label)]
+        plt <- ggplot(pltdat,aes(x=HARMONY_Dim1,y=HARMONY_Dim2,col=label))+
+            geom_point()+
+            scale_color_discrete(DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(hyp2.tmp)$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)]) +
+            ggtitle(paste0(names(pcas)[i],"_walktrap_",names(walktraps)[k]))
+      pdf(paste0("plots/H02-clustering/01-walktrap_cut9-15-20-31_harmonyPCA/",names(walktraps)[k],"_clusters_harmonyPCA.pdf"),height=8,width=10)
+      print(plt)
+      dev.off()
+      rm(plt)
+    }
+}
+  
+rm(i,k)
+
+```
+
+### ..and umap
+```{r}
+hyp2.tmp <- hyp2
+
+plts <- list()
+k<-1
+i<-1
+for (i in c(1:length(pcas))){
+    if (i==1){
+        # PCA of hvg10, snn5, cut_at 9 15 20 31
+        ks <- grep(names(walktraps),pattern="hvg10")
+    }
+    else if (i==2){
+        ks <- grep(names(walktraps),pattern="hvg20")
+    }
+    else if (i==3){
+        ks <- grep(names(walktraps),pattern="nnsvg10")
+    }
+    else if (i==4){
+        ks <- grep(names(walktraps),pattern="nnsvg20")
+    }
+    for (k in ks){
+        colLabels(hyp2.tmp) <- walktraps[[k]]
+        # ^ making this a factor downstream since d.t. will coerce back to numeric
+        pltdat <- cbind(reducedDims(pcas[[i]])$HARMONY_UMAP[,c(1,2)],colData(hyp2.tmp)$label)
+        pltdat <- as.data.table(pltdat)
+        setnames(pltdat,c("HARMONY_UMAP1","HARMONY_UMAP2","label"))
+        pltdat[,label:=factor(label)]
+        plt <- ggplot(pltdat,aes(x=HARMONY_UMAP1,y=HARMONY_UMAP2,col=label))+
+         geom_point()+
+                 scale_color_discrete(DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(
+              hyp2.tmp
+          )$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)])+
+        ggtitle(paste0(names(pcas)[i],"_walktrap_",names(walktraps)[k]))
+        pdf(paste0("plots/H02-clustering/01-walktrap_cut9-15-20-31_harmonyUMAP/",names(walktraps)[k],"_clusters_harmonyUMAP.pdf"),height=8,width=10)
+      print(plt)
+      dev.off()
+      rm(plt)
+    }
+    rm(ks,k)
+}
+rm(i,k)
+
+
+## clean up
+rm(hyp2.tmp,plt,pltdat)
+```
