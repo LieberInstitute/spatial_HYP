@@ -1,0 +1,217 @@
+---
+title: "02-plot Bayesspace q9-15-20-31 clusters from harmonyd hvg10-20 nnsvg10-20"
+author: "Bernie Mulvey"
+date: "2023-06-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+# library(scater) # addPerCellQC
+# library(nnSVG)
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(Polychrome)
+# library(fasthplus)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### load object with the harmonyPCA and harmonyUMAPs for these four feature sets for plotting purposes in those spaces. load bayesspace cluster assignments.
+```{r}
+pcas <- readRDS("analysis/data/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
+
+### clone an spe out of this ^ for the spotplotting
+hyp2.tmp <- pcas[[1]]
+
+bs_clusts <- list.files("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",pattern=".txt")
+```
+
+spotplots
+```{r}
+i <- 1
+for (i in c(1:length(bs_clusts))) {
+    curclusts <-
+        fread(
+            paste0(
+                "analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
+                bs_clusts[i]
+            )
+        )
+    
+    curclusts <- as.data.frame(curclusts)
+    rownames(curclusts) <- curclusts$rn
+    
+    if (sum(rownames(curclusts) == rownames(colData(hyp2.tmp))) != nrow(colData(hyp2.tmp))) {
+        curclusts <- curclusts[rownames(colData(hyp2.tmp)), ]
+    }
+    
+    colLabels(hyp2.tmp) <- factor(curclusts[, 2])
+    
+    plt <-
+        plotSpots(
+            hyp2.tmp,
+            annotate = "label",
+            palette = paste0(Polychrome::palette36.colors(n = length(
+                unique(curclusts[, 2])
+            )))
+        ) +
+        ggtitle(paste0(
+            "BSpace ",
+            gsub(bs_clusts[i], pattern = "^BSpace_Harmony_(.*)_.*\\.txt$", replacement =
+                     "\\1"),
+            " q=",
+            gsub(bs_clusts[i], pattern = "^BSpace_Harmony_.*_(.*)\\.txt$", replacement =
+                     "\\1")
+        ))
+    pdf(
+        paste0(
+            "plots/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_spotplots/",
+            gsub(bs_clusts[i], pattern = "^(.*)\\.txt$", replacement = "\\1"),
+            ".pdf"
+        ),
+        width = 10,
+        height = 8
+    )
+    print(plt)
+    dev.off()
+    rm(plt, curclusts)
+}
+
+rm(hyp2.tmp)
+```
+
+## for PCA and UMAP plotting below: set unadjusted data PCA, UMAP dimred names in the list of SPEs to uncor_PCA, uncor_UMAP so that we can trick plotDimRed into using the HARMONY results as in the plotting loop
+```{r}
+pcas <- lapply(
+    pcas,
+    FUN = function(x) {
+        reducedDimNames(x)[which(reducedDimNames(x) == "PCA")] <-
+            "uncor_PCA"
+        reducedDimNames(x)[which(reducedDimNames(x) == "UMAP")] <-
+            "uncor_UMAP"
+        x
+    }
+)
+```
+
+Plot on feature-set-matched harmonyPCA
+
+the BS_clusts file list conveniently is sorted in the same order as the PCA table (hvg10, hvg20, svg10, svg20)
+```{r}
+i <- 1
+for (i in c(1:length(bs_clusts))) {
+    k <- ceiling(i / 4)
+    curclusts <-
+        fread(
+            paste0(
+                "analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
+                bs_clusts[i]
+            )
+        )
+    curclusts <- as.data.frame(curclusts)
+    rownames(curclusts) <- curclusts$rn
+    if (sum(rownames(curclusts) == rownames(colData(pcas[[k]]))) != nrow(colData(pcas[[k]]))) {
+        curclusts <- curclusts[rownames(colData(pcas[[k]])), ]
+    }
+    
+    colLabels(pcas[[k]]) <- factor(curclusts[, 2])
+    reducedDimNames(pcas[[k]])[which(reducedDimNames(pcas[[k]]) == "HARMONY")] <-
+        "PCA"
+    colnames(pcas[[k]]@int_colData@listData$reducedDims@listData$PCA)[c(1,2)] <- c("PC1","PC2") 
+    
+    plt <-
+        plotDimRed(
+            pcas[[k]],
+            type = "PCA",
+            annotate = "label",
+            palette = paste0(Polychrome::palette36.colors(n = length(
+                unique(curclusts[, 2])
+            )))
+        ) +
+        ggtitle(paste0(
+            "BSpace ",
+            gsub(bs_clusts[i], pattern = "^BSpace_Harmony_(.*)_.*\\.txt$", replacement =
+                     "\\1"),
+            " q=",
+            gsub(bs_clusts[i], pattern = "^BSpace_Harmony_.*_(.*)\\.txt$", replacement =
+                     "\\1")
+        ))
+    pdf(
+        paste0(
+            "plots/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_harmonyPCA/",
+            gsub(bs_clusts[i], pattern = "^(.*)\\.txt$", replacement = "\\1"),
+            ".pdf"
+        ),
+        width = 10,
+        height = 8
+    )
+    print(plt)
+    dev.off()
+    rm(plt, curclusts)
+}
+
+```
+
+
+plot onto respective UMAPs
+```{r}
+
+i <- 1
+for (i in c(1:length(bs_clusts))) {
+    k <- ceiling(i / 4)
+    
+    curclusts <- fread(
+        paste0("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
+               bs_clusts[i]))
+    
+    curclusts <- as.data.frame(curclusts)
+    rownames(curclusts) <- curclusts$rn
+    if (sum(rownames(curclusts) == rownames(colData(pcas[[k]]))) != nrow(colData(pcas[[k]]))) {
+        curclusts <- curclusts[rownames(colData(pcas[[k]])), ]
+    }
+    
+    colLabels(pcas[[k]]) <- factor(curclusts[, 2])
+    reducedDimNames(pcas[[k]])[which(reducedDimNames(pcas[[k]]) == "HARMONY_UMAP")] <- "UMAP"
+    colnames(pcas[[k]]@int_colData@listData$reducedDims@listData$UMAP) <- c("UMAP1","UMAP2") 
+    
+    plt <-
+        plotDimRed(
+            pcas[[k]],
+            type = "UMAP",
+            annotate = "label",
+            palette = paste0(Polychrome::palette36.colors(n = length(
+                unique(curclusts[, 2]))))) +
+        ggtitle(paste0("BSpace ",
+            gsub(bs_clusts[i], pattern = "^BSpace_Harmony_(.*)_.*\\.txt$", replacement =
+                     "\\1"),
+            " q=",
+            gsub(bs_clusts[i], pattern = "^BSpace_Harmony_.*_(.*)\\.txt$", replacement =
+                     "\\1")))
+    
+    pdf(paste0("plots/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_harmonyUMAP/",
+            gsub(bs_clusts[i], pattern = "^(.*)\\.txt$", replacement = "\\1"),
+            ".pdf"),
+        width = 10,
+        height = 8
+    )
+    print(plt)
+    dev.off()
+    
+    rm(plt, curclusts)
+}
+```
