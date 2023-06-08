@@ -1,0 +1,89 @@
+---
+title: "02-BSpace hvg, svg q9-15-20-31 clusterings marker genes"
+author: "Bernie Mulvey"
+date: "2023-06-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater) # addPerCellQC
+library(BiocParallel)
+library(scran)
+library(parallel)
+# library(scCustomize)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+load required files
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+rownames(colData(hyp2)) <- colData(hyp2)$key
+
+bscl <- list.files("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
+
+bscls <- lapply(bscl,FUN=fread)
+names(bscls) <- gsub(bscl,pattern="^.*9-15-20-31_out\\/BSpace_Harmony_(.*)\\.txt$",replacement="\\1")
+```
+
+several different approaches within findMarkers() discussed in Bioconductor v 3.12's OSCA (though some of this is no longer in the book as of v3.17).
+
+```{r}
+bpparam <- MulticoreParam(workers=8)
+register(bpparam)
+bs.markers <- bplapply(bscls,BPPARAM=bpparam,FUN=function(x){
+    y <- as.data.frame(x)
+    rownames(y) <- y$rn
+    # safeguard against reordered rows
+    if((sum(rownames(colData(hyp2))==rownames(y)))!=ncol(hyp2)){
+        y <- y[rownames(colData(hyp2)),]
+    }
+    # row names as gene symbols for sanity
+    rownames(hyp2) <- rowData(hyp2)$gene_name
+    colLabels(hyp2) <- factor(y[,2])
+    rm(y)
+    gc(full=T)
+    
+    mks_bino_pany <- findMarkers(hyp2,test="binom",direction="up")
+    mks_bino_pall <- findMarkers(hyp2,test="binom",direction="up",pval.type="all")
+    mks_t_pany <- findMarkers(hyp2,direction="up")
+    mks_t_pall <- findMarkers(hyp2,pval.type="all",direction="up")
+    mks_wcx_pany <- findMarkers(hyp2,test="wilcox",direction="up")
+    mks_wcx_pall <- findMarkers(hyp2,test="wilcox",direction="up",pval.type="all")
+    
+    # get rid of "Top" columns from pany -- multimarker expects same # cols in all
+    mks_bino_pany <- lapply(mks_bino_pany,FUN=function(x){x[,c(2:ncol(x))]})
+    mks_t_pany <- lapply(mks_t_pany,FUN=function(x){x[,c(2:ncol(x))]})
+    mks_wcx_pany <- lapply(mks_wcx_pany,FUN=function(x){x[,c(2:ncol(x))]})
+    ## combine
+    multistat <- multiMarkerStats(
+        mks_bino_pany=mks_bino_pany,
+        mks_bino_pall=mks_bino_pall,
+        mks_t_pany=mks_t_pany,
+        mks_t_pall=mks_t_pall,
+        mks_wcx_pany=mks_wcx_pany,
+        mks_wcx_pall=mks_wcx_pall
+    )
+    multistat
+})
+names(bs.markers) <- names(bscls)
+
+saveRDS(bs.markers,"analysis/data/H03-marker_genes/BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
+
+```
+
+
