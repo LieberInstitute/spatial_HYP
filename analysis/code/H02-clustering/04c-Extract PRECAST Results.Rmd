@@ -1,0 +1,77 @@
+---
+title: "04c-Extract PRECAST Results"
+author: "Bernard Mulvey"
+date: "2023-06-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+library(Seurat)
+library(SpatialExperiment)
+library(PRECAST)
+library(spatialLIBD)
+library(ggplot2)
+library(gridExtra)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### load required objects
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+
+precast_rdses <- list.files("analysis/data/H02-clustering/04-precast_hvgsvg/precast_hvg-svg_out",pattern=".RDS",full.names = T)
+
+```
+
+
+### Following Tony R's script for PRECAST -> spe conversion, as a loop for memory effish: https://github.com/LieberInstitute/spatial_hpc/blob/main/code/06_clustering/PRECAST/03_PRECAST_to_spe.R
+```{r}
+precast_list <- list()
+
+i<-1
+for (i in c(1:length(precast_rdses))){
+    tmp <- readRDS(precast_rdses[i])
+    # this next line IS necessary
+    tmp <- SelectModel(tmp)
+    tmp <- IntegrateSpaData(tmp,species="Human")
+    clustdt <- as.data.table(cbind(rownames(tmp@meta.data),tmp@meta.data$cluster))
+    rm(tmp)
+    setnames(clustdt,c("rn","label"))
+    if (sum(clustdt$rn==colnames(hyp2))!=ncol(hyp2)){
+        if(length(clustdt$rn)!=ncol(hyp2)){
+            clustdt2 <- as.data.table(colnames(hyp2))
+            setnames(clustdt2,"rn")
+            ### auto fill NA for spots without a cluster assignment:
+            clustdt <- merge.data.table(clustdt,clustdt2,by="rn",all.y=T)
+            rm(clustdt2)
+        }
+        # eitehr way, now we sort to get the data back in the desired order. this is simpler than in Tony's script because we've changed the rownames to be an experiment-wide unique key value
+        clustdt <- as.data.frame(clustdt)
+        rownames(clustdt) <- clustdt$rn
+        clustdt <- clustdt[colnames(hyp2),]
+    }
+    precast_list[[(length(precast_list)+1)]] <- clustdt
+    names(precast_list)[length(precast_list)] <- gsub(precast_rdses[i],pattern="^.*hvg-svg_out\\/(.*_k.*)_precast.*$",replacement="\\1")
+    rm(clustdt)
+}
+
+# check that the # of clusters assigned are corrected for each table
+lapply(precast_list,FUN=function(x){length(unique(x$label))})
+# oops, fix the list names
+names(precast_list) <- gsub(names(precast_list),pattern="^/(.*)$",replacement="\\1")
+
+# saveRDS(precast_list,"analysis/data/H02-clustering/04c-PRECAST_clusters_hvg1020_nnsvg1020_k9-15-20-31.RDS")
+```

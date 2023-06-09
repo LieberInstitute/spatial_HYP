@@ -10,7 +10,7 @@ library(PRECAST)
 #### before seurat conversion, coldata added under new entries 'row' and 'col' corresponding to $array_row and $array_col
 
 feats <- readRDS("hvg_svg_sets_list.RDS")
-seulist <- load("seurat_list_forprecast.RData")
+seulist <- readRDS("seurat_list_forprecast.RDS")
 
 ### build table with constants (k value from among the optimized values of 9/15/20/31 and feature set to retrieve)
 
@@ -28,7 +28,7 @@ i <- as.numeric(Sys.getenv("SGE_TASK_ID"))
 ### as well as Erik's code for bypassing SPARK-X and passing in other genes
 # providing a custom gene list suppresses SPARK-X.
 
-preobj = CreatePRECASTObject(seulist,customGenelist = featlist[[fks[i,1]]])
+preobj = CreatePRECASTObject(seuList=seulist,customGenelist = feats[[fks[i,1]]])
 
 PRECASTObj <- AddAdjList(preobj, platform = "Visium")
 
@@ -37,8 +37,7 @@ PRECASTObj <- AddParSetting(PRECASTObj, Sigma_equal = FALSE, coreNum = 8, maxIte
 
 
 PRECASTObj <- PRECAST(PRECASTObj, K = fks[i,2])
-save(PRECASTobj,paste0("precast_hvg-svg_out/",names(feats)[fks[i,1]],"_k",fks[i,2],"_precast_clusts.RData"))
 
-rm(list=ls())
-gc(full=T)
+saveRDS(PRECASTObj,paste0("precast_hvg-svg_out/",names(feats)[fks[i,1]],"_k",fks[i,2],"_precast_clusts.RDS"))
+
 session.info()

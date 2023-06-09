@@ -40,7 +40,9 @@ bscls <- lapply(bscl,FUN=fread)
 names(bscls) <- gsub(bscl,pattern="^.*9-15-20-31_out\\/BSpace_Harmony_(.*)\\.txt$",replacement="\\1")
 ```
 
-several different approaches within findMarkers() discussed in Bioconductor v 3.12's OSCA (though some of this is no longer in the book as of v3.17).
+## Use scran::scoreMarkers(...,full.stats=T) to get results compatabile w finding markers to separate highly related clusters e.g. nnsvg10_31 clusters 4 5 11 17
+## following OSCA: http://bioconductor.org/books/3.17/OSCA.basic/marker-detection.html#obtaining-the-full-effects
+
 
 ```{r}
 bpparam <- MulticoreParam(workers=8)
@@ -58,32 +60,11 @@ bs.markers <- bplapply(bscls,BPPARAM=bpparam,FUN=function(x){
     rm(y)
     gc(full=T)
     
-    mks_bino_pany <- findMarkers(hyp2,test="binom",direction="up")
-    mks_bino_pall <- findMarkers(hyp2,test="binom",direction="up",pval.type="all")
-    mks_t_pany <- findMarkers(hyp2,direction="up")
-    mks_t_pall <- findMarkers(hyp2,pval.type="all",direction="up")
-    mks_wcx_pany <- findMarkers(hyp2,test="wilcox",direction="up")
-    mks_wcx_pall <- findMarkers(hyp2,test="wilcox",direction="up",pval.type="all")
-    
-    # get rid of "Top" columns from pany -- multimarker expects same # cols in all
-    mks_bino_pany <- lapply(mks_bino_pany,FUN=function(x){x[,c(2:ncol(x))]})
-    mks_t_pany <- lapply(mks_t_pany,FUN=function(x){x[,c(2:ncol(x))]})
-    mks_wcx_pany <- lapply(mks_wcx_pany,FUN=function(x){x[,c(2:ncol(x))]})
-    ## combine
-    multistat <- multiMarkerStats(
-        mks_bino_pany=mks_bino_pany,
-        mks_bino_pall=mks_bino_pall,
-        mks_t_pany=mks_t_pany,
-        mks_t_pall=mks_t_pall,
-        mks_wcx_pany=mks_wcx_pany,
-        mks_wcx_pall=mks_wcx_pall
-    )
-    multistat
+    multistat <- scoreMarkers(hyp2,colLabels(hyp2),full.stats=T)
 })
 names(bs.markers) <- names(bscls)
 
 saveRDS(bs.markers,"analysis/data/H03-marker_genes/BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
 
 ```
-
 
