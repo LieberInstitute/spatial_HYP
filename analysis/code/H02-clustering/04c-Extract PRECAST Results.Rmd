@@ -32,15 +32,19 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 ```{r}
 hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
 
-precast_rdses <- list.files("analysis/data/H02-clustering/04-precast_hvgsvg/precast_hvg-svg_out",pattern=".RDS",full.names = T)
+# change colnames/colData rownames to key for uniqueness 
+colnames(hyp2) <- colData(hyp2)$key
+stopifnot(sum(rownames(colData(hyp2))==colnames(hyp2))==ncol(hyp2))
+
+precast_rdses <- list.files("analysis/data/H02-clustering/precast_hvg-svg_out",pattern=".RDS",full.names = T)
 
 ```
 
 
 ### Following Tony R's script for PRECAST -> spe conversion, as a loop for memory effish: https://github.com/LieberInstitute/spatial_hpc/blob/main/code/06_clustering/PRECAST/03_PRECAST_to_spe.R
 ```{r}
-precast_list <- list()
-
+precast_cllist <- list()
+precast_dimredlist <- list()
 i<-1
 for (i in c(1:length(precast_rdses))){
     tmp <- readRDS(precast_rdses[i])
@@ -48,6 +52,7 @@ for (i in c(1:length(precast_rdses))){
     tmp <- SelectModel(tmp)
     tmp <- IntegrateSpaData(tmp,species="Human")
     clustdt <- as.data.table(cbind(rownames(tmp@meta.data),tmp@meta.data$cluster))
+    dimred <- as.data.table(tmp@reductions$PRECAST@cell.embeddings,keep.rownames=T)
     rm(tmp)
     setnames(clustdt,c("rn","label"))
     if (sum(clustdt$rn==colnames(hyp2))!=ncol(hyp2)){
@@ -63,15 +68,35 @@ for (i in c(1:length(precast_rdses))){
         rownames(clustdt) <- clustdt$rn
         clustdt <- clustdt[colnames(hyp2),]
     }
-    precast_list[[(length(precast_list)+1)]] <- clustdt
-    names(precast_list)[length(precast_list)] <- gsub(precast_rdses[i],pattern="^.*hvg-svg_out\\/(.*_k.*)_precast.*$",replacement="\\1")
-    rm(clustdt)
+    if (sum(dimred$rn==colnames(hyp2))!=ncol(hyp2)){
+        if(length(dimred$rn)!=ncol(hyp2)){
+            dimred2 <- as.data.table(colnames(hyp2))
+            setnames(dimred2,"rn")
+            ### auto fill NA for spots without a cluster assignment:
+            dimred <- merge.data.table(dimred,dimred2,by="rn",all.y=T)
+            rm(dimred2)
+        }
+        # eitehr way, now we sort to get the data back in the desired order. this is simpler than in Tony's script because we've changed the rownames to be an experiment-wide unique key value
+        clustdt <- as.data.frame(clustdt)
+        rownames(clustdt) <- clustdt$rn
+        clustdt <- clustdt[colnames(hyp2),]
+        dimred <- as.data.frame(dimred)
+        rownames(dimred) <- dimred$rn
+        dimred <- dimred[colnames(hyp2),]
+    }
+    precast_cllist[[(length(precast_cllist)+1)]] <- clustdt
+    names(precast_cllist)[length(precast_cllist)] <- gsub(precast_rdses[i],pattern="^.*hvg-svg_out\\/(.*_k.*)_precast.*$",replacement="\\1")
+    precast_dimredlist[[(length(precast_dimredlist)+1)]] <- dimred
+    names(precast_dimredlist)[length(precast_dimredlist)] <- gsub(precast_rdses[i],pattern="^.*hvg-svg_out\\/(.*_k.*)_precast.*$",replacement="\\1")
+    rm(clustdt,dimred)
 }
 
 # check that the # of clusters assigned are corrected for each table
-lapply(precast_list,FUN=function(x){length(unique(x$label))})
+lapply(precast_cllist,FUN=function(x){length(unique(x$label))})
 # oops, fix the list names
-names(precast_list) <- gsub(names(precast_list),pattern="^/(.*)$",replacement="\\1")
+names(precast_cllist) <- gsub(names(precast_list),pattern="^/(.*)$",replacement="\\1")
+names(precast_dimredlist) <-  gsub(names(precast_dimredlist),pattern="^/(.*)$",replacement="\\1")
 
-# saveRDS(precast_list,"analysis/data/H02-clustering/04c-PRECAST_clusters_hvg1020_nnsvg1020_k9-15-20-31.RDS")
+# saveRDS(precast_cllist,"analysis/data/H02-clustering/04c-PRECAST_clusters_hvg1020_nnsvg1020_k9-15-20-31.RDS")
+# saveRDS(precast_dimredlist,"analysis/data/H02-clustering/04c-PRECAST_dimreductions_hvg1020_nnsvg1020_k9-15-20-31.RDS")
 ```
