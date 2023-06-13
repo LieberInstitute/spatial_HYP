@@ -1,9 +1,10 @@
 ---
-title: "02-BSpace hvg, svg q9-15-20-31 clusterings marker genes"
-author: "Bernie Mulvey"
-date: "2023-06-05"
+title: "03-PRECAST markers"
+author: "Bernard Mulvey"
+date: "2023-06-13"
 output: html_document
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
@@ -32,22 +33,20 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 load required files
 ```{r}
 hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
-rownames(colData(hyp2)) <- colData(hyp2)$key
+colnames(hyp2) <- colData(hyp2)$key
+rownames(hyp2) <- rowData(hyp2)$gene_name
 
-bscl <- list.files("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
 
-bscls <- lapply(bscl,FUN=fread)
-names(bscls) <- gsub(bscl,pattern="^.*9-15-20-31_out\\/BSpace_Harmony_(.*)\\.txt$",replacement="\\1")
+pcsts <- readRDS("analysis/data/H02-clustering/04c-PRECAST_clusters_hvg1020_nnsvg1020_k9-15-20-31.RDS")
+### drop those with clearly evident batch fx occuring by spotplots: all k31, and SVG10 k9 which is not very clean in terms of assignments.
+
+pcsts <- pcsts[grep(names(pcsts),pattern="k31|svg10_k9",invert=T)]
 ```
 
-## Use scran::scoreMarkers(...,full.stats=T) to get results compatabile w finding markers to separate highly related clusters e.g. nnsvg10_31 clusters 4 5 11 17
-## following OSCA: http://bioconductor.org/books/3.17/OSCA.basic/marker-detection.html#obtaining-the-full-effects
-
-
 ```{r}
-bpparam <- MulticoreParam(workers=8)
+bpparam <- MulticoreParam(workers=6)
 register(bpparam)
-bs.markers <- bplapply(bscls,BPPARAM=bpparam,FUN=function(x){
+pc.markers <- bplapply(pcsts,BPPARAM=bpparam,FUN=function(x){
     y <- as.data.frame(x)
     rownames(y) <- y$rn
     # safeguard against reordered rows
@@ -55,42 +54,48 @@ bs.markers <- bplapply(bscls,BPPARAM=bpparam,FUN=function(x){
         y <- y[rownames(colData(hyp2)),]
     }
     # row names as gene symbols for sanity
-    rownames(hyp2) <- rowData(hyp2)$gene_name
-    colLabels(hyp2) <- factor(y[,2])
+    colLabels(hyp2) <- factor(y$label)
     rm(y)
     gc(full=T)
     
     multistat <- scoreMarkers(hyp2,colLabels(hyp2),full.stats=T)
 })
-names(bs.markers) <- names(bscls)
+names(pc.markers) <- names(pcsts)
 
-saveRDS(bs.markers,"analysis/data/H03-marker_genes/BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
+## cut to top 2500 for any rank
+pc.markers2 <- bplapply(pc.markers,BPPARAM = bpparam, FUN=function(x){
+    y <- lapply(x,FUN=function(x){
+        x <- as.data.table(x,keep.rownames=T)
+        x[rank.logFC.cohen<=2500|rank.AUC<=2500|rank.logFC.detected<=2500]
+    })
+})
+
+saveRDS(pc.markers2,"analysis/data/H03-marker_genes/PRECAST_HVG1020-SVG1020_q9-15-20_scoremarkers_out.RDS")
 
 ```
 
 ### Extract top 10 rank gene(s) (genes with FDR = minimum FDR for cluster) per cluster per cluster set into plaintext tabular format
 ```{r}
 ### only core stats here
-keepnames <- grep(names(bs.markers[[1]]@listData[[1]]),pattern="full",value=T,invert=T)
+keepnames <- grep(names(pc.markers2[[1]][[1]]),pattern="full",value=T,invert=T)
 # colname rn will be created in each iter of the loop below 
-keepnames <- c("rn",keepnames)
 
 i<-1
-for (i in c(1:length(bs.markers))){
+for (i in c(1:length(pc.markers2))){
     k<-1
-    for (k in c(1:length(bs.markers[[i]]))){
-        tmp <- as.data.frame(bs.markers[[i]]@listData[[k]])
+    for (k in c(1:length(pc.markers2[[i]]))){
+        tmp <- as.data.frame(pc.markers2[[i]][[k]])
         tmp <- as.data.table(tmp,keep.rownames=T)
         tmp <- tmp[,..keepnames]
         tmp <- tmp[rank.logFC.cohen<=10|rank.AUC<=10|rank.logFC.detected<=10]
-        tmp[,cluster_set:=names(bs.markers)[i]]
-        tmp[,cluster:=names(bs.markers[[i]]@listData)[k]]
+        tmp[,cluster_set:=names(pc.markers2)[i]]
+        tmp[,cluster:=names(pc.markers2[[i]])[k]]
         setnames(tmp,"rn","gene")
         if(i==1&k==1){
-            bs.markers.plt <- tmp
+            pc.markers.plt <- tmp
         }
         else{
-            bs.markers.plt <- rbind(bs.markers.plt,tmp)
+            pc.markers.plt <- rbind(pc.markers.plt,tmp)
         }
         rm(tmp)
     }
@@ -98,5 +103,5 @@ for (i in c(1:length(bs.markers))){
 }
 rm(i)
 
-write.table(bs.markers.plt,"local_results_ref/topRanks_markers_hvg1020-svg1020-bayesspace_q9-15-20-31.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(pc.markers.plt,"local_results_ref/topRanks_markers_hvg1020-svg1020-PRECAST_q9-15-20.txt",sep='\t',quote=F,row.names=F,col.names=T)
 ```
