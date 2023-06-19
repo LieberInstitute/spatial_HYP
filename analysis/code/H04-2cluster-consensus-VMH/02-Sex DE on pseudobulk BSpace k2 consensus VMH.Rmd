@@ -1,0 +1,65 @@
+---
+title: "02-Sex DE on pseudobulk BSpace k2 consensus VMH"
+author: "Bernard Mulvey"
+date: "2023-06-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(scran)
+library(edgeR)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+Load SPE with vmh already annotated
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS") 
+
+# change/ensure colnames/colData's rownames == colData()$keys
+colnames(hyp2) <- colData(hyp2)$key
+```
+
+
+Going off https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/create_manual_annotated_pseudobulk_spe.R and https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/DE_pseudobulk.R
+```{r}
+hyp2_pbulk <- aggregateAcrossCells(hyp2,
+                   DataFrame(is.vmh=hyp2$BSp_q2_consensus_vmh,
+                             sample=hyp2$sample_id))
+
+hyp2_pbulk$is.vmh <- factor(hyp2_pbulk$is.vmh)
+
+# find a good expression cutoff using edgeR::filterByExpr
+rowData(hyp2_pbulk)$high_expr <- filterByExpr(hyp2_pbulk)
+rowData(hyp2_pbulk)$high_expr_cl <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$is.vmh)
+rowData(hyp2_pbulk)$high_expr_sample <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$sample)
+
+rowData(hyp2_pbulk)$high_expr_clorsam <- rowSums(cbind(rowData(hyp2_pbulk)$high_expr_sample,rowData(hyp2_pbulk)$high_expr_cl))
+
+summary(rowData(hyp2_pbulk)$high_expr)
+summary(rowData(hyp2_pbulk)$high_expr_sample)
+summary(rowData(hyp2_pbulk)$high_expr_cl)
+summary(rowData(hyp2_pbulk)$high_expr_clorsam>=1)
+
+hyp2_pbulk2 <- hyp2_pbulk[rowData(hyp2_pbulk)$high_expr_clorsam>=1]
+dim(hyp2_pbulk2)
+```
+
+
+### LEFT OFF HERE

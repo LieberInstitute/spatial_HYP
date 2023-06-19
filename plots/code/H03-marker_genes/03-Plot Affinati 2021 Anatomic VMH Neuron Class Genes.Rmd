@@ -1,0 +1,84 @@
+---
+title: "03-Plot Affinati 2021 Anatomic VMH Neuron Class Genes"
+author: "Bernard Mulvey"
+date: "2023-06-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(scater)
+library(SpatialExperiment)
+library(Polychrome)
+library(pheatmap)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+Read in markers and hyp2 spe
+```{r}
+bs.markers <- readRDS("analysis/data/H03-marker_genes/BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
+
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+
+# set hyp2 rownames to gene symbols as markers were identified after making this change
+rownames(hyp2) <- rowData(hyp2)$gene_name
+
+# and set hyp2 coldata rownames to "key" so there aren't non-unique rowname problems
+rownames(colData(hyp2)) <- colData(hyp2)$key
+
+# load clustering assignments, change names to be same format as markers list
+bscl <- list.files("analysis/data/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
+
+bscls <- lapply(bscl,fread)
+names(bscls) <- gsub(bscl,pattern="^.*9-15-20-31_out\\/BSpace_Harmony_(.*)\\.txt$",replacement="\\1")
+
+bscls <- lapply(bscls,FUN=function(x){
+    as.data.frame(x)
+    rownames(x) <- x$rn
+    x
+})
+```
+
+
+```{r}
+mks <- c("NR5A1","LEPR","FEZF1","DLK1","ESR1","FOXP2","NFIB","DRD3","PDGFD","HNF4G","COL2A1","IVL","CDH20","COL12A1","PDZRN3","BMP4","SMOC2","CLCA3A2","IIGP1","ROBO3","DKK1","GPR174","FLI1","NFIA","DUOX2","EYA4","EYA1","ADAMTS19","SLC17A8","TACR1","CNTNAP3","EXPH5","COL5A2","ATF7IP2","ITIH5","LPAR3","AASS","COL24A1","NPFFR2","DPPA5A","HGF","ADGRG4","IGF1","NMU","RORB","EFEMP1","ZNF968","DLX6OS1","PARP4","ACP7","COBLL1","GLIS3","CRHR2","ST18","UNC45B","FAM83B","TLL2","PANTR1","ACVR1C","BARX2","ZAR1","ADAMTS9","SLC22A3","FIGN","TCF7L2","TTLL6","LNCENC1","EGFL6","NECAB1","CCDC60","ECHDC2","MEGF11","PVT1","RAI14","TNFRSF8","SLIT3","NPTX2","SATB2","NR0B1","SPINT1","GLRA1","LAMB3","NKD2","ADCYAP1","VGLL2","CHRM5","SOX14","BDNF","OPRD1","SSTR3","TENM2","CCKBR","HCRTR1","NTN1","MATN2","SCUBE1","ISL1","SEMA3D","VAV3","PAWR","FLRT2","KIRREL3","RXRG","ETV6","ACVR1C","ST18","AMELX","HMCN1","ITGA6")
+
+mks <- unique(mks[which(mks %in% rownames(hyp2))])
+
+
+i<-1
+for (i in c(1:16)){
+    curname <- names(bscls)[[i]]
+    y <- bscls[[curname]]
+    y <- as.data.frame(y)
+    rownames(y) <- y$rn
+    # safeguard against reordered rows
+    if((sum(rownames(colData(hyp2))==rownames(y)))!=ncol(hyp2)){
+        y <- y[rownames(colData(hyp2)),]
+    }
+    # assign clusters
+    colnames(y)[2] <- "label"
+    colLabels(hyp2) <- factor(y$label)
+    rm(y)
+    plt <- plotGroupedHeatmap(hyp2,features = mks,group="label",exprs_values = "counts")
+    dev.off()
+    pdf(paste0("plots/H03-marker_genes/03-BSpace_AffinatiVMHNeuronGenes/BSpace_",curname,"_AffinatiGenes.pdf"),width=8,height=12)
+    print(plt)
+    dev.off()
+    rm(plt,curname)
+}
+
+```
