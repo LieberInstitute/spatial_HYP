@@ -22,6 +22,7 @@ library(scater)
 library(SpatialExperiment)
 library(Polychrome)
 library(pheatmap)
+library(ggspavis)
 
 theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
@@ -31,7 +32,7 @@ Read in markers and hyp2 spe
 ```{r}
 bs.markers <- readRDS("analysis/data/H03-marker_genes/BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
 
-hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
 
 # set hyp2 rownames to gene symbols as markers were identified after making this change
 rownames(hyp2) <- rowData(hyp2)$gene_name
@@ -75,10 +76,45 @@ for (i in c(1:16)){
     rm(y)
     plt <- plotGroupedHeatmap(hyp2,features = mks,group="label",exprs_values = "counts")
     dev.off()
-    pdf(paste0("plots/H03-marker_genes/03-BSpace_AffinatiVMHNeuronGenes/BSpace_",curname,"_AffinatiGenes.pdf"),width=8,height=12)
+    pdf(paste0("plots/H03-marker_genes/03-BSpace_AffinatiVMHNeuronGenes/heatmaps/BSpace_",curname,"_AffinatiGenes.pdf"),width=8,height=12)
     print(plt)
     dev.off()
     rm(plt,curname)
 }
+
+```
+
+
+### plot spots for those genes that are reasonably expressed
+```{r}
+hyp2_everything <- aggregateAcrossCells(hyp2,ids=hyp2$in_tissue,coldata.merge=FALSE)
+
+### 32.5th %ile of total counts = 43 --> we'll use that as a cutoff to filter genes to plot
+quantile(hyp2_everything@assays@data@listData$counts,0.325)
+
+hyp2_everything <- hyp2_everything[which(hyp2_everything@assays@data@listData$counts>43),]
+dim(hyp2_everything)
+
+### reduce marker list to those genes with useful # total counts --> 91 of the 100 originally represented
+mks <- mks[which(mks %in% rownames(hyp2_everything))]
+
+```
+
+spotplots
+```{r}
+i<-1
+for (i in c(1:length(mks))){
+    curname <- mks[i]
+    colLabels(hyp2) <- counts(hyp2)[mks[i],]
+    plt <- plotSpots(hyp2,annotate = "label",palette = viridis::viridis(n=1))
+    png(paste0("plots/H03-marker_genes/03-BSpace_AffinatiVMHNeuronGenes/spotplots/",curname,"_fromAffinatiGenes.png"),width=800,height=800)
+    print(plt)
+    dev.off()
+    rm(plt,curname)
+}
+
+
+
+
 
 ```

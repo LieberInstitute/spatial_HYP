@@ -1,0 +1,59 @@
+---
+title: "02-Spotplot VMH Sex DEGs under FDR10"
+author: "Bernard Mulvey"
+date: "2023-06-21"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(scater)
+library(ggspavis)
+library(SpatialExperiment)
+library(Polychrome)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### Data loadup
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+colnames(hyp2) <- colData(hyp2)$key
+rownames(hyp2) <- rowData(hyp2)$gene_name
+
+vmhde <- fread("analysis/data/H04-2cluster-consensus-VMH/pseudobulk-SEX-DE_Bspace-VMH-nonvmh-clusters.txt")
+
+```
+
+### extract significant (FDR<0.1) sex DEGs, and let's drop chrY genes at least
+```{r}
+vmhde2 <- vmhde[group_name=="VMH"&adj.P.Val<0.1&!(gene_name %in% c("ZFY","UTY","PRKY","DDX3Y","TTTY14","NLGN4Y","EIF1AY","TMSB4Y","USP9Y","PCDH11Y","RPS4Y1","KDM5D")),gene_name]
+
+hyp2.plt <- hyp2[,hyp2$BSp_q2_consensus_vmh=="VMH"]
+
+i <- 1
+for (i in c(1:48)){
+    curgene <- vmhde2[i]
+    colLabels(hyp2.plt) <- logcounts(hyp2.plt)[curgene,]
+    plt <- plotSpots(hyp2.plt,annotate = "label",palette=viridis::viridis(n=1))
+    png(paste0("plots/H04-2cluster-consensus-VMH/02-VMH_sexDEGs_spotplots/",curgene,".png"),width=800,height=800)
+    print(plt)
+    dev.off()
+}
+
+rm(i,curgene,vmhde2,hyp2.plt,plt)
+gc(full=T)
+```
