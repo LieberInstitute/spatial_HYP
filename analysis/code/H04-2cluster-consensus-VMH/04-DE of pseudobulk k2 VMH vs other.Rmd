@@ -1,7 +1,7 @@
 ---
-title: "03-Sex DE on pseudobulk BSpace k2 consensus VMH"
+title: "04-DE of pseudobulk k2 VMH vs other"
 author: "Bernard Mulvey"
-date: "2023-06-14"
+date: "2023-06-22"
 output: html_document
 ---
 
@@ -82,13 +82,16 @@ hyp2_pbulk3 <- edgeR::cpm(edgeR::calcNormFactors(hyp2_pbulk2), log = TRUE, prior
 
 stopifnot(rownames(hyp2_pbulk3)==rownames(hyp2.vmh)[which(rownames(hyp2.vmh) %in% rownames(hyp2_pbulk3))])
 
-#### fix dimnames, which rigtmpcdht now are changed to "sample1, sample2...":
-# colnames(hyp2_pbulk2)
+#### fix dimnames, which right now got changed to "sample1, sample2...":
+#### and aren't carried in by aggregate across cells above (colnames(hyp2_pbulk2) == null)
+
 colnames(hyp2_pbulk3) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$is.vmh)
 
 colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$is.vmh)
 
-## store norm counts on spe
+## and add the same as rownames of coldata for the full object hyp2_pbulk2
+rownames(colData(hyp2_pbulk2)) <- colnames(hyp2_pbulk2)
+## store norm counts on full spe
 logcounts(hyp2_pbulk2) <- hyp2_pbulk3
 ```
 
@@ -109,27 +112,19 @@ elbow <- PCAtools::findElbowPoint(pcavars)
 
 ### LEFT OFF AT LINe 104 of PSEUDOBULK SETUP SCRIPT @ https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/create_pseudobulk_spe.R
 ```{r}
-tmpdem <- as.data.table(colData(hyp2_pbulk2))
-tmpdem <- tmpdem[,c(1:2,4:39)]
-tmpdem <- merge.data.table(tmpdem,demos,by.x="brnum",by.y="BrNum")
-tmpdem <- as.data.frame(tmpdem)
-rownames(tmpdem) <- tmpdem$rn
-tmpdem <- tmpdem[colnames(hyp2_pbulk2),]
-colData(hyp2_pbulk2) <- DataFrame(tmpdem)
-
 
 ### plot PCA x cohort vars
 plotPCASCE(hyp2_pbulk2,color_by="Sex",ncomponents = 6)
 plotPCASCE(hyp2_pbulk2,color_by="brnum",ncomponents = 6)
-plotPCASCE(hyp2_pbulk2,color_by="AgeDeath.y",ncomponents = 6)
+plotPCASCE(hyp2_pbulk2,color_by="AgeDeath",ncomponents = 6)
 plotPCASCE(hyp2_pbulk2,color_by="PMI",ncomponents = 6)
 plotPCASCE(hyp2_pbulk2,color_by="BMI..calculated.",ncomponents = 6)
 plotPCASCE(hyp2_pbulk2,color_by="Best.RIN.PFC",ncomponents = 6)
 
-varexpl <- getVarianceExplained(hyp2_pbulk2,c("Sex","brnum","AgeDeath.y","PMI","BMI..calculated.","sample_id"))
+varexpl <- getVarianceExplained(hyp2_pbulk2,c("Sex","brnum","AgeDeath","PMI","BMI..calculated.","sample_id"))
 
 plotExplanatoryVariables(varexpl)
-
+dev.off()
 ```
 
 
@@ -137,13 +132,25 @@ plotExplanatoryVariables(varexpl)
 colData(hyp2_pbulk2)$Sex <- factor(colData(hyp2_pbulk2)$Sex)
 colData(hyp2_pbulk2)$is.vmh <- factor(colData(hyp2_pbulk2)$is.vmh)
 
-
+# label $in_tissue --> all cells considered together, since we want to model by is.vmh (VMH vs other)
 deres <- pseudoBulkDGE(
     hyp2_pbulk2,
     col.data = colData(hyp2_pbulk2),
-    label = hyp2_pbulk2$is.vmh,
-    design = ~Sex,
-    coef="SexM",
+    label = hyp2_pbulk2$in_tissue,
+    design = ~is.vmh,
+    coef="is.vmhVMH",
+    row.data = rowData(hyp2_pbulk2),
+    method = "voom",
+    qualities = TRUE,
+    robust = TRUE
+)
+
+deres.sexcov <- pseudoBulkDGE(
+    hyp2_pbulk2,
+    col.data = colData(hyp2_pbulk2),
+    label = hyp2_pbulk2$in_tissue,
+    design = ~is.vmh+Sex,
+    coef="is.vmhVMH",
     row.data = rowData(hyp2_pbulk2),
     method = "voom",
     qualities = TRUE,
@@ -151,5 +158,10 @@ deres <- pseudoBulkDGE(
 )
 
 deres.dt <- as.data.table(deres)
-write.table(deres.dt,"analysis/data/H04-2cluster-consensus-VMH/pseudobulk-SEX-DE_Bspace-VMH-nonvmh-clusters.txt",sep='\t',quote=F,row.names=F,col.names=T)
+deres.sexcov <- as.data.table(deres.sexcov)
+
+write.table(deres.dt,"analysis/data/H04-2cluster-consensus-VMH/pseudobulk-VMH-other-DE.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(deres.sexcov,"analysis/data/H04-2cluster-consensus-VMH/pseudobulk-VMH-other-DE_sexcovaried.txt",sep='\t',quote=F,row.names=F,col.names=T)
+
+
 ```

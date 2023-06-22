@@ -54,6 +54,24 @@ for (i in c(1:48)){
     dev.off()
 }
 
-rm(i,curgene,vmhde2,hyp2.plt,plt)
+rm(i,curgene,hyp2.plt,plt)
 gc(full=T)
+```
+
+
+### Volcano plot for VMH and other
+```{r}
+pdf("plots/H04-2cluster-consensus-VMH/VMH Sex DE volcano.pdf",height=7,width=7)
+ggplot(vmhde[group_name=="VMH"],aes(y=-log10(adj.P.Val),x=logFC))+
+    geom_point()+
+    geom_hline(yintercept = -log10(0.1),col="red",alpha=0.7)+
+    geom_text(data = vmhde[group_name=="VMH"&abs(logFC)>1.5&adj.P.Val<0.05&gene_name %in% vmhde2],aes(x=ifelse(logFC<0,yes=logFC-2,no=logFC+2),y=-log10(adj.P.Val)+0.1,label=gene_name))+
+    geom_text(aes(x=9,y=-log10(0.15),label="FDR<0.1"))+
+    ylab("-log10 (FDR)")+
+    xlab("logFC (M vs. F)")
+dev.off()
+    
+
+
+
 ```
