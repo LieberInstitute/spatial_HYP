@@ -24,7 +24,7 @@ Load up data
 ```{r}
 hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
 
-rownames(rowData(hyp2.vmh)) <- rowData(hyp2.vmh)$gene_name
+rownames(hyp2.vmh) <- rowData(hyp2.vmh)$gene_name
 hyp2.vmh <- hyp2.vmh[,which(hyp2.vmh$BSp_q2_consensus_vmh=="VMH")]
 
 vmhsvg <- fread("analysis/data/H04-2cluster-consensus-VMH/meangeneranks_nnSVG_samplewise_n3s0.5_VMHspotsonly.txt")
@@ -38,6 +38,17 @@ vmhsvg <- vmhsvg[!(gene_name %in% grep(gene_name,pattern="^MT-",value=T))]
 
 
 ```{r}
+vmhsvgs <- vmhsvg$gene_name
+
+i <- 1
+for (i in c(1:length(vmhsvgs))){
+    curgene <- vmhsvgs[i]
+    colLabels(hyp2.vmh) <- logcounts(hyp2.vmh)[curgene,]
+    plt <- plotSpots(hyp2.vmh,annotate = "label",palette=viridis::viridis(n=1))
+    png(paste0("plots/H04-2cluster-consensus-VMH/04-VMHonly-svgs/",curgene,".png"),width=800,height=800)
+    print(plt)
+    dev.off()
+}
 
 
 
