@@ -13,6 +13,8 @@ library(data.table)
 library(SpatialExperiment)
 library(ggspavis)
 library(scater) # addPerCellQC
+require(colorout)
+ColorOut()
 library(BiocParallel)
 library(scran)
 library(parallel)

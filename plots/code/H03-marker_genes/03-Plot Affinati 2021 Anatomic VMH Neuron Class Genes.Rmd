@@ -60,26 +60,47 @@ mks <- c("NR5A1","LEPR","FEZF1","DLK1","ESR1","FOXP2","NFIB","DRD3","PDGFD","HNF
 mks <- unique(mks[which(mks %in% rownames(hyp2))])
 
 
-i<-1
-for (i in c(1:16)){
+i <- 1
+for (i in c(1:16)) {
     curname <- names(bscls)[[i]]
     y <- bscls[[curname]]
     y <- as.data.frame(y)
     rownames(y) <- y$rn
     # safeguard against reordered rows
-    if((sum(rownames(colData(hyp2))==rownames(y)))!=ncol(hyp2)){
-        y <- y[rownames(colData(hyp2)),]
+    if ((sum(rownames(colData(hyp2)) == rownames(y))) != ncol(hyp2)) {
+        y <- y[rownames(colData(hyp2)), ]
     }
     # assign clusters
     colnames(y)[2] <- "label"
     colLabels(hyp2) <- factor(y$label)
     rm(y)
-    plt <- plotGroupedHeatmap(hyp2,features = mks,group="label",exprs_values = "counts")
+    # plot. to get col labels right without hierarchying clusters, set labels_col as below
+    plt <-
+        plotGroupedHeatmap(
+            hyp2,
+            features = mks,
+            group = "label",
+            exprs_values = "logcounts",
+            scale = T,
+            center = T,
+            zlim = c(-5, 5),
+            labels_col=as.character(levels(hyp2$label)),
+            cluster_cols = F,
+            show_colnames=T,
+        )
     dev.off()
-    pdf(paste0("plots/H03-marker_genes/03-BSpace_AffinatiVMHNeuronGenes/heatmaps/BSpace_",curname,"_AffinatiGenes.pdf"),width=8,height=12)
+    pdf(
+        paste0(
+            "plots/H03-marker_genes/03-BSpace_AffinatiVMHNeuronGenes/heatmaps/BSpace_",
+            curname,
+            "_AffinatiGenes_varScaled_centered_SD5outliersRemoved.pdf"
+        ),
+        width = 8,
+        height = 12
+    )
     print(plt)
     dev.off()
-    rm(plt,curname)
+    rm(plt, curname)
 }
 
 ```
