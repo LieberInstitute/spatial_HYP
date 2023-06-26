@@ -28,13 +28,15 @@ library(parallel)
 library(Polychrome)
 # library(fasthplus)
 library(scCustomize)
+library(spatialLIBD)
+library(ggpubr)
 
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 10), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 11), axis.title.y = element_text(size =11), plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5)),legend.text=element)
 ```
 
 # load required objs
 ```{r}
-walktraps <- readRDS("analysis/data/H02-clustering/walktraps_snn5.10_HVG1020-OR-SVG-1020_cut9.15.20.31.RDS")
+walktraps <- readRDS("analysis/data/H02-clustering/02-walktraps_snn5.10_HVG1020-OR-SVG-1020_cut9.15.20.31.RDS")
 
 hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
 
@@ -46,6 +48,18 @@ pcas <- readRDS("analysis/data/H01-feature_selection/SPEs_sampleBlock-hvgs-10or2
 
 ```
 
+helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+```{r}
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+
+
+
+```
 
 ## plot cluster assignments onto spatial spots
 ```{r}
@@ -53,16 +67,17 @@ hyp2.tmp <- hyp2
 
 k<-1
 for (k in c(1:length(walktraps))){
-    colLabels(hyp2.tmp) <- factor(walktraps[[k]])
-    # the much simpler call to polychrome is not resulting in any actual colors assigned to the plots for some reason. but this roundabout way works. something's gone real wonky with my ggspavis installation.
-    plt <- ggspavis::plotSpots(hyp2.tmp, annotate = "label",palette = DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(
-          hyp2.tmp
-      )$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)]
-  )+
-ggtitle(paste0("harmony_walktrap_",names(walktraps)[k]))
-
-    pdf(paste0("plots/H02-clustering/",names(walktraps)[k],"_cluster_spotplot.pdf"),height=8,width=10)
-    print(plt)
+    colLabels(hyp2.tmp) <- as.factor(walktraps[[k]])
+    pal <- palette36.colors(n=length(unique(walktraps[[k]])))
+    names(pal) <- unique(walktraps[[k]])
+    ### make base spotplots
+    plt <- spatialLIBD::vis_grid_clus(hyp2.tmp,clustervar = "label",pdf_file=NULL,colors = pal,spatial = F,auto_crop = T,return_plots = T,point.size=0.5)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))})
+    ### save pdf
+    pdf(paste0("plots/H02-clustering/01-walktrap_cut9-15-20-31_spotplots/",names(walktraps)[k],"_cluster_spotplot.pdf"),height=9,width=13)
+    do.call("grid.arrange",plt)
     dev.off()
     rm(plt)
 }

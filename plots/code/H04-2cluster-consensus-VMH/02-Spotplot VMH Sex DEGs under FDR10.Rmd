@@ -47,10 +47,13 @@ hyp2.plt <- hyp2[,hyp2$BSp_q2_consensus_vmh=="VMH"]
 i <- 1
 for (i in c(1:48)){
     curgene <- vmhde2[i]
-    colLabels(hyp2.plt) <- logcounts(hyp2.plt)[curgene,]
-    plt <- plotSpots(hyp2.plt,annotate = "label",palette=viridis::viridis(n=1))
-    png(paste0("plots/H04-2cluster-consensus-VMH/02-VMH_sexDEGs_spotplots/",curgene,".png"),width=800,height=800)
-    print(plt)
+    plt <- spatialLIBD::vis_grid_gene(hyp2.plt,geneid = curgene,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    png(paste0("plots/H04-2cluster-consensus-VMH/02-VMH_sexDEGs_spotplots/",curgene,".png"),width=1000,height=800)
+    do.call("grid.arrange",plt)
     dev.off()
 }
 

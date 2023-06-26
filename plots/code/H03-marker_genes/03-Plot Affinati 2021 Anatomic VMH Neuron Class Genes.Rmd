@@ -23,6 +23,7 @@ library(SpatialExperiment)
 library(Polychrome)
 library(pheatmap)
 library(ggspavis)
+library(spatialLIBD)
 
 theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
@@ -38,7 +39,7 @@ hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_Harmon
 rownames(hyp2) <- rowData(hyp2)$gene_name
 
 # and set hyp2 coldata rownames to "key" so there aren't non-unique rowname problems
-rownames(colData(hyp2)) <- colData(hyp2)$key
+colnames(hyp2) <- colData(hyp2)$key
 
 # load clustering assignments, change names to be same format as markers list
 bscl <- list.files("analysis/data/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
@@ -126,10 +127,13 @@ spotplots
 i<-1
 for (i in c(1:length(mks))){
     curname <- mks[i]
-    colLabels(hyp2) <- counts(hyp2)[mks[i],]
-    plt <- plotSpots(hyp2,annotate = "label",palette = viridis::viridis(n=1))
-    png(paste0("plots/H03-marker_genes/03-BSpace_AffinatiVMHNeuronGenes/spotplots/",curname,"_fromAffinatiGenes.png"),width=800,height=800)
-    print(plt)
+    plt <- spatialLIBD::vis_grid_gene(hyp2,geneid = curname,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    png(paste0("plots/H03-marker_genes/03-BSpace_AffinatiVMHNeuronGenes/spotplots/",curname,"_fromAffinatiGenes.png"),width=1000,height=800)
+    do.call("grid.arrange",plt)
     dev.off()
     rm(plt,curname)
 }

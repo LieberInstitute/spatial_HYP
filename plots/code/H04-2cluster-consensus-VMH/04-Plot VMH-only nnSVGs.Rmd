@@ -16,8 +16,9 @@ library(scater) # addPerCellQC
 library(BiocParallel)
 library(scran)
 library(parallel)
-
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+library(gridExtra)
+library(spatialLIBD)
+# theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
 
 Load up data
@@ -43,10 +44,13 @@ vmhsvgs <- vmhsvg$gene_name
 i <- 1
 for (i in c(1:length(vmhsvgs))){
     curgene <- vmhsvgs[i]
-    colLabels(hyp2.vmh) <- logcounts(hyp2.vmh)[curgene,]
-    plt <- plotSpots(hyp2.vmh,annotate = "label",palette=viridis::viridis(n=1))
-    png(paste0("plots/H04-2cluster-consensus-VMH/04-VMHonly-svgs/",curgene,".png"),width=800,height=800)
-    print(plt)
+    plt <- spatialLIBD::vis_grid_gene(hyp2.vmh,geneid = curgene,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    png(paste0("plots/H04-2cluster-consensus-VMH/04-VMHonly-svgs/",curgene,".png"),width=1000,height=800)
+    do.call("grid.arrange",plt)
     dev.off()
 }
 

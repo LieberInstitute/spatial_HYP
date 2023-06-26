@@ -26,6 +26,7 @@ library(BiocParallel)
 library(scran)
 library(parallel)
 library(Polychrome)
+library(spatialLIBD)
 # library(fasthplus)
 
 theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
@@ -38,7 +39,10 @@ pcas <- readRDS("analysis/data/H01-feature_selection/SPEs_sampleBlock-hvgs-10or2
 ### clone an spe out of this ^ for the spotplotting
 hyp2.tmp <- pcas[[1]]
 
-bs_clusts <- list.files("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",pattern=".txt")
+### set colnames(hyp2.tmp) to key for unique rownames etc; these are the rownames used with the bayesspace cluster results
+colnames(hyp2.tmp) <- hyp2.tmp$key
+
+bs_clusts <- list.files("analysis/data/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",pattern=".txt")
 ```
 
 spotplots
@@ -48,7 +52,7 @@ for (i in c(1:length(bs_clusts))) {
     curclusts <-
         fread(
             paste0(
-                "analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
+                "analysis/data/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
                 bs_clusts[i]
             )
         )
@@ -60,24 +64,19 @@ for (i in c(1:length(bs_clusts))) {
         curclusts <- curclusts[rownames(colData(hyp2.tmp)), ]
     }
     
-    colLabels(hyp2.tmp) <- factor(curclusts[, 2])
+    colLabels(hyp2.tmp) <- as.factor(curclusts[, 2])
+    pal <- palette36.colors(n=length(unique(curclusts[,2])))
+    names(pal) <- levels(hyp2.tmp$label)
     
     plt <-
-        plotSpots(
-            hyp2.tmp,
-            annotate = "label",
-            palette = paste0(Polychrome::palette36.colors(n = length(
-                unique(curclusts[, 2])
-            )))
-        ) +
-        ggtitle(paste0(
-            "BSpace ",
-            gsub(bs_clusts[i], pattern = "^BSpace_Harmony_(.*)_.*\\.txt$", replacement =
-                     "\\1"),
-            " q=",
-            gsub(bs_clusts[i], pattern = "^BSpace_Harmony_.*_(.*)\\.txt$", replacement =
-                     "\\1")
-        ))
+        spatialLIBD::vis_grid_clus(hyp2.tmp,clustervar = "label",pdf_file=NULL,colors = pal,spatial = F,auto_crop = T,return_plots = T,point_size = 1)
+    
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    
+    # save
     pdf(
         paste0(
             "plots/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_spotplots/",
@@ -87,7 +86,7 @@ for (i in c(1:length(bs_clusts))) {
         width = 10,
         height = 8
     )
-    print(plt)
+    do.call("grid.arrange",plt)
     dev.off()
     rm(plt, curclusts)
 }
