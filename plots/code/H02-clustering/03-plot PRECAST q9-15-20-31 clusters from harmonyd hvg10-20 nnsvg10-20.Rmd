@@ -45,8 +45,23 @@ colnames(hyp2) <- colData(hyp2)$key
 pcst_clusts <- readRDS("analysis/data/H02-clustering/04c-PRECAST_clusters_hvg1020_nnsvg1020_k9-15-20-31.RDS")
 ```
 
+
+helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+```{r}
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+
+
+```
+
 spotplots
 ```{r}
+hyp2.tmp <- hyp2
+
 i <- 1
 for (i in c(1:length(pcst_clusts))) {
     curclusts <- as.data.frame(pcst_clusts[[i]])
@@ -56,13 +71,24 @@ for (i in c(1:length(pcst_clusts))) {
         curclusts <- curclusts[rownames(colData(hyp2.tmp)), ]
     }
     
-    colLabels(hyp2.tmp) <- as.factor(curclusts$label)
+    colLabels(hyp2.tmp) <- as.factor(as.numeric(curclusts$label))
     pal <- palette36.colors(n=length(unique(curclusts[,2])))
-    names(pal) <- levels(hyp2.tmp$label)
+        # next line is needed for consistency in color-cluster assignments between libdspatial and the generated legend below
+    names(pal) <- c(1:length(unique(curclusts[,2])))
     
+    ## create a unified legend spanning all possible cluster values (regardless of presence in a given sample)
+    leg.tmp <- ggplot(as.data.table(colData(hyp2.tmp))[,.(label,array_row,array_col)],aes(x=array_row,y=array_col,col=label))+geom_point()+
+        scale_color_manual(values=as.character(pal))+theme(
+                    legend.text = element_text(size = 10),
+                    legend.title = element_text(size = 10, hjust = 0.5),
+                    legend.spacing.y = unit(0, "cm"),
+                    legend.spacing.x = unit(0.1, "cm"))
+    leg.tmp2 <- extract_legend(leg.tmp)
+    dev.off()
+    ### make spotplots
     plt <- spatialLIBD::vis_grid_clus(hyp2.tmp,clustervar = "label",pdf_file=NULL,colors = pal,spatial = F,auto_crop = T,return_plots = T,point_size = 2,sort_clust = F)
     
-    ### adjust font sizes, pack legends tight (requires byrow arg in guides along with theme arg for spacing.y)
+    ### drop indiv. plot legends, adjust font sizes (requires byrow arg in guides along with theme arg for spacing.y)
     plt <- lapply(
         plt,
         FUN = function(x) {
@@ -70,24 +96,16 @@ for (i in c(1:length(pcst_clusts))) {
                 theme(
                     plot.title = element_text(size = 11, hjust = 0.5),
                     strip.text = element_text(size = 10),
-                    legend.text = element_text(size = 10),
-                    legend.title = element_text(size = 10, hjust = 0.5),
-                    legend.spacing.y = unit(0, "cm"),
-                    legend.spacing.x = unit(0.1, "cm")
-                ) +
-                guides(fill = guide_legend(
-                    ncol = ceiling(length(unique(hyp2.tmp$label))/12),
-                    byrow = T)
-                )
+                )+
+                guides(fill="none")
         }
     )
-    #
-    
+    #save
     pdf(paste0(
             "plots/H02-clustering/03-PRECAST_q9-15-20-31_HVGorSVG_spotplots/", names(pcst_clusts)[i],".pdf"),
         width = 20,
         height = 16)
-    do.call("grid.arrange",plt)
+    do.call("grid.arrange",list(arrangeGrob(grobs=plt,ncol=3,nrow=3),leg.tmp2,ncol=2,widths=c(18,2)))
     dev.off()
     rm(plt, curclusts)
 }

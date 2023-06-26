@@ -45,8 +45,21 @@ colnames(hyp2.tmp) <- hyp2.tmp$key
 bs_clusts <- list.files("analysis/data/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",pattern=".txt")
 ```
 
+helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+```{r}
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+
+
+```
+
 spotplots
 ```{r}
+
 i <- 1
 for (i in c(1:length(bs_clusts))) {
     curclusts <-
@@ -66,8 +79,19 @@ for (i in c(1:length(bs_clusts))) {
     
     colLabels(hyp2.tmp) <- as.factor(curclusts[, 2])
     pal <- palette36.colors(n = length(unique(curclusts[, 2])))
-    names(pal) <- unique(hyp2.tmp$label)
+    # next line is needed for consistency in color-cluster assignments between libdspatial and the generated legend below
+    names(pal) <- c(1:length(unique(hyp2.tmp$label)))
     
+    ## create a unified legend spanning all possible cluster values (regardless of presence in a given sample)
+    leg.tmp <- ggplot(as.data.table(colData(hyp2.tmp))[,.(label,array_row,array_col)],aes(x=array_row,y=array_col,col=label))+geom_point()+
+        scale_color_manual(values=as.character(pal))+theme(
+                    legend.text = element_text(size = 10),
+                    legend.title = element_text(size = 10, hjust = 0.5),
+                    legend.spacing.y = unit(0, "cm"),
+                    legend.spacing.x = unit(0.1, "cm"))
+    leg.tmp2 <- extract_legend(leg.tmp)
+    dev.off()
+    ### make spotplots
     plt <-
         spatialLIBD::vis_grid_clus(
             hyp2.tmp,
@@ -81,7 +105,7 @@ for (i in c(1:length(bs_clusts))) {
             sort_clust = F
         )
     
-    ### adjust font sizes
+    ### adjust font sizes, drop individual plot legends
     plt <- lapply(
         plt,
         FUN = function(x) {
@@ -89,15 +113,8 @@ for (i in c(1:length(bs_clusts))) {
                 theme(
                     plot.title = element_text(size = 11, hjust = 0.5),
                     strip.text = element_text(size = 10),
-                    legend.text = element_text(size = 10),
-                    legend.title = element_text(size = 10, hjust = 0.5),
-                    legend.spacing.y = unit(0, "cm"),
-                    legend.spacing.x = unit(0.1, "cm")
-                ) +
-                guides(fill = guide_legend(
-                    ncol = ceiling(length(unique(hyp2.tmp$label))/12),
-                    byrow = T)
-                )
+                )+
+                guides(fill="none")
         }
     )
     
@@ -111,8 +128,9 @@ for (i in c(1:length(bs_clusts))) {
         width = 20,
         height = 16
     )
-    do.call("grid.arrange", plt)
-    dev.off()
+    ### arrangeGrob() on the spotplot list --> 3 x 3 of plots from that list only, constituting the "first column" of the parent; leg.tmp2 is an additional thing being plotted in the second column of the parent. width of the plot grid is set to 10, width of the second column (legend only) set to 2.
+    do.call("grid.arrange",list(arrangeGrob(grobs=plt,ncol=3,nrow=3),leg.tmp2,ncol=2,widths=c(18,2)))
+dev.off()
     rm(plt, curclusts)
 }
 
