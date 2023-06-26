@@ -60,18 +60,33 @@ for (i in c(1:length(pcst_clusts))) {
     pal <- palette36.colors(n=length(unique(curclusts[,2])))
     names(pal) <- levels(hyp2.tmp$label)
     
-    plt <- spatialLIBD::vis_grid_clus(hyp2.tmp,clustervar = "label",pdf_file=NULL,colors = pal,spatial = F,auto_crop = T,return_plots = T,point_size = 1)
+    plt <- spatialLIBD::vis_grid_clus(hyp2.tmp,clustervar = "label",pdf_file=NULL,colors = pal,spatial = F,auto_crop = T,return_plots = T,point_size = 2,sort_clust = F)
     
-    ### adjust font sizes
-    plt <- lapply(plt,FUN=function(x){x+
-            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
-            })
+    ### adjust font sizes, pack legends tight (requires byrow arg in guides along with theme arg for spacing.y)
+    plt <- lapply(
+        plt,
+        FUN = function(x) {
+            x +
+                theme(
+                    plot.title = element_text(size = 11, hjust = 0.5),
+                    strip.text = element_text(size = 10),
+                    legend.text = element_text(size = 10),
+                    legend.title = element_text(size = 10, hjust = 0.5),
+                    legend.spacing.y = unit(0, "cm"),
+                    legend.spacing.x = unit(0.1, "cm")
+                ) +
+                guides(fill = guide_legend(
+                    ncol = ceiling(length(unique(hyp2.tmp$label))/12),
+                    byrow = T)
+                )
+        }
+    )
     #
     
     pdf(paste0(
             "plots/H02-clustering/03-PRECAST_q9-15-20-31_HVGorSVG_spotplots/", names(pcst_clusts)[i],".pdf"),
-        width = 10,
-        height = 8)
+        width = 20,
+        height = 16)
     do.call("grid.arrange",plt)
     dev.off()
     rm(plt, curclusts)

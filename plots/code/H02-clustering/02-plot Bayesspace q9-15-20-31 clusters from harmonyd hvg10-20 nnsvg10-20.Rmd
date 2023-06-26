@@ -29,7 +29,7 @@ library(Polychrome)
 library(spatialLIBD)
 # library(fasthplus)
 
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+# theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
 
 ### load object with the harmonyPCA and harmonyUMAPs for these four feature sets for plotting purposes in those spaces. load bayesspace cluster assignments.
@@ -61,20 +61,45 @@ for (i in c(1:length(bs_clusts))) {
     rownames(curclusts) <- curclusts$rn
     
     if (sum(rownames(curclusts) == rownames(colData(hyp2.tmp))) != nrow(colData(hyp2.tmp))) {
-        curclusts <- curclusts[rownames(colData(hyp2.tmp)), ]
+        curclusts <- curclusts[rownames(colData(hyp2.tmp)),]
     }
     
     colLabels(hyp2.tmp) <- as.factor(curclusts[, 2])
-    pal <- palette36.colors(n=length(unique(curclusts[,2])))
-    names(pal) <- levels(hyp2.tmp$label)
+    pal <- palette36.colors(n = length(unique(curclusts[, 2])))
+    names(pal) <- unique(hyp2.tmp$label)
     
     plt <-
-        spatialLIBD::vis_grid_clus(hyp2.tmp,clustervar = "label",pdf_file=NULL,colors = pal,spatial = F,auto_crop = T,return_plots = T,point_size = 1)
+        spatialLIBD::vis_grid_clus(
+            hyp2.tmp,
+            clustervar = "label",
+            pdf_file = NULL,
+            colors = pal,
+            spatial = F,
+            auto_crop = T,
+            return_plots = T,
+            point_size = 2,
+            sort_clust = F
+        )
     
     ### adjust font sizes
-    plt <- lapply(plt,FUN=function(x){x+
-            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
-            })
+    plt <- lapply(
+        plt,
+        FUN = function(x) {
+            x +
+                theme(
+                    plot.title = element_text(size = 11, hjust = 0.5),
+                    strip.text = element_text(size = 10),
+                    legend.text = element_text(size = 10),
+                    legend.title = element_text(size = 10, hjust = 0.5),
+                    legend.spacing.y = unit(0, "cm"),
+                    legend.spacing.x = unit(0.1, "cm")
+                ) +
+                guides(fill = guide_legend(
+                    ncol = ceiling(length(unique(hyp2.tmp$label))/12),
+                    byrow = T)
+                )
+        }
+    )
     
     # save
     pdf(
@@ -83,10 +108,10 @@ for (i in c(1:length(bs_clusts))) {
             gsub(bs_clusts[i], pattern = "^(.*)\\.txt$", replacement = "\\1"),
             ".pdf"
         ),
-        width = 10,
-        height = 8
+        width = 20,
+        height = 16
     )
-    do.call("grid.arrange",plt)
+    do.call("grid.arrange", plt)
     dev.off()
     rm(plt, curclusts)
 }

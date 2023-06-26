@@ -31,7 +31,7 @@ library(scCustomize)
 library(spatialLIBD)
 library(ggpubr)
 
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 10), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 11), axis.title.y = element_text(size =11), plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5)),legend.text=element)
+#theme_set(theme_bw()+theme(axis.text.x = element_text(size = 10), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 11), axis.title.y = element_text(size =11), plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5)))
 ```
 
 # load required objs
@@ -68,16 +68,51 @@ hyp2.tmp <- hyp2
 k<-1
 for (k in c(1:length(walktraps))){
     colLabels(hyp2.tmp) <- as.factor(walktraps[[k]])
-    pal <- palette36.colors(n=length(unique(walktraps[[k]])))
+    pal <- palette36.colors(n = length(unique(walktraps[[k]])))
     names(pal) <- unique(walktraps[[k]])
     ### make base spotplots
-    plt <- spatialLIBD::vis_grid_clus(hyp2.tmp,clustervar = "label",pdf_file=NULL,colors = pal,spatial = F,auto_crop = T,return_plots = T,point.size=0.5)
-    ### adjust font sizes
-    plt <- lapply(plt,FUN=function(x){x+
-            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))})
+    plt <-
+        spatialLIBD::vis_grid_clus(
+            hyp2.tmp,
+            clustervar = "label",
+            pdf_file = NULL,
+            colors = pal,
+            spatial = F,
+            auto_crop = T,
+            return_plots = T,
+            point.size = 2,
+            sort_clust = F
+        )
+    ### adjust font sizes, pack legends tight (requires byrow arg in guides along with theme arg for spacing.y)
+    plt <- lapply(
+        plt,
+        FUN = function(x) {
+            x +
+                theme(
+                    plot.title = element_text(size = 11, hjust = 0.5),
+                    strip.text = element_text(size = 10),
+                    legend.text = element_text(size = 10),
+                    legend.title = element_text(size = 10, hjust = 0.5),
+                    legend.spacing.y = unit(0, "cm"),
+                    legend.spacing.x = unit(0.1, "cm")
+                ) +
+                guides(fill = guide_legend(
+                    ncol = ceiling(length(unique(hyp2.tmp$label))/12),
+                    byrow = T)
+                )
+        }
+    )
     ### save pdf
-    pdf(paste0("plots/H02-clustering/01-walktrap_cut9-15-20-31_spotplots/",names(walktraps)[k],"_cluster_spotplot.pdf"),height=9,width=13)
-    do.call("grid.arrange",plt)
+    pdf(
+        paste0(
+            "plots/H02-clustering/01-walktrap_cut9-15-20-31_spotplots/",
+            names(walktraps)[k],
+            "_cluster_spotplot.pdf"
+        ),
+        height = 16,
+        width = 20
+    )
+    do.call("grid.arrange", plt)
     dev.off()
     rm(plt)
 }
