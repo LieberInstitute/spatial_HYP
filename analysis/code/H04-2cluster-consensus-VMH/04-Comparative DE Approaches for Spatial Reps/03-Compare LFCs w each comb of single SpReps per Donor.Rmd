@@ -1,0 +1,182 @@
+---
+title: "03-Compare LFCs w each comb of single SpReps per Donor"
+author: "Bernard Mulvey"
+date: "2023-06-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(scran)
+library(edgeR)
+library(jaffelab)
+library(PCAtools) # findElbowPoint
+library(tidyr) # generate table of unique combinations of SpRep vectors
+library(parallel)
+library(BiocParallel)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+### Load SPE with vmh already annotated and set up
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+# change/ensure colnames/colData's rownames == colData()$keys
+colnames(hyp2.vmh) <- colData(hyp2.vmh)$key
+
+## add demographics
+demos <- fread("raw-data/demos.txt")
+tmpcd <- as.data.table(colData(hyp2.vmh),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum")
+tmpcd <- as.data.frame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd <- tmpcd[colnames(hyp2.vmh),]
+
+colData(hyp2.vmh) <- DataFrame(tmpcd) 
+stopifnot(identical(colnames(hyp2.vmh),rownames(colData(hyp2.vmh))))
+rm(tmpcd)
+```
+
+### Comparative Approach 1: Each combination of data where only 1 spatial rep per donor is represented. Cross-correlate logFCs from the unique combinations of included samples.
+
+Br8741 spatial reps: V12D05-348_C1 and V12D05-350_C1
+Br6588 spatial reps: V12D05-348_D1 and V12D05-350_D1
+```{r}
+unique(as.data.table(colData(hyp2.vmh))[,.(sample_id,brnum)])
+
+# get table of unique combos of spatial reps that could be left out using tidyr::crossing(), which won't change the characters to factors (unlike expand.grid), per https://stackoverflow.com/a/50957414 . keep this table later so we add the LFCs etc
+Br8741 <- c("V12D05-348_C1","V12D05-350_C1")
+Br6588 <- c("V12D05-348_D1","V12D05-350_D1")
+leaveout <- as.data.frame(crossing(Br8741=Br8741,Br6588=Br6588))
+
+# make which samples to exclude into lists to be passed and iterated thru in bpmapply
+leaveoutA <- as.list(leaveout$Br8741)
+leaveoutB <- as.list(leaveout$Br6588)
+rm(Br8741,Br6588)
+### set up for parallelized exeec
+bpm <- MulticoreParam(workers=4)
+register(bpm)
+hyp2.tmp <- hyp2.vmh # belt+suspenders: create copy of the full SPE to use for subsetting to avoid modification of the full object in case we need later 
+
+### calculate sex DE results for each combination of singular spatial reps without additional adjustments
+lvout.DEres <- bpmapply(x=leaveoutA,y=leaveoutB,BPPARAM = bpm,SIMPLIFY = F,FUN=function(x,y){
+    hyp2.proc <- hyp2.tmp[,!(hyp2.tmp$sample_id==x)&!(hyp2.tmp$sample_id==y)]
+    hyp2.pseu <- aggregateAcrossCells(hyp2.proc,
+                   DataFrame(is.vmh=hyp2.proc$BSp_q2_consensus_vmh,
+                             sample=hyp2.proc$sample_id))
+    
+    rm(hyp2.proc)
+
+    hyp2.pseu$is.vmh <- factor(hyp2.pseu$is.vmh)
+
+# find a good expression cutoff using edgeR::filterByExpr
+    rowData(hyp2.pseu)$high_expr <- filterByExpr(hyp2.pseu)
+    rowData(hyp2.pseu)$high_expr_cl <- filterByExpr(hyp2.pseu, group = hyp2.pseu$is.vmh)
+    rowData(hyp2.pseu)$high_expr_sample <- filterByExpr(hyp2.pseu, group = hyp2.pseu$sample)
+
+    rowData(hyp2.pseu)$high_expr_clorsam <-     rowSums(cbind(rowData(hyp2.pseu)$high_expr_sample,rowData(hyp2.pseu)$high_expr_cl))
+    hyp2.pseu <- hyp2.pseu[rowData(hyp2.pseu)$high_expr_clorsam>=1]
+    
+    hyp2.pseu2 <- edgeR::cpm(edgeR::calcNormFactors(hyp2.pseu), log = TRUE, prior.count = 0.1)
+    #### fix dimnames, which rigtmpcdht now are changed to "sample1, sample2...":
+    # colnames(hyp2.pseu)
+    colnames(hyp2.pseu2) <- paste0(hyp2.pseu$sample_id,"_",hyp2.pseu$is.vmh)
+    colnames(hyp2.pseu) <- paste0(hyp2.pseu$sample_id,"_",hyp2.pseu$is.vmh)
+    
+    ## store norm counts on spe
+    logcounts(hyp2.pseu) <- hyp2.pseu2
+    
+    ## double check
+    stopifnot(rownames(hyp2.pseu)==rownames(hyp2.tmp)[which(rownames(hyp2.tmp) %in% rownames(hyp2.pseu))])
+
+    ## dump unneeded objs
+    rm(hyp2.pseu2)
+    ## make sure variables of interest for DE modeling are factors
+    colData(hyp2.pseu)$Sex <- factor(colData(hyp2.pseu)$Sex)
+    colData(hyp2.pseu)$is.vmh <- factor(colData(hyp2.pseu)$is.vmh)
+    
+    ## de analyze
+    deres <- pseudoBulkDGE(
+        hyp2.pseu,
+        col.data = colData(hyp2.pseu),
+        label = hyp2.pseu$is.vmh,
+        design = ~Sex,
+        coef="SexM",
+        row.data = rowData(hyp2.pseu),
+        method = "voom",
+        qualities = TRUE,
+        robust = TRUE
+        )
+    
+    tmpout <- as.data.table(deres)
+    return(tmpout)
+})
+rm(hyp2.tmp)
+
+names(lvout.DEres) <- mapply(x=leaveoutA,y=leaveoutB,FUN=function(x,y){paste0(x,"_",y)})
+
+saveRDS(lvout.DEres,"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/One SpRep per donor/singleSpReps_VMHsexDE_reslist_named-by-excluded-samples.RDS")
+```
+
+
+Visualize LFC correlations internally
+```{r}
+i <- 2
+for (i in c(2:length(lvout.DEres))){
+    if (i==2){
+    setnames(lvout.DEres[[i-1]],c("logFC","adj.P.Val","P.Value"),paste0(c("logFC","adj.P.Val","P.Value"),"_",i-1))
+    setnames(lvout.DEres[[i]],c("logFC","adj.P.Val","P.Value"),paste0(c("logFC","adj.P.Val","P.Value"),"_",i))
+    fetchnamesA <- c("group_name","gene_id",paste0(c("logFC","adj.P.Val","P.Value"),"_",i-1))
+    fetchnamesB <- c("group_name","gene_id",paste0(c("logFC","adj.P.Val","P.Value"),"_",i))
+    lvout.pltdat <- merge.data.table(lvout.DEres[[i-1]][,..fetchnamesA],lvout.DEres[[i]][,..fetchnamesB],by=c("group_name","gene_id"))
+    rm(fetchnamesA)
+    }
+    else{
+        setnames(lvout.DEres[[i]],c("logFC","adj.P.Val","P.Value"),paste0(c("logFC","adj.P.Val","P.Value"),"_",i))
+        fetchnamesB <- c("group_name","gene_id",paste0(c("logFC","adj.P.Val","P.Value"),"_",i))
+        lvout.pltdat <- merge.data.table(lvout.pltdat,lvout.DEres[[i]][,..fetchnamesB],by=c("group_name","gene_id"),all.x=T,all.y=T)
+    }
+}
+rm(i,fetchnamesA,fetchnamesB)
+
+### add gene names
+lvout.pltdat <- merge.data.table(lvout.pltdat,as.data.table(rowData(hyp2.vmh))[,.(gene_id,gene_name)],by="gene_id")
+
+
+fetchnames <- grep(names(lvout.pltdat),pattern="logFC",value=T)
+lvout.cormat <- as.data.frame(lvout.pltdat[group_name=="VMH",..fetchnames])
+
+panel.cor <- function(x, y, digits = 3, prefix = "", cex.cor, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y,use="pairwise.complete.obs",method = "pearson"))
+    txt <- format(c(r, 0.123456789), digits = digits)[1]
+    txt <- paste0(prefix, txt)
+    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+    text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+
+pairs(lvout.cormat,upper.panel = panel.cor)
+
+### repeat, but now excluding chrY genes and XIST, which are going to be bonkersly huge LFCs (all ≥7 in logFC_1)
+lvout.cormat <- as.data.frame(lvout.pltdat[group_name=="VMH"&!(gene_name %in% lvout.pltdat[abs(logFC_1)>7,gene_name])&gene_name!="XIST",..fetchnames])
+
+dev.off()
+```
