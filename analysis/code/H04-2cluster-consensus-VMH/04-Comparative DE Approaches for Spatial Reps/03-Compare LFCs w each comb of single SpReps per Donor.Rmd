@@ -111,6 +111,7 @@ lvout.DEres <- bpmapply(x=leaveoutA,y=leaveoutB,BPPARAM = bpm,SIMPLIFY = F,FUN=f
     colData(hyp2.pseu)$Sex <- factor(colData(hyp2.pseu)$Sex)
     colData(hyp2.pseu)$is.vmh <- factor(colData(hyp2.pseu)$is.vmh)
     
+    
     ## de analyze
     deres <- pseudoBulkDGE(
         hyp2.pseu,
@@ -135,48 +136,19 @@ saveRDS(lvout.DEres,"analysis/data/H04-2cluster-consensus-VMH/Comparative DE app
 ```
 
 
-Visualize LFC correlations internally
+Tabulate DEGs
 ```{r}
-i <- 2
-for (i in c(2:length(lvout.DEres))){
-    if (i==2){
-    setnames(lvout.DEres[[i-1]],c("logFC","adj.P.Val","P.Value"),paste0(c("logFC","adj.P.Val","P.Value"),"_",i-1))
-    setnames(lvout.DEres[[i]],c("logFC","adj.P.Val","P.Value"),paste0(c("logFC","adj.P.Val","P.Value"),"_",i))
-    fetchnamesA <- c("group_name","gene_id",paste0(c("logFC","adj.P.Val","P.Value"),"_",i-1))
-    fetchnamesB <- c("group_name","gene_id",paste0(c("logFC","adj.P.Val","P.Value"),"_",i))
-    lvout.pltdat <- merge.data.table(lvout.DEres[[i-1]][,..fetchnamesA],lvout.DEres[[i]][,..fetchnamesB],by=c("group_name","gene_id"))
-    rm(fetchnamesA)
-    }
-    else{
-        setnames(lvout.DEres[[i]],c("logFC","adj.P.Val","P.Value"),paste0(c("logFC","adj.P.Val","P.Value"),"_",i))
-        fetchnamesB <- c("group_name","gene_id",paste0(c("logFC","adj.P.Val","P.Value"),"_",i))
-        lvout.pltdat <- merge.data.table(lvout.pltdat,lvout.DEres[[i]][,..fetchnamesB],by=c("group_name","gene_id"),all.x=T,all.y=T)
-    }
-}
-rm(i,fetchnamesA,fetchnamesB)
-
-### add gene names
-lvout.pltdat <- merge.data.table(lvout.pltdat,as.data.table(rowData(hyp2.vmh))[,.(gene_id,gene_name)],by="gene_id")
-
-
-fetchnames <- grep(names(lvout.pltdat),pattern="logFC",value=T)
-lvout.cormat <- as.data.frame(lvout.pltdat[group_name=="VMH",..fetchnames])
-
-panel.cor <- function(x, y, digits = 3, prefix = "", cex.cor, ...)
-{
-    usr <- par("usr"); on.exit(par(usr))
-    par(usr = c(0, 1, 0, 1))
-    r <- abs(cor(x, y,use="pairwise.complete.obs",method = "pearson"))
-    txt <- format(c(r, 0.123456789), digits = digits)[1]
-    txt <- paste0(prefix, txt)
-    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
-    text(0.5, 0.5, txt, cex = cex.cor * r)
+library(doParallel)
+library(foreach)
+lvout.deg <- foreach(i=1:4,.combine=rbind) %do% {
+    lvout.DEres[[i]][adj.P.Val<0.1,.(group_name,gene_name,logFC)]
 }
 
-pairs(lvout.cormat,upper.panel = panel.cor)
+lvout.deg[,upreg_sex:=ifelse(logFC>0,yes="M",no="F")]
+consens <- lvout.deg[group_name=="VMH",.N,by=c("gene_name","upreg_sex")]
 
-### repeat, but now excluding chrY genes and XIST, which are going to be bonkersly huge LFCs (all ≥7 in logFC_1)
-lvout.cormat <- as.data.frame(lvout.pltdat[group_name=="VMH"&!(gene_name %in% lvout.pltdat[abs(logFC_1)>7,gene_name])&gene_name!="XIST",..fetchnames])
+### PWP4 up in M 4/4 of data subests; TAC3 F up in 3/4; LPCAT4 F up in 2/4
 
-dev.off()
+
+
 ```
