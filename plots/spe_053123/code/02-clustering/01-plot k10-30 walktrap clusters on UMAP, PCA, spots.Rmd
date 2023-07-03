@@ -1,0 +1,145 @@
+---
+title: "01-plot k10-30 walktrap clusters on UMAP, PCA, spots"
+author: "Bernie Mulvey"
+date: "2023-05-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater) # addPerCellQC
+# library(nnSVG)
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(Polychrome)
+# library(fasthplus)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+# load required objs
+```{r}
+walktraps <- readRDS("analysis/data/02-clustering/01c-7featureset_k10-30by5s_walktrap_clusters_NOcovars.RDS")
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm.RDS")
+hyp2.vgs.list <- readRDS("analysis/data/01-feature_selection/nnSVG_HVG_and_combo_featurelists.RDS")
+pcalist <- readRDS("analysis/data/02-clustering/01a-nnsvg_HVG_and_combos_PCA_NOcovariates.RDS")
+umaplist <- readRDS("analysis/data/02-clustering/01a-nnsvg_HVG_and_combos_UMAPs_NOcovariates.RDS")
+```
+
+
+## plot cluster assignments onto spatial spots
+```{r}
+hyp2.tmp <- hyp2
+plts <- list()
+i<-1
+
+
+
+for (i in c(1:length(pcalist))){
+    k<-1
+    for (k in c(1:length(walktraps))){
+        colLabels(hyp2.tmp) <- factor(walktraps[[k]][[i]])
+        # the much simpler call to polychrome is not resulting in any actual colors assigned to the plots for some reason. but this roundabout way works. something's gone real wonky with my ggspavis installation.
+  plts[[length(plts)+1]] <- ggspavis::plotSpots(hyp2.tmp, annotate = "label",palette = DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(
+              hyp2.tmp
+          )$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)]
+      )+
+    ggtitle(paste0(names(pcalist)[i],"walktrap_",names(walktraps)[k]))
+    }
+}
+  
+  
+rm(i)
+
+png("plots/02-clustering/01-walktrap_clusts_spotplots.png",height=3000,width=4000)
+do.call("grid.arrange",c(plts,ncol=5,nrow=7))
+dev.off()
+
+
+rm(plts)
+
+```
+
+### ...and onto PCA...
+```{r}
+hyp2.tmp <- hyp2
+plts <- list()
+i<-1
+
+for (i in c(1:length(pcalist))){
+    k<-1
+    for (k in c(1:length(walktraps))){
+        reducedDims(hyp2.tmp)$PCA <- pcalist[[i]]
+        colLabels(hyp2.tmp) <- factor(walktraps[[k]][[i]])
+  plts[[length(plts)+1]] <- ggspavis::plotDimRed(hyp2.tmp, annotate = "label", type = "PCA",palette = DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(
+              hyp2.tmp
+          )$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)]
+      )+
+    ggtitle(paste0(names(pcalist)[i],"walktrap_",names(walktraps)[k]))
+    }
+}
+  
+  
+rm(i)
+
+png("plots/02-clustering/01-walktrap_clusts_PCA.png",height=3000,width=4000)
+do.call("grid.arrange",c(plts,ncol=5,nrow=7))
+dev.off()
+
+
+rm(plts)
+
+```
+
+### ..and umap
+```{r}
+hyp2.tmp <- hyp2
+plts <- list()
+i<-1
+
+### for some reason, we get an error about row names being non-unique only for this part of the plotting. (why we can assign the PCAs the exact same way without trouble escapes me). so set the plotting sge rownames and colnames to be a unique value found within colData.
+
+colnames(hyp2.tmp) <- colData(hyp2.tmp)$key
+rownames(colData(hyp2.tmp)) <- colData(hyp2.tmp)$key
+
+for (i in c(1:length(umaplist))){
+    k<-1
+    for (k in c(1:length(walktraps))){
+        x <- as.data.frame(umaplist[[i]])
+        rownames(x) <- colData(hyp2.tmp)$key
+        colnames(x) <- c("UMAP1","UMAP2")
+        reducedDims(hyp2.tmp)$UMAP <- x
+        colLabels(hyp2.tmp) <- factor(walktraps[[k]][[i]])
+  plts[[length(plts)+1]] <- ggspavis::plotDimRed(hyp2.tmp, annotate = "label", type = "UMAP",palette = DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(
+              hyp2.tmp
+          )$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)]
+      )+
+    ggtitle(paste0(names(pcalist)[i],"walktrap_",names(walktraps)[k]))
+    }
+}
+  
+
+png("plots/02-clustering/01-walktrap_clusts_UMAP.png",height=3000,width=4000)
+do.call("grid.arrange",c(plts,ncol=5,nrow=7))
+dev.off()
+
+
+rm(plts)
+
+## clean up
+rm(i,k,x,hyp2.tmp,plts)
+```

@@ -29,7 +29,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 ```{r}
 # ordinarily, we exclude mitochondrial genes as not of interest. but the LC spatial preprint highlighted that LC neurons had very high mitochondrial reads, so what the hey, we'll keep them in here and just grab extra top HVGs to account for the fact that the 13 mito genes might take up some of the list.
 
-hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm.RDS")
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
 # first, we model gene-level mean-variance relationships
 hyp2.vars <- modelGeneVar(hyp2)
 hyp2.vars.fit <- metadata(hyp2.vars)
@@ -54,7 +54,7 @@ rm(hyp2.vars.dt,hyp2.means.dt)
 
 # ^ "`data` must be a <data.frame>, or an object coercible by `fortify()`, not an environment."
 
-# pdf("plots/01-feature_selection/mean-var-relation_umi600_gene450_mito35_NOharmony.pdf",height=6,width=6)
+pdf("plots/spe_070123/01-feature_selection/mean-var-relation_umi600_gene450_mito35_NOharmony.pdf",height=6,width=6)
 ggplot(hyp2.mnvar.pltdat, aes(x = mean_log_xpr, y = var_log_xpr)) +
     geom_point() +
     geom_function(fun=hyp2.vars.fit$trend,col="blue")
@@ -66,15 +66,15 @@ rm(hyp2.mnvar.pltdat)
 ```{r}
 hyp2.hvg10 <- scran::getTopHVGs(hyp2.vars,prop = 0.1)
 hyp2.hvg20 <- scran::getTopHVGs(hyp2.vars,prop=0.2)
-# saveRDS(hyp2.hvg10,"analysis/data/01-feature_selection/top10pct_HVGs_NOharmony.RDS")
-# saveRDS(hyp2.hvg20,"analysis/data/01-feature_selection/top20pct_HVGs_NOharmony.RDS")
+#saveRDS(hyp2.hvg10,"analysis/data/spe_070123/01-feature_selection/top10pct_HVGs_NOharmony.RDS")
+#saveRDS(hyp2.hvg20,"analysis/data/spe_070123/01-feature_selection/top20pct_HVGs_NOharmony.RDS")
 ```
 
 
 ### Spatially variable genes--nnSVG, per sample
 ### the workhorse function nnSVG can use parallel processing through BiocParallel. Set up the preferred (i.e., compatible) param. the parallelization is within the nnsvg call, so no need to match cpu # to sample #
 ```{r}
-hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm.RDS")
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
 sbp <- MulticoreParam(10)
 register(sbp)
 
@@ -96,7 +96,7 @@ for (i in c(1:length(caps))){
     message(paste0("Starting sample ",i," of ",length(caps)))
     hyp2.samp <- hyp2[,colData(hyp2)$sample_id==cap]
     # dim(hyp2.samp)
-    hyp2.samp <- filter_genes(hyp2.samp,filter_genes_ncounts = 5,filter_genes_pcspots = 1,filter_mito = F)
+    hyp2.samp <- filter_genes(hyp2.samp,filter_genes_ncounts = 3,filter_genes_pcspots = 0.5,filter_mito = F)
     #recalculate logcounts
     hyp2.samp <- computeLibraryFactors(hyp2.samp)
     hyp2.samp <- logNormCounts(hyp2.samp)
@@ -114,7 +114,7 @@ res_list3 <- lapply(res_list2,FUN=function(x){
     as.data.table(as.data.frame(rowData(x)),keep.rownames=F)
 })
 
-# saveRDS(res_list3,"analysis/data/01-feature_selection/nnSVG_samplewise_n3s0.5_052423.RDS")
+saveRDS(res_list3,"analysis/data/spe_070123/01-feature_selection/nnSVG_samplewise_n3s0.5_070223.RDS")
 nnsvg_N3Spt5 <- res_list3
 rm(i,caps,sbp,res_list2,res_list3)
 gc(full=T)
@@ -141,7 +141,7 @@ for (i in c(1:sum(unique(colData(hyp2)$sample_id)%in%names(nnsvg_N3Spt5)))){
 rm(i)
 
 nnsvg_ranks[,meanrank:=rowMeans(.SD,na.rm=T),.SDcols=c(3:10)]
-# write.table(nnsvg_ranks,"analysis/data/01-feature_selection/meangeneranks_nnSVG_samplewise_n3s0.5.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(nnsvg_ranks,"analysis/data/spe_070123/01-feature_selection/meangeneranks_nnSVG_samplewise_n3s0.5.txt",sep='\t',quote=F,row.names=F,col.names=T)
 ```
 
 ### LEFT OFF HERE ####
@@ -153,8 +153,8 @@ hyp2.hvg20 <- readRDS("analysis/data/01-feature_selection/top20pct_HVGs_NOharmon
 setorder(nnsvg_ranks,meanrank)
 sum(hyp2.hvg10 %in% nnsvg_ranks[1:1828,gene_id]) 
 sum(hyp2.hvg20 %in% nnsvg_ranks[1:3656,gene_id])
-# 357/1828 of top 10% HVGs are top 1828 SVGs
-# 1137/3656 top 20% HVGs are in top 3656 SVGs
+# 696/1828 of top 10% HVGs are top 1828 SVGs
+# 1299/3656 top 20% HVGs are in top 3656 SVGs
 # let's plot how many of the SVGs are in the two HVG sets over a step series of 25 genes
 olap.plt <- as.data.frame(matrix(nrow=floor(length(hyp2.hvg20)/25),ncol=2))
 olap.plt[,1] <- seq(from=26,to=nrow(olap.plt)*25+25,by=25)
@@ -182,7 +182,7 @@ hyp2.vgs.list <- list(hyp10pct=hyp2.hvg10,
                       nnsvg_all=nnsvg_ranks$gene_id
                       )
 
-# saveRDS(hyp2.vgs.list,"analysis/data/01-feature_selection/nnSVG_HVG_and_combo_featurelists.RDS")
+saveRDS(hyp2.vgs.list,"analysis/data/spe_070123/01-feature_selection/nnSVG_HVG_and_combo_featurelists.RDS")
 rm(olap.plt,nnsvg_ranks,hyp2.hvg10,hyp2.hvg20,nnsvg_N3Spt5)
 gc(full=T)
 ```
