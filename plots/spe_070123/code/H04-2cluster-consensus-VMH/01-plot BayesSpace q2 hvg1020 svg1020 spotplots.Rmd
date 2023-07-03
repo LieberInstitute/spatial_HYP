@@ -26,13 +26,13 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 loadup
 ```{r}
-hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS") 
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS") 
 
 # change colnames/colData's rownames to keys
 colnames(hyp2) <- colData(hyp2)$key
 #
 
-q2s <- list.files("analysis/data/H02-clustering/03b-BSpace_Harmony_q2",pattern=".txt",full.names = T)
+q2s <- list.files("analysis/data/spe_070123/H02-clustering/03b-BSpace_mnn30_q2",pattern=".txt",full.names = T)
 
 q2list <- lapply(q2s,FUN=function(x){
     x <- fread(x)
@@ -43,7 +43,7 @@ q2list <- lapply(q2s,FUN=function(x){
     }
     y
 })
-names(q2list) <- gsub(q2s,pattern="^.*(bspace_k2.*)\\.txt$",replacement="\\1")
+names(q2list) <- gsub(q2s,pattern="^.*BSpace_mnn30_q2.*\\/(.*)\\.txt$",replacement="\\1")
 rm(q2s)
 
 ```
@@ -59,7 +59,7 @@ for (i in c(1:4)){
             theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
             })
     #
-    png(paste0("plots/H04-2cluster-consensus-VMH/01-bayesspace_q2_HVGorSVG_spotplots/",names(q2list)[i],".png"),width=1000,height=800)
+    png(paste0("plots/spe_070123/H04-2cluster-consensus-VMH/01-bayesspace_q2_HVGorSVG_spotplots/",names(q2list)[i],".png"),width=1000,height=800)
     do.call("grid.arrange",plt)
     dev.off()
 }
