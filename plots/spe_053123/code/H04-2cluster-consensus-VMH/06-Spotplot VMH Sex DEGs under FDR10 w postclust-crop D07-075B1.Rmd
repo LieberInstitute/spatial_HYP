@@ -1,5 +1,5 @@
 ---
-title: "02-Spotplot VMH Sex DEGs under FDR10"
+title: "06-Spotplot VMH Sex DEGs under FDR10 w cropped k2 V12D07075B1"
 author: "Bernard Mulvey"
 date: "2023-06-21"
 output: html_document
@@ -49,7 +49,7 @@ vmhde <- fread("analysis/data/spe_053123/H04-2cluster-consensus-VMH/pseudobulk-S
 ```{r}
 vmhde2 <- vmhde[group_name=="VMH"&adj.P.Val<0.1&!(gene_name %in% c("ZFY","UTY","PRKY","DDX3Y","TTTY14","NLGN4Y","EIF1AY","TMSB4Y","USP9Y","PCDH11Y","RPS4Y1","KDM5D")),gene_name]
 
-hyp2.plt <- hyp2[,hyp2$BSp_q2_consensus_vmh=="VMH"]
+hyp2.plt <- hyp2.vmh[,hyp2.vmh$BSp_q2_consensus_vmh=="VMH"]
 
 rownames(hyp2.plt) <- rowData(hyp2.plt)$gene_name
 
@@ -61,10 +61,26 @@ for (i in c(1:35)){
     plt <- lapply(plt,FUN=function(x){x+
             theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
             })
-    png(paste0("plots/spe_053123/H04-2cluster-consensus-VMH/06-VMH-postclustcrop-D07075B1_sexDEGs_spotplots/",curgene,".png"),width=1000,height=800)
+    pdf(paste0("plots/spe_053123/H04-2cluster-consensus-VMH/06-VMH-postclustcrop-D07075B1_sexDEGs_spotplots/",curgene,".pdf"),width=10,height=8)
     do.call("grid.arrange",plt)
     dev.off()
 }
+
+### again, plotting all spots (not just VMH spots)
+rownames(hyp2.vmh) <- rowData(hyp2.vmh)$gene_name
+i <- 1
+for (i in c(1:35)){
+    curgene <- vmhde2[i]
+    plt <- spatialLIBD::vis_grid_gene(hyp2.vmh,geneid = curgene,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    pdf(paste0("plots/spe_053123/H04-2cluster-consensus-VMH/06-VMH-postclustcrop-D07075B1_sexDEGs_spotplots/",curgene,"_allspots.pdf"),width=10,height=8)
+    do.call("grid.arrange",plt)
+    dev.off()
+}
+
 
 rm(i,curgene,hyp2.plt,plt)
 gc(full=T)
@@ -83,6 +99,69 @@ ggplot(vmhde[group_name=="VMH"],aes(y=-log10(adj.P.Val),x=logFC))+
     xlab("logFC (M vs. F)")
 dev.off()
     
+
+
+
+```
+
+##### for alternate approach 2 (sex DE analysis only for marginal VMH marker genes)
+```{r}
+
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+### crop V12D07-075_B1 first -- see code/00 blah blah .rmd
+coordstmp <- as.data.frame(spatialCoords(hyp2.vmh))
+rownames(coordstmp) <- colnames(hyp2.vmh)
+coordstmp <- as.data.table(coordstmp,keep.rownames=T)
+coordstmp <- coordstmp[,diag:=pxl_col_in_fullres+pxl_row_in_fullres]
+coordstmp <- coordstmp[!(rn %in% grep(rn,pattern="V12D07-075_B1",value=T)&diag>30000)]
+
+hyp2.vmh <- hyp2.vmh[,colnames(hyp2.vmh)%in%coordstmp$rn]
+stopifnot(dim(hyp2.vmh)[2]==nrow(coordstmp))
+
+vmhde <- fread("analysis/data/spe_053123/H04-2cluster-consensus-VMH/pseudobulk-SEX-DE_Bspace-VMH-nonvmh-clusters_postcluster-crop_V12D07075B1_VMHmarkerTop1kRanksonly.txt")
+
+
+### remove chrY genes
+vmhde2 <- vmhde[group_name=="VMH"&adj.P.Val<0.1&!(gene_name %in% c("ZFY","UTY","PRKY","DDX3Y","TTTY14","NLGN4Y","EIF1AY","TMSB4Y","USP9Y","PCDH11Y","RPS4Y1","KDM5D")),gene_name]
+
+hyp2.plt <- hyp2.vmh[,hyp2.vmh$BSp_q2_consensus_vmh=="VMH"]
+
+rownames(hyp2.plt) <- rowData(hyp2.plt)$gene_name
+
+i <- 1
+for (i in c(1:136)){
+    curgene <- vmhde2[i]
+    plt <- spatialLIBD::vis_grid_gene(hyp2.plt,geneid = curgene,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    pdf(paste0("plots/spe_053123/H04-2cluster-consensus-VMH/06b-VMH-postclustcrop-D07075B1_VMHmarkersonly_sexDEGs_spotplots/",curgene,".pdf"),width=10,height=8)
+    do.call("grid.arrange",plt)
+    dev.off()
+}
+
+### again, but plotting all spots (not just VMH spots)
+rownames(hyp2.vmh) <- rowData(hyp2.vmh)$gene_name
+i <- 1
+for (i in c(1:136)){
+    curgene <- vmhde2[i]
+    plt <- spatialLIBD::vis_grid_gene(hyp2.vmh,geneid = curgene,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    pdf(paste0("plots/spe_053123/H04-2cluster-consensus-VMH/06b-VMH-postclustcrop-D07075B1_VMHmarkersonly_sexDEGs_spotplots/",curgene,"_allspots.pdf"),width=10,height=8)
+    do.call("grid.arrange",plt)
+    dev.off()
+}
+
+
+rm(i,curgene,hyp2.plt,plt)
+gc(full=T)
+
+
 
 
 

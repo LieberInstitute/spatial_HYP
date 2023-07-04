@@ -175,7 +175,7 @@ rownames(tmpcd) <- tmpcd$rn
 tmpcd <- tmpcd[colnames(hyp2.vmh),]
 
 colData(hyp2.vmh) <- DataFrame(tmpcd)
-
+rm(tmpcd,demos,coordstmp)
 ```
 
 
@@ -234,4 +234,73 @@ deres <- pseudoBulkDGE(
 
 deres.dt <- as.data.table(deres)
 write.table(deres.dt,"analysis/data/spe_053123/H04-2cluster-consensus-VMH/pseudobulk-SEX-DE_Bspace-VMH-nonvmh-clusters_postcluster-crop_V12D07075B1.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```
+
+
+#### ALTERNATE approach #2: cropped, pre-clustered V12D07..B1, but only genes marginally qualifying as VMH markers (i.e. VMH up) in the 2-cluster scheme
+```{r}
+vmhmark <- readRDS("analysis/data/spe_053123/H04-2cluster-consensus-VMH/2cluster-consensusVMH_scoremarkers_out_with_V12D07075B1_cropped_postclustering.RDS")
+
+vmhmark <- lapply(vmhmark,as.data.table)
+vmhspec <- unique(vmhmark[["VMH"]][rank.logFC.cohen<1000|rank.AUC<1000|rank.logFC.detected<1000,rn])
+
+# subset to these genes (1970)
+hyp2.vmh <- hyp2.vmh[vmhspec,]
+
+# kgo
+hyp2_pbulk <- aggregateAcrossCells(hyp2.vmh,
+                   DataFrame(is.vmh=hyp2.vmh$BSp_q2_consensus_vmh,
+                             sample=hyp2.vmh$sample_id))
+
+hyp2_pbulk$is.vmh <- factor(hyp2_pbulk$is.vmh)
+
+# find a good expression cutoff using edgeR::filterByExpr
+rowData(hyp2_pbulk)$high_expr <- filterByExpr(hyp2_pbulk)
+rowData(hyp2_pbulk)$high_expr_cl <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$is.vmh)
+rowData(hyp2_pbulk)$high_expr_sample <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$sample)
+
+rowData(hyp2_pbulk)$high_expr_clorsam <- rowSums(cbind(rowData(hyp2_pbulk)$high_expr_sample,rowData(hyp2_pbulk)$high_expr_cl))
+
+summary(rowData(hyp2_pbulk)$high_expr)
+summary(rowData(hyp2_pbulk)$high_expr_sample)
+summary(rowData(hyp2_pbulk)$high_expr_cl)
+summary(rowData(hyp2_pbulk)$high_expr_clorsam>=1)
+
+hyp2_pbulk2 <- hyp2_pbulk[rowData(hyp2_pbulk)$high_expr_clorsam>=1]
+dim(hyp2_pbulk2)
+
+## Store the log normalized counts on the spe object
+hyp2_pbulk3 <- edgeR::cpm(edgeR::calcNormFactors(hyp2_pbulk2), log = TRUE, prior.count = 0.1)
+
+stopifnot(rownames(hyp2_pbulk3)==rownames(hyp2.vmh)[which(rownames(hyp2.vmh) %in% rownames(hyp2_pbulk3))])
+
+#### fix dimnames, which rigtmpcdht now are changed to "sample1, sample2...":
+# colnames(hyp2_pbulk2)
+colnames(hyp2_pbulk3) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$is.vmh)
+
+colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$is.vmh)
+
+## store norm counts on spe
+logcounts(hyp2_pbulk2) <- hyp2_pbulk3
+
+### calculate DEGs
+colData(hyp2_pbulk2)$Sex <- factor(colData(hyp2_pbulk2)$Sex)
+colData(hyp2_pbulk2)$is.vmh <- factor(colData(hyp2_pbulk2)$is.vmh)
+
+
+deres <- pseudoBulkDGE(
+    hyp2_pbulk2,
+    col.data = colData(hyp2_pbulk2),
+    label = hyp2_pbulk2$is.vmh,
+    design = ~Sex,
+    coef="SexM",
+    row.data = rowData(hyp2_pbulk2),
+    method = "voom",
+    qualities = TRUE,
+    robust = TRUE
+)
+
+deres.dt <- as.data.table(deres)
+write.table(deres.dt,"analysis/data/spe_053123/H04-2cluster-consensus-VMH/pseudobulk-SEX-DE_Bspace-VMH-nonvmh-clusters_postcluster-crop_V12D07075B1_VMHmarkerTop1kRanksonly.txt",sep='\t',quote=F,row.names=F,col.names=T)
+
 ```
