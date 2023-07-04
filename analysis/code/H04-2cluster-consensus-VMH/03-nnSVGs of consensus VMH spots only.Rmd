@@ -106,3 +106,30 @@ nnsvg_ranks[,n_naSamps:=rowSums(is.na(.SD),na.rm=F),.SDcols=c(3:10)]
 
 nnsvg_ranks2 <- nnsvg_ranks[n_naSamps<=4]
 ```
+
+### alternate approach: crop the preprocessed, k=2 clustered sample V12-D075_B1 to the high-confidence VMH area, then proceed with SVG detection. (clustering with k=2 with a pre-cropped tissue section and batch controlling w MNN does not isolate VMH, while the present k=2 approach had isolated cells negative for NR5A1 by ISH as VMH).
+
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+### crop V12D07-075_B1 first -- see code/00 blah blah .rmd
+coordstmp <- as.data.frame(spatialCoords(hyp2.vmh))
+rownames(coordstmp) <- colnames(hyp2.vmh)
+coordstmp <- as.data.table(coordstmp,keep.rownames=T)
+coordstmp <- coordstmp[,diag:=pxl_col_in_fullres+pxl_row_in_fullres]
+coordstmp <- coordstmp[!(rn %in% grep(rn,pattern="V12D07-075_B1",value=T)&diag>30000)]
+
+hyp2 <- hyp2.vmh[,colnames(hyp2.vmh)%in%coordstmp$rn]
+stopifnot(dim(hyp2)[2]==nrow(coordstmp))
+
+### now cut to VMH spots only
+hyp2 <- hyp2[,which(hyp2$BSp_q2_consensus_vmh=="VMH")]
+
+
+
+
+
+
+
+
+```

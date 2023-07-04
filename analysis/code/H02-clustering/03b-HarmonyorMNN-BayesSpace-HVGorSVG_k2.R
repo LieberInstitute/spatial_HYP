@@ -51,7 +51,6 @@ names(k2cls) <- names(pcas)
 i <- 1
 for (i in c(1:4)){
 write.table(k2cls[[i]],paste0("analysis/data/spe_070123/H02-clustering/03b-BSpace_mnn30_q2/",names(k2cls)[i],".txt"),sep='\t',quote=F,row.names=F,col.names=T)
+}
 rm(list=ls())
 gc(full=T)
-}
-
