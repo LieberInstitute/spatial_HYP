@@ -165,3 +165,73 @@ write.table(deres.sexcov,"analysis/data/H04-2cluster-consensus-VMH/pseudobulk-VM
 
 
 ```
+
+#### 070823: alternate approach: crop the preprocessed, k=2 clustered sample V12-D075_B1 to the high-confidence VMH area, then proceed with DE. (clustering with k=2 with a pre-cropped tissue section and batch controlling w MNN does not isolate VMH, while the present k=2 approach w/ bayesspace had isolated cells negative for NR5A1 by ISH as VMH).
+
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+### crop V12D07-075_B1 first -- see code/00 blah blah .rmd
+coordstmp <- as.data.frame(spatialCoords(hyp2.vmh))
+rownames(coordstmp) <- colnames(hyp2.vmh)
+coordstmp <- as.data.table(coordstmp,keep.rownames=T)
+coordstmp <- coordstmp[,diag:=pxl_col_in_fullres+pxl_row_in_fullres]
+coordstmp <- coordstmp[!(rn %in% grep(rn,pattern="V12D07-075_B1",value=T)&diag>30000)]
+
+hyp2.vmh <- hyp2.vmh[,colnames(hyp2.vmh)%in%coordstmp$rn]
+stopifnot(dim(hyp2.vmh)[2]==nrow(coordstmp))
+
+### k now bulk
+hyp2_pbulk <- aggregateAcrossCells(hyp2.vmh,
+                   DataFrame(is.vmh=hyp2.vmh$BSp_q2_consensus_vmh,
+                             sample=hyp2.vmh$sample_id))
+
+hyp2_pbulk$is.vmh <- factor(hyp2_pbulk$is.vmh)
+
+# find a good expression cutoff using edgeR::filterByExpr
+rowData(hyp2_pbulk)$high_expr <- filterByExpr(hyp2_pbulk)
+rowData(hyp2_pbulk)$high_expr_cl <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$is.vmh)
+rowData(hyp2_pbulk)$high_expr_sample <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$sample)
+
+rowData(hyp2_pbulk)$high_expr_clorsam <- rowSums(cbind(rowData(hyp2_pbulk)$high_expr_sample,rowData(hyp2_pbulk)$high_expr_cl))
+
+hyp2_pbulk2 <- hyp2_pbulk[rowData(hyp2_pbulk)$high_expr_clorsam>=1]
+
+## Store the log normalized counts on the spe object
+hyp2_pbulk3 <- edgeR::cpm(edgeR::calcNormFactors(hyp2_pbulk2), log = TRUE, prior.count = 0.1)
+
+stopifnot(rownames(hyp2_pbulk3)==rownames(hyp2.vmh)[which(rownames(hyp2.vmh) %in% rownames(hyp2_pbulk3))])
+
+#### fix dimnames, which right now got changed to "sample1, sample2...":
+#### and aren't carried in by aggregate across cells above (colnames(hyp2_pbulk2) == null)
+
+colnames(hyp2_pbulk3) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$is.vmh)
+
+colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$is.vmh)
+
+## and add the same as rownames of coldata for the full object hyp2_pbulk2
+rownames(colData(hyp2_pbulk2)) <- colnames(hyp2_pbulk2)
+## store norm counts on full spe
+logcounts(hyp2_pbulk2) <- hyp2_pbulk3
+
+colData(hyp2_pbulk2)$is.vmh <- factor(colData(hyp2_pbulk2)$is.vmh)
+
+# label $in_tissue --> all cells considered together, since we want to model by is.vmh (VMH vs other)
+deres <- pseudoBulkDGE(
+    hyp2_pbulk2,
+    col.data = colData(hyp2_pbulk2),
+    label = hyp2_pbulk2$in_tissue,
+    design = ~is.vmh,
+    coef="is.vmhVMH",
+    row.data = rowData(hyp2_pbulk2),
+    method = "voom",
+    qualities = TRUE,
+    robust = TRUE
+)
+
+deres.dt <- as.data.table(deres)
+deres.dt[group_name==TRUE,group_name:="VMH"]
+
+write.table(deres.dt,"analysis/data/spe_053123/H04-2cluster-consensus-VMH/pseudobulk_CROPPED-VMH-other-DE.txt",sep='\t',quote=F,row.names=F,col.names=T)
+
+```
