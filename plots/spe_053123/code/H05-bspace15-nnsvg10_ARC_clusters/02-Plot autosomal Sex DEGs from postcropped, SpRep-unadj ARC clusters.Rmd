@@ -15,9 +15,7 @@ require(colorout)
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 library(scater)
-library(ggspavis)
 library(SpatialExperiment)
-library(Polychrome)
 library(spatialLIBD)
 library(parallel)
 library(BiocParallel)
@@ -98,6 +96,4 @@ for (i in c(1:length(arcde))){
     # clean up
     rm(currun,plotgenes,hyp2.plt)
 }
-
-
 ```
