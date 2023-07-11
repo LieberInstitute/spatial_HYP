@@ -76,7 +76,7 @@ rm(chrs,allg)
 
 Going off https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/create_manual_annotated_pseudobulk_spe.R and https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/DE_pseudobulk.R
 
-ARC clusters= #8, #13. Also run DE with the two joined.
+ARC clusters= #8, #13. Also run DE pseudobulking across the two clusters.
 ```{r}
 ## iterate over individual clusters and combination.
 clids <- list(8,13,c(8,13))
