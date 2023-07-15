@@ -1,0 +1,166 @@
+---
+title: "02b-DE of pseudobulk VMH vs other with duplicateCorrelations"
+author: "Bernard Mulvey"
+date: "2023-07-14"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(scran)
+library(edgeR)
+library(jaffelab)
+library(PCAtools) # findElbowPoint
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+Load SPE with vmh already annotated
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS") 
+
+# change/ensure colnames/colData's rownames == colData()$keys
+colnames(hyp2.vmh) <- colData(hyp2.vmh)$key
+
+## add demographics
+demos <- fread("raw-data/demos.txt")
+tmpcd <- as.data.table(colData(hyp2.vmh),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum")
+tmpcd <- as.data.frame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd <- tmpcd[colnames(hyp2.vmh),]
+
+colData(hyp2.vmh) <- DataFrame(tmpcd) 
+stopifnot(identical(colnames(hyp2.vmh),rownames(colData(hyp2.vmh))))
+```
+
+
+Going off https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/create_manual_annotated_pseudobulk_spe.R and https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/DE_pseudobulk.R
+```{r}
+hyp2_pbulk <- aggregateAcrossCells(hyp2.vmh,
+                   DataFrame(is.vmh=hyp2.vmh$BSp_q2_consensus_vmh,
+                             sample=hyp2.vmh$sample_id))
+
+hyp2_pbulk$is.vmh <- factor(hyp2_pbulk$is.vmh)
+
+# find a good expression cutoff using edgeR::filterByExpr
+rowData(hyp2_pbulk)$high_expr <- filterByExpr(hyp2_pbulk)
+rowData(hyp2_pbulk)$high_expr_cl <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$is.vmh)
+rowData(hyp2_pbulk)$high_expr_sample <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$sample)
+
+rowData(hyp2_pbulk)$high_expr_clorsam <- rowSums(cbind(rowData(hyp2_pbulk)$high_expr_sample,rowData(hyp2_pbulk)$high_expr_cl))
+
+summary(rowData(hyp2_pbulk)$high_expr)
+summary(rowData(hyp2_pbulk)$high_expr_sample)
+summary(rowData(hyp2_pbulk)$high_expr_cl)
+summary(rowData(hyp2_pbulk)$high_expr_clorsam>=1)
+
+hyp2_pbulk2 <- hyp2_pbulk[rowData(hyp2_pbulk)$high_expr_clorsam>=1]
+dim(hyp2_pbulk2)
+```
+
+
+### LEFT OFF HERE
+```{r}
+## Store the log normalized counts on the spe object
+hyp2_pbulk3 <- edgeR::cpm(edgeR::calcNormFactors(hyp2_pbulk2), log = TRUE, prior.count = 0.1)
+
+stopifnot(rownames(hyp2_pbulk3)==rownames(hyp2.vmh)[which(rownames(hyp2.vmh) %in% rownames(hyp2_pbulk3))])
+
+#### fix dimnames, which right now got changed to "sample1, sample2...":
+#### and aren't carried in by aggregate across cells above (colnames(hyp2_pbulk2) == null)
+
+colnames(hyp2_pbulk3) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$is.vmh)
+
+colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$is.vmh)
+
+## and add the same as rownames of coldata for the full object hyp2_pbulk2
+rownames(colData(hyp2_pbulk2)) <- colnames(hyp2_pbulk2)
+## store norm counts on full spe
+logcounts(hyp2_pbulk2) <- hyp2_pbulk3
+```
+
+
+```{r}
+colData(hyp2_pbulk2)$Sex <- factor(colData(hyp2_pbulk2)$Sex)
+colData(hyp2_pbulk2)$is.vmh <- factor(colData(hyp2_pbulk2)$is.vmh)
+
+# label $in_tissue --> all cells considered together, since we want to model by is.vmh (VMH vs other)
+deres <- pseudoBulkDGE(
+    hyp2_pbulk2,
+    col.data = colData(hyp2_pbulk2),
+    label = hyp2_pbulk2$in_tissue,
+    design = ~is.vmh+Sex,
+    coef="is.vmhVMH",
+    row.data = rowData(hyp2_pbulk2),
+    method = "voom",
+    qualities = TRUE,
+    robust = TRUE
+)
+
+deres.sexcov <- pseudoBulkDGE(
+    hyp2_pbulk2,
+    col.data = colData(hyp2_pbulk2),
+    label = hyp2_pbulk2$in_tissue,
+    design = ~is.vmh+Sex,
+    coef="is.vmhVMH",
+    row.data = rowData(hyp2_pbulk2),
+    method = "voom",
+    qualities = TRUE,
+    robust = TRUE
+)
+
+# deres.dt <- as.data.table(deres)
+# deres.sexcov <- as.data.table(deres.sexcov)
+# 
+# write.table(deres.dt,"analysis/data/H04-2cluster-consensus-VMH/pseudobulk-VMH-other-DE.txt",sep='\t',quote=F,row.names=F,col.names=T)
+# write.table(deres.sexcov,"analysis/data/H04-2cluster-consensus-VMH/pseudobulk-VMH-other-DE_sexcovaried.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```
+
+Now, in theory, we need duplicateCorrelation here because the comparator of interest, VMH vs not, has clusters coming from the same samples (one sample --> 2 pseudobulks tested). That's not even considering the spatial replicates part of things for now. working from https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/DE_manually_annotated_pseudobulk.R ...:
+
+```{r}
+# covars <- c() # none of note for now
+mat_formula <- eval(str2expression(paste("~0+is.vmh")))
+#^clipped from above since no covars: #, "+", paste(covars, collapse = " + "))))
+
+# Matrix for a regression-like model
+mod <- model.matrix(mat_formula, data = colData(hyp2_pbulk2))
+
+# logcount matrix was created above (hyp2_pbulk3)
+
+# Compute correlation
+corfit <- duplicateCorrelation(hyp2_pbulk3, mod, block = hyp2_pbulk2$sample_id)
+
+####VMH-other DEGs
+m <- model.matrix(mat_formula,colData(hyp2_pbulk2))
+
+czech <- eBayes(
+        lmFit(
+            hyp2_pbulk2@assays@data@listData$logcounts,
+            design = m,
+            block = hyp2_pbulk2$sample_id,
+            correlation = corfit$consensus.correlation,
+            
+        ))
+
+czechres <- topTable(czech,coef=2,number=nrow(hyp2_pbulk2),adjust.method = "BH")
+
+nrow(czechres[czechres$adj.P.Val<0.05,])
+# 16,635! that's not even useful. wtf happened here?
+```
