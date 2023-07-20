@@ -61,7 +61,7 @@ diff13 <- unique(c(coh13,auc13,det13))
 diff8 <- unique(c(coh8,auc8,det8))
 rm(det13,auc13,coh13,det8,auc8,coh8)
 
-plotgenes <- c("AGRP","POMC","GABRE","CYP26A1","GHRH","NECAB2",diff8,diff13)
+plotgenes <- c("AGRP","POMC","GABRE","CYP26A1","GHRH","NECAB2","TRH","KISS1","SLC6A3","ESR1","AR","CYP19A1","BDNF","MC4R",diff8,diff13)
 
 i <- 1
 for (i in c(1:length(plotgenes))){
@@ -72,6 +72,7 @@ for (i in c(1:length(plotgenes))){
     else if (curgene %in% diff13){
         curfileend <- "_cl13-vs-cl8-marker"
     }
+    else if (curgene %in% c("ESR1","AR","CYP19A1","BDNF","MC4R")){curfileend <- "GeneralInterest"}
     else{curfileend <- ""}
     plt <- spatialLIBD::vis_grid_gene(hyp2,geneid = curgene,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
     ### adjust font sizes

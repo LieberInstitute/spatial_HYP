@@ -32,7 +32,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 load required files
 ```{r}
 hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
-rownames(colData(hyp2)) <- colData(hyp2)$key
+colnames(hyp2) <- colData(hyp2)$key
 
 bscl <- list.files("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
 
@@ -102,11 +102,33 @@ svg10_15_vmh_cod <- lapply(svg10_15_vmh,FUN=function(x){
 
 plotGroupedHeatmap(hyp2[,hyp2$label %in% c(1,5,6,9)],features = unique(c(svg10_15_vmh_cod[[1]]$rn,svg10_15_vmh_cod[[2]]$rn,svg10_15_vmh_cod[[3]]$rn,svg10_15_vmh_cod[[4]]$rn)),center=T,group="label")
 
-### basically the same very limited scope of markers separating these clusters.
+### basically the same very limited scope of markers separating these clusters. lets look at this a second way, esp since we could use a few more genes for xenium. based on the two-cluster approach, only clusters 5 (inner cells)+6(exterior vmh) in the nnsvg10/k=15 set are really bonafide VMH, I think.
+bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
+
+bscl <- as.data.frame(bscl)
+rownames(bscl) <- bscl$rn
+bscl <- DataFrame(bscl[,2])
+colnames(bscl) <- "cl"
+colLabels(hyp2) <- as.factor(bscl$cl)
+rownames(hyp2) <- rowData(hyp2)$gene_name
+
+n10k15 <- scran::scoreMarkers(hyp2,full.stats=T)
+
+### important! we want CLUSTERS 5/6, not the 5th item of the result list (which is not 5) --> put in quotes
+n10k15.5 <- as.data.table(n10k15[["5"]],keep.rownames=T)
+n10k15.6 <- as.data.table(n10k15[["6"]],keep.rownames=T)
+keepnames5 <- grep(names(n10k15.5),pattern="rn|X6|self|other|mean|median|min|max",value=T)
+keepnames6 <- grep(names(n10k15.6),pattern="rn|X5|self|other|mean|median|min|max",value=T)
+n10k15.5 <- n10k15.5[,..keepnames5]
+n10k15.6 <- n10k15.6[,..keepnames6]
+
+write.table(n10k15.5,"analysis/data/spe_053123/H03-marker_genes/VMH cl5 markers vs VMH clust 6 in harm-bspace nnsvg10 k15.txt",row.names=F,col.names=T,sep='\t',quote=F)
+write.table(n10k15.6,"analysis/data/spe_053123/H03-marker_genes/VMH cl6 markers vs VMH clust 5 in harm-bspace nnsvg10 k15.txt",row.names=F,col.names=T,sep='\t',quote=F)
+
 ```
 
 
-#### separating putative ARC clusters in harmony-bayesspace nnsvg10 k=15 (clusters 8 nad 13)
+#### separating putative ARC clusters in harmony-bayesspace nnsvg10 k=15 (clusters #8 nad #13)
 ```{r}
 hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
 colnames(hyp2) <- colData(hyp2)$key
@@ -116,14 +138,15 @@ bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nns
 
 bscl <- as.data.frame(bscl)
 rownames(bscl) <- bscl$rn
-bscl <- DataFrame(bscl[,2])
-colnames(bscl) <- "cl"
-colLabels(hyp2) <- as.factor(bscl$cl)
+bscl <- bscl[colnames(hyp2),]
+bscl <- DataFrame(bscl)
+colnames(bscl)[2] <- "cl"
+colLabels(hyp2) <- as.character(bscl[,2])
 
 n10k15 <- scoreMarkers(hyp2,full.stats=T)
 
-n10k15.13 <- as.data.table(n10k15[[13]],keep.rownames=T)
-n10k15.8 <- as.data.table(n10k15[[8]],keep.rownames=T)
+n10k15.13 <- as.data.table(n10k15[["13"]],keep.rownames=T)
+n10k15.8 <- as.data.table(n10k15[["8"]],keep.rownames=T)
 
 keepnames13 <- grep(names(n10k15.13),pattern="rn|X8|self|other|mean|median|min|max",value=T)
 keepnames8 <- grep(names(n10k15.8),pattern="rn|X13|self|other|mean|median|min|max",value=T)
