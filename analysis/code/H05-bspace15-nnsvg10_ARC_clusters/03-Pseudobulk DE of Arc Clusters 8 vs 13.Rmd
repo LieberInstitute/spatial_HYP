@@ -17,7 +17,6 @@ require(colorout)
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 library(SpatialExperiment)
-library(ggspavis)
 library(scater)
 library(scran)
 library(edgeR)
@@ -76,7 +75,7 @@ rm(chrs,allg)
 
 Going off https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/create_manual_annotated_pseudobulk_spe.R and https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/DE_pseudobulk.R
 
-ARC clusters= #8, #13. Also run DE pseudobulking across the two clusters.
+ARC clusters= #8, #13 - compare head to head to try and get arc 13 markers.
 ```{r}
 ## iterate over individual clusters and combination.
 hyp2a <- hyp2[,which(hyp2$label %in% c(8,13))]
@@ -130,7 +129,77 @@ deres <- pseudoBulkDGE(
 )
 
 deres <- as.data.table(deres)
-## try dupcor here but be weary that p values were inflated like mad before doing this for VMH
+write.table(deres,"analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/pseudobulk_ARC13-vs-ARC8_NOdupcor.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```
+
+### pseudobulk ARC 8 vs all other spots (not only arc ones!), arc13 vs other, arc8+13 vs other
+```{r}
+hyp2$is.arc8 <- hyp2$label==8
+hyp2$is.arc13 <- hyp2$label==13
+hyp2$is.arc <- hyp2$label %in% c(8,13)
+
+clids <- list("is.arc8","is.arc13","is.arc")
+
+deres.arcup <- lapply(clids,FUN=function(x){
+    hyp2_pbulk <- aggregateAcrossCells(hyp2,
+                           DataFrame(cl=colData(hyp2)[,x],
+                                     sample=hyp2$sample_id))
+        
+        # hyp2_pbulk$is.vmh <- factor(hyp2_pbulk$is.vmh)
+        
+        # find a good expression cutoff using edgeR::filterByExpr
+        rowData(hyp2_pbulk)$high_expr <- filterByExpr(hyp2_pbulk)
+        rowData(hyp2_pbulk)$high_expr_cl <- filterByExpr(hyp2_pbulk, group = colData(hyp2_pbulk)[,x])
+        rowData(hyp2_pbulk)$high_expr_sample <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$sample)
+        
+        rowData(hyp2_pbulk)$high_expr_clorsam <- rowSums(cbind(rowData(hyp2_pbulk)$high_expr_sample,rowData(hyp2_pbulk)$high_expr_cl))
+        
+        # summary(rowData(hyp2_pbulk)$high_expr)
+        # summary(rowData(hyp2_pbulk)$high_expr_sample)
+        # summary(rowData(hyp2_pbulk)$high_expr_cl)
+        # summary(rowData(hyp2_pbulk)$high_expr_clorsam>=1)
+        
+        hyp2_pbulk2 <- hyp2_pbulk[rowData(hyp2_pbulk)$high_expr_clorsam>=1]
+        
+        ## Store the log normalized counts on the spe object
+        hyp2_pbulk3 <- edgeR::cpm(edgeR::calcNormFactors(hyp2_pbulk2), log = TRUE, prior.count = 0.1)
+        
+        stopifnot(rownames(hyp2_pbulk3)==rownames(hyp2)[which(rownames(hyp2) %in% rownames(hyp2_pbulk3))])
+        
+        colnames(hyp2_pbulk3) <- paste0(hyp2_pbulk2$sample_id,"_",colData(hyp2_pbulk2)[,x])
+        
+        colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",colData(hyp2_pbulk2)[,x])
+        
+        ## now actually store norm counts on spe
+        logcounts(hyp2_pbulk2) <- hyp2_pbulk3
+        
+        # make sure variables of interest are factors
+    
+    # coef = 2 = cluster13 vs. 8; + lfc == cl13 > 8, no dupCor correction
+    deres <- pseudoBulkDGE(
+        hyp2_pbulk2,
+        col.data = colData(hyp2_pbulk2),
+        design = ~colData(hyp2_pbulk2)[,x],
+        coef="colData(hyp2_pbulk2)[, x]TRUE",
+        row.data = rowData(hyp2_pbulk2),
+        method = "voom",
+        qualities = TRUE,
+        robust = TRUE,
+        label=hyp2_pbulk2$in_tissue
+    )
+    rm(hyp2_pbulk,hyp2_pbulk2,hyp2_pbulk3)
+    return(as.data.table(deres))
+})
+
+names(deres.arcup) <- c("arc8_vs_allother","arc13_vs_allother","arc8and13_vs_allother")
+
+saveRDS(deres.arcup,"analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/pseudobulkDE_ARC8-13-orBoth_vs_allother_postcrop.RDS")
+
+
+```
+
+## for 8 v 13, also try dupcor here but be weary that p values were inflated like mad before doing this for VMH
+```{r}
 mat_formula <- eval(str2expression(paste("~0+label")))
 #^clipped from above since no covars: #, "+", paste(covars, collapse = " + "))))
 
@@ -156,6 +225,6 @@ czech <- eBayes(
 
 czechres <- topTable(czech,coef=2,number=nrow(hyp2_pbulk2),adjust.method = "BH")
 ### and again with the inflated p values.
-### but let's save and plot-check the ones from dupcor-less run above (deres) --> plotting script
-write.table(deres,"analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/pseudobulk_ARC13-vs-ARC8_NOdupcor.txt",sep='\t',quote=F,row.names=F,col.names=T)
+### but let's plot-check the ones from dupcor-less above
+
 ``` 
