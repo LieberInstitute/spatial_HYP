@@ -460,13 +460,13 @@ bivar_colorizer <- function(plotdata=d,xax="",yax="",keyvar1="",keyvar2="",keyva
     if((reds.keyvar==keyvar1&greens.keyvar==keyvar2)==TRUE){
         plotdata2[,keyhex:=apply(.SD,MARGIN = 1,simplify = T,FUN=function(x){
             y <- as.data.table(x)
-            ans <- rgb(red =y[1],blue=y[2],green=0,alpha=max(y[2],y[1]))
+            ans <- rgb(red =y[1],blue=0,green=y[2],alpha=max(y[2],y[1]))
             ans}),.SDcols=c("keyclr1","keyclr2")]
     }
     else if ((reds.keyvar==keyvar2&greens.keyvar==keyvar1)==TRUE){
         plotdata2[,keyhex:=apply(.SD,MARGIN = 1,simplify = T,FUN=function(x){
             y <- as.data.table(x)
-            ans <- rgb(red =y[2],blue=y[1],green=0,alpha=max(y[2],y[1]))
+            ans <- rgb(red =y[2],blue=0,green=y[1],alpha=max(y[2],y[1]))
             ans}),.SDcols=c("keyclr1","keyclr2")]
     }
     else if (!is.na(blues.keyvar)&reds.keyvar==keyvar1&blues.keyvar==keyvar2){
