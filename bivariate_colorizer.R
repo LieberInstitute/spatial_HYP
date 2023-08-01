@@ -23,8 +23,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 #### custpltarea: default should work decently, but if needed, can input a custom list of 2 vectors of 4 numbers ranged 0:1 each, respectively for the main plot specifications and legend specifications in the shared plotting space. each vector specifies, in order: x (how far to thr right to begin the plot/legend, as a fraction of 1), y specifying how far up to begin plot legend as a fraction of 1, w specifying how much width of the plotting space should be dedicated to the plot/legend as a fraction of 1, and h, how much of the plot space height to use for the plot/legend.
 
 
-
-### define helper functions modified from biscale (contbi_legbuild,palidate,palidate_names) to build the legend since biscale can't do dim>9 ; and
+### define helper functions modified from biscale (contbi_legbuild,palidate,palidate_names) to build the legend since biscale can't do dim>9 ; and some unmodified helper functions that are used along with.
 
 bi_theme <- function(base_family = "sans", base_size = 24, bg_color = "#ffffff", font_color = "#000000", ...) {
 
