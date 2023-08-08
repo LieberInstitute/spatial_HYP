@@ -20,6 +20,7 @@ library(gridExtra)
 library(SpatialExperiment)
 library(spatialLIBD)
 require(colorout)
+library(magrittr)
 library(job)
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
@@ -47,12 +48,12 @@ rownames(hyp2) <- rowData(hyp2)$gene_name
 
 Load single cell
 ```{r}
-primate <- DropletUtils::read10xCounts("~/Desktop/Macaque VMH DMH Geo/",col.names = T)
+primate <- DropletUtils::read10xCounts("raw-data/affinati_macaque_VMH_DMH/",col.names = T)
 # set rownames to gene symbol for cross species compatibility
 rownames(primate) <- rowData(primate)$Symbol
 
 ### append further metadata to coldata
-pmeta <- fread("~/Desktop/Macaque VMH DMH Geo/metadata.csv")
+pmeta <- fread("raw-data/affinati_macaque_VMH_DMH/metadata.csv")
 pmeta <- DataFrame(pmeta)
 rownames(pmeta) <- pmeta$ID
 # set a different name for the actual sample id
@@ -81,23 +82,19 @@ table(primate3$VMH_cluster,primate3$sample_id)
 primate3$VMH_cluster <- as.factor(primate3$VMH_cluster)
 ```
 
-
-### run pseudobulk enrichment tasks
+### VMH neuron clusters of primate:
+run pseudobulk enrichment tasks
 ```{r}
 
-    hyp_model_res <- registration_wrapper(hyp2,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_name",gene_name = "gene_name")
-
-
+hyp_model_res <- registration_wrapper(hyp2,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_name",gene_name = "gene_name")
 
 sce_model_res <- registration_wrapper(primate3,var_registration="VMH_cluster",var_sample_id = "sample_id",gene_ensembl = "Symbol",gene_name = "Symbol",min_ncells = 10)
 
 registration_stats <- sce_model_res$enrichment[,grep(colnames(sce_model_res$enrichment),pattern="^t_stat",value=T)]
 colnames(registration_stats) %<>% gsub(.,pattern="^t_stat_",replacement="")
-
-
 ```
 
-### and with collapsed VMH clusters (5+6)
+and with collapsed spatial VMH clusters (5+6)
 ```{r}
 hyp3 <- hyp2
 hyp3$label <- gsub(hyp3$label,pattern="X5|X6",replacement="VMH")
@@ -105,7 +102,8 @@ hyp3$label <- as.factor(hyp3$label)
 
 hyp3_model_res <- registration_wrapper(hyp3,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_name",gene_name = "gene_name")
 ```
-### now interestingly, the primate samples were female, what if we only look at female?
+
+now interestingly, the primate samples were female, what if we only look at female?
 ```{r}
 demos <- fread("raw-data/demos.txt")
 demos[1,]
@@ -151,6 +149,57 @@ for (i in c(1:8)){
         pdf(paste0("plots/spe_053123/H06-Spatial registration/","Hyp Harmon nnsvg10 BS15 Females collapsed VMH to Macaque VMH neurons top",j[i],".pdf"),height=5,width=6)
     layer_stat_cor_plot(cor_hypfcol,max=max(cor_hypfcol))
     title(paste0("BS15 Females Joint VMH \n to Macaque VMH neurons top",j[i],"genes"))
+    dev.off()
+    rm(cor_hypfcol)
+}
+```
+
+
+### All clusters of primate (with one unified VMH)
+Utilize cluster info to assign VMH / other
+```{r}
+primate2$clusters <- paste0(primate2$Cell_type,"_",primate2$Cell_cluster)
+primate2$clusters[which(!is.na(primate2$VMH_cluster))] <- "VMHall"
+primate2$clusters <- as.factor(primate2$clusters)
+
+table(primate2$clusters)
+
+### a couple of rare neuron types <20 cells will drop away here. use min 25 to keep microglia and astrocyte subtypes in the mix.
+primate2 <- primate2[,!(primate2$clusters %in% c("Neuron_11","Neuron_12","Neuron_13"))]
+primate2$clusters <- droplevels(primate2$clusters)
+
+
+sce_model_res <- registration_wrapper(primate2,var_registration="clusters",var_sample_id = "sample_id",gene_ensembl = "Symbol",gene_name = "Symbol",min_ncells = 25)
+
+registration_stats <- sce_model_res$enrichment[,grep(colnames(sce_model_res$enrichment),pattern="^t_stat",value=T)]
+colnames(registration_stats) %<>% gsub(.,pattern="^t_stat_",replacement="")
+
+```
+
+Plot collapsed macaque VMH
+```{r}
+j<-c(25,50,75,100,250,500,750,1000)
+i<-1
+for (i in c(1:8)){
+    curj <- j[i]
+    cor_hypclus <- spatialLIBD::layer_stat_cor(stats = registration_stats,modeling_results = hyp_model_res,model_type = "enrichment",top_n = curj)
+    pdf(paste0("plots/spe_053123/H06-Spatial registration/","Hyp Harmon nnsvg10 BS15 clust to Macaque collapsed VMH top",j[i],".pdf"),height=5,width=6)
+    layer_stat_cor_plot(cor_hypclus,max=max(cor_hypclus))
+    title(paste0("BS15 clust to Macaque collapsed VMH top",j[i],"genes"))
+    dev.off()
+    rm(cor_hypclus)
+    
+    cor_hypcol <- spatialLIBD::layer_stat_cor(stats=registration_stats,modeling_results=hyp3_model_res,model_type="enrichment",top_n=curj)
+        pdf(paste0("plots/spe_053123/H06-Spatial registration/","Hyp Harmon nnsvg10 BS15 collapsed VMH to Macaque collapsed VMH top",j[i],".pdf"),height=5,width=6)
+    layer_stat_cor_plot(cor_hypcol,max=max(cor_hypcol))
+    title(paste0("BS15 Joint VMH to Macaque collapsed VMH top",j[i],"genes"))
+    dev.off()
+    rm(cor_hypcol)
+    
+    cor_hypfcol <- spatialLIBD::layer_stat_cor(stats=registration_stats,modeling_results=hyp4_model_res,model_type="enrichment",top_n=curj)
+        pdf(paste0("plots/spe_053123/H06-Spatial registration/","Hyp Harmon nnsvg10 BS15 Females collapsed VMH to Macaque collapsed VMH top",j[i],".pdf"),height=5,width=6)
+    layer_stat_cor_plot(cor_hypfcol,max=max(cor_hypfcol))
+    title(paste0("BS15 Females Joint VMH \n to Macaque collapsed VMH top",j[i],"genes"))
     dev.off()
     rm(cor_hypfcol)
 }
