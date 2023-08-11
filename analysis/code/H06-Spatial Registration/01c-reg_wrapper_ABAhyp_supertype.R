@@ -85,6 +85,7 @@ gc(full=T)
 # Fix variable names for compatibility
 bothhyp$supertype <- gsub(bothhyp$supertype,pattern=" ",replacement="_")
 bothhyp$supertype <- gsub(bothhyp$supertype,pattern="-",replacement="_")
+bothhyp$supertype <- paste0("x",bothhyp$supertype)
 bothhyp$supertype <- as.factor(bothhyp$supertype)
 
 # fix genotypes to be simple (there's SNAP25 cre reporter and Ai14-tdt wt) so wew can also use them as a covariate

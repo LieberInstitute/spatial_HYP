@@ -1,0 +1,142 @@
+---
+title: "S01-Sex DE Analysis of Allen Whole Mouse Single-Cell HYP per subclass or supertype"
+author: "Bernard Mulvey"
+date: "2023-08-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+library(zellkonverter)
+library(magrittr)
+require(colorout)
+library(BiocParallel)
+library(dreamlet)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### data sources
+https://allen-brain-cell-atlas.s3.us-west-2.amazonaws.com/index.html#metadata/WMB-10X/20230630/views/
+https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv3/20230630/WMB-10Xv3-HY-log2.h5ad
+https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv2/20230630/WMB-10Xv2-HY-log2.h5ad  
+https://allen-brain-cell-atlas.s3.us-west-2.amazonaws.com/index.html#metadata/WMB-10X/20230630/views/
+https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv3/20230630/WMB-10Xv3-HY-raw.h5ad
+https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv2/20230630/WMB-10Xv2-HY-raw.h5ad 
+
+
+### load counts
+```{r}
+cellmeta <- fread("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/cell_metadata_with_cluster_annotation.csv")
+hypv2 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv2-HY-raw.h5ad")
+hypv3 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv3-HY-raw.h5ad")
+
+tmpcdv2 <- as.data.table(colData(hypv2),keep.rownames=T)
+cellmeta2 <- cellmeta[cell_label %in% colnames(hypv2)]
+tmpcdv2 <- merge.data.table(tmpcdv2,cellmeta2,by.x="rn",by.y="cell_label")
+tmpcdv2 <- DataFrame(tmpcdv2)
+rownames(tmpcdv2) <- tmpcdv2$rn
+tmpcdv2 <- tmpcdv2[colnames(hypv2),]
+colData(hypv2) <- tmpcdv2
+
+tmpcdv3 <- as.data.table(colData(hypv3),keep.rownames=T)
+cellmeta3 <- cellmeta[cell_label %in% colnames(hypv3)]
+tmpcdv3 <- merge.data.table(tmpcdv3,cellmeta3,by.x="rn",by.y="cell_label")
+tmpcdv3 <- DataFrame(tmpcdv3)
+rownames(tmpcdv3) <- tmpcdv3$rn
+tmpcdv3 <- tmpcdv3[colnames(hypv3),]
+colData(hypv3) <- tmpcdv3
+
+## since these are all uniformly processed for allen atlas, should be able to join them up...
+bothhyp <- cbind(hypv2,hypv3)
+assayNames(bothhyp) <- "counts"
+rm(tmpcdv2,tmpcdv3,cellmeta2,cellmeta3,cellmeta,hypv2,hypv3)
+gc(full=T)
+```
+
+```{r}
+# hypv2log <- zellkonverter::readH5AD("~/Desktop/WMB-10Xv2-HY-log2.h5ad")
+# hypv3log <- zellkonverter::readH5AD("~/Desktop/WMB-10Xv3-HY-log2.h5ad")
+# 
+# stopifnot(identical(c(colnames(hypv2log),colnames(hypv3log)),colnames(bothhyp)))
+# hyplogs <- cbind(hypv2log,hypv3log)
+# 
+# assays(bothhyp)$logcounts <- assays(hyplogs)[[1]]
+# rm(hypv2log,hypv3log,hyplogs)
+# gc(full=T)
+```
+
+Set up variables
+```{r}
+# Fix variable names for compatibility
+bothhyp$subclass <- gsub(bothhyp$subclass,pattern=" ",replacement="_")
+bothhyp$subclass <- gsub(bothhyp$subclass,pattern="-",replacement="_")
+bothhyp$subclass <- gsub(bothhyp$subclass,pattern="/",replacement="_")
+bothhyp$subclass <- paste0("x",bothhyp$subclass)
+bothhyp$subclass <- as.factor(bothhyp$subclass)
+
+bothhyp$supertype <- gsub(bothhyp$supertype,pattern=" ",replacement="_")
+bothhyp$supertype <- gsub(bothhyp$supertype,pattern="-",replacement="_")
+bothhyp$supertype <- gsub(bothhyp$supertype,pattern="/",replacement="_")
+bothhyp$supertype <- paste0("x",bothhyp$supertype)
+bothhyp$supertype <- as.factor(bothhyp$supertype)
+
+# fix genotypes to be simple (there's SNAP25 cre reporter and Ai14-tdt wt) so wew can also use them as a covariate
+bothhyp$donor_genotype[which(bothhyp$donor_genotype=="Snap25-IRES2-Cre/wt;Ai14(RCL-tdT)/wt")] <- "snapTdt"
+bothhyp$donor_genotype[which(bothhyp$donor_genotype=="Ai14(RCL-tdT)/wt")] <- "wtTdt"
+## I don't THINK we want genotype as a covar (which was used to label cells for sorting and collection across several different genotypes across the larger dataset) as a covariate--its going to be confounded with cell type in this case (all cells or neurons only). but let's set it up in case
+bothhyp$donor_genotype <- as.factor(bothhyp$donor_genotype)
+
+# set library method (v2 or v3) as factor (which needs a leading character not digit) so we can control for it
+bothhyp$library_method[which(bothhyp$library_method=="10Xv2")] <- "v2"
+bothhyp$library_method[which(bothhyp$library_method=="10Xv3")] <- "v3"
+bothhyp$library_method <- as.factor(bothhyp$library_method)
+
+# and sex as a factor
+bothhyp$donor_sex <- as.factor(bothhyp$donor_sex)
+
+# make rownamnes capitalized symbols so we can cross-map to human
+rowData(bothhyp)$gene_symbol <- toupper(rowData(bothhyp)$gene_symbol)
+rownames(bothhyp) <- rowData(bothhyp)$gene_symbol
+# drop genes with two or more rows
+drops <- as.data.table(rownames(bothhyp))[,.N,by="V1"]
+keeprows <- drops[N==1,V1]
+
+bothhyp <- bothhyp[keeprows,]
+stopifnot(identical(rownames(bothhyp),rowData(bothhyp)$gene_symbol)&nrow(bothhyp)==length(unique(rownames(bothhyp))))
+gc(full=T)
+```
+
+```{r}
+library(BiocParallel)
+sbp <- MulticoreParam(8)
+
+### ran with library prep method as a variable, got a message implying singularity for this variable which errors out the run. which confirms the Yao paper's claim that lib prep method did not influence results.
+
+clustlevels <- as.list(c("subclass","supertype"))
+dreamlet.sexde <- lapply(clustlevels,FUN=function(x){
+    proc <- dreamlet::aggregateToPseudoBulk(bothhyp,sample_id="library_label.x",cluster_id = x,BPPARAM = sbp)
+    dif <- dreamlet::processAssays(proc,min.cells = 10,min.count = 10,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~donor_sex)
+    sexdif <- dreamlet::dreamlet(dif,formula = ~donor_sex,BPPARAM = sbp)
+    sexdif2 <- dreamlet::topTable(sexdif,coef="donor_sexM",number=Inf,adjust.method ="BH")
+    sexdif2 <- as.data.table(sexdif2,keep.rownames=T)
+    return(sexdif2)
+})
+
+names(dreamlet.sexde) <- c("subclass_sexDE","supertype_sexDE")
+saveRDS(dreamlet.sexde,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01-ABA-Yao23-HYPscell_subclass-or-supertype_dreamlet-sexDE.RDS")
+```

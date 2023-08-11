@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --mem=100G
+#SBATCH --mem=150G
 #SBATCH --cpus-per-task=8
-#SBATCH -J abahyp_subcl
+#SBATCH -J abahyp_sup
 #SBATCH -e logs/err_supertype.out
 #SBATCH -o logs/log_supertype.out
 

@@ -82,9 +82,10 @@ rm(clusts)
 bothhyp <- bothhyp[,keepcols]
 gc(full=T)
 
-# Fix variable names for compatibility
+# Fix variable names for compatibility--remove -,+ signs and place a letter so leading character is not a numeral
 bothhyp$subclass <- gsub(bothhyp$subclass,pattern=" ",replacement="_")
 bothhyp$subclass <- gsub(bothhyp$subclass,pattern="-",replacement="_")
+bothhyp$subclass <- paste0("x",bothhyp$subclass)
 bothhyp$subclass <- as.factor(bothhyp$subclass)
 
 # fix genotypes to be simple (there's SNAP25 cre reporter and Ai14-tdt wt) so wew can also use them as a covariate
