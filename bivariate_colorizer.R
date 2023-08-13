@@ -432,7 +432,7 @@ contbi_legend <- function(pal, dim = 3, xlab, ylab, size = 10, flip_axes = FALSE
 
 
 
-bivar_colorizer <- function(plotdata=d,xax="",yax="",keyvar1="",keyvar2="",keyvar.groups="",keyvar1.name.minmax="",keyvar2.name.minmax="",pseudocontinuous=TRUE,geomfun=c("geom_point","geom_jitter","geom_tile"),reds.keyvar=keyvar1,greens.keyvar=keyvar2,blues.keyvar=NA,custpltarea=NA,return.color.appended.tab=T,return.ggcomponents=T,show.plot=T){
+bivar_colorizer <- function(plotdata=d,xax="",yax="",keyvar1="",keyvar2="",keyvar.groups=NULL,keyvar1.name.minmax="",keyvar2.name.minmax="",pseudocontinuous=TRUE,geomfun=c("geom_point","geom_jitter","geom_tile"),reds.keyvar=keyvar1,greens.keyvar=keyvar2,blues.keyvar=NA,custpltarea=NA,return.color.appended.tab=T,return.ggcomponents=T,show.plot=T){
     library(data.table)
     library(ggplot2)
     library(cowplot)
@@ -445,7 +445,7 @@ bivar_colorizer <- function(plotdata=d,xax="",yax="",keyvar1="",keyvar2="",keyva
     # add columns converting color/fill key variables to fraction of their range, within one or more grouping variables if specified
     plotdata2 <- copy(plotdata)
 
-    if (keyvar.groups==""){
+    if (is.null(keyvar.groups)){
         plotdata2[,keyclr1:=((get(keyvar1))-min(get(keyvar1),na.rm=T))/(max(get(keyvar1),na.rm=T)-min(get(keyvar1),na.rm = T))]
         plotdata2[,keyclr2:=((get(keyvar2))-min(get(keyvar2),na.rm=T))/(max(get(keyvar2),na.rm=T)-min(get(keyvar2),na.rm = T))]
     }
@@ -562,6 +562,10 @@ bivar_colorizer <- function(plotdata=d,xax="",yax="",keyvar1="",keyvar2="",keyva
     }
     else if (geomfun=="geom_tile"){
         pltmain <- ggplot(plotdata4,aes(x=.data[[xax]],y=.data[[yax]],col=keyhex),show.legend=FALSE)+geom_tile()+scale_color_identity(plotdata4$keyhex)
+    }
+
+    if(!is.null(keyvar.groups)){
+        pltmain <- pltmain+facet_wrap(.~.data[[keyvar.groups]])
     }
 
     # build legend with biscale-derived code (the package's function doesn't work if dim > 9 because of a silly way of splitting the classification strings, so we write our own function for this at the top.)
