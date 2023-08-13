@@ -197,7 +197,7 @@ for (i in c(1:8)){
     rm(cor_hypcol)
     
     cor_hypfcol <- spatialLIBD::layer_stat_cor(stats=registration_stats,modeling_results=hyp4_model_res,model_type="enrichment",top_n=curj)
-        pdf(paste0("plots/spe_053123/H06-Spatial registration/","Hyp Harmon nnsvg10 BS15 Females collapsed VMH to Macaque collapsed VMH top",j[i],".pdf"),height=5,width=6)
+        pdf(paste0("plots/spe_053123/H06-Spatial registration/","01-Hyp Harmon nnsvg10 BS15 Females collapsed VMH to Macaque collapsed VMH top",j[i],".pdf"),height=5,width=6)
     layer_stat_cor_plot(cor_hypfcol,max=max(cor_hypfcol))
     title(paste0("BS15 Females Joint VMH \n to Macaque collapsed VMH top",j[i],"genes"))
     dev.off()
