@@ -1,0 +1,103 @@
+---
+title: "01-Sex DE correlations of SpatialHYP domains to Yao23 ABA cell subclass and
+  supertypes"
+author: "Bernard Mulvey"
+date: "2023-08-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(colorout)
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+calculate correlations by cell type and plot them
+```{r}
+sexdif2 <- readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE.RDS")
+sexdif2.donorrand <- readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE_brnum-as-random-effect-inDEmodel.RDS")
+
+### list the two for looped plotting
+hyps <- list(sexdif2,sexdif2.donorrand)
+names(hyps) <- c("spHyp","spHyp_ranfx")
+### set different names for VMH, ARC, WM spatial domains
+hyps <- lapply(hyps,FUN=function(x){
+    x[assay=="x5",assay:="VMH_1"]
+    x[assay=="x6",assay:="VMH_2"]
+    x[assay=="x8",assay:="ARC_1"]
+    x[assay=="x13",assay:="ARC_2"]
+    x[assay=="x7",assay:="WM_1"]
+    x[assay=="x11",assay:="WM_2"]
+})
+
+
+### melt hyp part
+hyps[[1]] <- melt.data.table(hyps[[1]][,.(assay,ID,logFC)],id.vars=c("assay","ID"),measure.vars="logFC")
+setnames(hyps[[1]],c(1,2,4),c("spdomain","gene","logFC_spHyp"))
+hyps[[1]][,variable:=NULL]
+### melt hyp w random fx
+hyps[[2]] <- melt.data.table(hyps[[2]][,.(assay,ID,logFC)],id.vars=c("assay","ID"),measure.vars="logFC")
+setnames(hyps[[2]],c(1,2,4),c("spdomain","gene","logFC_spHyp_ranfx"))
+hyps[[2]][,variable:=NULL]
+
+####
+
+abasex <- readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01-ABA-Yao23-HYPscell_subclass-or-supertype_dreamlet-sexDE.RDS")
+
+### melt aba sex DE tables
+assaynames <- as.list(c("subclass","supercluster"))
+abasex <- mapply(X=abasex,Y=assaynames,FUN=function(X,Y){
+    z <- melt.data.table(X[,.(assay,ID,logFC)],id.vars=c("assay","ID"),measure.vars="logFC")
+    setnames(z,c(1,2,4),c(Y,"gene",paste0("logFC_",Y)))
+    z[,variable:=NULL]
+    return(z)
+},SIMPLIFY = F)
+names(abasex) <- unlist(assaynames)
+rm(assaynames)
+``` 
+
+### plotting each to each
+```{r}
+compares <- as.data.frame(matrix(nrow=4,ncol=2))
+compares$V1 <- c(1,2,1,2)
+compares$V2 <- c(1,1,2,2)
+
+
+i<-1
+reslist <- list()
+for (i in c(1:4)){
+    msdat <- abasex[[compares[i,1]]]
+    hypdat <- hyps[[compares[i,2]]]
+    alldat <- merge.data.table(msdat,hypdat,by="gene",allow.cartesian=T)
+    lfcnames <- c(paste0("logFC_",names(abasex)[compares[i,1]]),paste0("logFC_",names(hyps)[[compares[i,2]]]))
+    ans <- alldat[,cor(get(lfcnames[1]),get(lfcnames[2]),use="pairwise.complete.obs",method="pearson"),by=c("spdomain",names(abasex)[compares[i,1]])]
+    reslist[[i]] <- ggplot(ans,aes(x=spdomain,y=.data[[names(abasex)[compares[i,1]]]],fill=V1))+
+        geom_tile()+
+        scale_fill_viridis_c()+
+        theme(axis.text.y=element_text(size = 8),axis.text.x=element_text(size=10,angle=90),axis.title.y=element_text(size=12),axis.title.x=element_text(size=12),title = element_text(size=15))+
+        ggtitle(paste0("Sex DE: HYP Spdomain",ifelse(names(hyps)[compares[i,2]]=="spHyp_ranfx",yes=" with Donor Rand Fx\n",no=" "), "vs. ABA '23 Mouse ",names(abasex)[compares[i,1]]))
+}
+
+reslist[1:2] <- lapply(reslist[1:2],FUN=function(x){x+theme(axis.text.y=element_text(size = 10),axis.text.x=element_text(size=10,angle=90),axis.title.y=element_text(size=12),axis.title.x=element_text(size=12),title = element_text(size=15))})[c(1:2)]
+
+pdf("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/spHYP k15 domain correls to Yao23 ABA subclasses w spHYP analyzed w randomfx of donor or without.pdf",height=12,width=20)
+do.call("grid.arrange",c(reslist[c(1,3)],ncol=2))
+dev.off()
+
+pdf("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/spHYP k15 domain correls to Yao23 ABA supertypes w spHYP analyzed w randomfx of donor or without.pdf",height=30,width=20)
+do.call("grid.arrange",c(reslist[c(2,4)],ncol=2))
+dev.off()
+```
+

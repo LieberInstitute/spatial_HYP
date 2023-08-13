@@ -9,9 +9,6 @@ output: html_document
 knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
 knitr::opts_chunk$set(fig.width=7,fig.height=10)
 #### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
-knitr::opts_knit$set(root.dir = here::here())
-
-knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
 library(Biostrings)
@@ -127,10 +124,11 @@ sbp <- MulticoreParam(8)
 
 ### ran with library prep method as a variable, got a message implying singularity for this variable which errors out the run. which confirms the Yao paper's claim that lib prep method did not influence results.
 
+### include all genes so we can compare w/spatial data as broadly as possible (min_count=1).
 clustlevels <- as.list(c("subclass","supertype"))
 dreamlet.sexde <- lapply(clustlevels,FUN=function(x){
     proc <- dreamlet::aggregateToPseudoBulk(bothhyp,sample_id="library_label.x",cluster_id = x,BPPARAM = sbp)
-    dif <- dreamlet::processAssays(proc,min.cells = 10,min.count = 10,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~donor_sex)
+    dif <- dreamlet::processAssays(proc,min.cells = 10,min.count = 1,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~donor_sex)
     sexdif <- dreamlet::dreamlet(dif,formula = ~donor_sex,BPPARAM = sbp)
     sexdif2 <- dreamlet::topTable(sexdif,coef="donor_sexM",number=Inf,adjust.method ="BH")
     sexdif2 <- as.data.table(sexdif2,keep.rownames=T)
