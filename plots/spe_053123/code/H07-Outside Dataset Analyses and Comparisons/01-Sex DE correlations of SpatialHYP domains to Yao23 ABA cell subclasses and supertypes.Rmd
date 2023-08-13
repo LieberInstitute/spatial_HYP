@@ -68,6 +68,23 @@ names(abasex) <- unlist(assaynames)
 rm(assaynames)
 ``` 
 
+remove genes found on chrX/Y in either mouse (mm10) or human (hg38)
+```{r}
+library(biomaRt)
+hgens <- useDataset(dataset="hsapiens_gene_ensembl",mart=useEnsembl(biomart="genes"))
+mmens <- useDataset(dataset="mmusculus_gene_ensembl",mart=useEnsembl(biomart="genes"))
+
+#listAttributes(hgens)
+#listFilters(hgens)
+#listAttributes(mmens)
+#listFilters(mmens)
+hgallo <- getBM(mart = hgens,attributes = "hgnc_symbol",filters = "chromosome_name",values=c("X","Y"))
+hgallo <- hgallo$hgnc_symbol
+
+msallo <- getBM(mart=mmens,attributes="mgi_symbol",filters="chromosome_name",values=c("X","Y"))
+msallo <- msallo$mgi_symbol
+```
+
 ### plotting each to each
 ```{r}
 compares <- as.data.frame(matrix(nrow=4,ncol=2))
@@ -81,6 +98,7 @@ for (i in c(1:4)){
     msdat <- abasex[[compares[i,1]]]
     hypdat <- hyps[[compares[i,2]]]
     alldat <- merge.data.table(msdat,hypdat,by="gene",allow.cartesian=T)
+    alldat <- alldat[!(gene %in% c(hgallo,toupper(msallo)))]
     lfcnames <- c(paste0("logFC_",names(abasex)[compares[i,1]]),paste0("logFC_",names(hyps)[[compares[i,2]]]))
     ans <- alldat[,cor(get(lfcnames[1]),get(lfcnames[2]),use="pairwise.complete.obs",method="pearson"),by=c("spdomain",names(abasex)[compares[i,1]])]
     reslist[[i]] <- ggplot(ans,aes(x=spdomain,y=.data[[names(abasex)[compares[i,1]]]],fill=V1))+
