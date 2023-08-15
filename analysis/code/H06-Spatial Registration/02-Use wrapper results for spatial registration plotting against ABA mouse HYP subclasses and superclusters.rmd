@@ -31,8 +31,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 ```
 
 ```{r}
-job({hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
-    job::export(hyp2)})
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
 
 bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
 
@@ -47,6 +46,7 @@ colLabels(hyp2) <- as.factor(paste0("X",bscl$clust))
 rownames(hyp2) <- rowData(hyp2)$gene_name
 
 hyp_model_res <- registration_wrapper(hyp2,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_name",gene_name = "gene_name")
+saveRDS(hyp_model_res_collapsed,"analysis/data/spe_053123/H06-Spatial Registration/01-spatialHYP_single-spdomain_sLIBD-enrichmntmodelres.RDS")
 
 ### and with collapsed VMH, ARC clusters
 hyp2$label <- as.character(hyp2$label)
@@ -55,12 +55,13 @@ hyp2$label[which(hyp2$label %in% c("X8","X13"))] <- "ARC"
 hyp2$label <- as.factor(hyp2$label)
 
 hyp_model_res_collapsed <- registration_wrapper(hyp2,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_name",gene_name = "gene_name")
+saveRDS(hyp_model_res_collapsed,"analysis/data/spe_053123/H06-Spatial Registration/01-spatialHYP_collapsed-spdomain_sLIBD-enrichmntmodelres.RDS")
 ```
 
 ### load and analyze subclass registration stats from mouse: SUBCLASS vs INDIVidual spatial domains
 
 ```{r}
-mshyp_subclass <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/ABAhyp_mincells5-n5_subclass_modelingres.RDS")
+mshyp_subclass <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp_mincells5-n5_subclass_modelingres.RDS")
 
 registration_stats_subclass <- mshyp_subclass$enrichment[,grep(colnames(mshyp_subclass$enrichment),pattern="^t_stat",value=T)]
 colnames(registration_stats_subclass) %<>% gsub(.,pattern="^t_stat_",replacement="")
@@ -71,7 +72,7 @@ cor_subclass_perspatial <- spatialLIBD::layer_stat_cor(stats=registration_stats_
 # render this is in a parseable way
 cor_subclass2 <- as.data.table(cor_subclass_perspatial,keep.rownames=T)
 cor_subclass2 <- melt(cor_subclass2,id.vars="rn")
-write.table(cor_subclass2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-subclass_single-HYP-spdomains.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(cor_subclass2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-subclass_single-HYP-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
 # for plotting script: ggplot(cor_subclass_jts2,aes(x=rn,y=variable,fill=value))+geom_tile()+theme(axis.text.x = element_text(angle=90,size=11,hjust=1))+scale_fill_viridis_c()
 ```
 
@@ -81,7 +82,63 @@ cor_subclass_joints <- spatialLIBD::layer_stat_cor(stats=registration_stats_subc
 
 cor_subclass_jts2 <- as.data.table(cor_subclass_joints,keep.rownames=T)
 cor_subclass_jts2 <- melt(cor_subclass_jts2,id.vars="rn")
-write.table(cor_subclass_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-subclass_collapsed-VMH-ARC-spdomains.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(cor_subclass_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-subclass_collapsed-VMH-ARC-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+
+
+```
+
+### load and analyze supertype registration stats from mouse: SUPERTYPE vs INDIVidual spatial domains
+
+```{r}
+mshyp_supertype <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp_mincells5-n5_supertype_modelingres.RDS")
+
+registration_stats_supertype <- mshyp_supertype$enrichment[,grep(colnames(mshyp_supertype$enrichment),pattern="^t_stat",value=T)]
+colnames(registration_stats_supertype) %<>% gsub(.,pattern="^t_stat_",replacement="")
+
+cor_supertype_perspatial <- spatialLIBD::layer_stat_cor(stats=registration_stats_supertype,modeling_results = hyp_model_res,model_type = "enrichment")
+# layer_stat_cor_plot(cor_supertype,max(cor_supertype))
+# dev.off()
+# render this is in a parseable way
+cor_supertype2 <- as.data.table(cor_supertype_perspatial,keep.rownames=T)
+cor_supertype2 <- melt(cor_supertype2,id.vars="rn")
+write.table(cor_supertype2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-supertype_single-HYP-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+# for plotting script: ggplot(cor_subclass_jts2,aes(x=rn,y=variable,fill=value))+geom_tile()+theme(axis.text.x = element_text(angle=90,size=11,hjust=1))+scale_fill_viridis_c()
+```
+
+Mouse supertype to JOINT VMH (X5,X6) and ARC (X8,X13) domains 
+```{r}
+cor_supertype_joints <- spatialLIBD::layer_stat_cor(stats=registration_stats_supertype,modeling_results = hyp_model_res_collapsed,model_type = "enrichment")
+
+cor_supertype_jts2 <- as.data.table(cor_supertype_joints,keep.rownames=T)
+cor_supertype_jts2 <- melt(cor_supertype_jts2,id.vars="rn")
+write.table(cor_supertype_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-supertype_collapsed-VMH-ARC-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```
+
+### load and analyze cluster registration stats from mouse: (select) clusters vs INDIVidual spatial domains
+
+```{r}
+mshyp_cluster <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp_mincells10-n7_select-clusters_sLIBD-enrichmntmodelres.RDS")
+
+registration_stats_cluster <- mshyp_cluster[,grep(colnames(mshyp_cluster),pattern="^t_stat",value=T)]
+colnames(registration_stats_cluster) %<>% gsub(.,pattern="^t_stat_",replacement="")
+
+cor_cluster_perspatial <- spatialLIBD::layer_stat_cor(stats=registration_stats_cluster,modeling_results = hyp_model_res,model_type = "enrichment")
+# layer_stat_cor_plot(cor_cluster,max(cor_cluster))
+# dev.off()
+# render this is in a parseable way
+cor_cluster2 <- as.data.table(cor_cluster_perspatial,keep.rownames=T)
+cor_cluster2 <- melt(cor_cluster2,id.vars="rn")
+write.table(cor_cluster2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-cluster_single-HYP-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+# for plotting script: ggplot(cor_subclass_jts2,aes(x=rn,y=variable,fill=value))+geom_tile()+theme(axis.text.x = element_text(angle=90,size=11,hjust=1))+scale_fill_viridis_c()
+```
+
+Mouse cluster to JOINT VMH (X5,X6) and ARC (X8,X13) domains 
+```{r}
+cor_cluster_joints <- spatialLIBD::layer_stat_cor(stats=registration_stats_cluster,modeling_results = hyp_model_res_collapsed,model_type = "enrichment")
+
+cor_cluster_jts2 <- as.data.table(cor_cluster_joints,keep.rownames=T)
+cor_cluster_jts2 <- melt(cor_cluster_jts2,id.vars="rn")
+write.table(cor_cluster_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-cluster_collapsed-VMH-ARC-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
 
 
 ```

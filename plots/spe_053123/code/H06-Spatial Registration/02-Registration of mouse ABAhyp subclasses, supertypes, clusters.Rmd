@@ -1,0 +1,59 @@
+---
+title: "02-Registration of mouse ABAhyp subclasses, supertypes, clusters"
+author: "Bernard Mulvey"
+date: "2023-08-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+library(magrittr)
+library(job)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+Load melted outputs from spatialLIBD::layer_stat_cor 
+```{r}
+files <- list.files("analysis/data/spe_053123/H06-Spatial Registration",pattern = "01-ABAhyp.*\\.txt",full.names = T)
+
+cortabs <- lapply(files,fread)
+names(cortabs) <- gsub(files,pattern="analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-(.*)_(.*-spdomains).*\\.txt",replacement=paste0("\\1","_vs_","\\2"))
+names(cortabs)
+```
+
+plot
+```{r}
+
+outfilesuff <- as.list(names(cortabs))
+sbp <- MulticoreParam(6)
+
+bpmapply(d=cortabs,z=outfilesuff,SIMPLIFY = F,BPPARAM = sbp,FUN = function(d,z){
+    pltdat <- d
+    plt <- ggplot(pltdat,aes(x=variable,y=rn,fill=value))+
+        geom_tile()+
+        ggtitle(gsub(z,pattern="_|-",replacement=" "))+
+        theme(axis.text.x = element_text(angle=90,size=11,hjust=1),axis.text.y=element_text(size=8),title = element_text(size=14))+
+        scale_fill_viridis_c()
+    pdf(paste0("plots/spe_053123/H06-Spatial registration/02-ABA23hyp_",z,".pdf"),height = 0.2*length(unique(pltdat$rn)),width=10)
+    print(plt)
+    dev.off()
+})
+```
+
+

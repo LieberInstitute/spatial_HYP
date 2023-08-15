@@ -28,14 +28,6 @@ options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
 
-get results and cell types of interest
-```{r}
-abasex <- readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01-ABA-Yao23-HYPscell_subclass-or-supertype_dreamlet-sexDE.RDS")
-
-subcs <- unique(grep(unlist(abasex[[1]]$assay),pattern="VMH|DMH|ARH|PV|AHN|LHA|PVH|Tanycyte",value=T))
-supts <- unique(grep(unlist(abasex[[2]]$assay),pattern="VMH|DMH|ARH|PV|AHN|LHA|PVH|Tanycyte",value=T))
-```
-
 ```{r}
 ### load hyp sex de and process equivalently
 hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_UNNORM_trimmedD07-075_B1_rotsAndMirrors.RDS")
