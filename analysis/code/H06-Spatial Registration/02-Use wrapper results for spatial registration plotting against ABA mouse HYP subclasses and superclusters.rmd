@@ -46,7 +46,7 @@ colLabels(hyp2) <- as.factor(paste0("X",bscl$clust))
 rownames(hyp2) <- rowData(hyp2)$gene_name
 
 hyp_model_res <- registration_wrapper(hyp2,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_name",gene_name = "gene_name")
-saveRDS(hyp_model_res_collapsed,"analysis/data/spe_053123/H06-Spatial Registration/01-spatialHYP_single-spdomain_sLIBD-enrichmntmodelres.RDS")
+saveRDS(hyp_model_res,"analysis/data/spe_053123/H06-Spatial Registration/01-spatialHYP_single-spdomain_sLIBD-enrichmntmodelres.RDS")
 
 ### and with collapsed VMH, ARC clusters
 hyp2$label <- as.character(hyp2$label)
@@ -72,7 +72,7 @@ cor_subclass_perspatial <- spatialLIBD::layer_stat_cor(stats=registration_stats_
 # render this is in a parseable way
 cor_subclass2 <- as.data.table(cor_subclass_perspatial,keep.rownames=T)
 cor_subclass2 <- melt(cor_subclass2,id.vars="rn")
-write.table(cor_subclass2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-subclass_single-HYP-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(cor_subclass2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-subclass_single-HYP-spdomains_registration_allgenes.txt",sep='\t',quote=F,row.names=F,col.names=T)
 # for plotting script: ggplot(cor_subclass_jts2,aes(x=rn,y=variable,fill=value))+geom_tile()+theme(axis.text.x = element_text(angle=90,size=11,hjust=1))+scale_fill_viridis_c()
 ```
 
@@ -82,7 +82,7 @@ cor_subclass_joints <- spatialLIBD::layer_stat_cor(stats=registration_stats_subc
 
 cor_subclass_jts2 <- as.data.table(cor_subclass_joints,keep.rownames=T)
 cor_subclass_jts2 <- melt(cor_subclass_jts2,id.vars="rn")
-write.table(cor_subclass_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-subclass_collapsed-VMH-ARC-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(cor_subclass_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-subclass_collapsed-VMH-ARC-spdomains_registration_allgenes.txt",sep='\t',quote=F,row.names=F,col.names=T)
 
 
 ```
@@ -101,7 +101,7 @@ cor_supertype_perspatial <- spatialLIBD::layer_stat_cor(stats=registration_stats
 # render this is in a parseable way
 cor_supertype2 <- as.data.table(cor_supertype_perspatial,keep.rownames=T)
 cor_supertype2 <- melt(cor_supertype2,id.vars="rn")
-write.table(cor_supertype2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-supertype_single-HYP-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(cor_supertype2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-supertype_single-HYP-spdomains_registration_allgenes.txt",sep='\t',quote=F,row.names=F,col.names=T)
 # for plotting script: ggplot(cor_subclass_jts2,aes(x=rn,y=variable,fill=value))+geom_tile()+theme(axis.text.x = element_text(angle=90,size=11,hjust=1))+scale_fill_viridis_c()
 ```
 
@@ -111,7 +111,7 @@ cor_supertype_joints <- spatialLIBD::layer_stat_cor(stats=registration_stats_sup
 
 cor_supertype_jts2 <- as.data.table(cor_supertype_joints,keep.rownames=T)
 cor_supertype_jts2 <- melt(cor_supertype_jts2,id.vars="rn")
-write.table(cor_supertype_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-supertype_collapsed-VMH-ARC-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(cor_supertype_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-supertype_collapsed-VMH-ARC-spdomains_registration_allgenes.txt",sep='\t',quote=F,row.names=F,col.names=T)
 ```
 
 ### load and analyze cluster registration stats from mouse: (select) clusters vs INDIVidual spatial domains
@@ -128,7 +128,7 @@ cor_cluster_perspatial <- spatialLIBD::layer_stat_cor(stats=registration_stats_c
 # render this is in a parseable way
 cor_cluster2 <- as.data.table(cor_cluster_perspatial,keep.rownames=T)
 cor_cluster2 <- melt(cor_cluster2,id.vars="rn")
-write.table(cor_cluster2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-cluster_single-HYP-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(cor_cluster2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-cluster_single-HYP-spdomains_registration_allgenes.txt",sep='\t',quote=F,row.names=F,col.names=T)
 # for plotting script: ggplot(cor_subclass_jts2,aes(x=rn,y=variable,fill=value))+geom_tile()+theme(axis.text.x = element_text(angle=90,size=11,hjust=1))+scale_fill_viridis_c()
 ```
 
@@ -138,7 +138,7 @@ cor_cluster_joints <- spatialLIBD::layer_stat_cor(stats=registration_stats_clust
 
 cor_cluster_jts2 <- as.data.table(cor_cluster_joints,keep.rownames=T)
 cor_cluster_jts2 <- melt(cor_cluster_jts2,id.vars="rn")
-write.table(cor_cluster_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-cluster_collapsed-VMH-ARC-spdomains_registration.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(cor_cluster_jts2,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp-cluster_collapsed-VMH-ARC-spdomains_registration_allgenes.txt",sep='\t',quote=F,row.names=F,col.names=T)
 
 
 ```
