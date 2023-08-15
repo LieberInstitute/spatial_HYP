@@ -55,9 +55,10 @@ hyps[[2]][,variable:=NULL]
 ####
 
 abasex <- readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01-ABA-Yao23-HYPscell_subclass-or-supertype_dreamlet-sexDE.RDS")
-
+abasexclusts <- readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01-ABA-Yao23-HYPscell-sexdiffabundantclusters_dreamlet-sexDE.RDS")
+abasex[[3]] <- abasexclusts
 ### melt aba sex DE tables
-assaynames <- as.list(c("subclass","supercluster"))
+assaynames <- as.list(c("subclass","supercluster","sexDifAbundClusts"))
 abasex <- mapply(X=abasex,Y=assaynames,FUN=function(X,Y){
     z <- melt.data.table(X[,.(assay,ID,logFC)],id.vars=c("assay","ID"),measure.vars="logFC")
     setnames(z,c(1,2,4),c(Y,"gene",paste0("logFC_",Y)))
@@ -65,7 +66,7 @@ abasex <- mapply(X=abasex,Y=assaynames,FUN=function(X,Y){
     return(z)
 },SIMPLIFY = F)
 names(abasex) <- unlist(assaynames)
-rm(assaynames)
+rm(assaynames,abasexclusts)
 ``` 
 
 remove genes found on chrX/Y in either mouse (mm10) or human (hg38)
@@ -87,14 +88,14 @@ msallo <- msallo$mgi_symbol
 
 ### plotting each to each
 ```{r}
-compares <- as.data.frame(matrix(nrow=4,ncol=2))
-compares$V1 <- c(1,2,1,2)
-compares$V2 <- c(1,1,2,2)
+compares <- as.data.frame(matrix(nrow=6,ncol=2))
+compares$V1 <- c(1,2,3,1,2,3)
+compares$V2 <- c(1,1,1,2,2,2)
 
 
 i<-1
 reslist <- list()
-for (i in c(1:4)){
+for (i in c(1:6)){
     msdat <- abasex[[compares[i,1]]]
     hypdat <- hyps[[compares[i,2]]]
     alldat <- merge.data.table(msdat,hypdat,by="gene",allow.cartesian=T)
@@ -108,14 +109,19 @@ for (i in c(1:4)){
         ggtitle(paste0("Sex DE: HYP Spdomain",ifelse(names(hyps)[compares[i,2]]=="spHyp_ranfx",yes=" with Donor Rand Fx\n",no=" "), "vs. ABA '23 Mouse ",names(abasex)[compares[i,1]]))
 }
 
-reslist[1:2] <- lapply(reslist[1:2],FUN=function(x){x+theme(axis.text.y=element_text(size = 10),axis.text.x=element_text(size=10,angle=90),axis.title.y=element_text(size=12),axis.title.x=element_text(size=12),title = element_text(size=15))})[c(1:2)]
+reslist[c(1,3,4,6)] <- lapply(reslist[c(1,3,4,6)],FUN=function(x){x+theme(axis.text.y=element_text(size = 10),axis.text.x=element_text(size=10,angle=90),axis.title.y=element_text(size=12),axis.title.x=element_text(size=12),title = element_text(size=15))})
 
 pdf("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-spHYP k15 domain correls to Yao23 ABA subclasses w spHYP analyzed w randomfx of donor or without.pdf",height=12,width=20)
-do.call("grid.arrange",c(reslist[c(1,3)],ncol=2))
+do.call("grid.arrange",c(reslist[c(1,4)],ncol=2))
 dev.off()
 
 pdf("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-spHYP k15 domain correls to Yao23 ABA supertypes w spHYP analyzed w randomfx of donor or without.pdf",height=30,width=20)
-do.call("grid.arrange",c(reslist[c(2,4)],ncol=2))
+do.call("grid.arrange",c(reslist[c(2,5)],ncol=2))
 dev.off()
+
+pdf("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-spHYP k15 domain correls to Yao23 ABA sex-differentially abundant cell clusters w spHYP analyzed w randomfx of donor or without.pdf",height=30,width=20)
+do.call("grid.arrange",c(reslist[c(3,6)],ncol=2))
+dev.off()
+
 ```
 

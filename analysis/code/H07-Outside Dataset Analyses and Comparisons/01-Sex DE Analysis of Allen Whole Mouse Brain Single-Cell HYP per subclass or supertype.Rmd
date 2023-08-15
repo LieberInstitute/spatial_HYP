@@ -92,6 +92,11 @@ bothhyp$supertype <- gsub(bothhyp$supertype,pattern="/",replacement="_")
 bothhyp$supertype <- paste0("x",bothhyp$supertype)
 bothhyp$supertype <- as.factor(bothhyp$supertype)
 
+bothhyp$cluster <- gsub(bothhyp$cluster,pattern=" ",replacement="_")
+bothhyp$cluster <- gsub(bothhyp$cluster,pattern="-",replacement="_")
+bothhyp$cluster <- gsub(bothhyp$cluster,pattern="/",replacement="_")
+bothhyp$cluster <- paste0("x",bothhyp$cluster)
+
 # fix genotypes to be simple (there's SNAP25 cre reporter and Ai14-tdt wt) so wew can also use them as a covariate
 bothhyp$donor_genotype[which(bothhyp$donor_genotype=="Snap25-IRES2-Cre/wt;Ai14(RCL-tdT)/wt")] <- "snapTdt"
 bothhyp$donor_genotype[which(bothhyp$donor_genotype=="Ai14(RCL-tdT)/wt")] <- "wtTdt"
@@ -137,4 +142,41 @@ dreamlet.sexde <- lapply(clustlevels,FUN=function(x){
 
 names(dreamlet.sexde) <- c("subclass_sexDE","supertype_sexDE")
 saveRDS(dreamlet.sexde,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01-ABA-Yao23-HYPscell_subclass-or-supertype_dreamlet-sexDE.RDS")
+```
+
+
+Also examine the individual clusters (super hi-res level of hierarchy) sex differentially abundant clusters for correlation to sex DE
+```{r}
+# 1. 5 are small, sex-specific clusters: clusters 211, 1402, 2536 and 2538 are male-specific and cluster 2207 is female-specific.
+# 2. 23 sex-dominant clusters include
+#    1. female: 1404, 2058, 2062, 2065, 2088, 2089, 2154, 2196, 2204 and 3612, 
+#    2. male: 1396, 1407, 1409, 1781, 1843, 2048, 2057, 2061, 2150, 2195, 3359, 3716 and 3952
+
+bothhyp2 <- bothhyp[,bothhyp$cluster %in% grep(bothhyp$cluster,pattern="^x211_|1402|2536|2538|2207|1404|2058|2062|2065|2088|2089|2154|2196|2204|3612|1396|1407|1409|1781|1843|2048|2057|2061|2150|2195|3359|3716|3952",value=T)]
+
+dim(bothhyp2)
+
+keepclusts <- as.data.table(table(bothhyp2$library_label.x,bothhyp2$cluster))[N>4,.N,by="V2"]$V2
+
+bothhyp2 <- bothhyp2[,bothhyp2$cluster %in% keepclusts]
+
+dim(bothhyp2)
+
+### ran with library prep method as a variable, got a message implying singularity for this variable which errors out the run. which confirms the Yao paper's claim that lib prep method did not influence results.
+
+### include all genes so we can compare w/spatial data as broadly as possible (min_count=1).
+sbp <- MulticoreParam(8)
+
+proc <- dreamlet::aggregateToPseudoBulk(bothhyp2,sample_id="library_label.x",cluster_id = "cluster",BPPARAM = sbp)
+
+dif <- dreamlet::processAssays(proc,min.cells = 5,min.count = 1,min.samples = 4,min.prop = 0.5,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~donor_sex)
+
+sexdif <- dreamlet::dreamlet(dif,formula = ~donor_sex,BPPARAM = sbp)
+
+sexdif2 <- dreamlet::topTable(sexdif,coef="donor_sexM",number=Inf,adjust.method ="BH")
+
+sexdif2 <- as.data.table(sexdif2,keep.rownames=T)
+
+saveRDS(sexdif2,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01-ABA-Yao23-HYPscell-sexdiffabundantclusters_dreamlet-sexDE.RDS")
+
 ```
