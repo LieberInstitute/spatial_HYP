@@ -1,0 +1,274 @@
+---
+title: "Set up home network server of initial HYP data including analyses not run in spatialLIBD"
+author: "Bernard Mulvey"
+date: "2023-07-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+ColorOut()
+library(scater)
+library(scran)
+library(igraph)
+library(BiocFileCache)
+library(rtracklayer)
+library(lobstr)
+
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+Load cropped dataset, annotate with harmony-bayesspace nnsvg10 k=15 clusters and all tissue oriented the same way
+```{r}
+spe <- readRDS("data/processing/hyp_umi600_gene450_chrm35_UNNORM_trimmedD07-075_B1_rotsAndMirrors.RDS")
+# ^ colnames are already set to spe$key
+
+bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
+bscl <- as.data.frame(bscl[rn %in% colnames(spe)])
+rownames(bscl) <- bscl$rn
+bscl <- DataFrame(bscl)
+bscl <- bscl[colnames(spe),]
+colLabels(spe) <- as.factor(bscl$BShar_nnsvg10pctile_15)
+
+## add demographics
+demos <- fread("raw-data/demos.txt")
+tmpcoldat <- as.data.table(colData(spe),keep.rownames=T)
+tmpcoldat <- merge.data.table(tmpcoldat,demos,by.x="brnum",by.y="BrNum",all.x=T)
+# change PMI to minutes (is in hours)
+tmpcoldat[,PMI:=PMI*60]
+tmpcoldat <- as.data.frame(tmpcoldat)
+rownames(tmpcoldat) <- tmpcoldat$rn
+tmpcoldat$rn <- NULL
+tmpcoldat <- DataFrame(tmpcoldat)[colnames(spe),]
+colData(spe) <- tmpcoldat
+
+
+rm(tmpcoldat,demos)
+```
+
+add misc colData required for spatialLIBD browser
+nvm, sum umi sum gene and key are already in there thanks ryan!
+gene annotation data is already in there as well.
+as is "gene_search" in the rowdata
+
+```{r}
+# set rownames to gene_id (whoops)
+rownames(spe) <- rowData(spe)$gene_id
+
+# drop no count genes
+spe <- spe[which(rowSums(counts(spe))!=0),]
+
+# remove 10x dimensionality reductions
+reducedDims(spe) <- NULL
+
+# add harmony PCA and UMAP as used for bayesspace clustering (ugh this is in a giant file)
+# pca <- readRDS("analysis/data/spe_053123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
+
+# names(pca)
+# get nnsvg10 spe out of this list, then extract reducedDims over to spe
+# pca <- pca[[3]]
+# saveRDS(pca,"~/Desktop/nnsvg10dimred.RDS")
+pca <- readRDS("~/Desktop/nnsvg10dimred.RDS")
+## filter to spots still included (since we cropped the one sample after clustering, for now)
+colnames(pca) <- pca$key
+pca2 <- pca[,colnames(pca) %in% colnames(spe)]
+
+## reorder by working spe colnames
+pca2 <- pca2[,colnames(spe)]
+stopifnot(sum(colnames(pca2)==colnames(spe))==ncol(spe))
+
+## subset to genes still in the working spe
+pca2 <- pca2[rownames(pca2) %in% rownames(spe),]
+stopifnot(sum(rownames(pca2)==rownames(spe))==nrow(spe))
+
+## make sure reducedDims are rearranging concordant with colname reshuffle above
+stopifnot(sum(rownames(reducedDims(pca2)$PCA)==colnames(spe))==ncol(spe))
+
+## move reducedDims over
+reducedDims(spe)$PCA <- reducedDims(pca2)$PCA
+reducedDims(spe)$UMAP <- reducedDims(pca2)$UMAP
+reducedDims(spe)$HARMONY_PCA <- reducedDims(pca2)$HARMONY
+reducedDims(spe)$HARMONY_UMAP <- reducedDims(pca2)$HARMONY_UMAP
+reducedDimNames(spe)
+# use check_spe to see if its hypothetically ready for server hosting
+check_spe(spe)
+
+# clean up
+rm(pca,pca2)
+```
+
+
+```{r}
+### alright, run spatialLIBD's pseudobulk enrichment tests and tack on our own DE tests of interest afterwards. (we can't run spatialLIBD tests on ARC vs all / VMH vs all because spatialLIBD only runs with 3+ clusters)
+spe$label <- as.factor(paste0("cl",spe$label))
+spe$is.vmh <- as.factor(ifelse(spe$label %in% c("cl5","cl6"),yes="VMH",no="NOTvmh"))
+spe$is.arc <- as.factor(ifelse(spe$label %in% c("cl8","cl13"),yes="ARC",no="NOTarc"))
+
+pbulkobj <- registration_pseudobulk(spe,var_registration = "label",var_sample_id = "sample_id",pseudobulk_rds_file = NULL)
+
+pbulkobj.vmh <- registration_pseudobulk(spe,var_registration = "is.vmh",var_sample_id = "sample_id",pseudobulk_rds_file = NULL)
+
+pbulkobj.arc <- registration_pseudobulk(spe,var_registration="is.arc",var_sample_id = "sample_id")
+
+keeprows <- (rownames(pbulkobj) %in% rownames(pbulkobj.vmh)) & (rownames(pbulkobj) %in% rownames(pbulkobj.arc))
+
+pbulkobjtest <- pbulkobj[keeprows,]
+pbulkvmhtest <- pbulkobj.vmh[(rownames(pbulkobj.vmh) %in% rownames(pbulkobjtest))&rownames(pbulkobj.vmh) %in% rownames(pbulkobj.arc)]
+pbulkarctest <- pbulkobj.arc[rownames(pbulkobj.arc) %in% rownames(pbulkobjtest)&rownames(pbulkobj.arc) %in% rownames(pbulkobj.vmh)]
+
+allpbulks <- cbind(pbulkobjtest,pbulkarctest,pbulkvmhtest)
+
+pbulkres <- registration_wrapper(spe,var_registration = "label",var_sample_id = "sample_id",covars=NULL,gene_ensembl = "gene_id",gene_name = "gene_name",suffix = "spatialLIBDdefault")
+
+### now, extract the gene level results for pseudobulking so we can pull them up in the app
+### for some reason though, when it checks for variable names that match up, it expects the variable spatialLIBD to be a colname in our pseudobulk object's coldata. so make that column. no way of knowing that besides checking the source code against the error message about the "variable" its looking for a match on.
+pbulkobj$spatialLIBD <- "spatialLIBD"
+# now we can extract
+
+genetestres <- sig_genes_extract_all(
+  n = nrow(pbulkres[[1]]),
+  modeling_results = pbulkres,
+  sce_layer = pbulkobj
+)
+```
+
+# load DE analyses to append into the enrichment table and gene list results that don't conform to the tests spatialLIBD itself will run
+```{r}
+vmh2clustup <- fread("analysis/data/spe_053123/H04-2cluster-consensus-VMH/pseudobulk_CROPPED-VMH-other-DE.txt")
+
+vmh2clustsex <- fread("analysis/data/spe_053123/H04-2cluster-consensus-VMH/pseudobulk-SEX-DE_Bspace-VMH-nonvmh-clusters_postcluster-crop_V12D07075B1.txt")
+vmh2clustsex <- vmh2clustsex[group_name=="VMH"]
+
+arcups <- readRDS("analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/pseudobulkDE_ARC8-13-orBoth_vs_allother_postcrop.RDS")
+
+arcsex <- readRDS("analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/ARC_pseudobulk_sexDE_noSpRep-adjs_V12D07075B1-cropped.RDS")
+arcsex <- arcsex[c(1,3,5)]
+
+statlist <- list(vmh2clustup,vmh2clustsex,arcups[[1]],arcups[[2]],arcups[[3]],arcsex[[1]],arcsex[[2]],arcsex[[3]])
+
+names(statlist) <- c("VMH2clust_allother_pbulkDE","VMH2clust_sex_pbulkDE","ARCcl8_allother_pbulkDE","ARCcl13_allother_pbulkDE","ARCboth_allother_pbulkDE","ARCcl8_sex_pbulkDE","ARCcl13_sex_pbulkDE","ARCboth_sex_pbulkDE")
+
+## rename columns in each result table so we can bind them in with the spatialLIBD "enrichment" frame
+statlist <- mapply(X=statlist,Y=as.list(names(statlist)),SIMPLIFY = F,FUN=function(X,Y){
+    setnames(X,"gene_id","ensembl")
+    setnames(X,"P.Value",paste0("p_value_",Y),skip_absent=T)
+    setnames(X,"t",paste0("t_stat_",Y),skip_absent=T)
+    setnames(X,"adj.P.Val",paste0("fdr_",Y),skip_absent=T)
+    setnames(X,"logFC",paste("logFC_",Y),skip_absent=T)
+    X
+})
+```
+
+## now bind our own de results into the enrichment table for pbulkres and replace that table accordingly
+```{r}
+tmpenrich <- as.data.table(copy(pbulkres[["enrichment"]]))
+i<-1
+for (i in c(1:8)){
+    getnames <- c("ensembl",
+                  grep(names(statlist[[i]]),pattern="p_value",value=T),
+                  grep(names(statlist[[i]]),pattern="t_stat",value=T),
+                  grep(names(statlist[[i]]),pattern="logFC_",value=T))
+    tmpenrich <- merge.data.table(tmpenrich,statlist[[i]][,..getnames],by="ensembl",all.x=T)
+}
+pbulkres2 <- pbulkres
+
+# reorder so ensembl, gene are last two columns
+neword <- names(tmpenrich)[!(names(tmpenrich) %in% c("gene","ensembl"))]
+neword <- c(neword,"ensembl","gene")
+tmpenrich <- tmpenrich[,..neword]
+pbulkres2[["enrichment"]] <- tmpenrich
+```
+
+# our own results passed from the pseudobulk "enrichment" table into the extract genes result, so we need to append those manually too. so get the genetest results sheet from the libdspatial enrichment run, then manually tack our other stats (collapsed clusters, sex de) on manually. drop the in_rows and in_rows_top20 things because they're lists and going to brick this whole affair as a data table.
+```{r}
+v <- as.data.table(genetestres)[,c(1:10,13)]
+## peep this to see what we need our results to look like
+addnl <- v[1,]
+names(addnl)
+
+# get gene indices to fill in accordingly below
+# oh for christ's sakes theres lists built into this fucking shit marvelous
+geneindices <- unique(v[,.(ensembl,gene_index)])
+
+i<-1
+for (i in c(1:8)){
+    #drop unanalyzed genes
+    curdat <- statlist[[i]][!is.na(B)]
+    #get the specific names for the analysis to carry over
+    fd <- grep(names(statlist[[i]]),pattern="fdr",value=T)
+    tst <- grep(names(statlist[[i]]),pattern="t_stat",value=T)
+    pv <- grep(names(statlist[[i]]),pattern="p_value",value=T)
+    fc <- grep(names(statlist[[i]]),pattern="logFC",value=T)
+    
+    setorderv(curdat,fd)
+    curdat[,top:=seq(1:nrow(curdat))]
+
+    newdat <- as.data.table(curdat$top)
+    setnames(newdat,1,"top")
+    
+    newdat[,model_type:="enrichment"]
+    newdat[,test:=names(statlist)[i]]
+    newdat[,gene:=curdat$gene_name]
+    newdat[,stat:=curdat[,..tst]]
+    newdat[,pval:=curdat[,..pv]]
+    newdat[,fdr:=curdat[,..fd]]
+    newdat[,logFC:=curdat[,..fc]]
+    newdat[,ensembl:=curdat[,ensembl]]
+    newdat[,results:=paste0(test,"_top",top)]
+    
+    if (i==1){
+    appenddat <- copy(newdat)
+    }
+    else{
+    appenddat <- as.data.table(rbind(appenddat,newdat))
+    }
+    rm(curdat,newdat)
+}
+# this will drop some genes that are excluded by spatiallibd sadly, but that's going to be a huge pain in the ass to work around. hopefully shouldn't affect genes we care about.
+appenddat <- merge.data.table(appenddat,geneindices,by="ensembl")
+
+## now put back the "in_row" and "in_row_top20" values. (hopefully we don't need to add these tacked on indices for this to work)
+appenddat[,in_rows:=NA]
+appenddat[,in_rows_top20:=NA]
+reordnames <- colnames(genetestres)
+appenddat <- appenddat[,..reordnames]
+appenddat <- DataFrame(appenddat)
+genetestrestest <- rbind(genetestres,appenddat)
+
+### finally, experimentally, add a second set of everything where all sample_ids are changed to "ALL_forDimRedCheckingOnly" so that we can see spots from all samples at once as harmony allows for (and then look at eg BMI across the dimred).
+speall <- copy(spe)
+## hacky way to bypass the number of samples check when passing in sample ids (can't do it thru colData()$ or spe$)
+speall@colData@listData$sample_id <- "ALL_forDimRedCheckingOnly"
+# make sure colnames are in the same order so we can bind these suckers
+colData(speall) <- colData(speall)[,colnames(colData(spe))]
+colnames(speall) <- paste0(colnames(speall),"a")
+
+speall <- cbind(spe,speall)
+
+run_app(spe = spe,spe_discrete_vars = c("sample_id","brnum","Sex","Race","label","is.vmh","is.arc"),spe_continuous_vars = c("PMI","BMI..calculated.","AgeDeath"),modeling_results = pbulkres2,default_cluster = "label",sce_layer = allpbulks,sig_genes = genetestrestest)
+```
+
+
+### okay, the plots won't work for sex DE but now its there! save the files we're really using for this as a package so we can run this off the old laptop indefinitely.
+
+```{r}
+saveRDS(spe,"~/Desktop/slibd_serv/local_sLIBD_server_spatialHYP_053123.RDS")
+saveRDS(pbulkres2,"~/Desktop/slibd_serv/local_sLIBD_server_modelingresults.RDS")
+saveRDS(allpbulks,"~/Desktop/slibd_serv/local_sLIBD_server_scelayer.RDS")
+saveRDS(genetestrestest,"~/Desktop/slibd_serv/local_sLIBD_server_genetestresulttabs.RDS")
+```
