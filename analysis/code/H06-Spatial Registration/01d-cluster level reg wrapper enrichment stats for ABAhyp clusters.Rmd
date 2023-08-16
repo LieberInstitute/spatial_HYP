@@ -1,0 +1,180 @@
+---
+title: "01d-cluster level reg wrapper enrichment stats for ABAhyp clusters"
+author: "Bernard Mulvey"
+date: "2023-08-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+library(zellkonverter)
+library(magrittr)
+require(colorout)
+library(BiocParallel)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+### data sources
+https://allen-brain-cell-atlas.s3.us-west-2.amazonaws.com/index.html#metadata/WMB-10X/20230630/views/
+https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv3/20230630/WMB-10Xv3-HY-log2.h5ad
+https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv2/20230630/WMB-10Xv2-HY-log2.h5ad  
+https://allen-brain-cell-atlas.s3.us-west-2.amazonaws.com/index.html#metadata/WMB-10X/20230630/views/
+https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv3/20230630/WMB-10Xv3-HY-raw.h5ad
+https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv2/20230630/WMB-10Xv2-HY-raw.h5ad 
+
+
+### load counts
+```{r}
+cellmeta <- fread("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/cell_metadata_with_cluster_annotation.csv")
+hypv2 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv2-HY-raw.h5ad")
+hypv3 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv3-HY-raw.h5ad")
+
+tmpcdv2 <- as.data.table(colData(hypv2),keep.rownames=T)
+cellmeta2 <- cellmeta[cell_label %in% colnames(hypv2)]
+tmpcdv2 <- merge.data.table(tmpcdv2,cellmeta2,by.x="rn",by.y="cell_label")
+tmpcdv2 <- DataFrame(tmpcdv2)
+rownames(tmpcdv2) <- tmpcdv2$rn
+tmpcdv2 <- tmpcdv2[colnames(hypv2),]
+colData(hypv2) <- tmpcdv2
+
+tmpcdv3 <- as.data.table(colData(hypv3),keep.rownames=T)
+cellmeta3 <- cellmeta[cell_label %in% colnames(hypv3)]
+tmpcdv3 <- merge.data.table(tmpcdv3,cellmeta3,by.x="rn",by.y="cell_label")
+tmpcdv3 <- DataFrame(tmpcdv3)
+rownames(tmpcdv3) <- tmpcdv3$rn
+tmpcdv3 <- tmpcdv3[colnames(hypv3),]
+colData(hypv3) <- tmpcdv3
+
+## since these are all uniformly processed for allen atlas, should be able to join them up...
+bothhyp <- cbind(hypv2,hypv3)
+assayNames(bothhyp) <- "counts"
+rm(tmpcdv2,tmpcdv3,cellmeta2,cellmeta3,cellmeta,hypv2,hypv3)
+gc(full=T)
+```
+
+```{r}
+hypv2log <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv2-HY-log2.h5ad")
+hypv3log <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv3-HY-log2.h5ad")
+
+stopifnot(identical(c(colnames(hypv2log),colnames(hypv3log)),colnames(bothhyp)))
+hyplogs <- cbind(hypv2log,hypv3log)
+
+assays(bothhyp)$logcounts <- assays(hyplogs)[[1]]
+rm(hypv2log,hypv3log,hyplogs)
+gc(full=T)
+```
+
+Filter to abundant enough cells then prep for spatial reg
+```{r}
+tab <- as.data.table(table(bothhyp$library_label.x,bothhyp$subclass))
+tab <- dcast(tab,V2~V1,value.var = "N")
+
+# subset to cell subclasses or supertypes with at least 5 cells in at least 5 samples
+tab[,sum:=rowSums(tab[,.SD>=5,.SDcols=c(2:ncol(tab))])]
+# subsetting for # of sample•(supertypes or subclasses)
+tab <- tab[sum>4]
+
+clusts <- as.list(tab$V2)
+
+# get column names of single cells from samples contributing at least 5 cells of the current (subclasses or supertypes) 
+keepcols <- unique(unlist(sapply(clusts,FUN=function(x){
+  keepsamps <- names(tab)[which(tab[V2==x,.SD>5,.SDcols=c(2:ncol(tab)-1)])]
+  colnames(bothhyp[,bothhyp$subclass==x&bothhyp$library_label.x %in% keepsamps])
+},simplify = T)))
+rm(clusts)
+
+bothhyp <- bothhyp[,keepcols]
+gc(full=T)
+
+# Fix variable names for compatibility
+bothhyp$subclass <- gsub(bothhyp$subclass,pattern=" ",replacement="_")
+bothhyp$subclass <- gsub(bothhyp$subclass,pattern="-",replacement="_")
+bothhyp$subclass <- as.factor(bothhyp$subclass)
+
+# fix genotypes to be simple (there's SNAP25 cre reporter and Ai14-tdt wt) so wew can also use them as a covariate
+bothhyp$donor_genotype[which(bothhyp$donor_genotype=="Snap25-IRES2-Cre/wt;Ai14(RCL-tdT)/wt")] <- "snapTdt"
+bothhyp$donor_genotype[which(bothhyp$donor_genotype=="Ai14(RCL-tdT)/wt")] <- "wtTdt"
+## wait nvm, we don't want genotype (which was used to label cells for sorting and collection across several different genotypes across the larger dataset) as a covariate--its going to be confounded with cell type in this case (all cells or neurons only)
+# bothhyp$donor_genotype <- as.factor(bothhyp$donor_genotype)
+
+# set library method (v2 or v3) as factor (which needs a leading character not digit) so we can control for it
+bothhyp$library_method[which(bothhyp$library_method=="10Xv2")] <- "v2"
+bothhyp$library_method[which(bothhyp$library_method=="10Xv3")] <- "v3"
+bothhyp$library_method <- as.factor(bothhyp$library_method)
+
+# make rownamnes capitalized symbols so we can cross-map to human
+rowData(bothhyp)$gene_symbol <- toupper(rowData(bothhyp)$gene_symbol)
+rownames(bothhyp) <- rowData(bothhyp)$gene_symbol
+# drop genes with two or more rows
+drops <- as.data.table(rownames(bothhyp))[,.N,by="V1"]
+keeprows <- drops[N==1,V1]
+
+bothhyp <- bothhyp[keeprows,]
+stopifnot(identical(rownames(bothhyp),rowData(bothhyp)$gene_symbol)&nrow(bothhyp)==length(unique(rownames(bothhyp))))
+
+gc(full=T)
+message("Input dataset ready. Starting spatialLIBD::registration_wrapper...")
+```
+
+Per Yao '23: "211, 1402, 2536 and 2538 are male-specific and cluster 2207 is female-specific."
+"23 sex-dominant clusters include
+    1. female: 1404, 2058, 2062, 2065, 2088, 2089, 2154, 2196, 2204 and 3612 
+    2. male: 1396, 1407, 1409, 1781, 1843, 2048, 2057, 2061, 2150, 2195, 3359, 3716 and 3952
+```{r}
+bothhyp$cluster <- gsub(bothhyp$cluster,pattern=" ",replacement="_")
+bothhyp$cluster <- gsub(bothhyp$cluster,pattern="-",replacement="_")
+bothhyp$cluster <- gsub(bothhyp$cluster,pattern="/",replacement="_")
+bothhyp$cluster <- paste0("x",bothhyp$cluster)
+bothhyp$cluster <- as.factor(bothhyp$cluster)
+
+tab <- as.data.table(table(bothhyp$library_label.x,bothhyp$cluster))
+tab <- dcast(tab,V2~V1,value.var = "N")
+
+tab <- tab[V2 %in% grep(V2, pattern="^x211_|DMH|VMH|ZI|MM|ARH|PVN|PVpo|VMPO|MPO|PVH|SBPV|Tanycyte|PVH|HY|Microglia|Endo|Peri|VLMC|NFOL|MOL|OPC|COP|Ependym|HPF|1402|2536|2538|2207|1404|2058|2062|2065|2088|2089|2154|2196|2204|3612|1396|1407|1409|1781|1843|2048|2057|2061|2150|2195|3359|3716|3952",value=T)]
+
+tab[,sum:=rowSums(tab[,.SD>=10,.SDcols=c(2:ncol(tab))])]
+tab <- tab[sum>6]
+
+tab2 <- melt(tab,id.vars="V2",measure.vars = c(2:48))
+tab2 <- tab2[value>9]
+tab2[,sampclust:=paste0(variable,V2)]
+
+bothhyp$sampclust <- paste0(bothhyp$library_label.x,bothhyp$cluster)
+
+bothhyp <- bothhyp[,bothhyp$sampclust %in% tab2$sampclust]
+bothhyp$cluster <- as.factor(bothhyp$cluster)
+
+```
+
+
+```{r}
+pb <- registration_pseudobulk(bothhyp,"cluster",var_sample_id = "library_label.x",min_ncells = 9)
+
+pb.bc <- registration_block_cor(pb,registration_model = registration_model(pb,var_registration = "cluster"),var_sample_id = "library_label.x")
+
+pb.cl.enrich <- registration_stats_enrichment(sce_pseudo = pb,block_cor = pb.bc,var_registration = "cluster",var_sample_id = "library_label.x",gene_ensembl = "gene_symbol",gene_name = "gene_symbol")
+
+saveRDS(pb.cl.enrich,"analysis/data/spe_053123/H06-Spatial Registration/01-ABAhyp_mincells10-n7_select-clusters_sLIBD-enrichmntmodelres.RDS")
+```
+
+
+
+
+
+```

@@ -68,7 +68,7 @@ rm(tmp,demos,sortrn)
 ```
 
 ### mean-variance relationships: blocking on sample_id for gene variances, to account for tech variance between the multiple replicates from a couple donors. 
-### Subsequently with harmony, use brnum for blocking since duplicate variances should have been accounted for in the hvg identification from sample-blocked variance.
+### NOT DONE: S. HICKS DISCOURAGED: Subsequently with harmony, use brnum for blocking since duplicate variances should have been accounted for in the hvg identification from sample-blocked variance.
 ### do NOT use harmony for the SPE with one sample clipped to single quadrant--harmony will falsely assume we have the same cell types in all sections which will not be the case w/ this cropped section. 
 ```{r}
 hyp2.vars <- modelGeneVar(hyp2,block=hyp2$sample_id)
