@@ -1,0 +1,129 @@
+---
+title: "02-Registration of mouse ABAhyp subclasses, supertypes, clusters"
+author: "Bernard Mulvey"
+date: "2023-08-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+library(magrittr)
+library(BiocParallel)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+Load outputs from spatialLIBD::registration_wrapper
+```{r}
+infanthyp <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/03-Hu21-infant-HYP_mincells8-n3_allclusters_sLIBD-enrichmntmodelres.RDS")
+infanthypbyarc <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/03-Hu21-infant-HYP_mincells8-n3_arcneuron-transferlabel-by-allclusters_sLIBD-enrichmntmodelres.RDS")
+
+hypsingle <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/01-spatialHYP_single-spdomain_sLIBD-enrichmntmodelres.RDS")
+hypcollaps <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/01-spatialHYP_collapsed-spdomain_sLIBD-enrichmntmodelres.RDS")
+
+infanthyp <- infanthyp[["enrichment"]][,grep(colnames(infanthyp[["enrichment"]]),pattern="^t_stat",value=T)]
+colnames(infanthyp) <- gsub(colnames(infanthyp),pattern="^t_stat_",replacement="")
+
+infanthypbyarc <- infanthypbyarc[["enrichment"]][,grep(colnames(infanthypbyarc[["enrichment"]]),pattern="^t_stat",value=T)]
+colnames(infanthypbyarc) <- gsub(colnames(infanthypbyarc),pattern="^t_stat_",replacement="")
+
+hyps <- list(hypsingle,hypcollaps)
+names(hyps) <- c(rep("singleSpDomains",1),rep("collapsedSpDomains",1))
+
+```
+
+plot clusters
+```{r}
+
+outfilesuff <- as.list(paste0("Hu21_InfantHYP_clusters_to_",names(hyps)))
+sbp <- MulticoreParam(2)
+
+bpmapply(m=hyps,z=outfilesuff,SIMPLIFY = F,BPPARAM = sbp,FUN = function(m,z){
+    j<-c(25,50,75,100,250,500,750,1000)
+    i<-1
+    for (i in c(1:9)){
+        curj <- j[i]
+        if(i<=8){
+            cortab<- spatialLIBD::layer_stat_cor(stats = infanthyp,modeling_results = m,model_type = "enrichment",top_n = curj)
+        }
+        else{
+            # no value for top_n --> all genes used
+            cortab<- spatialLIBD::layer_stat_cor(stats = infanthyp,modeling_results = m,model_type = "enrichment")
+        }
+        plttab <- as.data.table(cortab,keep.rownames=T)
+        plttab <- melt(plttab,id.vars="rn")
+        plt <- ggplot(plttab,aes(x=variable,y=rn,fill=value))+
+            geom_tile()+
+            ggtitle(gsub(paste0("ABA23 HYP ",gsub(z,pattern="_|-",replacement=" ")),pattern="to ",replacement="to\n"))+
+            theme(axis.text.x = element_text(angle=90,size=11,hjust=1),axis.text.y=element_text(size=8),title = element_text(size=14))+
+            scale_fill_viridis_c()
+        if(i<=8){
+            pdf(paste0("plots/spe_053123/H06-Spatial registration/03-",z,"_top",j[i],"-genes.pdf"),height = 0.2*length(unique(plttab$rn)),width=10)
+            print(plt)
+            dev.off()
+        }
+        else{
+            pdf(paste0("plots/spe_053123/H06-Spatial registration/03-",z,"_allgenes.pdf"),height = 0.2*length(unique(plttab$rn)),width=10)
+            print(plt)
+            dev.off()
+        }
+        rm(curj,plttab,cortab)
+    }
+})
+```
+
+
+plot clusters subdivided by whether they were transfer labeled arcuate or other
+```{r}
+
+outfilesuff <- as.list(paste0("Hu21_InfantHYP_ARC-nonARC_clusters_to_",names(hyps)))
+sbp <- MulticoreParam(2)
+
+bpmapply(m=hyps,z=outfilesuff,SIMPLIFY = F,BPPARAM = sbp,FUN = function(m,z){
+    j<-c(25,50,75,100,250,500,750,1000)
+    i<-1
+    for (i in c(1:9)){
+        curj <- j[i]
+        if(i<=8){
+            cortab<- spatialLIBD::layer_stat_cor(stats = infanthypbyarc,modeling_results = m,model_type = "enrichment",top_n = curj)
+        }
+        else{
+            # no value for top_n --> all genes used
+            cortab<- spatialLIBD::layer_stat_cor(stats = infanthypbyarc,modeling_results = m,model_type = "enrichment")
+        }
+        plttab <- as.data.table(cortab,keep.rownames=T)
+        plttab <- melt(plttab,id.vars="rn")
+        plt <- ggplot(plttab,aes(x=variable,y=rn,fill=value))+
+            geom_tile()+
+            ggtitle(gsub(paste0("ABA23 HYP ",gsub(z,pattern="_|-",replacement=" ")),pattern="to ",replacement="to\n"))+
+            theme(axis.text.x = element_text(angle=90,size=11,hjust=1),axis.text.y=element_text(size=8),title = element_text(size=14))+
+            scale_fill_viridis_c()
+        if(i<=8){
+            pdf(paste0("plots/spe_053123/H06-Spatial registration/03-",z,"_top",j[i],"-genes.pdf"),height = 0.2*length(unique(plttab$rn)),width=10)
+            print(plt)
+            dev.off()
+        }
+        else{
+            pdf(paste0("plots/spe_053123/H06-Spatial registration/03-",z,"_allgenes.pdf"),height = 0.2*length(unique(plttab$rn)),width=10)
+            print(plt)
+            dev.off()
+        }
+        rm(curj,plttab,cortab)
+    }
+})
+```
