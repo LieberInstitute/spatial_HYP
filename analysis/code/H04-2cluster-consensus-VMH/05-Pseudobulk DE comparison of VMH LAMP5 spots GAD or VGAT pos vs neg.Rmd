@@ -1,0 +1,127 @@
+---
+title: "Pseudobulk DE comparison of VMH LAMP5 spots GAD or VGAT pos vs neg"
+author: "Bernard Mulvey"
+date: "2023-08-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(scran)
+library(edgeR)
+library(jaffelab)
+library(PCAtools) # findElbowPoint
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+### for cropping the bad sample, get the rownames to keep from a cropped spe
+hyp2.tmp <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
+
+hyp2.vmh <- hyp2.vmh[,colnames(hyp2.vmh) %in% colnames(hyp2.tmp)]
+rm(hyp2.tmp)
+
+## rownames as gene symbols for handling
+rownames(hyp2.vmh) <- rowData(hyp2.vmh)$gene_name
+```
+
+### subset to VMH spots (label = 2) with LAMP5
+```{r}
+hyp2.vmhlamp <- hyp2.vmh[,hyp2.vmh$label==2]
+keepcols <- logcounts(hyp2.vmhlamp["LAMP5",])
+keepcols <- which(keepcols["LAMP5",]>0)
+hyp2.vmhlamp <- hyp2.vmhlamp[,colnames(hyp2.vmhlamp) %in% names(keepcols)]
+
+inhmarkers <- logcounts(hyp2.vmhlamp[c("SLC32A1","GAD1","GAD2"),])
+inhcols <- which(colSums(inhmarkers)>0)
+
+labels <- as.data.table(colnames(hyp2.vmhlamp))
+setnames(labels,1,"colname")
+inhpos <- as.data.table(as.data.frame(inhcols),keep.rownames=T)
+labels <- merge.data.table(labels,inhpos,by.x="colname",by.y="rn",all.x=T)
+labels[,inhmks:=ifelse(is.na(inhcols),yes="LAMPonly",no="LAMPinhs")]
+
+labels <- DataFrame(labels)
+rownames(labels) <- labels$colname
+labels <- labels[colnames(hyp2.vmhlamp),]
+
+colLabels(hyp2.vmhlamp) <- as.factor(labels$inhmks)
+
+rownames(hyp2.vmhlamp) <- rowData(hyp2.vmhlamp)$gene_id
+```
+
+### pseudobulk DE
+```{r}
+hyp2_pbulk <- aggregateAcrossCells(hyp2.vmhlamp,
+                   DataFrame(lampandinh=hyp2.vmhlamp$label,
+                             sample=hyp2.vmhlamp$sample_id))
+
+hyp2_pbulk$lampandinh <- factor(hyp2_pbulk$lampandinh)
+
+# find a good expression cutoff using edgeR::filterByExpr
+rowData(hyp2_pbulk)$high_expr <- filterByExpr(hyp2_pbulk)
+rowData(hyp2_pbulk)$high_expr_cl <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$lampandinh)
+rowData(hyp2_pbulk)$high_expr_sample <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$sample)
+
+rowData(hyp2_pbulk)$high_expr_clorsam <- rowSums(cbind(rowData(hyp2_pbulk)$high_expr_sample,rowData(hyp2_pbulk)$high_expr_cl))
+
+summary(rowData(hyp2_pbulk)$high_expr)
+summary(rowData(hyp2_pbulk)$high_expr_sample)
+summary(rowData(hyp2_pbulk)$high_expr_cl)
+summary(rowData(hyp2_pbulk)$high_expr_clorsam>=1)
+
+hyp2_pbulk2 <- hyp2_pbulk[rowData(hyp2_pbulk)$high_expr_clorsam>=1]
+dim(hyp2_pbulk2)
+
+hyp2_pbulk3 <- edgeR::cpm(edgeR::calcNormFactors(hyp2_pbulk2), log = TRUE, prior.count = 0.1)
+
+stopifnot(rownames(hyp2_pbulk3)==rownames(hyp2.vmh)[which(rownames(hyp2.vmh) %in% rownames(hyp2_pbulk3))])
+
+colnames(hyp2_pbulk3) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$lampandinh)
+
+colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$lampandinh)
+
+rownames(colData(hyp2_pbulk2)) <- colnames(hyp2_pbulk2)
+logcounts(hyp2_pbulk2) <- hyp2_pbulk3
+
+deres <- pseudoBulkDGE(
+    hyp2_pbulk2,
+    col.data = colData(hyp2_pbulk2),
+    label = hyp2_pbulk2$in_tissue,
+    design = ~lampandinh,
+    coef="lampandinhLAMPonly",
+    row.data = rowData(hyp2_pbulk2),
+    method = "voom",
+    qualities = TRUE,
+    robust = TRUE
+)
+
+deres <- as.data.table(deres)
+setnames(deres,"group_name","LAMP5.pos_Inhmarks.neg")
+
+write.table(deres,"analysis/data/spe_053123/H04-2cluster-consensus-VMH/05-Pseudobulk DE between VMH LAMP5 spots expressing or not expressing GADs or VGAT.txt",sep='\t',quote=F,row.names=F,col.names=T)
+
+gseain <- deres[,.(gene_name,logFC,P.Value)]
+gseain[,lp:=-log10(P.Value)]
+gseain[,dir:=ifelse(logFC>0,yes=1,no=-1)]
+gseain[,lp:=lp*dir]
+gseain <- gseain[!is.na(lp)]
+write.table(gseain,"analysis/data/spe_053123/H08-GSEA, GO etc/H04.05-VMHlamp_inhmarkers-vs-none-pseudobulkDE_log10Pval_ranked.rnk")
+```
