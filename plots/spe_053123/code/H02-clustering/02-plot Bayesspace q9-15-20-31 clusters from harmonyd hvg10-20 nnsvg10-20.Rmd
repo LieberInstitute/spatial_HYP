@@ -34,7 +34,7 @@ library(spatialLIBD)
 
 ### load object with the harmonyPCA and harmonyUMAPs for these four feature sets for plotting purposes in those spaces. load bayesspace cluster assignments.
 ```{r}
-pcas <- readRDS("analysis/data/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
+pcas <- readRDS("analysis/data/spe_053123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
 
 ### clone an spe out of this ^ for the spotplotting
 hyp2.tmp <- pcas[[1]]
@@ -42,7 +42,7 @@ hyp2.tmp <- pcas[[1]]
 ### set colnames(hyp2.tmp) to key for unique rownames etc; these are the rownames used with the bayesspace cluster results
 colnames(hyp2.tmp) <- hyp2.tmp$key
 
-bs_clusts <- list.files("analysis/data/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",pattern=".txt")
+bs_clusts <- list.files("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",pattern=".txt")
 ```
 
 helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
@@ -65,7 +65,7 @@ for (i in c(1:length(bs_clusts))) {
     curclusts <-
         fread(
             paste0(
-                "analysis/data/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
+                "analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
                 bs_clusts[i]
             )
         )
@@ -121,7 +121,7 @@ for (i in c(1:length(bs_clusts))) {
     # save
     pdf(
         paste0(
-            "plots/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_spotplots/",
+            "plots/spe_053123/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_spotplots/",
             gsub(bs_clusts[i], pattern = "^(.*)\\.txt$", replacement = "\\1"),
             ".pdf"
         ),
@@ -161,7 +161,7 @@ for (i in c(1:length(bs_clusts))) {
     curclusts <-
         fread(
             paste0(
-                "analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
+                "analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
                 bs_clusts[i]
             )
         )
@@ -195,7 +195,7 @@ for (i in c(1:length(bs_clusts))) {
         ))
     pdf(
         paste0(
-            "plots/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_harmonyPCA/",
+            "plots/spe_053123/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_harmonyPCA/",
             gsub(bs_clusts[i], pattern = "^(.*)\\.txt$", replacement = "\\1"),
             ".pdf"
         ),
@@ -218,7 +218,7 @@ for (i in c(1:length(bs_clusts))) {
     k <- ceiling(i / 4)
     
     curclusts <- fread(
-        paste0("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
+        paste0("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",
                bs_clusts[i]))
     
     curclusts <- as.data.frame(curclusts)
@@ -245,7 +245,7 @@ for (i in c(1:length(bs_clusts))) {
             gsub(bs_clusts[i], pattern = "^BSpace_Harmony_.*_(.*)\\.txt$", replacement =
                      "\\1")))
     
-    pdf(paste0("plots/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_harmonyUMAP/",
+    pdf(paste0("plots/spe_053123/H02-clustering/02-bayesspace_q9-15-20-31_HVGorSVG_harmonyUMAP/",
             gsub(bs_clusts[i], pattern = "^(.*)\\.txt$", replacement = "\\1"),
             ".pdf"),
         width = 10,

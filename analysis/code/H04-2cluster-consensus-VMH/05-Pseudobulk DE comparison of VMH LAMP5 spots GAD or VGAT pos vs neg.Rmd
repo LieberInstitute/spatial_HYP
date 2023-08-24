@@ -50,6 +50,7 @@ keepcols <- which(keepcols["LAMP5",]>0)
 hyp2.vmhlamp <- hyp2.vmhlamp[,colnames(hyp2.vmhlamp) %in% names(keepcols)]
 
 inhmarkers <- logcounts(hyp2.vmhlamp[c("SLC32A1","GAD1","GAD2"),])
+## LAMP+inh spots: LAMP5 and ≥1 count of ANY of SLC32A1, GAD1, GAD2
 inhcols <- which(colSums(inhmarkers)>0)
 
 labels <- as.data.table(colnames(hyp2.vmhlamp))
@@ -116,12 +117,12 @@ deres <- pseudoBulkDGE(
 deres <- as.data.table(deres)
 setnames(deres,"group_name","LAMP5.pos_Inhmarks.neg")
 
-write.table(deres,"analysis/data/spe_053123/H04-2cluster-consensus-VMH/05-Pseudobulk DE between VMH LAMP5 spots expressing or not expressing GADs or VGAT.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(deres,"05-Pseudobulk DE between VMH LAMP5-NOinhmarker spots and those coexpr GADs or VGAT_posLFCisLAMPonly.txt",sep='\t',quote=F,row.names=F,col.names=T)
 
 gseain <- deres[,.(gene_name,logFC,P.Value)]
 gseain[,lp:=-log10(P.Value)]
 gseain[,dir:=ifelse(logFC>0,yes=1,no=-1)]
 gseain[,lp:=lp*dir]
 gseain <- gseain[!is.na(lp)]
-write.table(gseain,"analysis/data/spe_053123/H08-GSEA, GO etc/H04.05-VMHlamp_inhmarkers-vs-none-pseudobulkDE_log10Pval_ranked.rnk")
+write.table(gseain,"analysis/data/spe_053123/H08-GSEA, GO etc/H04.05-VMHlamp_NOinhmarkers-vs-coexpinhmks-pseudobulkDE_log10Pval_ranked.rnk")
 ```
