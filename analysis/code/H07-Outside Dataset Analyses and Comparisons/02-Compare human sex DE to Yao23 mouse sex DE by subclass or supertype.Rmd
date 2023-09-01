@@ -39,7 +39,7 @@ tmpcd <- DataFrame(tmpcd)
 rownames(tmpcd) <- tmpcd$rn
 tmpcd <- tmpcd[colnames(hyp2),]
 colData(hyp2) <- tmpcd
-colData(hyp2)$Sex.x <- as.factor(colData(hyp2)$Sex.x)
+colData(hyp2)$Sex <- as.factor(colData(hyp2)$Sex)
 
 rm(tmpcd)
 ## append clusters
@@ -72,14 +72,14 @@ sbp <- MulticoreParam(11)
 proc <- dreamlet::aggregateToPseudoBulk(hyp2,sample_id="sample_id",cluster_id = "label",BPPARAM = sbp)
 
 ## consider all genes (min.counts=1 , as was done for mouse)
-dif <- dreamlet::processAssays(proc,min.cells = 10,min.count = 1,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~Sex.x)
+dif <- dreamlet::processAssays(proc,min.cells = 10,min.count = 1,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~Sex)
 
-sexdif <- dreamlet::dreamlet(dif,formula = ~Sex.x,BPPARAM = sbp)
+sexdif <- dreamlet::dreamlet(dif,formula = ~Sex,BPPARAM = sbp)
 
 # find relevant coefficient name
 coefNames(sexdif)
 #
-sexdif2 <- dreamlet::topTable(sexdif,coef="Sex.xM",number=Inf,adjust.method ="BH")
+sexdif2 <- dreamlet::topTable(sexdif,coef="SexM",number=Inf,adjust.method ="BH")
 sexdif2 <- as.data.table(sexdif2,keep.rownames=T)
 
 saveRDS(sexdif2,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE.RDS")
