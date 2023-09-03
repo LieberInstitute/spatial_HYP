@@ -19,6 +19,7 @@ library(gridExtra)
 library(SpatialExperiment)
 library(spatialLIBD)
 require(colorout)
+library(BiocParallel)
 source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
@@ -44,90 +45,100 @@ names(dissets) <- c("gwas","twas","dgn","union")
 
 
 ```{r}
-### set up list of markers per spdomain (top 100 by FDR, top 50 by lfc)
-i <- 1
-fdrmklist <- list()
-lfcmklist <- list()
-for (i in c(1:15)){
-    curdom <- paste0("X",i)
-    curfdr <- paste0("fdr_",curdom)
-    curfc <- paste0("logFC_",curdom)
-    tmpmks <- mks[,c(curfdr,curfc,"gene"),with=F][get(curfc)>0]
-    setkeyv(tmpmks,curfdr)
-    fdrmklist[[i]] <- tmpmks[1:100,gene]
-    setkeyv(tmpmks,curfc)
-    lfcmklist[[i]] <- tmpmks[1:100,gene]
-    names(fdrmklist)[i] <- curdom
-    names(lfcmklist)[i] <- curdom
-    rm(curfc,curfdr,curdom,tmpmks)
-}
+### set up list of markers per spdomain (top 50 by FDR, top 50 by lfc)
 
+n <- as.list(seq(10,100,10))
+sbp <- MulticoreParam(10)
 
-
-
-reslist <- lapply(dissets,FUN=function(x){
-i <- 1
-    for (i in c(1:30)){
-    if (i<16){
-        dom <- paste0("x",i)
-        domname <- paste0(dom,"_top100fdr")
-    }
-    else{
-        d <- i-15
-        dom <- paste0("x",d)
-        domname <- paste0(dom,"_top100lfc")
+megares <- bplapply(n,BPPARAM=sbp,FUN=function(x){
+    h <- 1
+    fdrmklist <- list()
+    lfcmklist <- list()
+    for (h in c(1:15)){
+        curdom <- paste0("X",h)
+        curfdr <- paste0("fdr_",curdom)
+        curfc <- paste0("logFC_",curdom)
+        tmpmks <- mks[,c(curfdr,curfc,"gene"),with=F][get(curfc)>0]
+        setorderv(tmpmks,curfdr)
+        fdrmklist[[h]] <- tmpmks[1:x,gene]
+        setorderv(tmpmks,curfc,-1)
+        lfcmklist[[h]] <- tmpmks[1:x,gene]
+        names(fdrmklist)[h] <- curdom
+        names(lfcmklist)[h] <- curdom
+        rm(curfc,curfdr,curdom,tmpmks)
     }
     
-    curparent <- mks$gene
+    reslist <- lapply(dissets,FUN=function(x){
+        i <- 1
+        for (i in c(1:30)){
+        if (i<16){
+            dom <- paste0("x",i)
+            domname <- paste0(dom,"_top100fdr")
+        }
+        else{
+            d <- i-15
+            dom <- paste0("x",d)
+            domname <- paste0(dom,"_top100lfc")
+        }
         
-    if (i<16){
-        cursig <- fdrmklist[[i]]
-    }
-    else {
-        cursig <- lfcmklist[[(i-15)]]
-    }
+        curparent <- mks$gene
+            
+        if (i<16){
+            cursig <- fdrmklist[[i]]
+        }
+        else {
+            cursig <- lfcmklist[[(i-15)]]
+        }
+        
+        if(length(cursig)==0){
+            next(i)
+        }
+        
+        j<-1
+        tmplists <- list()
+        
+        for (j in c(1:length(unique(x$dx)))){
+            curdx <- unique(x$dx)[j]
+            # subset disease genes to shared genes with the DE analysis
+            curdxset <- x[dx==curdx&symbol %in% unique(curparent),symbol]
+            tmplists[[j]] <- curdxset
+        }
+        names(tmplists) <- unique(x$dx)
+        tmpres <- hypeR::hypeR(signature=cursig,genesets=tmplists,background = length(curparent)-length(cursig),test = "hypergeometric")
+        tmpres2 <- as.data.table(tmpres$data)
+        tmpres2[,spdomain_mks:=domname]
+        
+        if(i==1){resdat <- copy(tmpres2)}
+        else{resdat <- rbind(resdat,tmpres2)}
+        rm(tmpres2,tmpres,tmplists,curdx,cursig)
+        }
+        return(resdat)
+    })
+
+    names(reslist) <- names(dissets)
     
-    if(length(cursig)==0){
-        next(i)
+    i<-1
+    for (i in c(1:4)){
+        reslist[[i]][,genesource:=names(dissets)[i]]
+        curres <- reslist[[i]]
+        if(i==1){
+            allres <- copy(curres)
+        }
+        else{
+            allres <- rbind(allres,curres)
+        }
     }
-    
-    j<-1
-    tmplists <- list()
-    
-    for (j in c(1:length(unique(x$dx)))){
-        curdx <- unique(x$dx)[j]
-        # subset disease genes to shared genes with the DE analysis
-        curdxset <- x[dx==curdx&symbol %in% unique(curparent),symbol]
-        tmplists[[j]] <- curdxset
-    }
-    names(tmplists) <- unique(x$dx)
-    tmpres <- hypeR::hypeR(signature=cursig,genesets=tmplists,background = length(curparent)-length(cursig),test = "hypergeometric")
-    tmpres2 <- as.data.table(tmpres$data)
-    tmpres2[,spdomain_mks:=domname]
-    
-    if(i==1){resdat <- copy(tmpres2)}
-    else{resdat <- rbind(resdat,tmpres2)}
-    rm(tmpres2,tmpres,tmplists,curdx,cursig)
-    }
-    return(resdat)
+    setnames(allres,"fdr","genesource_alldxes_domain_FDR")
+    allres[,globalfdr:=p.adjust(pval,method = "BH")]
+    setnames(allres,"globalfdr",paste0("fdr_allTop",x,"MarkerTests"))
+    return(allres)
 })
 
-names(reslist) <- names(dissets)
-
 i<-1
-for (i in c(1:4)){
-    reslist[[i]][,genesource:=names(dissets)[i]]
-    curres <- reslist[[i]]
-    if(i==1){
-        allres <- copy(curres)
-    }
-    else{
-        allres <- rbind(allres,curres)
-    }
+for (i in c(2:10)){
+    if(i==2){megaresout <- rbind(megares[[1]],megares[[2]],fill=T)}
+    else{megaresout <- rbind(megaresout,megares[[i]],fill=T)}
 }
 
-setnames(allres,"fdr","genesource_alldxes_domain_FDR")
-allres[,globalfdr:=p.adjust(pval,method = "BH")]
-
-write.table(allres,"analysis/data/spe_053123/H08-GSEA, GO etc/03-GWAS, TWAS, disgenet, joint dis-gene signature enrichment in libdspatial top 100 enrichment-test markers by FDR or by LFC per k15 spdomain.txt")
+write.table(allres,"analysis/data/spe_053123/H08-GSEA, GO etc/03-GWAS, TWAS, disgenet, joint dis-gene signature enrichment in libdspatial top 10, 20..100 enrichment-test markers by FDR or by LFC per k15 spdomain.txt")
 ```
