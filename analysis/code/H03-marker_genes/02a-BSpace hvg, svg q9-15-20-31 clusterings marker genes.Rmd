@@ -34,7 +34,7 @@ load required files
 hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
 rownames(colData(hyp2)) <- colData(hyp2)$key
 
-bscl <- list.files("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
+bscl <- list.files("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
 
 bscls <- lapply(bscl,FUN=fread)
 names(bscls) <- gsub(bscl,pattern="^.*9-15-20-31_out\\/BSpace_Harmony_(.*)\\.txt$",replacement="\\1")
@@ -54,9 +54,11 @@ bs.markers <- bplapply(bscls,BPPARAM=bpparam,FUN=function(x){
     if((sum(rownames(colData(hyp2))==rownames(y)))!=ncol(hyp2)){
         y <- y[rownames(colData(hyp2)),]
     }
+    colnames(y)[2] <- "cl"
+    y$cl <- paste0("X",y$cl)
     # row names as gene symbols for sanity
     rownames(hyp2) <- rowData(hyp2)$gene_name
-    colLabels(hyp2) <- factor(y[,2])
+    colLabels(hyp2) <- as.factor(y$cl)
     rm(y)
     gc(full=T)
     
@@ -64,7 +66,7 @@ bs.markers <- bplapply(bscls,BPPARAM=bpparam,FUN=function(x){
 })
 names(bs.markers) <- names(bscls)
 
-saveRDS(bs.markers,"analysis/data/H03-marker_genes/BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
+saveRDS(bs.markers,"analysis/data/spe_053123/H03-marker_genes/02-BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
 
 ```
 

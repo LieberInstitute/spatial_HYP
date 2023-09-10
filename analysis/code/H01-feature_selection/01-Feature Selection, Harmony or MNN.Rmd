@@ -141,28 +141,30 @@ pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="PCA")
 ```
 ### do NOT use harmony for the SPE with one sample clipped to single quadrant--harmony will falsely assume we have the same cell types in all sections which will not be the case w/ this cropped section. 
 
-# set.seed(42)
-# pcas[[1]] <- RunHarmony(pcas[[1]],group.by.vars = "sample_id")
-# set.seed(42)
-# pcas[[2]] <- RunHarmony(pcas[[2]],group.by.vars = "sample_id")
-# set.seed(42)
-# pcas[[3]] <- RunHarmony(pcas[[3]],group.by.vars = "sample_id")
-# set.seed(42)
-# pcas[[4]] <- RunHarmony(pcas[[4]],group.by.vars = "sample_id")
+```{r}
+set.seed(42)
+pcas[[1]] <- RunHarmony(pcas[[1]],group.by.vars = "sample_id")
+set.seed(42)
+pcas[[2]] <- RunHarmony(pcas[[2]],group.by.vars = "sample_id")
+set.seed(42)
+pcas[[3]] <- RunHarmony(pcas[[3]],group.by.vars = "sample_id")
+set.seed(42)
+pcas[[4]] <- RunHarmony(pcas[[4]],group.by.vars = "sample_id")
 
 
-# set.seed(42)
-# pcas[[1]] <- scater::runUMAP(pcas[[1]],dimred="HARMONY",name="HARMONY_UMAP")
-# set.seed(42)
-# pcas[[2]] <- scater::runUMAP(pcas[[2]],dimred="HARMONY",name="HARMONY_UMAP")
-# set.seed(42)
-# pcas[[3]] <- scater::runUMAP(pcas[[3]],dimred="HARMONY",name="HARMONY_UMAP")
-# set.seed(42)
-# pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[1]] <- scater::runUMAP(pcas[[1]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[2]] <- scater::runUMAP(pcas[[2]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[3]] <- scater::runUMAP(pcas[[3]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="HARMONY",name="HARMONY_UMAP")
 
-# names(pcas) <- c("hvg10pctile","hvg20pctile","nnsvg10pctile","nnsvg20pctile")
+names(pcas) <- c("hvg10pctile","hvg20pctile","nnsvg10pctile","nnsvg20pctile")
 
-# saveRDS(pcas,"analysis/data/spe_053123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_HARMONY-PCA-UMAP.RDS")
+saveRDS(pcas,"analysis/data/spe_053123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_HARMONY-PCA-UMAP.RDS")
+```
 
 #### MNN correction with ordered batch corrections within spatial rep sets. we can do this by specifying brnum (donor) as the batch factor
 ```{r}

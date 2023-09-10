@@ -28,7 +28,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 Read in markers and hyp2 spe
 ```{r}
-bs.markers <- readRDS("analysis/data/H03-marker_genes/BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
+bs.markers <- readRDS("analysis/data/spe_053123/H03-marker_genes/02-BSpace_HVG1020-SVG1020_q9-15-20-31_findmarkers_out.RDS")
 
 hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
 
@@ -39,7 +39,7 @@ rownames(hyp2) <- rowData(hyp2)$gene_name
 rownames(colData(hyp2)) <- colData(hyp2)$key
 
 # load clustering assignments, change names to be same format as markers list
-bscl <- list.files("analysis/data/H02-clustering/bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
+bscl <- list.files("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
 
 bscls <- lapply(bscl,fread)
 names(bscls) <- gsub(bscl,pattern="^.*9-15-20-31_out\\/BSpace_Harmony_(.*)\\.txt$",replacement="\\1")
@@ -63,12 +63,16 @@ bscls <- lapply(bscls,FUN=function(x){
 •nnsvgs 10%ile q=20 (umap)
 •svgs 20%ile q=15 (spotplot)
 •svgs 20%ile q=31 (spotplot)--distinct subarchitecture of VMH oval not seen with SVGs @ 10%ile
+•svgs 10%ile q=15 (spotplot/allen atlas expectations)
 
+# note 09-09-23: these plots were previously rendered (and now have been removed from the repo). the cluster labels were mixed up relative to the spotplots of the cluster assignments because in this code, was setting collabel(spe) <- factor(clusterresults[,"cluster_assignment_col"]), where the cluster assignment column was just a numeral (and so the levels were not equivalent to the actual numeral assigned a cluster).
 ```{r}
-mklistnames <- list("hvg10pctile_15","hvg10pctile_20","hvg10pctile_31","hvg20pctile_15","hvg20pctile_20","hvg20pctile_31","nnsvg10pctile_31","nnsvg10pctile_20","nnsvg20pctile_15","nnsvg20pctile_31")
+# just fix nnsvg10pctile_15 for now, since this is the preliminary dataset
+# still not working -_-
+mklistnames <- list("nnsvg10pctile_15")
 
 i<-1
-for (i in c(1:2)){
+for (i in c(1:1)){
     curname <- mklistnames[[i]]
     curmkset <- bs.markers[[curname]]
     y <- bscls[[curname]]
@@ -78,17 +82,19 @@ for (i in c(1:2)){
     if((sum(rownames(colData(hyp2))==rownames(y)))!=ncol(hyp2)){
         y <- y[rownames(colData(hyp2)),]
     }
+    colnames(y)[2] <- "cl"
+    y$cl <- paste0("X",y$cl)
     # assign clusters
-    colLabels(hyp2) <- factor(y[,2])
+    colLabels(hyp2) <- as.factor(y$cl)
     rm(y)
     k<-1
     for (k in c(1:length(curmkset))){
         curmks <- as.data.table(curmkset[[k]],keep.rownames=T)
         setnames(curmks,"rn","gene_name")
-        setorder(curmks,FDR)
+        setorder(curmks,mean.logFC.cohen)
         pltmks <- curmks[1:20,gene_name]
         plt <- plotExpression(hyp2,features = pltmks,x="label",colour_by = "label")
-        png(paste0("plots/H03-marker_genes/BSpace_",curname,"_top20markers/cluster_",names(curmkset)[k],".png"),width=2000,height=800)
+        png(paste0("plots/spe_053123/H03-marker_genes/BSpace_",curname,"/cluster_",names(curmkset)[k],".png"),width=2000,height=800)
         print(plt)
         dev.off()
         rm(plt,pltmks,curmks)
