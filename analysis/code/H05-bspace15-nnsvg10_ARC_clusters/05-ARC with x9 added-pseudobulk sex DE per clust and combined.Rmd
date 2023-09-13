@@ -1,0 +1,201 @@
+---
+title: "05-ARC with x9 added-pseudobulk sex DE per clust and combined"
+author: "Bernard Mulvey"
+date: "2023-07-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(scran)
+library(edgeR)
+library(jaffelab)
+library(PCAtools) # findElbowPoint
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+Load SPE, set spot names to coldata$key, add bayesspsace nnsvg10 k=15 labels. Crop V12D07-075-B1 down to the portion containing ISH-verified VMH. (This contains some spots of ARC clusters as well).
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+
+colnames(hyp2) <- colData(hyp2)$key
+
+bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
+bscl <- DataFrame(bscl)
+rownames(bscl) <- bscl$rn
+bscl <- bscl[colnames(hyp2),]
+
+colLabels(hyp2) <- as.factor(bscl$BShar_nnsvg10pctile_15)
+
+### crop V12D07-075-B1 as previously
+coordstmp <- as.data.frame(spatialCoords(hyp2))
+rownames(coordstmp) <- colnames(hyp2)
+coordstmp <- as.data.table(coordstmp,keep.rownames=T)
+coordstmp <- coordstmp[,diag:=pxl_col_in_fullres+pxl_row_in_fullres]
+coordstmp <- coordstmp[!(rn %in% grep(rn,pattern="V12D07-075_B1",value=T)&diag>30000)]
+
+hyp2 <- hyp2[,colnames(hyp2)%in%coordstmp$rn]
+stopifnot(dim(hyp2)[2]==nrow(coordstmp))
+
+rm(bscl,coordstmp)
+
+## add demographics for sample sexes
+demos <- fread("raw-data/demos.txt")
+tmpcd <- as.data.table(colData(hyp2),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum")
+tmpcd <- as.data.frame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd <- tmpcd[colnames(hyp2),]
+colData(hyp2) <- DataFrame(tmpcd) 
+rm(tmpcd,demos)
+# load chromosome info for genes for filtering by X/Y later. (queried rownames of hyp2 in biomart human genes v 109 for this.)
+chrs <- fread("raw-data/ENSG_chromosomes.txt")
+allg <- as.data.table(rowData(hyp2),keep.rownames=T)
+allg <- merge.data.table(allg,chrs,by.x="rn",by.y="gene_id",all.x=T)
+allg <- as.data.frame(allg)
+rownames(allg) <- allg$rn
+allg <- DataFrame(allg)
+### CRITICAL TO REORDER HERE OR GENES SOMEHOW GET MIS-LABELED LATER (easy test for this is examining DDX3Y expression spotplot in hyp2 now vs after)
+allg <- allg[rownames(hyp2),]
+rowData(hyp2) <- allg
+### spot checks confirm gene-chr pairs are correct. chrY genes are absent in female samples up to this point.
+rm(chrs,allg)
+```
+
+Going off https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/create_manual_annotated_pseudobulk_spe.R and https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/DE_pseudobulk.R
+
+ARC clusters= #8, #13. Also run DE pseudobulking across the two clusters.
+```{r}
+## iterate over individual clusters and combination.
+clids <- list(8,9,13,c(8,9,13))
+clnames <- c("8","9","13","all")
+
+arc.reses <- list()
+i<-1
+for (i in c(1:length(clids))){
+
+    colData(hyp2)$arc <- "other"
+    colData(hyp2)[which(colData(hyp2)$label %in% clids[[i]]),]$arc <- "ARC"
+    colData(hyp2)$arc <- as.factor(colData(hyp2)$arc)
+    
+    hyp2_pbulk <- aggregateAcrossCells(hyp2,
+                       DataFrame(arc=hyp2$arc,
+                                 sample=hyp2$sample_id))
+    
+    # hyp2_pbulk$is.vmh <- factor(hyp2_pbulk$is.vmh)
+    
+    # find a good expression cutoff using edgeR::filterByExpr
+    rowData(hyp2_pbulk)$high_expr <- filterByExpr(hyp2_pbulk)
+    rowData(hyp2_pbulk)$high_expr_cl <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$arc)
+    rowData(hyp2_pbulk)$high_expr_sample <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$sample)
+    
+    rowData(hyp2_pbulk)$high_expr_clorsam <- rowSums(cbind(rowData(hyp2_pbulk)$high_expr_sample,rowData(hyp2_pbulk)$high_expr_cl))
+    
+    # summary(rowData(hyp2_pbulk)$high_expr)
+    # summary(rowData(hyp2_pbulk)$high_expr_sample)
+    # summary(rowData(hyp2_pbulk)$high_expr_cl)
+    # summary(rowData(hyp2_pbulk)$high_expr_clorsam>=1)
+    
+    hyp2_pbulk2 <- hyp2_pbulk[rowData(hyp2_pbulk)$high_expr_clorsam>=1]
+    
+    ## Store the log normalized counts on the spe object
+    hyp2_pbulk3 <- edgeR::cpm(edgeR::calcNormFactors(hyp2_pbulk2), log = TRUE, prior.count = 0.1)
+    
+    stopifnot(rownames(hyp2_pbulk3)==rownames(hyp2)[which(rownames(hyp2) %in% rownames(hyp2_pbulk3))])
+    
+    colnames(hyp2_pbulk3) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$arc)
+    
+    colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$arc)
+    
+    ## now actually store norm counts on spe
+    logcounts(hyp2_pbulk2) <- hyp2_pbulk3
+    
+    # make sure variables of interest are factors
+
+    colData(hyp2_pbulk2)$Sex <- factor(colData(hyp2_pbulk2)$Sex)
+    colData(hyp2_pbulk2)$arc <- factor(colData(hyp2_pbulk2)$arc)
+
+
+deres <- pseudoBulkDGE(
+    hyp2_pbulk2,
+    col.data = colData(hyp2_pbulk2),
+    label = hyp2_pbulk2$arc,
+    design = ~Sex,
+    coef="SexM",
+    row.data = rowData(hyp2_pbulk2),
+    method = "voom",
+    qualities = TRUE,
+    robust = TRUE
+)
+
+    arc.reses[[length(arc.reses)+1]] <- as.data.table(deres[[1]])
+    names(arc.reses)[length(arc.reses)] <- paste0("cl_",clnames[i],"_ARC")
+    arc.reses[[length(arc.reses)+1]] <- as.data.table(deres[[2]])
+    names(arc.reses)[length(arc.reses)] <- paste0("cl_",clnames[i],"_other")
+    
+    
+    
+    rm(hyp2_pbulk,hyp2_pbulk2,hyp2_pbulk3,deres)
+    gc(full=T)
+}
+
+saveRDS(arc.reses,"analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/05-sexDEresults_ARC8-9-13-joint_vs-allotherclusts_pbulk_noSpRep-adjs_V12D07075B1-cropped.RDS")
+```
+
+
+
+### examine / sanity check vs. previous joint (cl8, 13) ARC
+```{r}
+arc.reses2 <- arc.reses[c(1,3,5,7)]
+
+lapply(arc.reses2,FUN=function(x){nrow(x[adj.P.Val<0.05])})
+### oo, saucy!
+
+lapply(arc.reses2,FUN=function(x){nrow(x[adj.P.Val<0.05&!(chr %in% c("chrX","chrY"))])})
+## nice
+
+arc.res2clust <- readRDS("analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/ARC_pseudobulk_sexDE_noSpRep-adjs_V12D07075B1-cropped.RDS")
+
+# sanity check: same results for ARC8 both then and now. 
+identical(arc.reses2[[1]][adj.P.Val<0.05,gene_name], arc.res2clust[[1]][adj.P.Val<0.05,gene_name])
+
+keepgenes <- lapply(arc.reses2,FUN=function(x){return(x$gene_name)})
+keepgenes <- unlist(keepgenes)
+keepg2 <- lapply(arc.res2clust[c(1,3,5)],FUN=function(x){return(x$gene_name)})
+keepgenes <- as.data.table(c(keepgenes,unlist(keepg2)))
+keepgenes <- keepgenes[,.N,by="V1"][N==7,V1]
+
+arc.res2clust <- arc.res2clust[c(1,3,5)]
+i<-1
+resdf <- as.data.frame(matrix(nrow=5,ncol=4))
+colnames(resdf) <- c(names(arc.res2clust),"3clust_total_autosomal")
+rownames(resdf) <- c(names(arc.reses2),"2clust_total_autosomal")
+for (i in c(1:4)){
+    currow <- rownames(resdf)[i]
+    currowdat <- arc.reses2[[currow]][adj.P.Val<0.05&!(chr %in% c("chrX","chrY")),gene_name]
+    resdf[i,4] <- length(unique(currowdat))
+    j<-1
+    for (j in c(1:3)){
+        curcol <- colnames(resdf)[j]
+        curcoldat <- arc.res2clust[[curcol]][adj.P.Val<0.05&!(chr %in% c("chrX","chrY")),gene_name]
+        resdf[5,j] <- length(unique(curcoldat))
+        resdf[i,j] <- sum(curcoldat %in% currowdat)
+    }
+    rm(curcol,currow,curcoldat,currowdat)
+}
+
+write.table(resdf,"analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/05-signifAutosomal-sexDEG-overlap_ARC_8-9-13_soloAndJnt-sexDE-vsallotherclust_vs_ARC2clusters-joint-sexDE.txt",row.names=T,col.names=T,quote=F,sep='\t')
+```

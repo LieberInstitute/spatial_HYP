@@ -37,7 +37,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 ```{r}
 # list obj with SGEs of harmony-corrected embeddings for top 10, top 20%ile HVGs
-pcas <- readRDS("analysis/data/H01-featuSPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
+pcas <- readRDS("analysis/data/spe_053123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
 # subset to HVG portions of the object for memory
 pcas <- pcas[c(1:2)]
 ```
@@ -73,7 +73,7 @@ walkclusts5.4_47 <- list(walkclusts5.hvg10.4_47,walkclusts5.hvg20.4_47)
 names(walkclusts5.4_47) <- c("walK5.hvg10.cut4_47","walK5.hvg20.cut4_47")
 rm(g_walk5, h.glist5, walkclusts5.hvg10.4_47,walkclusts5.hvg20.4_47)
 gc(full=T)
-saveRDS(walkclusts5.4_47,"analysis/data/H02-clustering/sampleBlock-hvg10-20_harmonyBrnumBlock-walktrap-SNNk5_cutAt4-47.RDS")
+saveRDS(walkclusts5.4_47,"analysis/data/H02-clustering/sampleBlock-hvg10-20_harmonySampleBlock-walktrap-SNNk5_cutAt4-47.RDS")
 ```
 
 HVG10/HVG20, snngraph k=10, cut_at 4-47.
@@ -112,7 +112,7 @@ names(walkclusts10.4_47) <- c("walK10.hvg10.cut4_47","walK10.hvg20.cut4_47")
 rm(g_walk10, h.glist10, walkclusts10.hvg10.4_47,walkclusts10.hvg20.4_47)
 gc(full=T)
 
-saveRDS(walkclusts10.4_47,"analysis/data/H02-clustering/sampleBlock-hvg10-20_harmonyBrnumBlock-walktrap-SNNk10_cutAt4-47.RDS")
+saveRDS(walkclusts10.4_47,"analysis/data/H02-clustering/sampleBlock-hvg10-20_harmonySampleBlock-walktrap-SNNk10_cutAt4-47.RDS")
 ```
 
 Fasthplus, adapted from dlPFC 2022-23 code
