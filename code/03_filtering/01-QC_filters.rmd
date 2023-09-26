@@ -173,13 +173,13 @@ hyp2 <- hyp2[,colData(hyp2)$sum_umi>600&colData(hyp2)$sum_gene>450&colData(hyp2)
 ### apply library-size normalized, LOG COUNT normalization AFTER filtering the data.
 ```{r}
 library(scran)
-hyp <- computeLibraryFactors(hyp)
+hyp2 <- computeLibraryFactors(hyp2)
 # peek
-summary(sizeFactors(hyp))
-hist(sizeFactors(hyp),breaks=100)
+summary(sizeFactors(hyp2))
+hist(sizeFactors(hyp2),breaks=100)
 dev.off()
 # append log counts using scater (don't use the SpatialExpt:: function here, that's for RETRIEVING an assay by the name of "logcounts" from spe objs)
-hyp2 <- scater::logNormCounts(hyp)
+hyp2 <- scater::logNormCounts(hyp2)
 stopifnot(dim(counts(hyp2))==dim(logcounts(hyp2)))
 saveRDS(hyp2,"data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
 

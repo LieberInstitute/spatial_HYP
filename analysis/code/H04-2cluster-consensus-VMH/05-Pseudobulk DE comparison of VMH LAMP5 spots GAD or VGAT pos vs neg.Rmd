@@ -117,7 +117,7 @@ deres <- pseudoBulkDGE(
 deres <- as.data.table(deres)
 setnames(deres,"group_name","LAMP5.pos_Inhmarks.neg")
 
-write.table(deres,"05-Pseudobulk DE between VMH LAMP5-NOinhmarker spots and those coexpr GADs or VGAT_posLFCisLAMPonly.txt",sep='\t',quote=F,row.names=F,col.names=T)
+write.table(deres,"analysis/data/spe_053123/H04-2cluster-consensus-VMH/H04.05-Pseudobulk DE between VMH LAMP5-NOinhmarker spots and those coexpr GADs or VGAT_posLFCisLAMPonly.txt",sep='\t',quote=F,row.names=F,col.names=T)
 
 gseain <- deres[,.(gene_name,logFC,P.Value)]
 gseain[,lp:=-log10(P.Value)]
