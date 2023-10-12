@@ -32,7 +32,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 ```{r}
 hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
 
-### for cropping the bad sample, get the rownames to keep from a cropped spe
+### for cropping the bad sample, get the colnames to keep from a cropped spe
 hyp2.tmp <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
 
 hyp2.vmh <- hyp2.vmh[,colnames(hyp2.vmh) %in% colnames(hyp2.tmp)]
@@ -43,6 +43,7 @@ rownames(hyp2.vmh) <- rowData(hyp2.vmh)$gene_name
 ```
 
 ### subset to VMH spots (label = 2) with LAMP5
+
 ```{r}
 hyp2.vmhlamp <- hyp2.vmh[,hyp2.vmh$label==2]
 keepcols <- logcounts(hyp2.vmhlamp["LAMP5",])
@@ -69,6 +70,7 @@ rownames(hyp2.vmhlamp) <- rowData(hyp2.vmhlamp)$gene_id
 ```
 
 ### pseudobulk DE
+
 ```{r}
 hyp2_pbulk <- aggregateAcrossCells(hyp2.vmhlamp,
                    DataFrame(lampandinh=hyp2.vmhlamp$label,
