@@ -1,0 +1,61 @@
+---
+title: "04-Collate marker GSEA results"
+author: "Bernard Mulvey"
+date: "2023-10-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+mklist <- list()
+i <- 1
+for (i in c(1:15)){
+    clus <- paste0("x",i)
+    targfile <- list.files(paste0("analysis/data/spe_053123/H08-GSEA, GO etc/04-Domain marker GSEA/hypmk_",clus,".GseaPreranked"),pattern="gsea_report_for_na_pos.*\\.tsv",full.names = T)
+    curgse <- fread(targfile)
+    curgse <- curgse[,c(1,4:11)]
+    curgse[,spdomain:=clus]
+    
+    ### forgot to include c2 (pathways) in the first run of all these, so those are in separate directories
+    targfile <- list.files(paste0("analysis/data/spe_053123/H08-GSEA, GO etc/04-Domain marker GSEA/hypmk_",clus,"_c2all.GseaPreranked"),pattern="gsea_report_for_na_pos.*\\.tsv",full.names = T)
+    curgse <- rbind(fread(targfile)[,c(1,4:11)][,spdomain:=clus],curgse)
+    setnames(curgse,c(5:9),c("P.Value","FDR_qval","FWER_pval","rankAtMax","leading_edge"))
+
+    
+    if (i==1){allgse <- curgse}
+    else{allgse <- rbind(allgse,curgse)}
+    setorder(allgse,NES)
+    
+    mklist[[i]] <- fread(paste0("analysis/data/spe_053123/H08-GSEA, GO etc/04-Domain marker GSEA/hypmk_",clus,".GseaPreranked/edb/",toupper(clus),"_collapsed.rnk"),header=F)
+    rm(curgse,targfile,clus)
+}
+rm(i)
+
+
+
+
+fwrite(allgse,"analysis/data/spe_053123/H08-GSEA, GO etc/04-Domain marker GSEA/collated_gsea_results.txt",sep='\t')
+```
