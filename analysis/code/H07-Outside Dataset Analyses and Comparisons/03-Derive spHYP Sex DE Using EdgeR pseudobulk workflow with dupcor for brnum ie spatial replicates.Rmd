@@ -23,6 +23,11 @@ options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 library(SpatialExperiment)
 library(scater)
 library(scran)
+library(edgeR)
+library(limma)
+
+library(gridExtra)
+library(magrittr)
 
 ```
 
@@ -98,7 +103,7 @@ logcounts(hyp2_pbulk2) <- hyp2_pbulk3
 ```
 
 
-### run it, with dupcor for brnum
+### run it, with and without dupcor for brnum
 ```{r}
 colData(hyp2_pbulk2)$Sex <- as.factor(colData(hyp2_pbulk2)$Sex)
 colData(hyp2_pbulk2)$label <- as.factor(hyp2_pbulk2$label)
@@ -108,18 +113,24 @@ colData(hyp2_pbulk2)$brnum <- as.factor(hyp2_pbulk2$brnum)
 
 # logcount matrix was created above (hyp2_pbulk3)
 
-# subset data per cluster and run through the following steps accordingly (since we have to input a plainol)
+# subset data per cluster and run through the following steps accordingly (since lmfit won't take an spe)
 reslist <- list()
-i <- 1
-for (i in c(1:length(unique(hyp2_pbulk2$label)))){
+j <- 1
+for (j in c(1:(2*length(unique(hyp2_pbulk2$label))))){
+    i <- ifelse(j>15,j-15,j)
     curclus <- paste0("X",i)
     curcluscols <- grep(colnames(hyp2_pbulk2),pattern=paste0("^.*",curclus,"$"),value=T)
     
     # grab only the pseudobulk "samples" corresponding to the cluster of present interest
     tmppbulk <- hyp2_pbulk2[,colnames(hyp2_pbulk2) %in% curcluscols]
-    # grab matrix of the logcounts for same
-    tmplogcounts <- tmppbulk@assays@data@listData$logcounts
-    
+    rowData(tmppbulk)$high_expr <- filterByExpr(tmppbulk)
+rowData(tmppbulk)$high_expr_sex <- filterByExpr(tmppbulk, group = tmppbulk$Sex)
+rowData(tmppbulk)$high_expr_sample <- filterByExpr(tmppbulk, group = tmppbulk$sample)
+    rowData(tmppbulk)$high_expr_clorsam <- rowSums(cbind(rowData(tmppbulk)$high_expr_sample,rowData(tmppbulk)$high_expr_sex))
+    tmppbulk <- tmppbulk[rowData(tmppbulk)$high_expr_clorsam>=1,]
+    # grab matrix of the logcounts for same (10-16 for voomwithqualityweights, straight counts, and let it generate the lib size factors itself and re-calc logcpm accordingly)
+    # tmplogcounts <- tmppbulk@assays@data@listData$logcounts
+    tmpcounts <- tmppbulk@assays@data@listData$counts 
     ## de model and 
     # covars <- c() # none of note for now
     mat_formula <- eval(str2expression(paste("~0+Sex")))
@@ -128,17 +139,29 @@ for (i in c(1:length(unique(hyp2_pbulk2$label)))){
     # Matrix for a regression-like model
     mod <- model.matrix(mat_formula, data = colData(tmppbulk))
     
-    # Compute correlation for w/e it is we're currently looking at
-    corfit <- duplicateCorrelation(tmplogcounts, mod, block = tmppbulk$brnum)
+    # INITIALIZE the voomwithqualityweights model, equivalent to pseudobulkDGE(method="voom",qualities=T)
+    v <- voomWithQualityWeights(tmpcounts,design = mod,method = "reml",maxiter=10E5)
+    
+    # Compute correlation for w/e it is we're currently looking at, or don't
+    if (j>15){
+    #corfit <- duplicateCorrelation(tmplogcounts, mod, block = tmppbulk$brnum)
+    corfit <- duplicateCorrelation(v,mod,block=tmppbulk$brnum)
     m <- model.matrix(mat_formula,colData(tmppbulk))
-
+    v2 <- voomWithQualityWeights(tmpcounts,mod,method="reml",maxiter=10E5,block=tmppbulk$brnum,correlation=corfit$consensus.correlation)
     dupcorres <- 
         lmFit(
-            tmppbulk@assays@data@listData$logcounts,
+            v2,
             design = m,
             block = tmppbulk$brnum,
             correlation = corfit$consensus.correlation
         )
+    }
+    else{
+        m <- model.matrix(mat_formula,colData(tmppbulk))
+        v <- voomWithQualityWeights(tmpcounts,design = mod,method = "reml",maxiter=10E5)
+        dupcorres <-lmFit(v,
+                          design=m)
+    }
     
     cont <- makeContrasts(sex=SexM-SexF,levels = m)
     contfit <- contrasts.fit(dupcorres,contrasts = cont)
@@ -147,12 +170,98 @@ for (i in c(1:length(unique(hyp2_pbulk2$label)))){
     tmprdat <- as.data.table(rowData(tmppbulk))
     tmptop <- merge.data.table(tmptop,tmprdat,by.x="rn",by.y="gene_id")
     
-    reslist[[i]] <- tmptop
-    names(reslist)[i] <- curclus
+    reslist[[j]] <- tmptop
+    names(reslist)[j] <- ifelse(j>15,paste0(curclus,"_dupcor"),curclus)
     
     rm(curcluscols,curclus,dupcorres,tmppbulk,corfit,tmptop,tmprdat,mod,m,tmplogcounts,cont,contfit)
 }
-rm(i)
+rm(i,j)
 
-saveRDS(reslist,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/03-sex DE results per BSpace15 domain w dupCor for spatial reps.RDS")
+### sanity check: use pseudobulkDGE and make sure those results are in dece agreement with the non-dupcor run
+pbdge <- as.list(pseudoBulkDGE(hyp2_pbulk2,label=hyp2_pbulk2$label,design=~0+Sex,contrast="SexM-SexF",condition=hyp2_pbulk2$Sex,lfc=0,row.data=rowData(hyp2_pbulk2),method="voom",qualities=T,robust=T))
+
+pbdge <- lapply(pbdge,FUN=function(x){as.data.table(x)})
+
+setnames(pbdge[["X1"]],c("logFC","adj.P.Val"),paste0("pbdge_",c("logFC","adj.P.Val")))
+
+check <- merge.data.table(pbdge[["X1"]][,.(gene_name,pbdge_logFC,pbdge_adj.P.Val)],reslist[[1]][,.(gene_name,logFC,adj.P.Val)])
+
+cor(check$adj.P.Val,check$pbdge_adj.P.Val,use="pairwise.complete.obs")
+# 0.772 
+cor(check$logFC,check$pbdge_logFC,use="pairwise.complete.obs")
+# 0.987
+# difference probably is in the filtering being done within the pseudobulkDGE function compared to manually in the loop above
+
+
+# previous RDS not overwritten for comparison purposes later -- see prior commit for how those results were generated and named.
+saveRDS(reslist,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/03-sex DE results per BSpace15 domain w voomwqw-dupCor-voomwqw for spatial reps.RDS")
+```
+
+# plot for SH
+```{r}
+dreamlets <- as.data.table(readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE.RDS"))
+dreamlets.br <- as.data.table(readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE_brnum-as-random-effect-inDEmodel.RDS"))
+# reorder to be paired analyses of clusters + dreamlet analyses
+reslist2 <- list()
+for (i in seq(1:15)){
+    
+    reslist2[[length(reslist2)+1]] <- reslist[[i]]
+    names(reslist2)[length(reslist2)] <- names(reslist)[i]
+    ugenes <- reslist2[[length(reslist2)]]$gene_name
+    
+    reslist2[[length(reslist2)+1]] <- reslist[[i+15]]
+    names(reslist2)[length(reslist2)] <- names(reslist)[i+15]
+    ugenes <- c(ugenes,reslist2[[length(reslist2)]]$gene_name)
+    
+    # get cluster identifier for dreamlet part
+    curclus <- paste0("x",i)
+    
+    reslist2[[length(reslist2)+1]] <- dreamlets[assay==curclus]
+    names(reslist2)[length(reslist2)] <- paste0(curclus,"_dreamlet")
+    ugenes <- c(ugenes,reslist2[[length(reslist2)]]$ID)
+    
+    reslist2[[length(reslist2)+1]] <- dreamlets.br[assay==curclus]
+    names(reslist2)[length(reslist2)] <- paste0(curclus,"_dreamlet_ranef-brnum")
+    ugenes <- c(ugenes,reslist2[[length(reslist2)]]$ID)
+    
+    ### subset to genes represented in all four assays (dreamlet lacks the sex chromosomal genes so that fixes that too)
+    allshare <- as.data.table(ugenes)[,.N,by="ugenes"][N==4,ugenes]
+    reslist2[[length(reslist2)-3]] %<>% .[gene_name %in% allshare]
+    reslist2[[length(reslist2)-2]] %<>% .[gene_name %in% allshare]
+    reslist2[[length(reslist2)-1]] %<>% .[ID %in% allshare]
+    reslist2[[length(reslist2)]] %<>% .[ID %in% allshare]
+    
+    rm(ugenes,allshare)
+}
+names(reslist2)
+
+# custom axis limits per quartet of plots
+xlims <- list(c(-3.5,3.5),c(-3.75,3.75),c(-3.75,3.75),c(-5.5,5.5),c(-4,4),c(-5.5,5.5),c(-4.5,4.5),c(-4.5,4.5),c(-3.75,3.75),c(-3.75,3.75),c(-4.5,4.5),c(-3.5,3.5),c(-4.5,4.5),c(-4.5,4.5),c(-5.5,5.5))
+
+# for (i in seq(1,60,by=4)){
+#     message(max(c(-log10(reslist2[[i]]$adj.P.Val),-log10(reslist2[[i+1]]$adj.P.Val),-log10(reslist2[[i+2]]$adj.P.Val),-log10(reslist2[[i+3]]$adj.P.Val)),na.rm=T))
+# }
+
+
+ylims <- list(c(0,4.5),c(0,5),c(0,12.5),c(0,5.75),c(0,6.25),c(0,5.75),c(0,3),c(0,4),c(0,6.75),c(0,6.25),c(0,16.25),c(0,6.5),c(0,5),c(0,7.5),c(0,6.25)) 
+
+plt <- list()
+i<-1
+for (i in c(1:60)){
+    d <- reslist2[[i]]
+    dname <- names(reslist2)[i]
+    plt[[i]] <- ggplot(d,aes(x=logFC,y=-log10(adj.P.Val)))+
+        geom_point()+
+        geom_hline(yintercept = -log10(.05),col="red",linetype=2)+
+        geom_hline(yintercept = -log10(d[P.Value<0.05,max(adj.P.Val)]),col="black",linetype=2)+
+        ggtitle(dname)+
+        xlim(xlims[[ceiling(i/4)]])+
+        ylim(ylims[[ceiling(i/4)]])+
+        theme(axis.title = element_text(size=11),axis.text.x = element_text(size=10),plot.title = element_text(size=12))
+}
+
+png("~/Desktop/clustvolcs_dupcor.png",width=2016,height=2016)
+do.call("grid.arrange",c(plt,ncol=8))
+dev.off()
+
 ```
