@@ -62,6 +62,7 @@ rm(bscl)
 
 Going off https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/create_manual_annotated_pseudobulk_spe.R and https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/DE_pseudobulk.R
 ```{r}
+# we don't need aggregated dimensionality reduction here
 hyp2_pbulk <- aggregateAcrossCells(hyp2.vmh,
                    DataFrame(label=hyp2.vmh$label,
                     sample=hyp2.vmh$sample_id),
@@ -263,5 +264,76 @@ for (i in c(1:60)){
 png("~/Desktop/clustvolcs_dupcor.png",width=2016,height=2016)
 do.call("grid.arrange",c(plt,ncol=8))
 dev.off()
+
+```
+
+### PCA of pseudobulk samples
+```{r}
+# all genes
+set.seed(42)
+pbpca <- scater::runPCA(hyp2_pbulk2)
+tmp <- as.data.table(reducedDims(pbpca)$PCA,keep.rownames=T)
+tmp[,spdomain:=gsub(rn,pattern="^.*_.*_(.*)$",replacement="\\1")]
+tmp[,sample_id:=gsub(rn,pattern="^(.*_.*)_.*$",replacement="\\1")]
+dref <- as.data.table(colData(hyp2_pbulk2)[,c("brnum","sample_id","Sex")])
+
+tmp <- merge.data.table(tmp,unique(dref),by="sample_id")
+d <- tmp[,.(spdomain,brnum,PC1,PC2,PC3)]
+
+png("~/Desktop/pb_pca_lognorm_allgenes.png",width=900,height=800)
+ggplot(tmp,aes(x=PC1,y=PC2,col=spdomain))+
+    geom_point()
+dev.off()
+
+png("~/Desktop/pb_pc1-3_lognorm_allgenes.png",width=900,height=800)
+ggplot(tmp,aes(x=PC1,y=PC3,col=spdomain))+
+    geom_point()
+dev.off()
+
+png("~/Desktop/pb_pc2-3_lognorm_allgenes.png",width=900,height=800)
+ggplot(tmp,aes(x=PC2,y=PC3,col=spdomain))+
+    geom_point()
+dev.off()
+
+png("~/Desktop/pb_pca_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(tmp,aes(x=PC1,y=PC2,col=brnum))+
+    geom_point()
+dev.off()
+
+png("~/Desktop/pb_pc1-3_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(tmp,aes(x=PC1,y=PC3,col=brnum))+
+    geom_point()
+dev.off()
+
+png("~/Desktop/pb_pc2-3_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(tmp,aes(x=PC2,y=PC3,col=brnum))+
+    geom_point()
+dev.off()
+
+png("~/Desktop/pb_pca_lognorm_allgenes_sex.png",width=900,height=800)
+ggplot(tmp,aes(x=PC1,y=PC2,shape=Sex,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("~/Desktop/pb_pc1-3_lognorm_allgenes_sex.png",width=900,height=800)
+ggplot(tmp,aes(x=PC1,y=PC3,col=brnum,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("~/Desktop/pb_pc2-3_lognorm_allgenes_sex.png",width=900,height=800)
+ggplot(tmp,aes(x=PC2,y=PC3,col=brnum,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+```
+
+
+#### pbulk PCA: nnsvg 10pctile features only
+```{r}
+nnsvgl <- readRDS("analysis/data/spe_053123/01-feature_selection/nnSVG_HVG_and_combo_featurelists.RDS")
+
+nnsvg10 <- nnsvg10[[3]]
+
+nnsvg10[[2]][1:10]
+
 
 ```

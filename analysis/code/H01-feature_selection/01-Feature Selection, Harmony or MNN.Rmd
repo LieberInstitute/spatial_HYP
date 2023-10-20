@@ -119,6 +119,9 @@ nnsvg20 <- nnsvgs[c(1:length(hyp2.hvg20)),gene_id]
 
 saveRDS(hyp2.hvg10,"analysis/data/spe_070123/H01-feature_selection/HVG10pctile_sample-blocked.RDS")
 saveRDS(hyp2.hvg20,"analysis/data/spe_070123/H01-feature_selection/HVG20pctile_sample-blocked.RDS")
+saveRDS(nnsvg10,"analysis/data/spe_070123/H01-feature_selection/nnsvg10pctile.RDS")
+saveRDS(nnsvg20,"analysis/data/spe_070123/H01-feature_selection/nnsvg20pctile.RDS")
+
 
 pcas <- list()
 set.seed(42)
