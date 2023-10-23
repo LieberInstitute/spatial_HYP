@@ -1,0 +1,93 @@
+---
+title: "01-Formalize Spot Relationships to Mouse Hypomap Dissection Regions"
+author: "Bernard Mulvey"
+date: "2023-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+library(BiocParallel)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+#### Load mouse hypomap as downloaded from cellxgene in h5ad; load spatialHYP marker genes as identified by spatialLIBD enrichment module; load a table to cross-map mouse and human genes by ENS id
+```{r}
+hmap <- zellkonverter::readH5AD("raw-data/hypomap.h5ad")
+assayNames(hmap) <- "logcounts"
+mks <- readRDS("analysis/data/spe_053123/H03-marker_genes/04-BSpace_HVG1020-SVG1020_q9-15-20-31_sLIBD-regwrapper-enrichment-res.RDS")
+mks <- mks[["nnsvg10pctile_15"]]
+stopifnot(is.data.table(mks))
+
+### just capitalize symbols for now, use a more complete human<->mouse gene crossmapping reference in final ver. make these the rownames for cleaner subsetting code
+
+rowData(hmap)$feature_name <- toupper(rowData(hmap)$feature_name)
+
+hmap <- hmap[rowData(hmap)$feature_name %in% mks$gene,]
+rownames(hmap) <- rowData(hmap)$feature_name
+
+gc(full=T)
+```
+
+### bplapply thru clusters
+```{r}
+clusts <- as.list(paste0("X",c(1:15)))
+names(clusts) <- unlist(clusts)
+
+sbp <- MulticoreParam(10)
+register(sbp)
+#### since hypomap is already subsetted to genes with identifiers also in the spatial marker sets, get top 25 genes each for enrichment logFC (first) and the top 25 FDR genes not in that set --> 50 genes
+restabs <- bplapply(clusts,BPPARAM = sbp,FUN=function(x){
+    getcols <- c("rn",paste0(c("fdr_","logFC_"),x))
+    lfccol <- paste0("logFC_",x)
+    fdrcol <- paste0("fdr_",x)
+    tmp <- copy(mks)[get(lfccol)>0&rn%in%rownames(hmap),..getcols]
+    
+    setorderv(tmp,lfccol,-1)
+    mkset <- tmp[1:25,rn]
+    
+    setorderv(tmp,fdrcol)
+    mkset <- c(mkset,tmp[!(rn %in% mkset)][1:25,rn])
+    stopifnot(length(unique(mkset))==50)
+    
+    tmpdat <- as.data.table(t(as.matrix(logcounts(hmap[rownames(hmap) %in% mkset,]))),keep.rownames = T)
+    tmpdat[,mnxpr:=rowMeans(tmpdat[,c(2:51)],na.rm = T)]
+    tiles <- ecdf(tmpdat$mnxpr)
+    tmpdat[,qtile.xpr:=tiles(mnxpr)]
+    tmpdat[,topqtile:=1-qtile.xpr]
+    setorder(tmpdat,topqtile)
+    
+    ### get table for annots re: top xpr 0.5, 1, 1.5, 2, 2.5%ile cells
+    topiles <- seq(0.005,.025,by=0.005)
+    subres <- lapply(topiles,FUN=function(z){
+        curcells <- tmpdat[topqtile<=z,rn]
+        annores <- colData(hmap)[curcells,c("C66_named","C185_named","C286_named","Author_Class_Curated","Author_CellType","Region_summarized","sex","development_stage","tissue")]
+        return(as.data.table(annores))
+    })
+    names(subres) <- paste0("top_",topiles*100,"pctile_mnxpr_cells")
+    return(subres)
+})
+
+names(restabs) <- names(clusts)
+
+saveRDS(restabs,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01-mshypomap-metadata_top0.5-2.5pctile_mnxprsingcells_top25FDR-top25logFC-spotmkrs_symbolmatching.RDS")
+```
