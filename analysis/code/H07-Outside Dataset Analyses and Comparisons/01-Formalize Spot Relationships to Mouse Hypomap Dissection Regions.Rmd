@@ -176,5 +176,5 @@ saveRDS(tabulationlist,"analysis/data/spe_053123/H07-Outside Dataset Analyses an
 # ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=C66_named))+geom_col()
 
 # pdat <- tabulationlist[[6]][spdomain=="X14"&anno.pct>0.01]
-# ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=abreve))+geom_col()
+#ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=abreve))+geom_col()
 ```
