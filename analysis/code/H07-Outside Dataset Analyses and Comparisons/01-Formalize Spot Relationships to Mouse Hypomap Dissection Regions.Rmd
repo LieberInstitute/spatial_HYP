@@ -89,7 +89,7 @@ restabs <- bplapply(clusts,BPPARAM = sbp,FUN=function(x){
 
 names(restabs) <- names(clusts)
 
-saveRDS(restabs,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-mshypomap-metadata_top0.5-2.5pctile_mnxprsingcells_top25FDR-top25logFC-spotmkrs_symbolmatching.RDS")
+# saveRDS(restabs,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-mshypomap-metadata_top0.5-2.5pctile_mnxprsingcells_top25FDR-top25logFC-spotmkrs_symbolmatching.RDS")
 ```
 
 ### expand into one big ass MF table
@@ -156,7 +156,7 @@ regs$abreve <- c("Premammillary","AHN","ARC","DMN","LHA","lPOA","mPOA","PVN","po
 tabulationlist[[6]] <- merge.data.table(tabulationlist[[6]],regs,by.x="Region_summarized",by.y="V1")
 
 
-saveRDS(tabulationlist,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-mshypomap-metadata_TABULATIONS_top0.5-2.5pctile_mnxprsingcells_top25FDR-top25logFC-spotmkrs_symbolmatching.RDS")
+# saveRDS(tabulationlist,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-mshypomap-metadata_TABULATIONS_top0.5-2.5pctile_mnxprsingcells_top25FDR-top25logFC-spotmkrs_symbolmatching.RDS")
 
 ```
 
@@ -171,10 +171,36 @@ saveRDS(tabulationlist,"analysis/data/spe_053123/H07-Outside Dataset Analyses an
 # pdat[,C25_named:=droplevels(C25_named)]
 # ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=C25_named))+geom_col()
 # 
-# pdat <- tabulationlist[[3]][spdomain=="X5"&anno.pct>0.01]
-# pdat[,C66_named:=droplevels(C66_named)]
-# ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=C66_named))+geom_col()
+png("~/Desktop/hypomap_x5_c66reg.png",height=800,width=600)
+pdat <- tabulationlist[[3]][spdomain=="X5"&anno.pct>0.01]
+pdat[,C66_named:=droplevels(C66_named)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=C66_named))+geom_col()+ggtitle("SpHYP VMH cluster X5")
+dev.off()
 
-# pdat <- tabulationlist[[6]][spdomain=="X14"&anno.pct>0.01]
+png("~/Desktop/hypomap_x5_region.png",height=800,width=600)
+pdat <- tabulationlist[[6]][spdomain=="X5"&anno.pct>0.01]
+#pdat[,Region_summarized:=droplevels(Region_summarized)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=Region_summarized))+geom_col()+ggtitle("SpHYP VMH cluster X5")
+dev.off()
+
+png("~/Desktop/hypomap_x8_region.png",height=800,width=600)
+pdat <- tabulationlist[[6]][spdomain=="X8"&anno.pct>0.01]
+#pdat[,Region_summarized:=droplevels(Region_summarized)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=Region_summarized))+geom_col()+ggtitle("SpHYP ARC cluster X8")
+dev.off()
+
+png("~/Desktop/hypomap_x9_region.png",height=800,width=600)
+pdat <- tabulationlist[[6]][spdomain=="X9"&anno.pct>0.01]
+#pdat[,Region_summarized:=droplevels(Region_summarized)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=Region_summarized))+geom_col()+ggtitle("SpHYP mystery region X9")
+dev.off()
+
+png("~/Desktop/hypomap_x13_region.png",height=800,width=600)
+pdat <- tabulationlist[[6]][spdomain=="X13"&anno.pct>0.01]
+#pdat[,Region_summarized:=droplevels(Region_summarized)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=Region_summarized))+geom_col()+ggtitle("SpHYP ARC cluster X13")
+dev.off()
+
+  # pdat <- tabulationlist[[6]][spdomain=="X14"&anno.pct>0.01]
 #ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=abreve))+geom_col()
 ```
