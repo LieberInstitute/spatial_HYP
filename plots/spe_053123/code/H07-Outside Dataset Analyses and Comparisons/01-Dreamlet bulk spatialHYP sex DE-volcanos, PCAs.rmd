@@ -1,0 +1,426 @@
+---
+title: "01-Dreamlet bulk spatialHYP sex DE-volcanos, PCAs"
+author: "Bernard Mulvey"
+date: "2023-10-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+library(dreamlet)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(scater)
+library(scran)
+library(gridExtra)
+library(magrittr)
+library(BiocParallel)
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### Get spatial hyp data w bad parts of one sample clipped
+### Add cluster labels
+### Add demographic info for models/plots
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS") 
+
+# change/ensure colnames/colData's rownames == colData()$keys
+colnames(hyp2.vmh) <- colData(hyp2.vmh)$key
+
+## add demographics
+demos <- fread("raw-data/demos.txt")
+tmpcd <- as.data.table(colData(hyp2.vmh),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum")
+tmpcd <- as.data.frame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd <- tmpcd[colnames(hyp2.vmh),]
+
+colData(hyp2.vmh) <- DataFrame(tmpcd) 
+stopifnot(identical(colnames(hyp2.vmh),rownames(colData(hyp2.vmh))))
+
+bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
+setnames(bscl,2,"clus")
+bscl <- DataFrame(bscl)
+rownames(bscl) <- bscl$rn
+bscl <- bscl[colnames(hyp2.vmh),]
+bscl$clus <- paste0("X",bscl$clus)
+colLabels(hyp2.vmh) <- as.factor(bscl$clus)
+rm(bscl)
+
+
+```
+
+### using dreamlet
+```{r}
+library(BiocParallel)
+sbp <- MulticoreParam(8)
+
+### vanilla dreamlet for per-cluster sex DE
+ag <- dreamlet::aggregateToPseudoBulk(hyp2.vmh,sample_id="sample_id",cluster_id = "label",BPPARAM = sbp)
+
+dl <- dreamlet::processAssays(ag,min.cells = 10,min.count = 10,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~Sex)
+
+## extract expression matrices per pbulk sample (and rejoin into one giant expression table for PCA)
+dls <- as.list(names(dl))
+dl.xpr <- bplapply(dls,BPPARAM = sbp,FUN=function(x){
+    tmp <- as.data.table(dreamlet::extractData(dl,assay=x))
+    setnames(tmp,1,"rn")
+    tmp[,rn:=paste0(rn,"_",x)]
+    carrynames <- c("rn",names(tmp)[c(17:ncol(tmp))])
+    tmp <- tmp[,..carrynames]
+    tmp2 <- DataFrame(tmp)
+    rownames(tmp2) <- tmp2$rn
+    tmp2$rn <- NULL
+    ### cannot keep DF structure in other obj types after transposing, so make a simple d.f. here, then dt for merging in a sec; this will be slower unfortunately
+    tmp2 <- as.data.table(t(as.data.frame(tmp2)),keep.rownames=T)
+    return(tmp2)
+})
+
+### now back into one big xpr matrix
+i<-1
+for (i in c(1:length(dl.xpr))){
+    if (i==1){dl.xpr2 <- copy(dl.xpr[[1]])}
+    else{
+        dl.xpr2 <- merge.data.table(dl.xpr2,dl.xpr[[i]],by="rn",all.x=T,all.y=T)
+    }
+}
+rm(i)
+
+## change NA values from per-cluster gene filtering (introduced by merging these pseudobulks back together) to 0 values
+setnafill(dl.xpr2,cols=c(2:ncol(dl.xpr2)),fill = 0)
+
+dl.xpr2 <- DataFrame(dl.xpr2)
+rownames(dl.xpr2) <- dl.xpr2$rn
+dl.xpr2$rn <- NULL
+# fix punctuation changes from somewhere above
+colnames(dl.xpr2) <- gsub(colnames(dl.xpr2),pattern="\\.",replacement="-")
+
+rm(dl.xpr,dls,dl)
+gc(full=T)
+
+### and for random effect model
+ag <- dreamlet::aggregateToPseudoBulk(hyp2.vmh,sample_id="sample_id",cluster_id = "label",BPPARAM = sbp)
+
+dl.rf <- dreamlet::processAssays(ag,min.cells = 10,min.count = 10,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~Sex+(1|brnum))
+
+## extract expression matrices per pbulk sample (and rejoin into one giant expression table for PCA)
+dlrs <- as.list(names(dl.rf))
+dlr.xpr <- bplapply(dlrs,BPPARAM = sbp,FUN=function(x){
+    tmp <- as.data.table(dreamlet::extractData(dl.rf,assay=x))
+    setnames(tmp,1,"rn")
+    tmp[,rn:=paste0(rn,"_",x)]
+    carrynames <- c("rn",names(tmp)[c(17:ncol(tmp))])
+    tmp <- tmp[,..carrynames]
+    tmp2 <- DataFrame(tmp)
+    rownames(tmp2) <- tmp2$rn
+    tmp2$rn <- NULL
+    ### cannot keep DF structure in other obj types after transposing, so make a simple d.f. here, then dt for merging in a sec; this will be slower unfortunately
+    tmp2 <- as.data.table(t(as.data.frame(tmp2)),keep.rownames=T)
+    return(tmp2)
+})
+
+### now back into one big xpr matrix
+i<-1
+for (i in c(1:length(dlr.xpr))){
+    if (i==1){dlr.xpr2 <- copy(dlr.xpr[[1]])}
+    else{
+        dlr.xpr2 <- merge.data.table(dlr.xpr2,dlr.xpr[[i]],by="rn",all.x=T,all.y=T)
+    }
+}
+rm(i)
+
+## change NA values from per-cluster gene filtering (introduced by merging these pseudobulks back together) to 0 values
+setnafill(dlr.xpr2,cols=c(2:ncol(dlr.xpr2)),fill = 0)
+
+dlr.xpr2 <- DataFrame(dlr.xpr2)
+rownames(dlr.xpr2) <- dlr.xpr2$rn
+dlr.xpr2$rn <- NULL
+# fix punctuation changes from somewhere above
+colnames(dlr.xpr2) <- gsub(colnames(dlr.xpr2),pattern="\\.",replacement="-")
+### 
+
+rm(dlr.xpr,dlrs,dl,dl.rf,ag)
+gc(full=T)
+```
+
+### we also will want the pseudobulk data's log expression filtering across all clusters, so we'll go all the way through to making that logcounts table (and then go back to the unfiltered pseudobulk object, hyp2_pbulk, for the dreamlet sets in the next block.)
+Going off https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/create_manual_annotated_pseudobulk_spe.R and https://github.com/LieberInstitute/spatial_DG_lifespan/blob/main/code/Pseudobulk/DE_pseudobulk.R
+```{r}
+# make the object with equivalent pseudobulk sample names
+hyp2_pbulk <- aggregateAcrossCells(hyp2.vmh,
+                   DataFrame(label=hyp2.vmh$label,
+                    sample=hyp2.vmh$sample_id),
+                   use.dimred=F)
+
+hyp2_pbulk$label <- factor(hyp2_pbulk$label)
+colnames(hyp2_pbulk) <- paste0(hyp2_pbulk$sample_id,"_",hyp2_pbulk$label)
+
+# find a good expression cutoff using edgeR::filterByExpr
+rowData(hyp2_pbulk)$high_expr <- filterByExpr(hyp2_pbulk)
+rowData(hyp2_pbulk)$high_expr_cl <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$label)
+rowData(hyp2_pbulk)$high_expr_sample <- filterByExpr(hyp2_pbulk, group = hyp2_pbulk$sample)
+
+rowData(hyp2_pbulk)$high_expr_clorsam <- rowSums(cbind(rowData(hyp2_pbulk)$high_expr_sample,rowData(hyp2_pbulk)$high_expr_cl))
+
+summary(rowData(hyp2_pbulk)$high_expr)
+summary(rowData(hyp2_pbulk)$high_expr_sample)
+summary(rowData(hyp2_pbulk)$high_expr_cl)
+summary(rowData(hyp2_pbulk)$high_expr_clorsam>=1)
+
+hyp2_pbulk2 <- hyp2_pbulk[rowData(hyp2_pbulk)$high_expr_clorsam>=1]
+dim(hyp2_pbulk2)
+
+## Store the log normalized counts on the spe object
+hyp2_pbulk3 <- edgeR::cpm(edgeR::calcNormFactors(hyp2_pbulk2), log = TRUE, prior.count = 0.1)
+
+stopifnot(rownames(hyp2_pbulk3)==rownames(hyp2.vmh)[which(rownames(hyp2.vmh) %in% rownames(hyp2_pbulk3))])
+
+#### fix dimnames, which right now got changed to "sample1, sample2...":
+#### and aren't carried in by aggregateacrosscells above
+
+colnames(hyp2_pbulk3) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$label)
+
+colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$label)
+
+## and add the same as rownames of coldata for the full object hyp2_pbulk2
+rownames(colData(hyp2_pbulk2)) <- colnames(hyp2_pbulk2)
+## store norm counts on full spe
+logcounts(hyp2_pbulk2) <- hyp2_pbulk3
+
+## establish factors for analyses
+colData(hyp2_pbulk2)$Sex <- as.factor(colData(hyp2_pbulk2)$Sex)
+colData(hyp2_pbulk2)$label <- as.factor(hyp2_pbulk2$label)
+colData(hyp2_pbulk2)$brnum <- as.factor(hyp2_pbulk2$brnum)
+```
+
+### now to get the dreamlet expression matrices in place to work with scater (for comparable PCAs to pre-model), we're going to use a different function ONLY to initialize a pseudobulk object that matches the structure of this data, then add the two model results as assays to that from which we can then run pca.
+# sanity checks first:
+```{r}
+stopifnot(sum(rownames(hyp2_pbulk) %in% rownames(dl.xpr2))==nrow(dl.xpr2))
+stopifnot(sum(rownames(hyp2_pbulk) %in% rownames(dlr.xpr2))==nrow(dlr.xpr2))
+stopifnot(sum(colnames(hyp2_pbulk) %in% colnames(dl.xpr2))==ncol(dl.xpr2))
+stopifnot(sum(colnames(hyp2_pbulk) %in% colnames(dlr.xpr2))==ncol(dlr.xpr2))
+## last one: make sure the ranef and vanilla dreamlet frames have all the same genes and only the same genes
+stopifnot(sum(rownames(dl.xpr2) %in% rownames(dlr.xpr2))==nrow(dl.xpr2)|sum(rownames(dl.xpr2) %in% rownames(dlr.xpr2))==nrow(dlr.xpr2))
+
+### rejigger objs to match
+hyp2_pbulk <- hyp2_pbulk[rownames(hyp2_pbulk) %in% rownames(dl.xpr2)]
+dl.xpr2 <- dl.xpr2[rownames(hyp2_pbulk),colnames(hyp2_pbulk)]
+dlr.xpr2 <- dlr.xpr2[rownames(hyp2_pbulk),colnames(hyp2_pbulk)]
+assays(hyp2_pbulk)$dl <- as.matrix(dl.xpr2)
+assays(hyp2_pbulk)$dlr <- as.matrix(dlr.xpr2)
+
+rm(dl.xpr2,dlr.xpr2)
+```
+
+### PCA of pseudobulk samples pre and post-adjustments (pseudobulk object, dreamlet fit, dreamlet+ranef fit)
+```{r}
+# baseline
+set.seed(42)
+pbpca <- scater::runPCA(hyp2_pbulk2)
+tmp <- as.data.table(reducedDims(pbpca)$PCA,keep.rownames=T)
+tmp[,spdomain:=gsub(rn,pattern="^.*_.*_(.*)$",replacement="\\1")]
+tmp[,sample_id:=gsub(rn,pattern="^(.*_.*)_.*$",replacement="\\1")]
+dref <- as.data.table(colData(hyp2_pbulk2)[,c("brnum","sample_id","Sex")])
+
+tmp <- merge.data.table(tmp,unique(dref),by="sample_id")
+d.pltdat <- tmp[,.(spdomain,brnum,Sex,PC1,PC2,PC3)]
+rm(pbpca,tmp)
+####
+
+# dreamlet postfits
+assays(hyp2_pbulk)$counts <- NULL
+# trick scater into thinking this is the logcounts
+assayNames(hyp2_pbulk)[1] <- "logcounts"
+set.seed(42)
+hyp2_pbulk <- scater::runPCA(hyp2_pbulk)
+reducedDimNames(hyp2_pbulk)[1] <- "dlPCA"
+
+assayNames(hyp2_pbulk) <- c("dl","logcounts")
+set.seed(42)
+hyp2_pbulk <- scater::runPCA(hyp2_pbulk)
+reducedDimNames(hyp2_pbulk)[2] <- "dlrPCA"
+
+### extract pca tables
+tmp <- as.data.table(reducedDims(hyp2_pbulk)$dlPCA,keep.rownames=T)
+tmp[,spdomain:=gsub(rn,pattern="^.*_.*_(.*)$",replacement="\\1")]
+tmp[,sample_id:=gsub(rn,pattern="^(.*_.*)_.*$",replacement="\\1")]
+dref <- as.data.table(colData(hyp2_pbulk2)[,c("brnum","sample_id","Sex")])
+
+tmp <- merge.data.table(tmp,unique(dref),by="sample_id")
+dlPCA.pltdat <- tmp[,.(spdomain,brnum,Sex,PC1,PC2,PC3)]
+rm(tmp)
+# dreamlet + random effect post fit
+tmp <- as.data.table(reducedDims(hyp2_pbulk)$dlrPCA,keep.rownames=T)
+tmp[,spdomain:=gsub(rn,pattern="^.*_.*_(.*)$",replacement="\\1")]
+tmp[,sample_id:=gsub(rn,pattern="^(.*_.*)_.*$",replacement="\\1")]
+dref <- as.data.table(colData(hyp2_pbulk2)[,c("brnum","sample_id","Sex")])
+
+tmp <- merge.data.table(tmp,unique(dref),by="sample_id")
+
+dlrPCA.pltdat <- tmp[,.(spdomain,brnum,Sex,PC1,PC2,PC3)]
+rm(tmp,dref)
+gc(full=T)
+```
+
+### fucking finally, let's actually plot...###
+Plots: # baseline pca
+```{r}
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pca_lognorm_allgenes.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC1,y=PC2,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pc1-3_lognorm_allgenes.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC1,y=PC3,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pc2-3_lognorm_allgenes.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC2,y=PC3,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pca_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC1,y=PC2,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pc1-3_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC1,y=PC3,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pc2-3_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC2,y=PC3,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pca_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC1,y=PC2,shape=Sex,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pc1-3_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC1,y=PC3,col=brnum,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-PCAs from aggregatetopseudobulk/pb_pc2-3_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(d.pltdat,aes(x=PC2,y=PC3,col=brnum,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+```
+
+Plots: # dlpca pca
+```{r}
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pca_lognorm_allgenes.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC1,y=PC2,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pc1-3_lognorm_allgenes.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC1,y=PC3,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pc2-3_lognorm_allgenes.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC2,y=PC3,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pca_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC1,y=PC2,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pc1-3_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC1,y=PC3,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pc2-3_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC2,y=PC3,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pca_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC1,y=PC2,shape=Sex,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pc1-3_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC1,y=PC3,col=brnum,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-PCAs from vanilla dreamlet modeled pseudobulk/pb_pc2-3_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(dlPCA.pltdat,aes(x=PC2,y=PC3,col=brnum,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+```
+
+Plots # dlrpca
+```{r}
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pca_lognorm_allgenes.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC1,y=PC2,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pc1-3_lognorm_allgenes.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC1,y=PC3,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pc2-3_lognorm_allgenes.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC2,y=PC3,col=spdomain,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pca_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC1,y=PC2,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pc1-3_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC1,y=PC3,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pc2-3_lognorm_allgenes_donor.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC2,y=PC3,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pca_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC1,y=PC2,shape=Sex,col=brnum))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pc1-3_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC1,y=PC3,col=brnum,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+
+png("plots/spe_053123/H07-Outside Dataset Analyses and Comparisons/01c-PCAs from donor randomeffect dreamlet modeled pbulk/pb_pc2-3_lognorm_allgenes_donor-sex.png",width=900,height=800)
+ggplot(dlrPCA.pltdat,aes(x=PC2,y=PC3,col=brnum,shape=Sex))+
+    geom_point(size=3)
+dev.off()
+```

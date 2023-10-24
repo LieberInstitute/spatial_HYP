@@ -57,6 +57,9 @@ bscl <- bscl[colnames(hyp2.vmh),]
 bscl$clus <- paste0("X",bscl$clus)
 colLabels(hyp2.vmh) <- as.factor(bscl$clus)
 rm(bscl)
+
+### extract rowData so we can append gene symbols at the end
+gdat <- as.data.table(rowData(hyp2.vmh),keep.rownames=T)
 ```
 
 
@@ -101,17 +104,16 @@ colnames(hyp2_pbulk2) <- paste0(hyp2_pbulk2$sample_id,"_",hyp2_pbulk2$label)
 rownames(colData(hyp2_pbulk2)) <- colnames(hyp2_pbulk2)
 ## store norm counts on full spe
 logcounts(hyp2_pbulk2) <- hyp2_pbulk3
+
+## establish factors for analyses
+colData(hyp2_pbulk2)$Sex <- as.factor(colData(hyp2_pbulk2)$Sex)
+colData(hyp2_pbulk2)$label <- as.factor(hyp2_pbulk2$label)
+colData(hyp2_pbulk2)$brnum <- as.factor(hyp2_pbulk2$brnum)
 ```
 
 
 ### run it, with and without dupcor for brnum
 ```{r}
-colData(hyp2_pbulk2)$Sex <- as.factor(colData(hyp2_pbulk2)$Sex)
-colData(hyp2_pbulk2)$label <- as.factor(hyp2_pbulk2$label)
-colData(hyp2_pbulk2)$brnum <- as.factor(hyp2_pbulk2$brnum)
-
-
-
 # logcount matrix was created above (hyp2_pbulk3)
 
 # subset data per cluster and run through the following steps accordingly (since lmfit won't take an spe)
@@ -196,6 +198,42 @@ cor(check$logFC,check$pbdge_logFC,use="pairwise.complete.obs")
 
 # previous RDS not overwritten for comparison purposes later -- see prior commit for how those results were generated and named.
 saveRDS(reslist,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/03-sex DE results per BSpace15 domain w voomwqw-dupCor-voomwqw for spatial reps.RDS")
+```
+
+### using dreamlet
+```{r}
+library(BiocParallel)
+sbp <- MulticoreParam(8)
+
+### vanilla dreamlet for per-cluster sex DE
+ag <- dreamlet::aggregateToPseudoBulk(hyp2.vmh,sample_id="sample_id",cluster_id = "label",BPPARAM = sbp)
+
+dl <- dreamlet::processAssays(ag,min.cells = 10,min.count = 10,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~Sex)
+
+dl <- dreamlet::dreamlet(dl,formula = ~Sex,BPPARAM = sbp)
+
+dlres <- dreamlet::topTable(dl,coef="SexM",number=Inf,adjust.method ="BH")
+
+dlres <- as.data.table(dlres)
+dlres <- merge.data.table(dlres,gdat[,.(gene_id,gene_name)],by.x="ID",by.y="gene_id")
+### save, clean up workspace
+saveRDS(dlres,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE.RDS")
+rm(ag,dl)
+
+
+### and for random effect model
+ag <- dreamlet::aggregateToPseudoBulk(hyp2.vmh,sample_id="sample_id",cluster_id = "label",BPPARAM = sbp)
+
+dl.rf <- dreamlet::processAssays(ag,min.cells = 10,min.count = 10,min.samples = 4,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = sbp,formula = ~Sex+(1|brnum))
+
+dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+(1|brnum),BPPARAM = sbp)
+
+dl.rf.res <- dreamlet::topTable(dl.ref,coef="SexM",number=Inf,adjust.method ="BH")
+
+dl.rf.res <- as.data.table(dl.ref.res,keep.rownames=T)
+
+saveRDS(dl.rf.res,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE_brnum-as-random-effect-inDEmodel.RDS")
+
 ```
 
 # plot for SH
@@ -324,16 +362,4 @@ png("~/Desktop/pb_pc2-3_lognorm_allgenes_sex.png",width=900,height=800)
 ggplot(tmp,aes(x=PC2,y=PC3,col=brnum,shape=Sex))+
     geom_point(size=3)
 dev.off()
-```
-
-
-#### pbulk PCA: nnsvg 10pctile features only
-```{r}
-nnsvgl <- readRDS("analysis/data/spe_053123/01-feature_selection/nnSVG_HVG_and_combo_featurelists.RDS")
-
-nnsvg10 <- nnsvg10[[3]]
-
-nnsvg10[[2]][1:10]
-
-
 ```
