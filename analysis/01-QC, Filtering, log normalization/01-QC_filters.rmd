@@ -1,0 +1,156 @@
+---
+title: "01_1-QC Filters"
+author: "Bernie Mulvey"
+date: "2023-05-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(SpatialExperiment)
+library(ggspavis)
+library(spatialLIBD)
+library(scater) # addPerCellQC
+library(BiocParallel)
+library(scran)
+library(gridExtra)
+```
+
+## load pre-assembled SPE object of unfiltered data
+```{r}
+load("data/spe_raw_FILL IN DATE.Rdata")
+hyp <- spe
+
+rm(spe)
+### for reference: initial dataset dimensions
+dim(hyp)
+head(colData(hyp))
+tail(colData(hyp))
+```
+
+
+### filtering
+# get rid of non-tissue spots after loupe alignment
+```{r}
+hyp2 <- hyp[,colData(hyp)$in_tissue]
+### check number of spots lost
+ncol(hyp)-ncol(hyp2)
+
+## hold onto unfiltered object for now as comparator.
+```
+
+### % mitochondrial reads--values already added in by Ryan M.
+```{r}
+### plot
+hist(colData(hyp)$expr_chrM_ratio)
+# nothing over ~50%, so that's good. we saw in the early part of the dataset that the highest mitochondrial counts were in the VMH, so we don't want to filter too stringently on mitochondrial counts.
+# there's one weird sample here with a handful of like 100% mito reads, so for color scaling purposes plot spots with % mito less than like 80.
+plt <- spatialLIBD::vis_grid_gene(hyp[,hyp$expr_chrM_ratio<0.8],geneid="expr_chrM_ratio",pdf_file = F,return_plots = T,spatial = F,point_size = 1.5,auto_crop = T)
+do.call("grid.arrange",plt)
+# we can see pretty clearly that there is some biology to this -- regionally varies and NOT just at areas where we'd expect it from tissue damage (e.g., edges). so we should filter gently.
+sum(colData(hyp)$expr_chrM_ratio > 0.8,na.rm=T)
+# FILL IN NUMBER OF SPOTS
+sum(colData(hyp)$expr_chrM_ratio > 0.5,na.rm=T)
+# FILL IN NUMBER OF SPOTS
+
+# let's go with 50% as the cutoff, considering how few spots cross that threshold and the biology of the signal.
+hyp2 <- hyp2[,hyp2$expr_chrM_ratio<0.5]
+```
+
+### UMIs per spot
+### standard threshold is 600 UMIs
+### how many spots are under, say, 1000? let's plot the distribution of those.
+```{r}
+sum(hyp$sum_umi<1000)
+### FILL IN NUMBER / PERCENT OF TOTAL SPOTS
+
+### plot the distribution of UMIs/spot from spots < 1000 umi/spt
+ggplot(as.data.frame(colData(hyp2[,hyp2$sum_umi<1000])), aes(x = sum_umi)) +
+    geom_histogram(binwidth = 25)+
+  geom_vline(xintercept = 600,col="red")
+dev.off()
+
+### the tail dropoff here is actually more around FILL IN:
+ggplot(as.data.frame(colData(hyp2[,hyp2$sum_umi<1000])), aes(x = sum_umi)) +
+    geom_histogram(binwidth = 25)+
+  geom_vline(xintercept = 275,col="red")
+dev.off()
+## which corresponds to FILL IN spots:
+sum(colData(hyp)$sum_umi<275,na.rm=T)
+
+## visualize the log(UMIs) in the range 275-600 on the tissue samples (if they're just random spots, its noise, if theyre altogether in each sample, probably biology)
+hyp$under275 <- as.factor(ifelse(hyp$sum_umi<275),yes="under275",no="over275")
+plt <- spatialLIBD::vis_grid_gene(tmp,"sum_umi",pdf_file=NULL,return_plots = T,spatial = F,point_size = 1.5,auto_crop = T)
+do.call("grid.arrange",plt)
+dev.off()
+## it looks like all of that is condensed together, except for a tissue edge with very few umis (definitely < 275). let's make a plot to confirm that:
+hyp$under275 <- as.factor(ifelse(hyp$sum_umi<275),yes="under275",no="over275")
+plt <- spatialLIBD::vis_grid_clus(tmp,"",pdf_file=NULL,return_plots = T,spatial = F,point_size = 1.5,auto_crop = T)
+do.call("grid.arrange",plt)
+
+# and that edge thing is <275, so 275 it is.
+```
+
+### genes per spot (sum_gene)
+# first, let's look at how the number of unique genes detected and number of umis detected relate to get a feel for how much umi space is going to highly expressed genes (i.e., multiple umis on one gene) 
+```{r}
+ggplot(as.data.table(colData(hyp)),aes(x=sum_gene,y=sum_umi)) +
+    geom_point() +
+    geom_abline(slope = 1,intercept = 0,col="red")
+dev.off()
+
+## that's an x^3 function across the full spectrum of values. let's look at the low end:
+ggplot(as.data.table(colData(hyp[,hyp$sum_gene<1000])),aes(x=sum_gene,y=sum_umi)) +
+    geom_point() +
+    geom_abline(slope = 1.66,intercept = 0,col="red")
+dev.off()
+
+## that part is linear, with a slope of about 1.66, meaning the general expectation for the low end of unique gene totals is that there are about 1.66x as many umis, or for u umis, about u/1.66 genes.
+
+## so 275/1.66 = 166 as a matching cutoff for unique genes; lets see how that looks on the histogram.
+ggplot(as.data.table(colData(hyp[,hyp$sum_gene<1000])),aes(x=sum_gene)) +
+    geom_histogram(binwidth=10) +
+    geom_vline(xintercept = 166,col="red")
+dev.off()
+
+## wam bam thank you ma'am that's right at the cliff on sum_gene. let's make sure there's not any spatial patterns under 166 that would indicate biology worth keeping at an even more lenient threshold.
+
+hyp$gene166 <- as.factor(ifelse(hyp$sum_gene<166,yes="under166",no="over166"))
+plt <- spatialLIBD::vis_grid_clus(hyp,"gene166",pdf_file = NULL,spatial = F,return_plots = T,auto_crop = T,point_size = 1.5)
+do.call("grid.arrange",plt)
+dev.off()
+
+### that's practically just the edge spots in the same sample as for umis, and a very small # of (colocalized) spots in other samples. so 166 minimum unique genes and 275 minimum UMIs.
+```
+
+### apply mitochondria, UMI, unique gene cutoffs per above (35%, over 600, over 450) (again, 070123 spe was already filtered to these thresholds)
+```{r}
+ncol(hyp[,colData(hyp)$sum_umi>275&colData(hyp)$sum_gene>166&colData(hyp)$expr_chrM_ratio<0.5])/ncol(hyp)
+# 91.7% spots retained for now!
+hyp2 <- hyp[,colData(hyp)$sum_umi>275&colData(hyp)$sum_gene>166&colData(hyp)$expr_chrM_ratio<0.5]
+rm(hyp)
+gc(full=T)
+```
+
+### apply library-size normalized, LOG COUNT normalization AFTER filtering the data.
+```{r}
+hyp2 <- computeLibraryFactors(hyp2)
+# peek
+hist(sizeFactors(hyp2),breaks=100)
+dev.off()
+# append log counts using scater (don't use the SpatialExpt:: function here, that's for RETRIEVING an assay by the name of "logcounts" from spe objs)
+hyp2 <- scater::logNormCounts(hyp2)
+stopifnot(dim(counts(hyp2))==dim(logcounts(hyp2)))
+saveRDS(hyp2,"data/processing/hyp_umiX_geneY_chrmZ_lognorm_DATE.RDS")
+
+rm(hyp,hyp2)
+gc(full=T)
+```
+
+#### session info pasted after call.
+```{r}
+sessioninfo::session_info()
+```
