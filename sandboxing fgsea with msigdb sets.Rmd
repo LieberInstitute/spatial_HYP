@@ -1,0 +1,116 @@
+---
+title: "sandboxing fgsea with msigdb sets"
+author: "Bernard Mulvey"
+date: "2023-11-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(fgsea)
+library(msigdbr)
+library(BiocParallel)
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+### collect msigdb catalogs to be tested ###
+# initialize table with first catalog
+allsigs <- msigdbr("Homo sapiens",category="C1")
+
+# tack on the others, make d.t.
+msigs <- paste0("C",c(2,3,5,6,8))
+for (msig in msigs){
+    allsigs <- rbind(allsigs,msigdbr("Homo sapiens",category=msig))
+}
+rm(msig,msigs)
+allsigs <- as.data.table(allsigs)
+
+# remove legacy sets
+allsigs <- allsigs[gs_subcat %in% grep(gs_subcat,pattern="legacy|LEGACY|Legacy",value=T,invert=T)]
+
+# make a list object of identifiers per  gene set
+# we can map these back to the msigdb table later for reference purposes by their list name (gs_name)
+sets <- split(allsigs$ensembl_gene,allsigs$gs_name)
+
+### data format for fgsea input: a named vector of ranks, where the names of these vectors are the same ids as in the pathway sets to be tested. so here, ensgs
+
+markerstats <- readRDS("EDA and Preliminary Dataset/data/spe_053123/H06-Spatial Registration/01-spatialHYP_single-spdomain_sLIBD-enrichmntmodelres.RDS")
+markerstats <- as.data.table(markerstats[["enrichment"]])
+### drop mito genes
+markerstats <- markerstats[!(gene %in% grep(gene,pattern="MT-",value=T))]
+
+### get named vectors of marker t-stats for each domain
+sdoms <- paste0("X",c(1:15))
+mklist <- list()
+i<-1
+for (i in c(1:length(sdoms))){
+    getcol <- paste0("t_stat_",sdoms[i])
+    ## for some reason, the named vectors coming back were all identical
+    tmp <- copy(markerstats[,c("ensembl",..getcol)])
+    setorderv(tmp,getcol,-1)
+    ## get the stat column as a vector and give it the gene ids as names for fgsea
+    ## note that since data.table (invisibly) uses list() for column data, we have to call unlist() to get a bonafide vector below
+    v <- unlist(as.vector(tmp[,..getcol],))
+    names(v) <- tmp$ensembl
+    mklist[[i]] <- v
+    rm(getcol,v,tmp)
+}
+rm(i,markerstats)
+
+names(mklist) <- sdoms
+
+### loop through each domain (each run is very fast with 10 cpus in biocparallel, so just serially run 10cpu GSEA for each cluster)
+sbp <- MulticoreParam(10)
+reslist <- mapply(X=mklist,Y=names(mklist),SIMPLIFY=FALSE,FUN=function(X,Y){
+    z<-as.data.table(fgseaMultilevel(pathways=sets,stats = X,minSize = 15,maxSize = 500,eps=0.0,BPPARAM = sbp,nPermSimple = 10000))
+    z[,spdom:=Y]
+    return(z)
+})
+```
+####
+Warning messages:
+1: In fgseaMultilevel(pathways = sets, stats = X, minSize = 15, maxSize = 500,  :
+  For some of the pathways the P-values were likely overestimated. For such pathways log2err is set to NA.
+2: In fgseaMultilevel(pathways = sets, stats = X, minSize = 15, maxSize = 500,  :
+  There were 10 pathways for which P-values were not calculated properly due to unbalanced (positive and negative) gene-level statistic values. For such pathways pval, padj, NES, log2err are set to NA. You can try to increase the value of the argument nPermSimple (for example set it nPermSimple = 100000)
+3: In fgseaMultilevel(pathways = sets, stats = X, minSize = 15, maxSize = 500,  :
+  For some of the pathways the P-values were likely overestimated. For such pathways log2err is set to NA.
+4: In fgseaMultilevel(pathways = sets, stats = X, minSize = 15, maxSize = 500,  :
+  There were 57 pathways for which P-values were not calculated properly due to unbalanced (positive and negative) gene-level statistic values. For such pathways pval, padj, NES, log2err are set to NA. You can try to increase the value of the argument nPermSimple (for example set it nPermSimple = 100000)
+5: In fgseaMultilevel(pathways = sets, stats = X, minSize = 15, maxSize = 500,  :
+  For some of the pathways the P-values were likely overestimated. For such pathways log2err is set to NA.
+6: In fgseaMultilevel(pathways = sets, stats = X, minSize = 15, maxSize = 500,  :
+  For some of the pathways the P-values were likely overestimated. For such pathways log2err is set to NA.
+###
+
+### LEFT OFF HERE
+```{r}
+saveRDS(reslist,"fgsea_nonlegacy-msigdbs1-2-3-5-6-8_single-spdom-spLIBD-enrchwrapr-tstats_SANDBOXRUN.RDS")
+fgsea::
+```
+### experimentation to be continued
+fgsea::collapsePathways()
+co-regulation analysis w/ fgsea::geseca() ? see https://bioconductor.org/packages/release/bioc/vignettes/fgsea/inst/doc/geseca-tutorial.html
+
+
+```
