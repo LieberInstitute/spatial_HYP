@@ -49,7 +49,7 @@ tmpcd <- tmpcd[colnames(hyp2.vmh),]
 colData(hyp2.vmh) <- DataFrame(tmpcd) 
 stopifnot(identical(colnames(hyp2.vmh),rownames(colData(hyp2.vmh))))
 
-bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
+bscl <- fread("EDA and Preliminary Dataset/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
 setnames(bscl,2,"clus")
 bscl <- DataFrame(bscl)
 rownames(bscl) <- bscl$rn
@@ -228,11 +228,13 @@ dl.rf <- dreamlet::processAssays(ag,min.cells = 10,min.count = 10,min.samples = 
 
 dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+(1|brnum),BPPARAM = sbp)
 
-dl.rf.res <- dreamlet::topTable(dl.ref,coef="SexM",number=Inf,adjust.method ="BH")
+dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexM",number=Inf,adjust.method ="BH")
 
-dl.rf.res <- as.data.table(dl.ref.res,keep.rownames=T)
+dl.rf.res <- as.data.table(dl.rf.res,keep.rownames=T)
+names(dl.rf.res)
+dl.rf.res <- merge.data.table(dl.rf.res,gdat[,.(gene_id,gene_name)],by.x="ID",by.y="gene_id")
 
-saveRDS(dl.rf.res,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE_brnum-as-random-effect-inDEmodel.RDS")
+saveRDS(dl.rf.res,"EDA and Preliminary Dataset/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE_brnum-as-random-effect-inDEmodel.RDS")
 
 ```
 

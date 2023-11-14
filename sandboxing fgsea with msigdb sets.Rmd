@@ -25,6 +25,7 @@ library(fgsea)
 library(msigdbr)
 library(BiocParallel)
 
+
 ## change write.table to output a TSV without quotes or rownames by default
 library(default)
 default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
@@ -51,9 +52,11 @@ allsigs <- allsigs[gs_subcat %in% grep(gs_subcat,pattern="legacy|LEGACY|Legacy",
 # make a list object of identifiers per  gene set
 # we can map these back to the msigdb table later for reference purposes by their list name (gs_name)
 sets <- split(allsigs$ensembl_gene,allsigs$gs_name)
+```
 
+### test run / marker genes ### 
 ### data format for fgsea input: a named vector of ranks, where the names of these vectors are the same ids as in the pathway sets to be tested. so here, ensgs
-
+```{r}
 markerstats <- readRDS("EDA and Preliminary Dataset/data/spe_053123/H06-Spatial Registration/01-spatialHYP_single-spdomain_sLIBD-enrichmntmodelres.RDS")
 markerstats <- as.data.table(markerstats[["enrichment"]])
 ### drop mito genes
@@ -86,6 +89,8 @@ reslist <- mapply(X=mklist,Y=names(mklist),SIMPLIFY=FALSE,FUN=function(X,Y){
     z[,spdom:=Y]
     return(z)
 })
+
+saveRDS(reslist,"fgsea_nonlegacy-msigdbs1-2-3-5-6-8_single-spdom-spLIBD-enrchwrapr-tstats_SANDBOXRUN.RDS")
 ```
 ####
 Warning messages:
@@ -103,14 +108,147 @@ Warning messages:
   For some of the pathways the P-values were likely overestimated. For such pathways log2err is set to NA.
 ###
 
-### LEFT OFF HERE
+##### Sex DEGs (positive effect = male>female expression) #####
 ```{r}
-saveRDS(reslist,"fgsea_nonlegacy-msigdbs1-2-3-5-6-8_single-spdom-spLIBD-enrchwrapr-tstats_SANDBOXRUN.RDS")
-fgsea::
+sdeg <- readRDS("EDA and Preliminary Dataset/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE_brnum-as-random-effect-inDEmodel.RDS")
+sdeg[,rn:=NULL]
+
+### load up ensg-symbol-chromosome LUT for ENS98 so we can drop sex chr genes; file containing info on retired genes and genes with identifier changes between 2020 (10x reference files for alignment)
+enslut <- fread("/Users/bmulvey/Desktop/KM Lab/Other Groups\' Published Data/USEFOR10X_ensg_lut_hg38_fromEns98_111123.txt")
+
+sdeg <- merge.data.table(sdeg,unique(enslut[,.(ensembl_gene_id,chromosome_name)]),by.x="ID",by.y="ensembl_gene_id",all.x=T)
+
+rm(enslut)
+gc(full=T)
+### drop mito genes AND sex chr genes (we want autosomal sex diffs here)
+sdeg <- sdeg[!(chromosome_name %in% c("MT","X","Y"))]
+### get named vectors of marker t-stats for each domain
+domsde <- paste0("X",c(1:15))
+sdelist <- list()
+i<-1
+for (i in c(1:length(domsde))){
+    tmpdat <- copy(sdeg)[assay==domsde[i]]
+    tmpdat <- tmpdat[,.(ID,t)]
+    ## get the stat column as a vector and give it the gene ids as names for fgsea
+    setorderv(tmpdat,"t",-1)
+    ## note that since data.table (invisibly) uses list() for column data, we have to call unlist() to get a bonafide vector below
+    v <- unlist(as.vector(tmpdat[,t]))
+    names(v) <- tmpdat$ID
+    sdelist[[i]] <- v
+    rm(v,tmpdat)
+}
+rm(i,sdeg)
+
+names(sdelist) <- domsde
+
+### loop through each domain (each run is very fast with 10 cpus in biocparallel, so just serially run 10cpu GSEA for each cluster)
+sbp <- MulticoreParam(10)
+sexreslist <- mapply(X=sdelist,Y=names(sdelist),SIMPLIFY=FALSE,FUN=function(X,Y){
+    z<-as.data.table(fgseaMultilevel(pathways=sets,stats = X,minSize = 15,maxSize = 500,eps=0.0,BPPARAM = sbp,nPermSimple = 10000))
+    z[,spdom:=Y]
+    return(z)
+})
+rm(sbp,domsde)
+
+# saveRDS(sexreslist,"fgsea_nonlegacy-msigdbs1-2-3-5-6-8_single-spdom_dreamletSexDE-w-ranef-of-brnum_tstats_SANDBOXRUN.RDS")
+gc(full=T)
 ```
+
 ### experimentation to be continued
 fgsea::collapsePathways()
 co-regulation analysis w/ fgsea::geseca() ? see https://bioconductor.org/packages/release/bioc/vignettes/fgsea/inst/doc/geseca-tutorial.html
+
+
+TEST RAN FOR ONE SEX DE DOMAIN RESULT (X5 ONLY) -- LEFTT OFFFFF HEREEEEEEE
+```{r}
+### this step is quite a bit slower. but handy -- and doesn't require e.g. a hierarchical outside reference to do this, so it can do it for any batch of gene sets!
+test <- fgsea::collapsePathways(pathways = sets,fgseaRes = sexreslist[["X5"]][padj<0.01][order(-NES)],stats = sdelist[["X5"]])
+
+fgsea::collapsePathways()
+
+
+sexreslist <- readRDS("fgsea_nonlegacy-msigdbs1-2-3-5-6-8_single-spdom_dreamletSexDE-w-ranef-of-brnum_tstats_SANDBOXRUN.RDS")
+
+sexreslist2 <- list()
+i<-1
+for (i in c(1:15)){
+  tmpres <- fgsea::collapsePathways(sexreslist[[i]],stats=sdelist[[i]],pathways = sets)
+  sexreslist2[[i]] <- tmpres
+  rm(tmpres)
+}
+
+saveRDS(sexreslist2,"fgsea_nonlegacy-msigdbs1-2-3-5-6-8_single-spdom_dreamletSexDE-w-ranef-of-brnum_tstats_SANDBOXRUN_collapsed.RDS")
+```
+
+### subset to the results for "mainPathways" to get the most diverse set of pathways for plotting
+```{r}
+sexreslist3 <- list()
+i<-1
+for (i in c(1:15)){
+  sexreslist3[[i]] <- sexreslist[[i]][pathway %in% sexreslist2[[i]]$mainPathways]
+  sexreslist3[[i]] <- merge.data.table(sexreslist3[[i]],unique(allsigs[,.(gs_name,gs_cat,gs_subcat)]),by.x="pathway",by.y="gs_name")
+  # drop the cell type signature categories since they're mostly non-CNS; drop cancer signatures since they're unwield-ily named
+  sexreslist3[[i]] <- sexreslist3[[i]][gs_cat!="C8"&!(gs_subcat %in% c("CP","CGP"))&!(pathway %in% grep(pathway,pattern="GOCC_|GOMF_",value=T))]
+}
+
+### get the top 12 pathways per enriched sex per cluster
+fetchpways <- c()
+i<-5
+for (i in c(5,6,8,9,13)){
+    male <- sexreslist[[i]][NES>0&pathway %in% sexreslist3[[i]]$pathway]
+    fem <- sexreslist[[i]][NES<0&pathway %in% sexreslist3[[i]]$pathway]
+    setorderv(male,"padj")
+    setorderv(fem,"padj")
+    fetchpways <- c(fetchpways,male[1:12,pathway],fem[1:12,pathway])
+    rm(male,fem)
+}
+
+### get results for the corresponding pathway from each domain
+pltdat <- sexreslist[[5]][pathway %in% fetchpways]
+i<-6
+for (i in c(6,8,9,13)){
+    pltdat <- rbind(pltdat,sexreslist[[i]][pathway %in% fetchpways])
+}
+
+### make p-values signed for direction of sex effect (positive = male enriched, negative = female enriched)
+pltdat[NES>0,fxmultiplier:=1]
+pltdat[NES<0,fxmultiplier:=-1]
+pltdat[,label:=""]
+pltdat[padj>0.05,label:="n.s."]
+pltdat[,leadingEdge:=NULL]
+
+### fill in pathways that were not analyzed for a given domain--e.g. because inadequate DE analysis genes for that domain overlapping with the pathway--with NAs. this will produce gray (rather than blank) spaces in a geom_tile() plot which is SO MUCH BETTER to work with than fucking heatmap
+i<-5
+for (i in c(5,6,8,9,13)){
+    tmp <- unique(pltdat[,.(pathway,size)])[!(pathway %in% pltdat[spdom==paste0("X",i),pathway])]
+    tmp[,spdom:=paste0("X",i)]
+    tmp[,NES:=NA]
+    tmp[,ES:=NA]
+    tmp[,padj:=NA]
+    tmp[,log2err:=NA]
+    tmp[,pval:=NA]
+    tmp[,fxmultiplier:=0]
+    tmp[,label:=""]
+    pltdat <- rbind(pltdat,tmp)
+    rm(tmp)
+}
+rm(i)
+
+pltdat[,spdom:=factor(spdom,levels=c("X5","X6","X8","X9","X13"))]
+
+
+ggplot(pltdat,aes(x=spdom,y=pathway,fill=(-log10(padj))*fxmultiplier))+
+    geom_tile(aes(fill=(-log10(padj))*fxmultiplier),col="black")+
+    scale_fill_gradient(low = "pink",high="skyblue",na.value = "grey80")+
+    geom_text(aes(y=pathway,x=spdom,label=label),size=2.5)+
+  xlab("Spatial Domain")+
+  ylab("Term")+
+  #guides(fill="none")+
+  #scale_y_discrete(expand=c(0,0))+
+  theme_tufte()+
+  theme(axis.text.x = element_text(size = 10,angle=-30,hjust=0), axis.title.x = element_text(size = 13), axis.text.y = element_text(size = 7.5), axis.title.y = element_text(size =13), plot.title = element_text(size = 14,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=11), plot.background = element_blank())+
+  theme(legend.title.align=0.5)
+dev.off()
 
 
 ```
