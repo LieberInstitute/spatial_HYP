@@ -43,7 +43,7 @@ hyp2 <- hyp2.vmh[,colnames(hyp2.vmh)%in%coordstmp$rn]
 stopifnot(dim(hyp2)[2]==nrow(coordstmp))
 
 ### now cut to ARC spots (clusters 8 and 13) only
-bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
+bscl <- fread("EDA and Preliminary Dataset/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
 bscl <- as.data.frame(bscl)
 rownames(bscl) <- bscl$rn
 bscl <- DataFrame(bscl)

@@ -1,0 +1,328 @@
+---
+title: "01-Feature selection, Harmony, MNN"
+author: "Bernard Mulvey"
+date: "2023-11-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different:
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(nnSVG)
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(harmony)
+library(batchelor) ## MNN
+
+# ggplot defaults:
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+##### INCOMPLETE SCRIPT -- NEED TO CODE UP MNN IF DECIDING TO USE STARTING AT LINE 300 #####
+
+
+# Load pre-processed SPE and demographics; attach to colData
+```{r}
+hyp2 <- readRDS("data/processing/FINALDATAFILTERED.RDS")
+
+# make sure colnames of the spe are unique (i.e., colData(hyp2)$key)
+colnames(hyp2) <- hyp2$key
+
+# remove 10x space ranger cluster columns, since they start with numerals which some packages don't like in colnames
+colData(hyp2) <- colData(hyp2)[,!grepl("^\\d",colnames(colData(hyp2)))]
+
+demos <- fread("raw-data/demos.txt")
+
+demos <- demos[BrNum %in% colData(hyp2)$brnum]
+setnames(demos,"BrNum","brnum")
+tmp <- merge(as.data.table(colData(hyp2)),demos,by="brnum")
+# k. also fix "Best Rin PFC" and "BMI (calculated)" to not have spaces
+setnames(tmp,c("Best RIN PFC","BMI (calculated)"),c("best_rin_pfc","bmi"))
+
+# ^ has no rownames because it's a data table; change to DataFrame and make rownames = key in the merged table. reorder to match the column order in hyp2.
+tmp <- DataFrame(tmp)
+rownames(tmp) <- tmp$key
+tmp <- tmp[colnames(hyp2),]
+stopifnot(sum(rownames(tmp)==colnames(hyp2))==ncol(hyp2))
+
+### add the demographic'd and cleaned colData to the SPE
+colData(hyp2) <- tmp
+
+rm(tmp,demos)
+```
+
+### mean-variance relationships: blocking on sample_id (not donor)
+```{r}
+hyp2.vars <- modelGeneVar(hyp2,block=hyp2$sample_id)
+
+varperblock <- hyp2.vars$per.block
+
+# examine per-sample (block) variances by plotting each mean-variance curve and storing in a list to arrange later as a single output
+plts <- list()
+
+i <- 1
+for (i in c(1:length(varperblock))){
+    hyp2.vars.dt <- cbind(as.data.table(as.character(rownames(varperblock[[i]]))),varperblock[[i]]$total)
+    hyp2.means.dt <- cbind(as.data.table(as.character(rownames(varperblock[[i]]))),varperblock[[i]]$mean)
+
+    setnames(hyp2.vars.dt,2,"var_log_xpr")
+    setnames(hyp2.means.dt,2,"mean_log_xpr")
+    hyp2.mnvar.pltdat <- merge(hyp2.means.dt,hyp2.vars.dt,by="V1")
+    plts[[i]] <- ggplot(hyp2.mnvar.pltdat, aes(x = mean_log_xpr, y = var_log_xpr)) +
+        geom_point() +
+        geom_function(fun=metadata(varperblock[[i]])$trend,col="blue")+
+        ggtitle(paste0("Mean-var curve-",names(varperblock)[i],"\n sample_id blocking"))
+    rm(hyp2.mnvar.pltdat,hyp2.vars.dt,hyp2.means.dt)
+}
+
+## arrange the per sample plots generated above into a single output
+pdf("plots/02-feature_selection_and_harmony/samplewiseblocking_meanvars.pdf",height=3*length(unique(hyp2$sample_id))+2,width=10)
+do.call("grid.arrange",c(plts,ncol=2))
+dev.off()
+
+## remove clutter from workspace
+rm(plts,varperblock,i)
+```
+
+# get top 10, 20 %ile HVGs from sample_id-blocking'd variances
+```{r}
+hyp2.hvg10 <- scran::getTopHVGs(hyp2.vars,prop = 0.1)
+hyp2.hvg20 <- scran::getTopHVGs(hyp2.vars,prop=0.2)
+```
+
+#### run nnSVG: does not take batch variables nor does it take in reduced dims. run samplewise.
+
+### the workhorse function nnSVG can use parallel processing through BiocParallel. Set up the preferred (i.e., compatible) param. the parallelization is within the nnsvg call, so no need to match cpu # to sample #
+```{r}
+sbp <- MulticoreParam(10)
+register(sbp)
+
+# SUPER CRITICAL IMPORTANT NOTES: 
+# 1. RECALCULATE LOG COUNTS AFTER FILTERING ^
+# 2.nnSVG works ONE SAMPLE (one capture area) at a time. So need to wrap this in a loop. 
+# 3. as such, perform filtering PER SAMPLE. 
+# filter_genes_ncounts (N) and filter_genes_pcspots (S) work together: genes will be filtered to those with at least N counts in at least S% of spots.  filter_genes_pcspots expects a %age as 0-100, NOT a fraction.
+# tried N=2 (instead of 3) and S = 0.25 instead of 0.5, since most spots are pretty diverse and high-depth (and the cell type diversity is also unknown), but didn't get past the first sample in 3 hours on 10 CPUs. so now trying 3, 0.5 .
+
+caps <- unique(hyp2$sample_id)
+res_list <- as.list(rep(NA, length(caps)))
+names(res_list) <- caps
+
+i<-1
+for (i in c(1:length(caps))){
+    #setup
+    cap <- caps[i]
+    message(paste0("Starting sample ",i," of ",length(caps)))
+    hyp2.samp <- hyp2[,colData(hyp2)$sample_id==cap]
+    
+    hyp2.samp <- filter_genes(hyp2.samp,filter_genes_ncounts = 3,filter_genes_pcspots = 0.5,filter_mito = F)
+    
+    #recalculate logcounts after filtering for nnsvg-able genes
+    hyp2.samp <- computeLibraryFactors(hyp2.samp)
+    hyp2.samp <- logNormCounts(hyp2.samp)
+    
+    # main call -- defaults to logcounts but shown for posterity; X if using covariates; n_neighbors defaults to 10, slower but potentially more granular with higher values eg 15, order = don't touch unless you have < 70 spots total; n_threads or BPPARAM for parallelization
+    hyp2.samp <- nnSVG(hyp2.samp,assay_name = "logcounts",BPPARAM = sbp)
+    
+    # extract results; get index of the last column of rowdata in the full spe to determine where nnSVG-appended columns begin; add nnSVG_ to those column names so we can tell them apart
+    ind <- ncol(rowData(hyp2))+1
+    colnames(rowData(hyp2.samp))[ind:ncol(rowData(hyp2.samp))] <- paste0("nnSVG_",colnames(rowData(x))[ind:ncol(rowData(hyp2.samp))])
+
+    # extract the nnsvg results from the rowData and store it in the result list. we don't need the rownames for storage since they're redundant with the ensembl identifier column in rowdata.
+    res_list[[i]] <- as.data.table(as.data.frame(rowData(x)),keep.rownames=F)
+    names(res_list)[i] <- cap
+    rm(hyp2.samp,cap,ind)
+    ## clean up memory after each sample
+    gc(full=T)
+}
+
+saveRDS(res_list,"analysis/data/02-feature_selection/nnSVG_samplewise_n3s0.5.RDS")
+
+## make an environment copy of the nnsvg results with a more descriptive name we can come back to
+nnsvg_N3Spt5 <- res_list
+
+## further cleanup
+rm(i,caps,sbp,res_list)
+gc(full=T)
+```
+
+### get the mean nnSVG rank for each gene among samples where the gene was nominally significant for spatial variability.
+```{r}
+i<-1
+for (i in c(1:sum(unique(colData(hyp2)$sample_id)%in%names(nnsvg_N3Spt5)))){
+    if(i==1){
+        nnsvg_ranks <- nnsvg_N3Spt5[[i]][nnSVG_padj<0.05]
+        nnsvg_ranks <- nnsvg_ranks[,.(gene_id,gene_name,nnSVG_rank)]
+        setnames(nnsvg_ranks,"nnSVG_rank",names(nnsvg_N3Spt5)[i])
+    }
+    else{
+        tmp <- nnsvg_N3Spt5[[i]][nnSVG_padj<0.05]
+        tmp <- tmp[,.(gene_id,gene_name,nnSVG_rank)]
+        setnames(tmp,"nnSVG_rank",names(nnsvg_N3Spt5)[i])
+        nnsvg_ranks <- merge.data.table(nnsvg_ranks, tmp, by=c("gene_id","gene_name"), all.x=T, all.y=T, incomparables = NA)
+        rm(tmp)
+    }
+}
+rm(i)
+
+nnsvg_ranks[,meanrank:=rowMeans(.SD,na.rm=T),.SDcols=c(3:ncol(nnsvg_ranks))]
+nnsvg_ranks <- nnsvg_ranks[,samples_signif:=rowSums(!is.na(.SD)),.SDcols=c(3:ncol(nnsvg_ranks))]
+
+fwrite(nnsvg_ranks,"analysis/data/02-feature_selection/meangeneranks_nnSVG_samplewise_n3s0.5.txt",sep='\t',quote=F)
+```
+
+### retrieve top M or N nnSVG genes (where M = number of genes in the HVG 10%ile set and N = number in the top 20%ile HVG set); save each vector of variable genes.
+```{r}
+nnsvg_ranks <- nnsvg_ranks[samples_signif>3]
+setorderv(nnsvg_ranks,"meanrank",1) # ascending order
+nnsvg10 <- nnsvgs_ranks[c(1:length(hyp2.hvg10)),gene_id]
+nnsvg20 <- nnsvgs_ranks[c(1:length(hyp2.hvg20)),gene_id]
+
+saveRDS(hyp2.hvg10,"analysis/data/02-feature_selection/HVG10pctile_sample-blocked.RDS")
+saveRDS(hyp2.hvg20,"analysis/data/02-feature_selection/HVG20pctile_sample-blocked.RDS")
+saveRDS(nnsvg10,"analysis/data/02-feature_selection/nnsvg10pctile.RDS")
+saveRDS(nnsvg20,"analysis/data/02-feature_selection/nnsvg20pctile.RDS")
+```
+
+
+### Dimensionality reductions with each feature set: standard PCA, standard UMAP; PCA/UMAP with harmony (defaults); PCA/UMAP with harmony (lambda=NULL); PCA/UMAP with MNN
+
+### for harmony, install and run github development version (1.2), which is in beta to address overfitting by setting the initial lambda to NULL such that harmony estimates the input value. 
+```{r}
+# do not build vignettes; dependency conflicts with Seurat5 as of 111523
+devtools::install_github("immunogenomics/harmony", build_vignettes=FALSE)
+library(harmony)
+#
+
+
+# standard PCAs
+set.seed(42)
+hyp2 <- scater::runPCA(hyp2,subset_row=hyp2.hvg10,name="PCA_hvg10")
+
+set.seed(42)
+hyp2 <- scater::runPCA(hyp2,subset_row=hyp2.hvg20,name="PCA_hvg20")
+
+set.seed(42)
+hyp2 <- scater::runPCA(hyp2,subset_row=nnsvg10,name="PCA_nnsvg10")
+
+set.seed(42)
+hyp2 <- scater::runPCA(hyp2,subset_row=nnsvg20,name="PCA_nnsvg20")
+
+# standard UMAPs (which require PCA first)
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="PCA_hvg10",name="UMAP_hvg10")
+
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="PCA_hvg20",name="UMAP_hvg20")
+
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="PCA_nnsvg10",name="UMAP_nnsvg10")
+
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="PCA_nnsvg20",name="UMAP_nnsvg20")
+
+### harmony with default parameters and sample blocking
+### really annoyingly, harmony doesn't let you pass in a dimension reduction of any name other than "PCA". so manually switch the name of the target dimension reduction to PCA beforehand and back to what it was after.
+
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_hvg10")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYdflt_hvg10")
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_hvg10"
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_hvg20")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYdflt_hvg20")
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_hvg20"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_nnsvg10")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYdflt_nnsvg10")
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg10"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_nnsvg20")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYdflt_nnsvg20")
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg20"
+####
+```
+
+harmony with lambda=NULL and sample blocking
+```{r}
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_hvg10")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYlmbna_hvg10",lambda=NULL)
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_hvg10"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_hvg20")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYlmbna_hvg20",lambda=NULL)
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_hvg20"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_nnsvg10")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYlmbna_nnsvg10",lambda=NULL)
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg10"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_nnsvg20")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYlmbna_nnsvg20",lambda=NULL)
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg20"
+####
+```
+
+save spe with all these dimensionality reductions
+```{r}
+saveRDS(hyp2,"data/procesing/hypfiltered_pca-umap-harmonydefault-harmonylambdanull.RDS")
+```
+
+###### NEED TO FILL IN HERE IF USING ####
+#### MNN correction with ordered batch corrections within spatial rep sets. we can do this by specifying brnum (donor) as the batch factor
+```{r}
+sbp <- MulticoreParam(10)
+register(sbp)
+### pcas have already been initialized so we can use batchelor::reducedMNN, which takes in the unadjusted PCA. higher k = more aggressive correction. this returns a DataFrame, which we have to append to the reduceddims ourselves after calculated.
+set.seed(42)
+mnn30.1 <- reducedMNN(reducedDim(pcas[[1]],"PCA"),batch = pcas[[1]]$brnum,k=30,BPPARAM=sbp)
+
+reducedDim(pcas[[1]],"mnn30") <- mnn30.1
+
+
+### UMAP from mnn k=30
+set.seed(42)
+pcas[[1]] <- scater::runUMAP(pcas[[1]],dimred="mnn30",name = "mnn30_UMAP")
+set.seed(42)
+pcas[[2]] <- scater::runUMAP(pcas[[2]],dimred="mnn30",name = "mnn30_UMAP")
+set.seed(42)
+pcas[[3]] <- scater::runUMAP(pcas[[3]],dimred="mnn30",name = "mnn30_UMAP")
+set.seed(42)
+pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="mnn30",name = "mnn30_UMAP")
+
+```
+
+### save again with MNNs if used ####
