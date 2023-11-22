@@ -1,0 +1,188 @@
+---
+title: "02-Harmony and MNN"
+author: "Bernard Mulvey"
+date: "2023-11-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### spe prep
+```{r}
+
+
+```
+
+### load feature sets
+```{r}
+hyp2.hvg10 <- readRDS("analysis/data/02-feature_selection/HVG10pctile_sample-blocked.RDS")
+hyp2.hvg20 <- readRDS("analysis/data/02-feature_selection/HVG20pctile_sample-blocked.RDS")
+nnsvg10 <- readRDS("analysis/data/02-feature_selection/nnsvg10pctile.RDS")
+nnsvg20 <- readRDS("analysis/data/02-feature_selection/nnsvg20pctile.RDS")
+```
+
+### Dimensionality reductions with each feature set: standard PCA, standard UMAP; PCA/UMAP with harmony (defaults); PCA/UMAP with harmony (lambda=NULL); PCA/UMAP with MNN
+
+### for harmony, install and run github development version (1.2), which is in beta to address overfitting by setting the initial lambda to NULL such that harmony estimates the input value. 
+```{r}
+# do not build vignettes; dependency conflicts with Seurat5 as of 111523
+devtools::install_github("immunogenomics/harmony", build_vignettes=FALSE)
+library(harmony)
+#
+
+
+# standard PCAs
+set.seed(42)
+hyp2 <- scater::runPCA(hyp2,subset_row=hyp2.hvg10,name="PCA_hvg10")
+
+set.seed(42)
+hyp2 <- scater::runPCA(hyp2,subset_row=hyp2.hvg20,name="PCA_hvg20")
+
+set.seed(42)
+hyp2 <- scater::runPCA(hyp2,subset_row=nnsvg10,name="PCA_nnsvg10")
+
+set.seed(42)
+hyp2 <- scater::runPCA(hyp2,subset_row=nnsvg20,name="PCA_nnsvg20")
+
+# standard UMAPs (which require PCA first)
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="PCA_hvg10",name="UMAP_hvg10")
+
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="PCA_hvg20",name="UMAP_hvg20")
+
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="PCA_nnsvg10",name="UMAP_nnsvg10")
+
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="PCA_nnsvg20",name="UMAP_nnsvg20")
+```
+
+### harmony with default parameters and sample blocking
+### really annoyingly, harmony doesn't let you pass in a dimension reduction of any name other than "PCA". so manually switch the name of the target dimension reduction to PCA beforehand and back to what it was after.
+```{r}
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_hvg10")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYdflt_hvg10")
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_hvg10"
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_hvg20")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYdflt_hvg20")
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_hvg20"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_nnsvg10")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYdflt_nnsvg10")
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg10"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_nnsvg20")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYdflt_nnsvg20")
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg20"
+####
+```
+
+harmony with lambda=NULL and sample blocking
+```{r}
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_hvg10")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYlmbna_hvg10",lambda=NULL)
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_hvg10"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_hvg20")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYlmbna_hvg20",lambda=NULL)
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_hvg20"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_nnsvg10")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYlmbna_nnsvg10",lambda=NULL)
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg10"
+####
+
+####
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA_nnsvg20")] <- "PCA"
+set.seed(42)
+hyp2 <- RunHarmony(hyp2,group.by.vars = "sample_id",reduction.save="HARMONYlmbna_nnsvg20",lambda=NULL)
+reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg20"
+####
+```
+
+save spe with all these dimensionality reductions
+```{r}
+saveRDS(hyp2,"data/procesing/hypfiltered_pca-umap-harmonydefault-harmonylambdanull.RDS")
+```
+
+#### MNN correction with ordered batch corrections within spatial rep sets. we can do this by specifying brnum (donor) as the batch factor
+```{r}
+sbp <- MulticoreParam(10)
+register(sbp)
+### pcas have already been initialized so we can use batchelor::reducedMNN, which takes in the unadjusted PCA. higher k = more aggressive correction. this returns a DataFrame, which we have to append to the reduceddims ourselves after calculated.
+
+# iterate through standard PCA reductions from the four feature sets and collect into a list. (serialize the mnn runs so we can leverage parallelization within each run on a single machine, since its fast enough)
+mnnsout <- list()
+pcas <- c("PCA_hvg10","PCA_hvg20","PCA_nnsvg10","PCA_nnsvg20")
+
+i<-1
+for (i in c(1:4)){
+    set.seed(42)
+    mnnsout[[i]] <- reducedMNN(reducedDim(hyp2,pcas[i]),batch = hyp2$brnum,k=30,BPPARAM=sbp)
+    names(mnnsout)[i] <- pcas[i]
+}
+rm(i,pcas)
+
+reducedDim(hyp2,"mnn30_hvg10") <- mnnsout[[1]]
+reducedDim(hyp2,"mnn30_hvg20") <- mnnsout[[2]]
+reducedDim(hyp2,"mnn30_nnsvg10") <- mnnsout[[3]]
+reducedDim(hyp2,"mnn30_nnsvg20") <- mnnsout[[4]]
+#
+rm(mnnsout)
+### UMAP from mnn k=30
+
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="mnn30_hvg10",name = "mnn30_hvg10_UMAP")
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="mnn30_hvg20",name = "mnn30_hvg20_UMAP")
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="mnn30_nnsvg10",name = "mnn30_nnsvg10_UMAP")
+set.seed(42)
+hyp2 <- scater::runUMAP(hyp2,dimred="mnn30_nnsvg20",name = "mnn30_nnsvg20_UMAP")
+```
+
+### save again with MNNs if used ####
+```{r}
+saveRDS(hyp2,"data/procesing/hypfiltered_pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
+```
