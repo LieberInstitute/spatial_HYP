@@ -31,7 +31,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 ### spe prep
 ```{r}
-
+hyp2 <- readRDS("data/01-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
 
 ```
 
@@ -143,7 +143,7 @@ reducedDimNames(hyp2)[which(reducedDimNames(hyp2)=="PCA")] <- "PCA_nnsvg20"
 
 save spe with all these dimensionality reductions
 ```{r}
-saveRDS(hyp2,"data/procesing/hypfiltered_pca-umap-harmonydefault-harmonylambdanull.RDS")
+saveRDS(hyp2,"data/procesing/02-hypfiltered_nnsvg10-pca-umap-harmonydefault-harmonylambdanull.RDS")
 ```
 
 #### MNN correction with ordered batch corrections within spatial rep sets. we can do this by specifying brnum (donor) as the batch factor
