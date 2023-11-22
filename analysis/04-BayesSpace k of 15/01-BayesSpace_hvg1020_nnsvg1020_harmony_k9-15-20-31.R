@@ -15,9 +15,13 @@ colnames(hyp) <- hyp$key
 
 p <- c(rep(c("HARMONYdflt_hvg10","HARMONYdflt_hvg20","HARMONYdflt_nnsvg10","HARMONYdflt_nnsvg20","HARMONYlmbna_hvg10","HARMONYlmbna_hvg20","HARMONYlmbna_nnsvg10","HARMONYlmbna_nnsvg20","mnn30_hvg10","mnn30_hvg20","mnn30_nnsvg10","mnn30_nnsvg10"),4))
 q <- c(rep(9,12),rep(15,12),rep(20,12),rep(31,12))
-pq <- as.data.frame(cbind(p,q))
-pq <- unique(pq) ### 48 runs (4 q values per feature-reduction x 4 feature sets x 3 reductions (harmony defaults, harmony lambda=null, mnn30))
+# so that rownames still end up == to row index after unique'ing:
+pq <- cbind(p,q)
+pq <- as.data.table(unique(pq)) ### 48 runs (4 q values per feature-reduction x 4 feature sets x 3 reductions (harmony defaults, harmony lambda=null, mnn30))
+pq[,q:=as.numeric(q)]
+pq <- as.data.frame(pq)
 stopifnot(nrow(unique(pq))==nrow(pq))
+rm(p,q)
 
 ### pull params for task number
 i <- as.numeric(Sys.getenv("SGE_TASK_ID"))
@@ -42,8 +46,8 @@ spatialPreprocess(hyp,platform="Visium",skip.PCA=T)
 tmp <- spatialCluster(sce = hyp,init.method = "mclust",use.dimred = curdimred,q = curq,platform = "Visium",nrep=20000)
 
 # pull out clusters to save in much tinier file than an SPE
-tmp2 <- as.data.table(cbind(rownames(colData(tmp)),colData(tmp)$spatial.cluster))
-setnames(tmp2,c("rn",paste0("BShar_",curname,"_",curdimred,"_k2")))
+tmp2 <- as.data.table(colData(tmp)[,c("key","spatial.cluster")])
+setnames(tmp2,c("rn",paste0("BShar_",curdimred,"_",curq,"_k2")))
 
 fwrite(tmp2,paste0("harmony_bs_k9-15-20-31_out/BSpace_k",curq,"_",curdimred,".txt"),sep='\t',quote=F)
 rm(list=ls())

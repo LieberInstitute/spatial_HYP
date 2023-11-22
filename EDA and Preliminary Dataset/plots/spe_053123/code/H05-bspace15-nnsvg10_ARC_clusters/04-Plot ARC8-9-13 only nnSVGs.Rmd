@@ -65,6 +65,12 @@ nnsvg_ranks <- nnsvg_ranks[n_naSamps<=4]
 setorder(nnsvg_ranks,meanrank)
 plotgenes <- nnsvg_ranks[1:100,gene_name]
 
+options(R_PARALLELLY_FORK_ENABLE=TRUE)
+options(future.globals.maxSize=1E10)
+library(future)
+library(future_lapply)
+library(parallel)
+
 i<-1
 for (i in c(1:100)){
     curgene <- plotgenes[i]
@@ -77,10 +83,5 @@ for (i in c(1:100)){
     do.call("grid.arrange",plt)
     dev.off()
 }
-
-```
-
-
-
 
 ```

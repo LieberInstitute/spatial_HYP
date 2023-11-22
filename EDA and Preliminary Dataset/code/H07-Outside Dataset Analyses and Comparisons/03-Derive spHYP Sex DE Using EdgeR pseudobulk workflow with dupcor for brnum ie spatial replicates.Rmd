@@ -33,7 +33,7 @@ library(magrittr)
 
 load SPE, add bayesspace clusters
 ```{r}
-hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS") 
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
 
 # change/ensure colnames/colData's rownames == colData()$keys
 colnames(hyp2.vmh) <- colData(hyp2.vmh)$key
@@ -44,6 +44,8 @@ tmpcd <- as.data.table(colData(hyp2.vmh),keep.rownames=T)
 tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum")
 tmpcd <- as.data.frame(tmpcd)
 rownames(tmpcd) <- tmpcd$rn
+tmpcd <- DataFrame(tmpcd)
+tmpcd$rn <- NULL
 tmpcd <- tmpcd[colnames(hyp2.vmh),]
 
 colData(hyp2.vmh) <- DataFrame(tmpcd) 
@@ -204,7 +206,7 @@ saveRDS(reslist,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Compa
 ```{r}
 library(BiocParallel)
 sbp <- MulticoreParam(8)
-
+register(sbp)
 ### vanilla dreamlet for per-cluster sex DE
 ag <- dreamlet::aggregateToPseudoBulk(hyp2.vmh,sample_id="sample_id",cluster_id = "label",BPPARAM = sbp)
 
