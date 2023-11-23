@@ -39,72 +39,82 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 ```{r}
 # load SPE--already contains the additional demographic/technical data at this point (age, sex, BMI, PMI, best RIN from cortex..)
-hyp2 <- readRDS("data/04-feature_selection/02-hypfiltered_nnsvg10-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
+hyp2 <- readRDS("data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
 
-# get variables we want to plot and dimreds we want to plot
+# load and append demographics and other misc data
+demos <- fread("raw-data/demos.txt")
+setnames(demos,c("Best RIN PFC","BMI (calculated)"),c("best_rin_pfc","bmi"))
+tmpcd <- as.data.table(colData(hyp2))
+tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum")
+tmpcd <- DataFrame(tmpcd)
+rownames(tmpcd) <- tmpcd$key
+tmpcd <- tmpcd[colnames(hyp2),]
+colData(hyp2) <- tmpcd
+
+# get variables we want to plot
 colnames(colData(hyp2))
+
 # for dimensionality reduction at the spot level, we want to include brnum, agedeath, race, sex, PMI, best_rin_pfc, bmi, sample_id, sum_umi, sum_gene, expr_chrM, slide, and to be sure nothing too strange is happening, array_row and array_col
 labvars <- c("brnum","AgeDeath","Race","Sex","PrimaryDx","PMI","best_rin_pfc","bmi","sample_id","sum_umi","sum_gene","expr_chrM","slide","array_row","array_col")
 
-# basically, we want to plot each of these variables on every dimensionality reduction-feature set pair under consideration. the spe has those all stored on it, along with some 10x spaceranger-generated ones we don't care about. so to get all of these except for 10x:
-drs <- grep(reducedDimNames(hyp2),pattern="10x",value=T,invert=T)
-
-# make a table indexing dimred-variable plot sets -> change to list -> plot
-pltdatvar <- as.data.frame(CJ(labvars,drs,unique=T))
-pltdatvar <- apply(pltdatvar,MARGIN=1,function(x){c(x[2],x[1])},simplify=F)
-
-# tidy environment
-rm(drs,labvars)
+# as for dimreds, we basically want to plot each of these variables on every dimensionality reduction-feature set pair under consideration. the spe has those all stored on it, along with some 10x spaceranger-generated ones we don't care about. so to get all of these except for 10x:
+drs <- as.list(grep(reducedDimNames(hyp2),pattern="10x",value=T,invert=T))
 ```
 
 ```{r}
-lapply(pltdatvar,FUN=function(x){
+options(StringsAsFactors = FALSE)
+lapply(drs,FUN=function(x){
     # dimred combinations to plot #
-    if(length(grep(x[1],pattern="UMAP",value=T))>0){
+    if(length(grep(x,pattern="UMAP",value=T))>0){
         zq <- rbind(c(1,2))
     }
     else{
         zq <- rbind(c(1,2),c(1,3),c(2,3))
     }
-    # iterate thru
-    m <- 1
-    for (m in c(1:nrow(zq))){
-        z <- zq[m,1]
-        q <- zq[m,2]
-        pltdat <- cbind(reducedDims(hyp2)[[ x[1] ]][,c(z,q)],colData(hyp2)[,x[2]])
-        
-        pltdat <- as.data.table(pltdat)
-        setnames(pltdat,c(paste0(x[1],paste0("_Dim",z)),paste0(x[1],paste0("_Dim",q)),x[2]))
-        xvar <- names(pltdat)[1]
-        yvar <- names(pltdat)[2]
-        
-        # set dimensions to numeric, plotting variable to factor or numeric
-        set(pltdat,j=xvar,value=as.numeric(pltdat[,get(xvar)]))
-        set(pltdat,j=yvar,value=as.numeric(pltdat[,get(yvar)]))
-        if(x[2] %in% c("AgeDeath","PMI","best_rin_pfc","bmi","sum_umi","sum_gene","expr_chrM","array_row","array_col")){
-            set(pltdat,j=x[2],value=as.numeric(pltdat[,get(x[2])]))
+    
+    plts <- list()
+    # iterate thru variables
+    v <- 1
+    for (v in c(1:length(labvars))){
+        m <- 1
+        for (m in c(1:nrow(zq))){
+            z <- zq[m,1]
+            q <- zq[m,2]
+            pltdat <- cbind(reducedDims(hyp2)[[x]][,c(z,q)],colData(hyp2)[,labvars[v]])
+            
+            pltdat <- as.data.table(pltdat)
+            setnames(pltdat,c(paste0(x,paste0("_Dim",z)),paste0(x,paste0("_Dim",q)),labvars[v]))
+            xvar <- names(pltdat)[1]
+            yvar <- names(pltdat)[2]
+            
+            # set dimensions to numeric, plotting variable to factor or numeric
+            set(pltdat,j=xvar,value=as.numeric(pltdat[,get(xvar)]))
+            set(pltdat,j=yvar,value=as.numeric(pltdat[,get(yvar)]))
+            if(labvars[v] %in% c("AgeDeath","PMI","best_rin_pfc","bmi","sum_umi","sum_gene","expr_chrM","array_row","array_col")){
+                set(pltdat,j=labvars[v],value=as.numeric(pltdat[,get(labvars[v])]))
+            }
+            else{
+                set(pltdat,j=labvars[v],value=as.factor(pltdat[,get(labvars[v])]))
+            }
+    
+            plts[[length(plts)+1]] <- ggplot(pltdat,aes(x=.data[[xvar]],y=.data[[yvar]],col=.data[[labvars[v]]]))+
+                geom_point()
+                #scale_color_discrete(DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(hyp2.tmp)$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)])
+            
+            ## determine appropriate subfolder for pllots -- github copilot came out swinging and filled most of this in near-perfectly!
         }
-        else{
-            set(pltdat,j=x[2],value=as.factor(pltdat[,get(x[2])]))
-        }
-
-        plt <- ggplot(pltdat,aes(x=.data[[xvar]],y=.data[[yvar]],col=.data[[x[2]]]))+
-            geom_point()
-            #scale_color_discrete(DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(hyp2.tmp)$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)])
-        
-        ## determine appropriate subfolder for pllots -- github copilot came out swinging and filled most of this in near-perfectly!
-        if(length(grep(x[1],pattern="UMAP",value=T))>0){subdir<-"01-UMAP/"}
-        else if (length(grep(x[1],pattern="PCA",value=T))>0){subdir<-"01-PCA/"}
-        else if (length(grep(x[1],pattern="HARMONYdflt",value=T))>0){subdir<-"01-Harmonydefault/"}
-        else if (length(grep(x[1],pattern="HARMONYlmbna",value=T))>0){subdir<-"01-Harmonylambdanull/"}
-        else{subdir<-"01-mnn30/"}
-        
-        png(paste0("plots/04-Feature Selection, PCA, Harmony/",subdir,x[1],"_",z,"-",q,"_by_",x[2],"_nnsvg10.png"),width=12,height=10,units="in",res=300)
-        print(plt)
-        dev.off()
-        
-        rm(plt,pltdat,xvar,yvar)
     }
+    if (length(grep(x,pattern="PCA",value=T))>0){subdir<-"01-PCA/"}
+    else if (length(grep(x,pattern="HARMONYdflt",value=T))>0){subdir<-"01-Harmonydefault/"}
+    else if (length(grep(x,pattern="HARMONYlmbna",value=T))>0){subdir<-"01-Harmonylambdanull/"}
+    else if(length(grep(x,pattern="mnn30",value=T))>0){subdir<-"01-mnn30/"}
+    else{subdir<-"01-UMAP/"}
+    
+    png(paste0("plots/04-Feature Selection, PCA, Harmony/",subdir,x,"_by_cohortvariables.png"),width=48,height=40,units="in",res=300)
+    do.call("grid.arrange",plts)
+    dev.off()
+    
+    rm(plts,pltdat,xvar,yvar)
 })
 
 ```
