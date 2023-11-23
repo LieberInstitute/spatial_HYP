@@ -6,7 +6,7 @@ library(scran)
 library(BayesSpace)
 
 #### Load SPE containing Harmony dimensionality reductions for 10%ile and 20%ile HVGs, 10%ile and 20%ile mean-rank nnSVGs, each with bayesspace k=2.
-setwd("dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/")
+setwd("/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/")
 hyp <- readRDS("data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
 ## make certain colnames are the same as $key or we won't have unique spot IDs to pair the assignments back to!
 if(colnames(hyp)!=hyp$key){colnames(hyp) <- hyp$key}
@@ -50,7 +50,7 @@ tmp <- spatialCluster(sce = hyp,init.method = "mclust",use.dimred = curdimred,q 
 tmp2 <- as.data.table(colData(tmp)[,c("key","spatial.cluster")])
 setnames(tmp2,c("rn",paste0("BShar_",curdimred,"_k",curq)))
 
-fwrite(tmp2,paste0("harmony_bs_k9-15-20-31_out/BSpace_k",curq,"_",curdimred,".txt"),sep='\t',quote=F)
+fwrite(tmp2,paste0("data/06-BayesSpace/01-bayesspace_k9-15-20-31_out/BSpace_k",curq,"_",curdimred,".txt"),sep='\t',quote=F)
 rm(list=ls())
 gc(full=T)
 
