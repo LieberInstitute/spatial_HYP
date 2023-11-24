@@ -44,13 +44,13 @@ spatialPreprocess(hyp,platform="Visium",skip.PCA=T)
 # Main call
 # .10k runs were a bit noisy. do 50k reps after 10k burn-in period (5x and 10x increase relative to before, respectively); nrep = burn in (unconsidered) reps + subsequent (analysis) reps. longer burn in ensures more opportunities for MCMC to reach a convergence point.
 
-tmp <- spatialCluster(sce = hyp,init.method = "mclust",use.dimred = curdimred,q = curq,platform = "Visium",nrep=60000,burnin=10000,verbose=TRUE)
+tmp <- spatialCluster(sce = hyp,init.method = "mclust",use.dimred = curdimred,q = curq,platform = "Visium",nrep=60000,burn.in=10000)
 
 # pull out clusters to save in much tinier file than an SPE
 tmp2 <- as.data.table(colData(tmp)[,c("key","spatial.cluster")])
 setnames(tmp2,c("rn",paste0("BShar_",curdimred,"_k",curq)))
 
-fwrite(tmp2,paste0("data/06-BayesSpace/01-bayesspace_k9-15-20-31_out/BSpace_k",curq,"_",curdimred,".txt"),sep='\t',quote=F)
+fwrite(tmp2,paste0("data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out/BSpace_k",curq,"_",curdimred,".txt"),sep='\t',quote=F)
 rm(list=ls())
 gc(full=T)
 

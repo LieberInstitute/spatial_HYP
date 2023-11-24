@@ -1,0 +1,182 @@
+
+R version 4.3.2 Patched (2023-11-13 r85524) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-conda-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(data.table)
+> library(Biostrings)
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
+    table, tapply, union, unique, unsplit, which.max, which.min
+
+Loading required package: S4Vectors
+Loading required package: stats4
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:data.table’:
+
+    first, second
+
+The following object is masked from ‘package:utils’:
+
+    findMatches
+
+The following objects are masked from ‘package:base’:
+
+    expand.grid, I, unname
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:data.table’:
+
+    shift
+
+Loading required package: XVector
+Loading required package: GenomeInfoDb
+
+Attaching package: ‘Biostrings’
+
+The following object is masked from ‘package:base’:
+
+    strsplit
+
+> library(SpatialExperiment)
+Loading required package: SingleCellExperiment
+Loading required package: SummarizedExperiment
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: ‘MatrixGenerics’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+Loading required package: GenomicRanges
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: ‘Biobase’
+
+The following object is masked from ‘package:MatrixGenerics’:
+
+    rowMedians
+
+The following objects are masked from ‘package:matrixStats’:
+
+    anyMissing, rowMedians
+
+> library(scater) # addPerCellQC
+Loading required package: scuttle
+Loading required package: ggplot2
+> library(scran)
+> library(BayesSpace)
+> 
+> #### Load SPE containing Harmony dimensionality reductions for 10%ile and 20%ile HVGs, 10%ile and 20%ile mean-rank nnSVGs, each with bayesspace k=2.
+> setwd("/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/")
+> hyp <- readRDS("data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
+> ## make certain colnames are the same as $key or we won't have unique spot IDs to pair the assignments back to!
+> if(sum(colnames(hyp)==hyp$key)!=ncol(hyp)){colnames(hyp) <- hyp$key}
+> 
+> ### build table with job-wise variables (names of dimensionality reductions to use in bayesspace and value to pass to q in BayesSpace from among values of 9/15/20/31)
+> 
+> p <- c(rep(c("HARMONYlmbna_hvg20","HARMONYlmbna_nnsvg10","HARMONYlmbna_nnsvg20","mnn30_hvg20","mnn30_nnsvg10","mnn30_nnsvg20"),3))
+> q <- c(rep(15,6),rep(20,6),rep(31,6))
+> pq <- cbind(p,q)
+> # so that rownames still end up == to row index after unique'ing:
+> pq <- as.data.table(unique(pq))
+> ### ^ 18 runs (3 q values per feature-reduction x 3 feature sets x 2 reductions (harmony lambda=null, mnn30))
+> pq[,q:=as.numeric(q)]
+> pq <- as.data.frame(pq)
+> stopifnot(nrow(unique(pq))==nrow(pq))
+> rm(p,q)
+> 
+> ### pull params for task number
+> i <- as.numeric(Sys.getenv("SLURM_ARRAY_TASK_ID"))
+> curdimred <- pq[i,1]
+> curq <- pq[i,2]
+> 
+> ## important from slack: need to run the next two lines or will get "subscript contains invalid names"
+> 
+> colData(hyp)$row <- colData(hyp)$array_row
+> colData(hyp)$col <- colData(hyp)$array_col
+> 
+> 
+> ### according to https://github.com/LieberInstitute/spatialDLPFC/blob/main/code/analysis/03_BayesSpace/01_BayesSpace.R , don't use spatial preprocess. in order to do this you have to reset metadata.
+> ### HOWEVER, BayesSpace now throws an error if you don't actually run spatialpreproc. also, the documentation says that it ADDS metadata, which shouldn't be equiv to overwriting it. The "metadata" object in the HYP SPE is an empty list, so nothing will be modified. (Maybe LIBD used to place something in the metadata entry for something but evidently not now).
+> 
+> spatialPreprocess(hyp,platform="Visium",skip.PCA=T)
+class: SpatialExperiment 
+dim: 30477 41021 
+metadata(1): BayesSpace.data
+assays(2): counts logcounts
+rownames(30477): ENSG00000243485 ENSG00000238009 ... ENSG00000278817
+  ENSG00000277196
+rowData names(7): source type ... gene_type gene_search
+colnames(41021): AAACAAGTATCTCCCA-1_V12D05-348_C1
+  AAACACCAATAACTGC-1_V12D05-348_C1 ... TTGTTTGTATTACACG-1_V13M13-362_D1
+  TTGTTTGTGTAAATTC-1_V13M13-362_D1
+colData names(19): sample_id in_tissue ... row col
+reducedDimNames(35): 10x_pca 10x_tsne ... HARMONYlmbna_nnsvg20_UMAP
+  mnn30_nnsvg20_UMAP
+mainExpName: NULL
+altExpNames(0):
+spatialCoords names(2) : pxl_col_in_fullres pxl_row_in_fullres
+imgData names(4): sample_id image_id data scaleFactor
+> 
+> 
+> # Main call
+> # .10k runs were a bit noisy. do 50k reps after 10k burn-in period (5x and 10x increase relative to before, respectively); nrep = burn in (unconsidered) reps + subsequent (analysis) reps. longer burn in ensures more opportunities for MCMC to reach a convergence point.
+> 
+> tmp <- spatialCluster(sce = hyp,init.method = "mclust",use.dimred = curdimred,q = curq,platform = "Visium",nrep=60000,burn.in=10000)
+Neighbors were identified for 41021 out of 41021 spots.
+Fitting model...

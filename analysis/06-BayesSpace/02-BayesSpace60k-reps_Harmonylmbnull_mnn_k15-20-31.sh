@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --mem=45G
+#SBATCH --mem=136G
 #SBATCH --cpus-per-task=2
 #SBATCH -J hyp_bspaces
 #SBATCH -o 02-jhpce_logs/hyp_bs50kiter_k-15-20-31.out
