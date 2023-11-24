@@ -18,6 +18,7 @@ library(gridExtra)
 library(SpatialExperiment)
 library(spatialLIBD)
 require(colorout)
+library(Polychrome)
 source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
@@ -38,12 +39,12 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 ### load data, gather bayesspace cluster assignments.
 ```{r}
-hyp2 <- readRDS("data/04-feature_selection/02-hypfiltered_nnsvg10-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
+hyp2 <- readRDS("data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
 
 ### set colnames(hyp2) to key for unique rownames etc; these are the rownames used with the bayesspace cluster results
-stopifnot(colnames(hyp2)==hyp2$key)
+stopifnot(sum(colnames(hyp2)==hyp2$key)==ncol(hyp2))
 
-bs_clusts <- list.files("data/05-clustering/01-bayesspace_k9-15-20-31_out",pattern=".txt")
+bs_clusts <- list.files("data/06-BayesSpace/01-bayesspace_k9-15-20-31_out",pattern=".txt",full.names = T)
 ```
 
 helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
@@ -73,10 +74,11 @@ for (i in c(1:length(bs_clusts))) {
         curclusts <- curclusts[rownames(colData(hyp2)),]
     }
     
-    colLabels(hyp2) <- factor(curclusts[, 2],levels=paste0("X",c(1:length(unique(curclusts[,2])))))
-    pal <- palette36.colors(n = length(unique(curclusts[, 2])))
+    nclusts <- length(unique(curclusts[, 2]))
+    colLabels(hyp2) <- factor(curclusts[, 2],levels=paste0("X",c(1:nclusts)))
+    pal <- palette36.colors(n = nclusts)[c(3:(nclusts+2))]
     # next line is needed for consistency in color-cluster assignments between libdspatial and the generated legend below
-    names(pal) <- c(1:length(unique(hyp2$label)))
+    names(pal) <- paste0("X",c(1:nclusts))
     
     ## create a unified legend spanning all possible cluster values (regardless of presence in a given sample)
     leg.tmp <- ggplot(as.data.table(colData(hyp2))[,.(label,array_row,array_col)],aes(x=array_row,y=array_col,col=label))+geom_point()+
