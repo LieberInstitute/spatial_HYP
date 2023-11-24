@@ -9,11 +9,11 @@ library(BayesSpace)
 setwd("/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/")
 hyp <- readRDS("data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
 ## make certain colnames are the same as $key or we won't have unique spot IDs to pair the assignments back to!
-if(colnames(hyp)!=hyp$key){colnames(hyp) <- hyp$key}
+if(sum(colnames(hyp)==hyp$key)!=ncol(hyp)){colnames(hyp) <- hyp$key}
 
 ### build table with job-wise variables (names of dimensionality reductions to use in bayesspace and value to pass to q in BayesSpace from among values of 9/15/20/31)
 
-p <- c(rep(c("HARMONYdflt_hvg10","HARMONYdflt_hvg20","HARMONYdflt_nnsvg10","HARMONYdflt_nnsvg20","HARMONYlmbna_hvg10","HARMONYlmbna_hvg20","HARMONYlmbna_nnsvg10","HARMONYlmbna_nnsvg20","mnn30_hvg10","mnn30_hvg20","mnn30_nnsvg10","mnn30_nnsvg10"),4))
+p <- c(rep(c("HARMONYdflt_hvg10","HARMONYdflt_hvg20","HARMONYdflt_nnsvg10","HARMONYdflt_nnsvg20","HARMONYlmbna_hvg10","HARMONYlmbna_hvg20","HARMONYlmbna_nnsvg10","HARMONYlmbna_nnsvg20","mnn30_hvg10","mnn30_hvg20","mnn30_nnsvg10","mnn30_nnsvg20"),4))
 q <- c(rep(9,12),rep(15,12),rep(20,12),rep(31,12))
 pq <- cbind(p,q)
 # so that rownames still end up == to row index after unique'ing:
@@ -55,4 +55,5 @@ rm(list=ls())
 gc(full=T)
 
 library(sessioninfo)
+sessionInfo()
 session_info()
