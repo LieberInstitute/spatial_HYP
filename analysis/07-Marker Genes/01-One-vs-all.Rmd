@@ -33,7 +33,7 @@ load required files
 ```{r}
 hyp2 <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
 
-## this retrieves clustering results from both the 10k-iteration-pass bayesspace runs and the subset that were run at 60k iterations
+## this retrieves clustering results from both the 10k-iteration-pass bayesspace runs AND the subset that were run at 60k iterations
 bscl <- list.files("data/06-BayesSpace",pattern=".txt",recursive = T,full.names = T)
 
 bscls <- lapply(bscl,FUN=fread)
@@ -41,6 +41,18 @@ names(bscls) <- bscl
 # replace file paths with informative short labels
 names(bscls) <- gsub(names(bscls),pattern="^.*9-15-20-31_out\\/BSpace_(.*)\\.txt$",replacement="\\1")
 names(bscls) <- gsub(names(bscls),pattern="^.*60kiter.*\\/BSpace_(.*)\\.txt$",replacement=paste0("\\1","_60kiter"))
+
+## add one additional clustering result where we collapse the VMH and ARC domains into one cluster each. do this for the primary clustering of interest -- bayesspace60kiter k15 harmony-lambda=NA with nnsvg10. we don't really need to do this over and over since the collective VMH or ARC spots will be ~the same regardless of how many subdivisions of it we made via different k values
+## VMH: 11,12; ARC 3,5
+collapse <- copy(bscls[["k15_HARMONYlmbna_nnsvg10_60kiter"]])
+setnames(collapse,2,"cl")
+collapse[,cl:=as.character(cl)]
+collapse[cl %in% c("11","12"),cl:="VMH"]
+collapse[cl %in% c("3","5"),cl:="ARC"]
+
+bscls[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]] <- collapse
+
+
 ```
 
 ## Use scran::scoreMarkers(...,full.stats=T) to get results compatabile w finding markers to separate highly related clusters e.g. nnsvg10_31 clusters 4 5 11 17
