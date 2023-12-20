@@ -55,10 +55,6 @@ bscls[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]] <- collapse
 
 ```
 
-## Use scran::scoreMarkers(...,full.stats=T) to get results compatabile w finding markers to separate highly related clusters e.g. nnsvg10_31 clusters 4 5 11 17
-## following OSCA: http://bioconductor.org/books/3.17/OSCA.basic/marker-detection.html#obtaining-the-full-effects
-
-
 ```{r}
 # extract gene annotation table to join back to results
 tmprowdat <- as.data.table(rowData(hyp2))
@@ -141,13 +137,23 @@ slibdenrichments <- bplapply(bscls,BPPARAM=bpparam,function(x){
     y <- as.data.frame(x)
     rownames(y) <- y$rn
     # safeguard against reordered rows
-    y <- y[rownames(colData(hyp2)),]
+    y <- y[colnames(hyp2),]
     colnames(y)[2] <- "cl"
     y$cl <- paste0("X",y$cl)
-    colLabels(hyp2) <- factor(y$cl,levels=paste0("X",c(1:length(unique(y$cl)))))
-    rm(y)
-    gc(full=T)
-    
+    # conditional operation for the collapsed-clusters analysis
+    if(length(grep(y$cl,pattern="VMH",value=T))>0){
+        intlevels <- gsub(unique(y$cl),pattern="X([[:digit:]]{1,2})",replacement="\\1")
+        intlevels <- as.numeric(intlevels)
+        intlevels <- intlevels[!is.na(intlevels)]
+        colLabels(hyp2) <- factor(y$cl,levels=c("XVMH","XARC",paste0("X",intlevels)))
+        rm(y)
+        gc(full=T)
+    }
+    else{
+        colLabels(hyp2) <- factor(y$cl,levels=paste0("X",c(1:length(unique(y$cl)))))
+        rm(y)
+        gc(full=T)
+    }
     tmp <- registration_wrapper(hyp2,"label","sample_id",gene_ensembl="gene_id",gene_name="gene_name",min_ncells = 10)
     z <- as.data.table(tmp[["enrichment"]])
     return(z)

@@ -1,0 +1,145 @@
+---
+title: "03-Sex DE msigdb-GSEA"
+author: "Bernard Mulvey"
+date: "2023-12-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(BiocParallel)
+library(parallel)
+library(parallelly)
+library(fgsea)
+library(msigdbr)
+
+require(colorout)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+options(bphost="localhost")
+
+```
+
+load dreamlet random effect sex DE stats, which were only run for the four clusterings of interest to begin with
+
+```{r}
+sexde <- readRDS("data/09-Sex DE/01-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-20-31-15VMHARCclpsd.RDS")
+
+# check:
+# names(sexde)
+# [1] "k15_HARMONYlmbna_nnsvg10_60kiter"          
+# [2] "k20_HARMONYlmbna_nnsvg10_60kiter"          
+# [3] "k31_HARMONYlmbna_nnsvg10_60kiter"          
+# [4] "k15_HARMONYlmbna_nnsvg10_60kiter_clpsdARC_clpsdVMH"
+
+```
+
+
+### fgsea sets retrieval
+```{r}
+allsigs <- msigdbr("Homo sapiens",category="C1")
+
+# tack on the others, make d.t.
+msigs <- paste0("C",c(2,3,5,6,8))
+for (msig in msigs){
+    allsigs <- rbind(allsigs,msigdbr("Homo sapiens",category=msig))
+}
+rm(msig,msigs)
+allsigs <- as.data.table(allsigs)
+
+# remove legacy sets
+allsigs <- allsigs[gs_subcat %in% grep(gs_subcat,pattern="legacy|LEGACY|Legacy",value=T,invert=T)]
+
+# make a list object of identifiers per  gene set
+# we can map these back to the msigdb table later for reference purposes by their list name (gs_name)...
+sets <- split(allsigs$ensembl_gene,allsigs$gs_name)
+```
+
+
+# SEX DE gsea
+```{r}
+### drop mito and sex chr genes
+sexde <- lapply(sexde,FUN=function(x){x[!(chromosome_name %in% grep(chromosome_name,pattern="MT|X|Y",value=T))]})
+
+### get named vectors of marker t-stats for each cluster in each result set (15+20+31+13)=79
+sexdelist <- list()
+i<-1
+for (i in c(1:length(sexde))){
+    sdoms <- unique(sexde[[i]]$assay)
+    setnames(sexde[[i]],"t","tstat")
+    j<-1
+    for (j in c(1:length(sdoms))){
+        tmp <- copy(sexde[[i]][assay==sdoms[j]])[,.(ID,tstat)]
+        setorderv(tmp,"tstat",-1)
+        ## get the stat column as a vector and give it the gene ids as names for fgsea
+        ## note that since data.table (invisibly) uses list() for column data, its cleaner to just make the working table a data frame for this last bit
+        tmp <- as.data.frame(tmp)
+        v <- tmp$tstat
+        names(v) <- tmp$ID
+        sexdelist[[length(sexdelist)+1]] <- v
+        names(sexdelist)[length(sexdelist)] <- paste0(names(sexde)[i],"_",sdoms[j])
+        rm(v,tmp)
+    }
+    rm(j,sdoms)
+}
+rm(i)
+```
+
+### loop through each domain (each run is very fast with 10 cpus in biocparallel, so just serially run 10cpu GSEA for each cluster)
+```{r}
+sbp <- MulticoreParam(10)
+register(sbp)
+sexderes <- mapply(X=sexdelist,Y=names(sexdelist),SIMPLIFY=FALSE,FUN=function(X,Y){
+    z<-as.data.table(fgseaMultilevel(pathways=sets,stats = X,minSize = 15,maxSize = 500,eps=0.0,BPPARAM = sbp,nPermSimple = 50000))
+    z[,spdom:=Y]
+    return(z)
+})
+names(sexderes) <- names(sexdelist)
+
+saveRDS(sexderes,"data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
+
+### collapse pathways-this part is WAY WAY slower than the GSEA itself
+sbp <- MulticoreParam(4)
+register(sbp)
+
+sexderes2 <- bpmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, BPPARAM=sbp,FUN=function(X,Y){
+    tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = sets)
+    return(tmpres)
+})
+names(sexderes2) <- names(sexderes)
+saveRDS(sexderes2,"data/11-GSEA/03b-Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
+
+
+rm(sexdelist,sexde)
+gc(full=T)
+
+### subset to main enrichments
+sexderes3 <- mapply(X=sexderes,Y=sexderes2,SIMPLIFY = FALSE,FUN=function(X,Y){
+    X[pathway %in% Y[[1]]]
+})
+saveRDS(sexderes3,"data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
+# clean up
+# rm(sexderes,sexderes2)
+gc(full=T)
+```
+
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
