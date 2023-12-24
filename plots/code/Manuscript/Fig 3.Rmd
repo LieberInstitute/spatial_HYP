@@ -1,0 +1,190 @@
+---
+title: "Fig 3 Panels"
+author: "Bernard Mulvey"
+date: "2023-12-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table) # Preferred data manipulation package
+library(Biostrings) # General
+library(ggrastr) # render plots with bajillions of points as raster so they can be manipulated in eg Illustrator
+library(Cairo) # pdf device for ^ to properly save
+library(ggplot2) # Dependency for several plotting functions
+library(gridExtra)
+library(SpatialExperiment) # Dependency
+library(escheR) # spotplots with domain outlines
+require(colorout) # Utility for RStudio
+ColorOut() 
+
+# code reformatting in Rstudio
+options("styler.addins_style_transformer" = "biocthis::bioc_style()") 
+
+# set plotting defaults for ggplot
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 10), axis.title.x = element_text(size = 11), axis.text.y = element_text(size = 10), axis.title.y = element_text(size =11), plot.title = element_text(size = 12,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=9), legend.title = element_text(size=10,hjust=0.5)))
+```
+
+### Setup: load data, cluster assignments, and rename from generic to appropriate region (VMH/ARC/WM)
+```{r}
+hyp2 <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+
+bscl <- fread("data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+
+setnames(bscl,c("rn","cl"))
+bscl[,cl:=paste0("X",cl)]
+bscl <- DataFrame(bscl)
+rownames(bscl) <- bscl$rn
+bscl <- bscl[colnames(hyp2),]
+
+colLabels(hyp2) <- factor(bscl$cl,levels=paste0("X",c(1:15)))
+
+### relabel as VMH/ARC/WM for spotplottings
+tmpcd <- as.data.table(colData(hyp2),keep.rownames=T)
+tmpcd[label %in% c("X11","X12"),label:="VMH"]
+tmpcd[label %in% c("X3","X5"),label:="ARC"]
+tmpcd[label %in% c("X1","X9"),label:="WM"]
+
+tmpcd <- DataFrame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd <- tmpcd[colnames(hyp2),]
+colData(hyp2) <- tmpcd
+hyp2$label <- factor(hyp2$label,levels=c("VMH","ARC","WM",paste0("X",c(2,4,6:8,10,13:15))))
+
+### also define cluster tables that only have VMH or ARC and otehrs as NA for escher plotting outlines specific to VMH/ARC
+bscl.vmhonly <- as.data.table(bscl,keep.rownames=T)
+bscl.arconly <- as.data.table(bscl,keep.rownames=T)
+bscl.vmharc <- as.data.table(bscl,keep.rownames=T)
+
+bscl.vmhonly <- bscl.vmhonly[cl %in% c("X11","X12"),cl2:="VMH"]
+bscl.arconly <- bscl.arconly[cl %in% c("X3","X5"),cl2:="ARC"]
+bscl.vmharc <- bscl.vmharc[cl %in% c("X11","X12"),cl2:="VMH"]
+bscl.vmharc <- bscl.vmharc[cl %in% c("X3","X5"),cl2:="ARC"]
+
+```
+
+### Panel A ANKRD34B (VMH) ###
+```{r}
+### extract sample to plot ###
+ank <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(ank) <- rowData(ank)$gene_name
+colData(ank)$`log counts` <- logcounts(ank)["ANKRD34B",]
+anklab <- copy(bscl.vmharc)[rn %in% colnames(ank)]
+anklab <- DataFrame(anklab)
+rownames(anklab) <- anklab$rn
+
+ank$Domain <- factor(anklab$cl2,levels=c("VMH","ARC"))
+### make spotplots
+p <- make_escheR(ank)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
+p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
+
+pdf("plots/Manuscript/3A-ANKRD34B.pdf",height=1.75,width=2)
+p+
+    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_fill_gradient(low="white",high="black")+
+    ggtitle("ANKRD34B")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+dev.off()
+
+rm(ank,p,anklab)
+```
+
+
+### Panel B LAMP5 (VMH) ###
+```{r}
+### extract sample to plot ###
+lamp <- hyp2[,hyp2$sample_id=="V12D05-350_D1"]
+rownames(lamp) <- rowData(lamp)$gene_name
+colData(lamp)$`log counts` <- logcounts(lamp)["LAMP5",]
+lamplab <- copy(bscl.vmharc)[rn %in% colnames(lamp)]
+lamplab <- DataFrame(lamplab)
+rownames(lamplab) <- lamplab$rn
+
+lamp$Domain <- factor(lamplab$cl2,levels=c("VMH","ARC"))
+### make spotplots
+p <- make_escheR(lamp)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
+p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
+
+pdf("plots/Manuscript/3B-LAMP5.pdf",height=1.75,width=2)
+p+
+    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_fill_gradient(low="white",high="black")+
+    ggtitle("LAMP5")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+dev.off()
+
+rm(lamp,lamplab,p)
+```
+
+### Panel C GABRE (ARC) ###
+```{r}
+### extract sample to plot ###
+gabre <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(gabre) <- rowData(gabre)$gene_name
+colData(gabre)$`log counts` <- logcounts(gabre)["GABRE",]
+gabrelab <- copy(bscl.vmharc)[rn %in% colnames(gabre)]
+gabrelab <- DataFrame(gabrelab)
+rownames(gabrelab) <- gabrelab$rn
+
+gabre$Domain <- factor(gabrelab$cl2,levels=c("VMH","ARC"))
+### make spotplots
+p <- make_escheR(gabre)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
+p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
+
+pdf("plots/Manuscript/3C-GABRE.pdf",height=1.75,width=2)
+p+
+    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_fill_gradient(low="white",high="black")+
+    ggtitle("GABRE")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+dev.off()
+
+rm(gabre,gabrelab,p)
+```
+
+
+### Panel D DLK1 (ARC) ###
+```{r}
+### extract sample to plot ###
+dlk <- hyp2[,hyp2$sample_id=="V12D05-350_D1"]
+rownames(dlk) <- rowData(dlk)$gene_name
+colData(dlk)$`log counts` <- logcounts(dlk)["DLK1",]
+dlklab <- copy(bscl.vmharc)[rn %in% colnames(dlk)]
+dlklab <- DataFrame(dlklab)
+rownames(dlklab) <- dlklab$rn
+
+dlk$Domain <- factor(dlklab$cl2,levels=c("VMH","ARC"))
+### make spotplots
+p <- make_escheR(dlk)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
+p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
+
+pdf("plots/Manuscript/3D-DLK1.pdf",height=1.75,width=2)
+p+
+    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_fill_gradient(low="white",high="black")+
+    ggtitle("DLK1")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+dev.off()
+
+rm(dlk,dlklab,p)
+```
+
+### ISH panels follow D ###
+###########################
+
+### intra-VMH SVG: ###
+### intra-ARC SVG: ### 
+
+### msigdb GSEA for arc and vmh ###
+
+### TF gsea for ARC and VMH ###
+
+### disease gene GSEA ###
