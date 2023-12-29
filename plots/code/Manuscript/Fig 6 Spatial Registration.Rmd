@@ -1,0 +1,73 @@
+---
+title: "Fig 6-Spat Reg"
+author: "Bernard Mulvey"
+date: "2023-12-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 10), axis.title.x = element_text(size = 11), axis.text.y = element_text(size = 10), axis.title.y = element_text(size=11), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=9), legend.title = element_text(size=10,hjust=0.5)))
+```
+
+```{r}
+cocores <- readRDS("data/10-Spatial Registration/01-scCoco query of top 150 markers per k15-20-31-collapsedK15 domain in ABA ms hyp CCF areas.RDS")
+
+cocores <- cocores[[4]]
+cocores <- as.data.table(cocores[["scores_per_target_level_region_all"]])
+
+setnames(cocores,c(3:15),gsub(names(cocores)[3:15],pattern="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_(X.*)",replacement="\\1"))
+setnames(cocores,c("XVMH","XARC"),c("VMH","ARC"))
+cocores <- cocores[,.(topnode,topname,VMH,ARC,X1, X2, X4, X6, X7, X8, X9, X10, X13, X14, X15)]
+
+keepres <- c("")
+i <- 3
+for (i in c(3:15)){
+    curvar <- names(cocores)[i]
+    setorderv(cocores,curvar,-1)
+    keepres <- c(keepres,cocores[c(1:3),topname])
+}
+keepres <- unique(keepres)[keepres!=""]
+rm(i,curvar)
+
+cocores <- melt(cocores[topname %in% keepres,],id.vars=c("topnode","topname"),variable.name="region",value.name="score")
+setnames(cocores,"score","scCoco Score (top\n150 Visium Markers)")
+cocores[topname=="Periventricular hypothalamic nucleus, posterior part",topname:="Posterior periventricular nu."]
+
+pdf("plots/Manuscript/6A-scCoco registration to adult mouse ISH of hyp.pdf",width=7,height=5)
+ggplot(cocores,aes(x=region,y=topname,fill=`scCoco Score (top\n150 Visium Markers)`))+
+    geom_tile()+
+    scale_fill_gradient2(low="white",mid="yellow",high="red",midpoint=0.5)+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    scale_x_discrete(expand = c(0,0))+
+    scale_y_discrete(expand=c(0,0))+
+    ylab("Allen Mouse Atlas Region Name")+
+    xlab("Visium Cluster")
+dev.off()
+
+
+
+```
