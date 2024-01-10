@@ -1,7 +1,9 @@
 setwd("/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/")
 library(data.table)
 library(zellkonverter)
+library(SingleCellExperiment)
 
+cellmeta <- fread("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/cell_metadata_with_cluster_annotation.csv")
 hypv2 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv2-HY-raw.h5ad")
 hypv3 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv3-HY-raw.h5ad")
 
