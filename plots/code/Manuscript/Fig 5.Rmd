@@ -213,6 +213,41 @@ ggplot(sexdis,aes(x=spdom,y=pathway,fill=ES))+
 dev.off()
 ```
 
+5D-fDR-sig sex DE enrichments in disease genes by hypergeometric test
+```{r}
+resdat <- fread("data/11-GSEA/07-hypergeometric enrichment for FDR-sig sex DEGs per k15 cluster in neuropsych GWAS-TWAS-litmined union sets.txt")
+
+resdat <- resdat[spdomain_sex %in% c(paste0(c("X11_","X12_","X3_","X5_","X1_","X9_"),"MaleUp"),paste0(c("X11_","X12_","X3_","X5_","X1_","X9_"),"FemUp"))]
+resdat <- resdat[label %in% unique(resdat[fdr<0.2,label])]
+
+resdat[,spdomain_sex:=gsub(spdomain_sex,pattern="^(.*)_FemUp",replacement=paste0("\\1"," Female Up"))]
+resdat[,spdomain_sex:=gsub(spdomain_sex,pattern="^(.*)_MaleUp",replacement=paste0("\\1"," Male Up"))]
+resdat[,spdomain_sex:=gsub(spdomain_sex,pattern="X1 ",replacement="WM.1 ")]
+resdat[,spdomain_sex:=gsub(spdomain_sex,pattern="X9 ",replacement="WM.2 ")]
+resdat[,spdomain_sex:=gsub(spdomain_sex,pattern="X3 ",replacement="ARC.1 ")]
+resdat[,spdomain_sex:=gsub(spdomain_sex,pattern="X5 ",replacement="ARC.2 ")]
+resdat[,spdomain_sex:=gsub(spdomain_sex,pattern="X11 ",replacement="VMH.1 ")]
+resdat[,spdomain_sex:=gsub(spdomain_sex,pattern="X12 ",replacement="VMH.2 ")]
+
+# make column labels to order by so that each cluster is paired X1male, X1 female, etc
+i<-1
+colord <- c()
+pltcl <- c("VMH.1 ","VMH.2 ","ARC.1 ","ARC.2 ","WM.1 ","WM.2 ")
+for (i in c(1:6)){
+    colord <- c(colord,paste0(pltcl[i],c("Male Up","Female Up")))
+}
+
+pltdat <- dcast(resdat,formula = label~spdomain_sex,value.var = "pval")
+pltdat <- as.data.frame(pltdat)
+rownames(pltdat) <- pltdat$label
+pltdat$label <- NULL
+pltdat <- -log10(pltdat)
+
+pdf("plots/Manuscript/5D-FDR sig sex DEG enrichments in dis genesets.pdf",height=3,width=3.5)
+pheatmap::pheatmap(pltdat,cluster_cols = F,treeheight_row = 0,fontsize = 9,fontsize_row = 10)
+dev.off()
+```
+
 ```{r}
 sessionInfo()
 sessioninfo::session_info()

@@ -27,15 +27,14 @@ sample_info <- as.data.table(sample_info)
 sample_info <- sample_info[!brnum == "Br1735"]
 
 ## manually define a second table of same info for the V13M13-362 slide
-newsamps <- fread("raw-data/demos_by_samplei`d.txt")
+newsamps <- fread("raw-data/demos_by_sampleid.txt")
 newsamps[,slide:=gsub(sample_id,pattern="^(.*)_.*$",replacement="\\1")]
 newsamps[,array:=gsub(sample_id,pattern="^.*_(.*)$",replacement="\\1")]
 newsamps <- newsamps[slide=="V13M13-362"]
 newsamps[,replicate:=1]
 newsamps[BrNum=="Br1735",replicate:=2]
 newsamps[,species:="human"]
-newsamps[,sample_path:=file.path(here::here("processed-data","01_spaceranger",sample_info$sample_id,"outs"))]
-setnames(newsamps,"BrNum","brnum")
+newsamps[,sample_path:=file.path(here::here("processed-data","01_spaceranger",newsamps$sample_id,"outs"))]
 sortcols <- names(sample_info)
 newsamps <- newsamps[,..sortcols]
 
@@ -110,9 +109,9 @@ colData(spe) <- cbind(colData(spe), segmentation_info)
 ## Remove genes with no data
 no_expr <- which(rowSums(counts(spe)) == 0)
 length(no_expr)
-# [1] 6345
+# [1] 6259
 length(no_expr) / nrow(spe) * 100
-# [1] 17.33559
+# [1] 17.10063
 spe <- spe[-no_expr, ]
 
 
