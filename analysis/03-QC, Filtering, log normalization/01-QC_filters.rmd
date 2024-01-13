@@ -21,10 +21,8 @@ library(gridExtra)
 
 ## load pre-assembled SPE object of unfiltered data
 ```{r}
-load("processed-data/02_build_spe/spe_raw_w-V13M13-362.Rdata")
-hyp <- spe
+hyp <- readRDS("processed-data/02_build_spe/spe_raw_w-V13M13-362.RDS")
 
-rm(spe)
 ### for reference: initial dataset dimensions
 dim(hyp)
 head(colData(hyp))
@@ -130,6 +128,12 @@ hyp$gene166 <- NULL
 ncol(hyp[,colData(hyp)$sum_umi>275&colData(hyp)$sum_gene>166&colData(hyp)$expr_chrM_ratio<0.5])/ncol(hyp)
 # 98.66% spots retained for now!
 hyp2 <- hyp[,colData(hyp)$sum_umi>275&colData(hyp)$sum_gene>166&colData(hyp)$expr_chrM_ratio<0.5]
+
+# remove genes for which there is no longer data
+no_expr <- which(rowSums(counts(hyp2)) == 0)
+hyp2 <- hyp2[-no_expr, ]
+dim(hyp2)
+
 rm(hyp)
 gc(full=T)
 ```
