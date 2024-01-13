@@ -22,20 +22,19 @@ sample_info$replicate <- as.factor(REDCap_HYP$serial)
 sample_info$sample_id <- paste(sample_info$slide, sample_info$array, sep = "_")
 sample_info$sample_path = file.path(here::here("processed-data", "01_spaceranger", "spaceranger_230511"), sample_info$sample_id,"outs")
 
-## drop the br1735 sample from the original run--it was rerun on slide V13M13-362 with much better results, which we will use in this SPE.
+## drop the br5459 sample from the original run--it was rerun on slide V13M13-362 with much better results, which we will use in this SPE.
 sample_info <- as.data.table(sample_info)
-sample_info <- sample_info[!brnum == "Br1735"]
+sample_info <- sample_info[!brnum == "Br5459"]
 
 ## manually define a second table of same info for the V13M13-362 slide
-newsamps <- fread("raw-data/demos_by_samplei`d.txt")
+newsamps <- fread("raw-data/demos_by_sampleid.txt")
 newsamps[,slide:=gsub(sample_id,pattern="^(.*)_.*$",replacement="\\1")]
 newsamps[,array:=gsub(sample_id,pattern="^.*_(.*)$",replacement="\\1")]
 newsamps <- newsamps[slide=="V13M13-362"]
 newsamps[,replicate:=1]
-newsamps[BrNum=="Br1735",replicate:=2]
+newsamps[brnum=="Br5459",replicate:=2]
 newsamps[,species:="human"]
-newsamps[,sample_path:=file.path(here::here("processed-data","01_spaceranger",sample_info$sample_id,"outs"))]
-setnames(newsamps,"BrNum","brnum")
+newsamps[,sample_path:=file.path(here::here("processed-data","01_spaceranger",newsamps$sample_id,"outs"))]
 sortcols <- names(sample_info)
 newsamps <- newsamps[,..sortcols]
 
@@ -69,26 +68,21 @@ add_design <- function(spe) {
 }
 spe <- add_design(spe)
 
-# dir.create(here::here("processed-data", "pilot_data_checks"), showWarnings = FALSE)
-# save(spe, file = here::here("processed-data", "02_build_spe", "spe_raw.Rdata"))
+# make  colnames unique (spe$key)
+colnames(spe) <- spe$key
 
 ## Read in cell counts and segmentation results
 segmentations_list <-
-  lapply(sample_info$sample_id, function(sampleid) {
-    file <-
-      here(
-        "processed-data",
-        "01_spaceranger",
-        "spaceranger_230511",
-        sampleid,
-        "outs",
-        "spatial",
-        "tissue_spot_counts.csv"
+  lapply(sample_info$sample_path, function(p) {
+    file <- paste0(p,
+        "/spatial",
+        "/tissue_spot_counts.csv"
       )
     if (!file.exists(file)) {
       return(NULL)
     }
     x <- read.csv(file)
+    sampleid <- gsub(p,pattern="^/dcs04/.*/(V.*-.*_.*)/outs$",replacement="\\1")
     x$key <- paste0(x$barcode, "_", sampleid)
     return(x)
   })
@@ -110,9 +104,7 @@ colData(spe) <- cbind(colData(spe), segmentation_info)
 ## Remove genes with no data
 no_expr <- which(rowSums(counts(spe)) == 0)
 length(no_expr)
-# [1] 6345
-length(no_expr) / nrow(spe) * 100
-# [1] 17.33559
+# [1] 6304
 spe <- spe[-no_expr, ]
 
 
@@ -121,15 +113,14 @@ spe$overlaps_tissue <-
   factor(ifelse(spe$in_tissue, "in", "out"))
 
 ## Save with and without dropping spots outside of the tissue
-#spe_raw <- spe
-
-save(spe, file = here::here("processed-data", "02_build_spe", "spe_raw_w_V13M13-362.Rdata"))
+spe_raw <- spe
+saveRDS(spe_raw, file = here::here("processed-data", "02_build_spe", "spe_raw_w_V13M13-362.RDS"))
 
 ## Now drop the spots outside the tissue
-spe_raw <- spe
 spe <- spe_raw[, spe_raw$in_tissue]
 dim(spe)
-# [1] 36601 37298
+# [1] 30297 41587
+
 ## Remove spots without counts
 if (any(colSums(counts(spe)) == 0)) {
   message("removing spots without counts for spe")
@@ -137,7 +128,7 @@ if (any(colSums(counts(spe)) == 0)) {
   dim(spe)
 }
 
-save(spe, file = here::here("processed-data", "02_build_spe", "spe_w-V13M13-362.Rdata"))
+saveRDS(spe, file = here::here("processed-data", "02_build_spe", "spe_w-V13M13-362.RDS"))
 
 ## Reproducibility information
 print("Reproducibility information:")
