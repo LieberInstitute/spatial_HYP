@@ -178,15 +178,15 @@ for (i in c(1:sum(unique(colData(hyp2)$sample_id)%in%names(nnsvg_N3Spt5)))){
 }
 rm(i)
 
-nnsvg_ranks[,meanrank:=rowMeans(.SD,na.rm=T),.SDcols=c(3:ncol(nnsvg_ranks))]
-nnsvg_ranks <- nnsvg_ranks[,samples_signif:=rowSums(!is.na(.SD)),.SDcols=c(3:ncol(nnsvg_ranks))]
+nnsvg_ranks[,meanrank:=rowMeans(.SD,na.rm=T),.SDcols=c(3:ncol(nnsvg_ranks)-1)]
+nnsvg_ranks <- nnsvg_ranks[,samples_signif:=rowSums(!is.na(.SD)),.SDcols=c(3:ncol(nnsvg_ranks)-1)]
 
 fwrite(nnsvg_ranks,"analysis/data/02-feature_selection/01-hyp2n9_meangeneranks_nnSVG_samplewise_n3s0.5.txt",sep='\t',quote=F)
 ```
 
 ### retrieve top M or N nnSVG genes (where M = number of genes in the HVG 10%ile set and N = number in the top 20%ile HVG set); save each vector of variable genes.
 ```{r}
-nnsvg_ranks <- nnsvg_ranks[samples_signif>3]
+nnsvg_ranks <- nnsvg_ranks[samples_signif>2]
 setorderv(nnsvg_ranks,"meanrank",1) # ascending order
 nnsvg10 <- nnsvg_ranks[c(1:length(hyp2.hvg10)),gene_id]
 nnsvg20 <- nnsvg_ranks[c(1:length(hyp2.hvg20)),gene_id]

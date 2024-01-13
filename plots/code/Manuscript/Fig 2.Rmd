@@ -56,16 +56,16 @@ tmpcd <- DataFrame(tmpcd)
 rownames(tmpcd) <- tmpcd$rn
 tmpcd <- tmpcd[colnames(hyp2),]
 colData(hyp2) <- tmpcd
+### set ordering so named clusters lead and the rest are in numerical order
 hyp2$label <- factor(hyp2$label,levels=c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2",paste0("X",c(2,4,6:8,10,13:15))))
 ```
 
 ### Panel A: k15 clustering ###
+### run this block twice -- the first time its run, axes will come out with numbers on the first sample ###
 ```{r}
 ### extract two samples to plot ###
 tmp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
 hyp2samp <- hyp2[,hyp2$sample_id=="V12D05-350_D1"]
-
-tmp <- rotateObject(tmp,sample_id="V12Y31-080_A1",degrees=90)
 
 hyp2samp <- cbind(hyp2samp,tmp)
 rm(tmp)
@@ -178,13 +178,13 @@ dev.off()
 rm(hypselect)
 ```
 
-Fig 2E: FEZF1 in V12D07-075_A1
+Fig 2E: FEZF1 in V12D07-075_D1
 ```{r}
-hypselect <- hyp2[,hyp2$sample_id=="V12D07-075_A1"]
+hypselect <- hyp2[,hyp2$sample_id=="V12D07-075_D1"]
 # change rownames to gene symbols
 rownames(hypselect) <- rowData(hypselect)$gene_name
 
-pdf("plots/Manuscript/2E-FEZF1 in V12D05-075_A1.pdf",height=1.75,width=1.5)
+pdf("plots/Manuscript/2E-FEZF1 in V12D05-075_D1.pdf",height=1.75,width=1.5)
 vis_gene(hypselect,geneid = "FEZF1",spatial=T,auto_crop = T,point_size=0.65,pdf_file = NULL,return_plots = T,na_color = NA)+
     # counter vis_gene's plot margins to use the allocated area
     theme(axis.text = element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(),legend.text = element_text(size=8), legend.title = element_blank(),plot.title = element_blank(),legend.key.size = unit(0.125,"in"),legend.margin = margin(-0.4,0,0,0,unit="in"),axis.ticks = element_blank(),plot.margin = margin(0,-0.025,0,-.45,unit = "in"),legend.position = "bottom",legend.justification = 0.5,legend.background = element_blank())
@@ -209,9 +209,53 @@ dev.off()
 #rm(hypselect)
 ```
 
+Fig 2G: markers as heatmap
+# load spatialLIBD marker results, take top 6 per cluster of interest + top 2 per other = 6*6 + 2*9 = 54
 ```{r}
-sessionInfo()
-sessioninfo::session_info()
+slibdmk <- readRDS("data/07-Marker_genes/01a-BSpace_allruns_top100_1vsAll-markers_perdomain_perrun.RDS")
+# get NONcollapsed clusters
+slibdmk <- slibdmk[cluster_set=="k15_HARMONYlmbna_nnsvg10_60kiter"]
+
+# apply matching label names
+slibdmk[cluster=="X11",cluster:="VMH.1"]
+slibdmk[cluster=="X12",cluster:="VMH.2"]
+slibdmk[cluster=="X3",cluster:="ARC.1"]
+slibdmk[cluster=="X5",cluster:="ARC.2"]
+slibdmk[cluster=="X1",cluster:="WM.1"]
+slibdmk[cluster=="X9",cluster:="WM.2"]
+
+pltg <- lapply(unique(slibdmk$cluster),function(x){
+    tmp <- copy(slibdmk[slibdmk$cluster==x])
+    setorderv(tmp,"mean.AUC",-1)
+    return(tmp[1:6,gene_name])
+})
+names(pltg) <- unique(slibdmk$cluster)
+
+# reduce other clust lists to top 2
+pltg[!(names(pltg) %in% c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2"))] <- lapply(pltg[!(names(pltg) %in% c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2"))],function(x){return(x[1:2])})
+
+# combine into one list
+pltg <- unique(unlist(pltg,recursive=F))
+
+pltmk <- slibdmk[gene_name %in% pltg]
+pltmk <- dcast(pltmk,gene_name~cluster,value.var="mean.AUC",fill = 0)
+pltmk <- as.data.frame(pltmk)
+rownames(pltmk) <- pltmk$gene_name
+pltmk$gene_name <- NULL
+
+
+
+### add axis labels: https://stackoverflow.com/questions/17538830/x-axis-and-y-axis-labels-in-pheatmap-in-r
+library(grid)
+pdf("plots/Manuscript/2G-Marker_heatmap.pdf",height=6,width=3)
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.95, height=0.97, name="vp", just=c("right","top"))), action="prepend")
+pheatmap::pheatmap(pltmk,cluster_rows = T,cluster_cols=F,treeheight_row = 0,fontsize_row = 8,fontsize_col = 10,fontsize = 8)
+setHook("grid.newpage", NULL, "replace")
+grid.text("Visium Domain (k=15)", y=-0.005, gp=gpar(fontsize=11))
+grid.text("Gene Symbol", x=-0.02, rot=90, gp=gpar(fontsize=11))
+
+
+dev.off()
 ```
 R version 4.3.1 (2023-06-16)
 Platform: aarch64-apple-darwin20 (64-bit)

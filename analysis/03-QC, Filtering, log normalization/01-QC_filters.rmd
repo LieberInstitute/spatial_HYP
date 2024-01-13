@@ -21,7 +21,7 @@ library(gridExtra)
 
 ## load pre-assembled SPE object of unfiltered data
 ```{r}
-load("data/spe_raw_w-V13M13-362.Rdata")
+load("processed-data/02_build_spe/spe_raw_w-V13M13-362.Rdata")
 hyp <- spe
 
 rm(spe)
@@ -57,7 +57,6 @@ sum(colData(hyp)$expr_chrM_ratio > 0.5,na.rm=T)
 # FILL IN NUMBER OF SPOTS
 
 # let's go with 50% as the cutoff, considering how few spots cross that threshold and the biology of the signal.
-hyp2 <- hyp2[,hyp2$expr_chrM_ratio<0.5]
 ```
 
 ### UMIs per spot
