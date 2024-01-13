@@ -114,7 +114,7 @@ spe$overlaps_tissue <-
 
 ## Save with and without dropping spots outside of the tissue
 spe_raw <- spe
-saveRDS(spe_raw, file = here::here("processed-data", "02_build_spe", "spe_raw_w_V13M13-362.RDS"))
+save(spe_raw, file = here::here("processed-data", "02_build_spe", "spe_raw_w_V13M13-362.RData"))
 
 ## Now drop the spots outside the tissue
 spe <- spe_raw[, spe_raw$in_tissue]
@@ -128,7 +128,7 @@ if (any(colSums(counts(spe)) == 0)) {
   dim(spe)
 }
 
-saveRDS(spe, file = here::here("processed-data", "02_build_spe", "spe_w-V13M13-362.RDS"))
+save(spe, file = here::here("processed-data", "02_build_spe", "spe_w-V13M13-362.RData"))
 
 ## Reproducibility information
 print("Reproducibility information:")
