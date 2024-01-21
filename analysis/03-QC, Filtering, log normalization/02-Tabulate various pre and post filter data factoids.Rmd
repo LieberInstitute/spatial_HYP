@@ -1,0 +1,109 @@
+---
+title: "02-Tabulate various pre and post filter data factoids"
+author: "Bernard Mulvey"
+date: "2024-01-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(SpatialExperiment)
+library(BiocParallel)
+library(parallel)
+library(magrittr)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+```
+
+get SPEs
+```{r}
+# original SPE, all spots
+load("processed-data/02_build_spe/spe_raw_w_V13M13-362.Rdata")
+unfilt <- spe_raw
+rm(spe_raw)
+
+# all spots overlapping tissue after alignment
+alltissu <- unfilt[,unfilt$in_tissue]
+
+# filtered, analyzed data
+hyp2 <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+# looks how i didn't run code to remove genes that had no counts after filtering out non-tissue spots or after filtering altogether etc when making the analysis SPE
+hyp2 <- hyp2[rownames(hyp2) %in% rownames(alltissu),]
+stopifnot(identical(nrow(hyp2),nrow(alltissu)))
+```
+
+
+```{r}
+spelist <- list(unfilt,alltissu,hyp2)
+names(spelist) <- c("raw","tiss_spots","final")
+
+sbp <- MulticoreParam(3)
+spemetrics <- bplapply(spelist,BPPARAM = sbp,FUN=function(x){
+    # coldata to d.t
+    tmp1 <- as.data.table(colData(x))
+    
+    # result table holder
+    outtab <- as.data.table(unique(colData(x)[,c("sample_id","brnum")]))
+    
+    # the next several lines work because we haven't shuffled around the colData at all. a skeptic could confirm that by making each of these tables as above and merging them all, which is just clunkier
+    tmp1[,nspots:=.N,by="sample_id"]
+    tmp1[,mean_umis:=mean(sum_umi,na.rm=T),by="sample_id"]
+    tmp1[,mean_genes:=mean(sum_gene,na.rm=T),by="sample_id"]
+    tmp1[,median_umis:=median(sum_umi,na.rm=T),by="sample_id"]
+    tmp1[,median_genes:=median(sum_gene,na.rm=T),by="sample_id"]
+    outtab <- merge.data.table(outtab,tmp1[,.(sample_id,brnum,nspots,mean_umis,mean_genes,median_umis,median_genes)],by=c("sample_id","brnum"))
+    outtab <- unique(outtab)
+    return(outtab)
+})
+rm(spelist)
+gc(full=T)
+
+### tabulate
+i<-1
+for (i in c(1:length(spemetrics))){
+    setnames(spemetrics[[i]],c(3:ncol(spemetrics[[i]])),paste0(
+        names(spemetrics)[i],
+        "_",
+        names(spemetrics[[i]])[c(3:ncol(spemetrics[[i]]))]
+        ))
+    if(i==1){restab <- copy(spemetrics[[i]])}
+    else{restab <- merge.data.table(restab,spemetrics[[i]],by=c("sample_id","brnum"))}
+}
+rm(i)
+
+## calculate changes in each metric (tiss vs raw, final vs raw, final vs tiss)
+val1 <- c("tiss_spots_","final_","final_")
+val2 <- c("raw_","raw_","tiss_spots_")
+mets <- c("nspots","mean_genes","median_genes","mean_umis","median_umis")
+
+i<-1
+for (i in c(1:length(val1))){
+    curv1 <- val1[i]
+    curv2 <- val2[i]
+    
+    j <- 1
+    for (j in c(1:length(mets))){
+        getv1 <- paste0(curv1,mets[j])
+        getv2 <- paste0(curv2,mets[j])
+
+        restab[,newcol:=get(getv1)-get(getv2)]
+        newname <- paste0(mets[j],"_",curv1,"vs_",curv2)
+        newname %<>% gsub(x=.,pattern="^(.*)_$",replacement="\\1")
+        setnames(restab,"newcol",newname)
+    }
+    rm(j,curv1,curv2)
+}
+rm(i)
+
+fwrite(restab,"data/03-QC_filters/02-UMI_gene_nspot_metrics_pre-and-post-filter.txt",sep='\t',quote=F)
+```
