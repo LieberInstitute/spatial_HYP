@@ -88,8 +88,10 @@ pdf("plots/Manuscript/3A-ANKRD34B.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("ANKRD34B")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    ggtitle("ANKRD34B (V12Y31-\n080_A1 - Male)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
 dev.off()
 
 rm(ank,p,anklab)
@@ -116,8 +118,10 @@ pdf("plots/Manuscript/3B-LAMP5.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("LAMP5")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    ggtitle("LAMP5 (V12D05-\n350_D1 - Female)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(lamp,lamplab,p)
@@ -144,7 +148,9 @@ p+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
     ggtitle("GABRE")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(gabre,gabrelab,p)
@@ -172,7 +178,9 @@ p+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
     ggtitle("CYP26A1")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(cyp,cyplab,p)
@@ -182,16 +190,20 @@ rm(cyp,cyplab,p)
 ###########################
 
 ### intra-VMH SVG: NMU ###
+### since we show both ARC domains in the other SVG panel (GAL), we will here too ###
 ```{r}
 ### extract sample to plot ###
 nmu <- hyp2[,hyp2$sample_id=="V12D05-350_D1"]
 rownames(nmu) <- rowData(nmu)$gene_name
 colData(nmu)$`log counts` <- logcounts(nmu)["NMU",]
-nmulab <- copy(bscl.vmharc)[rn %in% colnames(nmu)]
-nmulab <- DataFrame(nmulab)
-rownames(nmulab) <- nmulab$rn
+nmulab <- copy(as.data.table(bscl))[rn %in% colnames(nmu)]
+nmulab[cl=="X3",cl:="ARC.1"]
+nmulab[cl=="X5",cl:="ARC.2"]
+nmulab[cl %in% c("X11","X12"),cl:="VMH"]
+nmulab[!(cl %in% c("ARC.1","ARC.2","VMH")),cl:="NA"]
+nmulab <- DataFrame(nmulab,row.names=nmulab$rn)
 
-nmu$Domain <- factor(nmulab$cl2,levels=c("VMH","ARC"))
+nmu$Domain <- factor(nmulab$cl,levels=c("VMH","ARC.1","ARC.2"))
 ### make spotplots
 p <- make_escheR(nmu)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
@@ -199,10 +211,12 @@ p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
 pdf("plots/Manuscript/3X-NMU-VMHsvg.pdf",height=1.75,width=2)
 p+
-    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_color_manual(values=c("purple","darkgreen","green"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("nmu")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    ggtitle("NMU")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(nmu,nmulab,p)
@@ -234,13 +248,87 @@ pdf("plots/Manuscript/3X-GAL-ARCsvg.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=c("purple","darkgreen","green"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("gal")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    ggtitle("GAL")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(gal,gallab,p)
 
 ```
+
+### for escher plots, extract two legends: one for the collapsed domains to be shared across all 4 panels and one for the split arc (SVG) domains and plot each once so they aren't taking up space. (plus, they're impossible to read as open circles so we can change that here too).
+```{r}
+### custom function to extrct legend from one plot to extend to all ###
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+
+### run the first part of the code used to generate the marker panels but with the fill legend changed to be the domains factored in the same order
+gabre <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(gabre) <- rowData(gabre)$gene_name
+colData(gabre)$`log counts` <- logcounts(gabre)["GABRE",]
+gabrelab <- copy(bscl.vmharc)[rn %in% colnames(gabre)]
+gabrelab <- DataFrame(gabrelab)
+rownames(gabrelab) <- gabrelab$rn
+
+gabre$Domain <- factor(gabrelab$cl2,levels=c("VMH","ARC"))
+### make a ggplot of nothing in particular, we just want the legend
+p <- ggplot(as.data.table(colData(gabre))[!is.na(Domain)],aes(x=sum_umi,y=expr_chrM_ratio,color=Domain))+
+    geom_point()+
+    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+
+pl <- extract_legend(p)
+dev.off()
+
+
+# save in dimension ~equiv to the dimensions of a legend included in one panel
+pdf("plots/Manuscript/3A-3D shared legend.pdf",height=0.6,width=0.45)
+do.call("grid.arrange",list(pl))
+dev.off()
+
+rm(gabre,gabrelab)
+```
+
+## make a 3-domain ARC legend as well
+```{r}
+### run the first part of the code used to generate the marker panels but with the fill legend changed to be the domains factored in the same order
+gal <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(gal) <- rowData(gal)$gene_name
+colData(gal)$`log counts` <- logcounts(gal)["GAL",]
+
+gallab <- copy(as.data.table(bscl))[rn %in% colnames(gal)]
+gallab[cl=="X3",cl:="ARC.1"]
+gallab[cl=="X5",cl:="ARC.2"]
+gallab[cl %in% c("X11","X12"),cl:="VMH"]
+gallab[!(cl %in% c("ARC.1","ARC.2","VMH")),cl:="NA"]
+
+gallab <- DataFrame(gallab)
+rownames(gallab) <- gallab$rn
+
+gal$Domain <- factor(gallab$cl,levels=c("VMH","ARC.1","ARC.2"))
+### make a ggplot of nothing in particular, we just want the legend
+p <- ggplot(as.data.table(colData(gal))[!is.na(Domain)],aes(x=sum_umi,y=expr_chrM_ratio,color=Domain))+
+    geom_point()+
+    scale_color_manual(values=c("purple","darkgreen","green"),na.value = NA)+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+
+pl <- extract_legend(p)
+dev.off()
+
+# save in dimension ~equiv to the dimensions of a legend included in one panel
+pdf("plots/Manuscript/3E-3F shared legend.pdf",height=0.75,width=0.55)
+do.call("grid.arrange",list(pl))
+dev.off()
+
+rm(p,pl,gallab,gal)
+```
+
 
 ### msigdb GSEA for arc and vmh ###
 ```{r}
@@ -270,25 +358,29 @@ pltdat[pathway=="HP_CENTRAL_ADRENAL_INSUFFICIENCY",pathway:="Central adrenal ins
 pltdat[pathway=="DESCARTES_FETAL_ADRENAL_SYMPATHOBLASTS",pathway:="Fetal adrenal sympathoblasts"]
 pltdat[pathway=="GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY",pathway:="Neuropeptide signaling"]
 
+### make domain a factor so we can match it to prior color schemes
+pltdat$spdom <- factor(pltdat$spdom,levels=c("VMH","ARC"))
+pltdat$spdom
 ### q: omg Github copilot just paid for itself thank you!!
 # a: you're welcome
 
 ### plot:
-pdf("plots/Manuscript/3X-marker_msigdb_GSEA.pdf",height=3,width=6)
-ggplot(pltdat,aes(y=pathway,x=-log10(padj)))+
-    geom_point(aes(col=genesource,size=NES,shape=spdom))+
-    ylab("Term")+
+pdf("plots/Manuscript/3X-marker_msigdb_GSEA.pdf",height=3.5,width=3)
+ggplot(pltdat,aes(x=pathway,y=-log10(padj)))+
+    geom_point(aes(col=spdom,size=NES))+
+    xlab("Term")+
     scale_size(guide="none")+
     # scale_color_manual(values=wc2cols)+
-    xlab("-log10 (GSEA FDR)")+
-    labs(col="Source Database",shape="Region")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed")+
-    guides(col=guide_legend(byrow=T))+
-    # ^ necess. to get spacing to work in theme
-    guides(shape=guide_legend(override.aes=list(size = 2.5)),
-           col=guide_legend(override.aes=list(size=2.5)))+
+    ylab("-log10\nFDR")+
+    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    labs(col="Domain")+
+    geom_hline(yintercept=-log10(0.05),linetype="dashed")+
+    # guides(col=guide_legend(byrow=T))+
+    # # ^ necess. to get spacing to work in theme
+    # guides(col=guide_legend(override.aes=list(size=2.5)))+
+    guides(col="none")+
     # ^ make legend points bigger
-    theme(axis.text.y = element_text(size = 10,angle=30,vjust=1), axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 10), legend.text = element_text(size=9), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.125, "in"),axis.title.y=element_text(size=11))
+    theme(axis.text.y = element_text(size = 10), axis.title.y=element_text(size=11), axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 10.5,angle=-90,hjust=0,vjust=0.5), legend.text = element_text(size=9), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.125, "in"))
 dev.off()
 
 
@@ -325,22 +417,27 @@ pltdat[pathway=="PMC8093144-Table_3.docx-0-Table-3_Presumptive_AR_Cofactors_In_A
 pltdat[pathway=="INSM1_DEFICIENCY_MOUSE_GSE46139_CREEDSID_GENE_299_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
 pltdat[pathway=="INSM1_DEFICIENCY_MOUSE_GSE46139_CREEDSID_GENE_299_DOWN_TF_Perturbations_Followed_by_Expression",pathway:="INSM1 (KO DEGs)"]
 
+# reorder domains so we can easily assign colors matching the general scheme
+pltdat[,spdom:=factor(spdom,levels=c("VMH","ARC"))]
 
-pdf("plots/Manuscript/3X-marker_TFtargs_GSEA.pdf",height=2,width=6)
+## addd a newline to GEO TF Perturbations to save whitespace
+pltdat[source=="GEO TF Perturbations",source:="GEO TF\n Perturbations"]
+
+pdf("plots/Manuscript/3X-marker_TFtargs_GSEA.pdf",height=2,width=4)
 ggplot(pltdat,aes(y=pathway,x=-log10(padj)))+
-    geom_point(aes(col=source,size=NES,shape=spdom))+
+    geom_point(aes(col=spdom,size=NES,shape=source))+
     ylab("Term")+
     scale_size(guide="none")+
-    # scale_color_manual(values=wc2cols)+
+    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     xlab("-log10 (GSEA FDR)")+
-    labs(col="Source Database",shape="Region")+
+    labs(col="Domain",shape="Source Database")+
     geom_vline(xintercept=-log10(0.05),linetype="dashed")+
     guides(col=guide_legend(byrow=T))+
     # ^ necess. to get spacing to work in theme
-    guides(shape=guide_legend(override.aes=list(size = 2.5)),
-           col=guide_legend(override.aes=list(size=2.5)))+
+    guides(col=guide_legend(override.aes=list(size=2.5)),
+           shape=guide_legend(override.aes=list(size = 2.5)))+
     # ^ make legend points bigger
-    theme(axis.text.y = element_text(size = 10,angle=30,vjust=1), axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 10), legend.text = element_text(size=9), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.125, "in"),axis.title.y=element_text(size=11))
+    theme(axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 10), legend.text = element_text(size=9,hjust = 0.5), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.005, "in"),axis.title.y=element_text(size=11))
 dev.off()
 
 rm(pltdat,mktfres)
@@ -361,23 +458,25 @@ mkdis[spdom=="XARC",spdom:="ARC"]
 mkdis[spdom=="X1",spdom:="WM.1"]
 mkdis[spdom=="X9",spdom:="WM.2"]
 
+mkdis <- mkdis[spdom %in% c("VMH","ARC","WM.1","WM.2")]
 # reorder to plot domains of interest first
-mkdis[,spdom:=factor(spdom,levels=c("VMH","ARC","WM.1","WM.2",paste0("X",c(2,4,6:8,10,13:15))))]
+mkdis[,spdom:=factor(spdom,levels=c("VMH","ARC","WM.1","WM.2"))]
 
 mkdis[,signif:=ifelse(padj<0.05,yes="*",no="")]
 setnames(mkdis,"padj","FDR")
 
-pdf("plots/Manuscript/3X-marker_disease_GSEA.pdf",height=3.5,width=3.5)
-ggplot(mkdis,aes(x=spdom,y=pathway,fill=-log10 (FDR)))+
+pdf("plots/Manuscript/3X-marker_disease_GSEA.pdf",height=2,width=3.4)
+ggplot(mkdis,aes(y=spdom,x=pathway,fill=-log10 (FDR)))+
     geom_tile()+
-    geom_text(aes(label=signif),size=6)+
+    geom_text(aes(label=signif),size=2,nudge_y=0)+
     scale_x_discrete(expand = c(0,0)) +
     scale_y_discrete(expand = c(0,0)) +
     scale_fill_gradient(low="white",high="red")+
-    theme(plot.background = element_blank(),axis.line = element_blank(),panel.grid = element_blank(),panel.border = element_blank(),axis.text.x = element_text(angle=90,vjust=0.5,hjust=1,size=10),axis.text.y = element_text(size=10),axis.title.x = element_text(size = 11), axis.title.y = element_text(size = 11), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,0))+
-    ylab("Disease Gene Set")+
-    xlab("Region")
-
+    labs(fill="-log10\n(FDR)")+
+    theme(plot.background = element_blank(),axis.line = element_blank(),panel.grid = element_blank(),panel.border = element_blank(),axis.text.x = element_text(angle=90,vjust=0.5,hjust=1,size=10),axis.text.y = element_text(size=10),axis.title.x = element_text(size = 11), axis.title.y = element_text(size = 11), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5),legend.margin = margin(0,0,0,0),legend.key.height = unit(0.125,"in"))+
+    xlab("Disease Gene Set")+
+    ylab("Domain")
+# ^ okay, whatever legend.key.height is using to define "0.25 inches" is wildly off. had to fiddle with that number til it worked
 dev.off()
 ```
 

@@ -19,6 +19,7 @@ library(ggplot2) # Dependency for several plotting functions
 library(gridExtra)
 library(SpatialExperiment) # Dependency
 library(escheR) # spotplots with domain outlines
+library(ggrepel) # for plotting labels on a volcano cleanly
 require(colorout) # Utility for RStudio
 ColorOut() 
 
@@ -73,23 +74,36 @@ rm(tmpcd)
 ```{r}
 sexderes <- fread("data/09-Sex DE/01c-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 
+sexderes <- sexderes[!(chromosome_name %in% c("chrX","chrY","chrMT"))]
 
-vmhvol <- ggplot(sexderes[assay=="VMH"],aes(y=-log10(P.Value),x=logFC))+
-    geom_point(size=0.9,col="#001859")+
+vmhde <- sexderes[assay=="VMH"]
+vmhde[,genelabel:=as.character(NA)]
+vmhde[gene_name %in% c("CACNA1D", "ANKRD17", "PTGR1", "HACE1"),genelabel:=gene_name]
+
+vmhvol <- ggplot(vmhde,aes(y=-log10(P.Value),x=logFC))+
+    geom_point(size=0.6,col="#001859")+
     geom_hline(yintercept=-log10(0.05),linetype="dashed",color="black")+
     geom_hline(yintercept=-log10(max(sexderes[adj.P.Val<0.05&assay=="VMH",P.Value])),linetype="dashed",color="red")+
+    geom_text_repel(aes(y=-log10(P.Value),x=logFC,label = ifelse(is.na(genelabel), "",gene_name)),nudge_y =-0.2,nudge_x=0.5,min.segment.length = 0)+
     xlab("VMH logFC\n(Male vs. Female)")+
     ylab("-log10 (p-value)")+
+    xlim(-2.25,2.25)+
     theme(axis.title.x=element_text(size=11),axis.text.x = element_text(size=10),axis.title.y = element_text(size=11),axis.text.y=element_text(size=10))
 
 #dl.jt.res[assay=="VMH"&-log10(P.Value)>12] # label PTGR1, ANKRD17, NAB2, BCR
 
-arcvol <- ggplot(sexderes[assay=="ARC"],aes(y=-log10(P.Value),x=logFC))+
-    geom_point(size=0.9,col="#058a00")+
+arcde <- sexderes[assay=="ARC"]
+arcde[,genelabel:=as.character(NA)]
+arcde[gene_name %in% c("PENK", "IGFLR1", "IGFBP6","CAPS2"),genelabel:=gene_name]
+
+arcvol <- ggplot(arcde,aes(y=-log10(P.Value),x=logFC))+
+    geom_point(size=0.6,col="#058a00")+
     geom_hline(yintercept=-log10(0.05),linetype="dashed",color="black")+
     geom_hline(yintercept=-log10(max(sexderes[adj.P.Val<0.05&assay=="ARC",P.Value])),linetype="dashed",color="red")+
+    geom_text_repel(aes(y=-log10(P.Value),x=logFC,label = ifelse(is.na(genelabel), "",gene_name)),nudge_y = 6,nudge_x=sign(arcde$logFC)*0.65,min.segment.length = 0)+
     xlab("ARC logFC\n(Male vs. Female)")+
     ylab("-log10 (p-value)")+
+    xlim(-3,3)+
     theme(axis.title.x=element_text(size=11),axis.text.x = element_text(size=10),axis.title.y = element_text(size=11),axis.text.y=element_text(size=10))
 
 arcvmh <- merge.data.table(sexderes[assay=="VMH",.(ID,logFC)],sexderes[assay=="ARC",.(ID,logFC)],by="ID",suffixes=c("_VMH","_ARC"))
@@ -99,7 +113,7 @@ cor(arcvmh$logFC_ARC,arcvmh$logFC_VMH,method="pearson")
 arcvmhcor <- ggplot(arcvmh,aes(x=logFC_VMH,y=logFC_ARC))+
     geom_point(size=0.9,col="#157e82")+
     geom_abline(slope=1,intercept=0,linetype="dashed",col="black")+
-    geom_text(aes(x=-1.4,y=2.6),label="Pearson Coef=0.514",size=2.5)+
+    geom_text(aes(x=-1.2,y=2.6),label="Pearson Coef=0.512",size=2.5)+
     xlim(-2.6,2.6)+
     ylim(-2.6,2.6)+
     xlab("logFC VMH")+
@@ -120,55 +134,63 @@ rm(arcvmhcor,vmhvol,arcvol,plts,arcvmh)
 ```
 
 ## Fig 4D-E/F-G: sex DEG spotplots
-D-E: HRH1 in ARC (FDR 0.02)
+D-E: PTGR1 in VMH (2E-9)
 F-G: RXRG in ARC (FDR 0.09)
 ```{r}
-hrhM <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(hrhM) <- rowData(hrhM)$gene_name
-colData(hrhM)$`log counts` <- logcounts(hrhM)["HRH1",]
-hrhlab <- copy(bscl.vmharc)[rn %in% colnames(hrhM)]
-hrhlab <- DataFrame(hrhlab)
-rownames(hrhlab) <- hrhlab$rn
+ptgrM <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(ptgrM) <- rowData(ptgrM)$gene_name
+colData(ptgrM)$`log counts` <- logcounts(ptgrM)["PTGR1",]
+ptgrlab <- copy(bscl.vmharc)[rn %in% colnames(ptgrM)]
+ptgrlab <- DataFrame(ptgrlab)
+rownames(ptgrlab) <- ptgrlab$rn
 
-hrhM$Domain <- factor(hrhlab$cl2,levels=c("VMH","ARC"))
+
+ptgrM$Domain <- factor(ptgrlab$cl2,levels=c("VMH","ARC"))
+ptgrM <- ptgrM[,ptgrM$Domain %in% c("VMH","ARC")]
 ### make spotplots
-p <- make_escheR(hrhM)
+p <- make_escheR(ptgrM)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/4D-HRH1_ARCsexDE_M.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/4D-PTGR1_VMHsexDE_F_malesamp.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("HRH1-Male")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    ggtitle("PTGR1 (V12Y31-\n080_A1 - Male)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+    #theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
 dev.off()
 
-rm(hrhM,p,hrhlab)
+rm(ptgrM,p,ptgrlab)
 
 ### 
-hrhF <- hyp2[,hyp2$sample_id=="V12D05-350_C1"]
-rownames(hrhF) <- rowData(hrhF)$gene_name
-colData(hrhF)$`log counts` <- logcounts(hrhF)["HRH1",]
-hrhlab <- copy(bscl.vmharc)[rn %in% colnames(hrhF)]
-hrhlab <- DataFrame(hrhlab)
-rownames(hrhlab) <- hrhlab$rn
+ptgrF <- hyp2[,hyp2$sample_id=="V13M13-362_D1"]
+rownames(ptgrF) <- rowData(ptgrF)$gene_name
+colData(ptgrF)$`log counts` <- logcounts(ptgrF)["PTGR1",]
+ptgrlab <- copy(bscl.vmharc)[rn %in% colnames(ptgrF)]
+ptgrlab <- DataFrame(ptgrlab)
+rownames(ptgrlab) <- ptgrlab$rn
 
-hrhF$Domain <- factor(hrhlab$cl2,levels=c("VMH","ARC"))
+ptgrF$Domain <- factor(ptgrlab$cl2,levels=c("VMH","ARC"))
+ptgrF <- ptgrF[,ptgrF$Domain %in% c("VMH","ARC")]
 ### make spotplots
-p <- make_escheR(hrhF)
+p <- make_escheR(ptgrF)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/4E-HRH1_ARCsexDE_F.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/4E-PTGR1_VMHsexDE_F_femsamp.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("HRH1-Female")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    ggtitle("PTGR1 (V13M13-\n362_D1 - Female)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
-rm(hrhF.p,hrhF,p,hrhlab)
+rm(ptgrF.p,ptgrF,p,ptgrlab)
 ```
 
 ```{r}
@@ -180,17 +202,20 @@ rxrlab <- DataFrame(rxrlab)
 rownames(rxrlab) <- rxrlab$rn
 
 rxrM$Domain <- factor(rxrlab$cl2,levels=c("VMH","ARC"))
+rxrM <- rxrM[,rxrM$Domain %in% c("VMH","ARC")]
 ### make spotplots
 p <- make_escheR(rxrM)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/4F-RXRG_ARCsexDE_M.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/4F-RXRG_ARCsexDE_M_malesamp.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("RXRG-Male")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    ggtitle("RXRG (V12Y31-\n080_A1 - Male)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(rxrM,p,rxrlab)
@@ -204,20 +229,58 @@ rxrlab <- DataFrame(rxrlab)
 rownames(rxrlab) <- rxrlab$rn
 
 rxrF$Domain <- factor(rxrlab$cl2,levels=c("VMH","ARC"))
+rxrF <- rxrF[,rxrF$Domain %in% c("VMH","ARC")]
 ### make spotplots
 p <- make_escheR(rxrF)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/4G-RXRG_ARCsexDE_F.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/4G-RXRG_ARCsexDE_M_femsamp.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("RXRG-Female")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+    ggtitle("RXRG (V12D05-\n350_C1 - Female)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(rxrF,p,rxrlab)
+```
+
+Shared legend: 4D thru 4G
+```{r}
+### custom function to extrct legend from one plot to extend to all ###
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+
+### run the first part of the code used to generate the marker panels but with the fill legend changed to be the domains factored in the same order
+gabre <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(gabre) <- rowData(gabre)$gene_name
+colData(gabre)$`log counts` <- logcounts(gabre)["GABRE",]
+gabrelab <- copy(bscl.vmharc)[rn %in% colnames(gabre)]
+gabrelab <- DataFrame(gabrelab)
+rownames(gabrelab) <- gabrelab$rn
+
+gabre$Domain <- factor(gabrelab$cl2,levels=c("VMH","ARC"))
+### make a ggplot of nothing in particular, we just want the legend
+p <- ggplot(as.data.table(colData(gabre))[!is.na(Domain)],aes(x=sum_umi,y=expr_chrM_ratio,color=Domain))+
+    geom_point()+
+    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+
+pl <- extract_legend(p)
+dev.off()
+
+
+# save in dimension ~equiv to the dimensions of a legend included in one panel
+pdf("plots/Manuscript/4D-G shared legend.pdf",height=0.6,width=0.45)
+do.call("grid.arrange",list(pl))
+dev.off()
 ```
 
 ```{r}
