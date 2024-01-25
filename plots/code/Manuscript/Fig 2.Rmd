@@ -21,6 +21,8 @@ library(SpatialExperiment) # Dependency
 library(spatialLIBD) # Fig 2A
 library(scater) # Fig 2B
 require(colorout) # Utility for RStudio
+library(Polychrome) # Generate a visually-discernible palette for 15 colors
+
 ColorOut() 
 
 # code reformatting in Rstudio
@@ -60,8 +62,64 @@ colData(hyp2) <- tmpcd
 hyp2$label <- factor(hyp2$label,levels=c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2",paste0("X",c(2,4,6:8,10,13:15))))
 ```
 
+## ONE-TIME RUN: build the palette for ALL figures. feed in the colors we intend to use for VMH (first two), ARC (next two), and WM (last two) as seedColors to prevent similar colors from being included in the palette.
+```{r}
+# set.seed(424242)
+# pal <- Polychrome::createPalette(N = 15,M=50000,seedcolors = c("#4a2881","#660053","#058a00","#009682","#4d4d4d","#bababa"),range=c(20,70))
+# preview
+# swatch(pal)
+# keep 1:9,12
+# newseed <- pal[c(1:9,12)]
+# set.seed(84848484)
+# pal2 <- Polychrome::createPalette(N = 15,M=90000,seedcolors = newseed,range=c(20,80))
+# swatch(pal2)
+
+## ugh, alright so now also keep 10, 11, 13, 14. 11 and 12 look too much alike though and 15 is too ambiguously like several others.
+# newseed2 <- pal2[c(1:11,13:14)]
+# set.seed(84848484)
+# pal3 <- Polychrome::createPalette(N = 15,M=90000,seedcolors = newseed2,range=c(20,80))
+# swatch(pal3)
+
+## okay, make a 16 color palette with the first 15, and then drop 15 (still that salmon color that's too indistinct)
+# set.seed(84848484)
+# pal4 <- Polychrome::createPalette(N = 16,M=90000,seedcolors = pal3,range=c(20,80))
+# swatch(pal4)
+
+# THERE we go.
+# pal <- pal4[c(1:14,16)]
+# pal values: "#3B3B5C","#6A0D53","#269422","#169482","#3D4047","#A9A7A9","#F70022","#551CFD","#F59B26","#00B3FD","#FF0DF7","#D193FE","#D1CA1C","#FB479F"
+
+# swatch(pal)
+# beautiful
+
+# tweaked the first color to be more vibrant after feedback from JHU spatial group.
+# pal <- c("#4a2881",pal[2:14])
+# saveRDS(pal,"plots/Manuscript/k15_palette.RDS")
+
+
+# rm(pal,pal2,pal3,pal4,newseed,newseed2)
+```
+
+# load palette and assign names for consistency in color-cluster assignments between libdspatial and the generated legend below
+
+```{r}
+pal <- readRDS("plots/Manuscript/k15_palette.RDS")
+names(pal) <- levels(hyp2$label)
+```
+
 ### Panel A: k15 clustering ###
 ### run this block twice -- the first time its run, axes will come out with numbers on the first sample ###
+
+### custom function to extrct legend from one plot to extend to all ###
+```{r}
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+```
+
 ```{r}
 ### extract two samples to plot ###
 tmp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
@@ -71,21 +129,12 @@ hyp2samp <- cbind(hyp2samp,tmp)
 rm(tmp)
 gc(full=T)
 
-### custom function to extrct legend from one plot to extend to all ###
-extract_legend <- function(my_ggp) {
-  step1 <- ggplot_gtable(ggplot_build(my_ggp))
-  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
-  step3 <- step1$grobs[[step2]]
-  return(step3)
-}
-
-pal <- Polychrome::createPalette(N = 15,seedcolors = c("#001859","#660053","#058a00","#009682","#4d4d4d","#bababa"))
-pal[1:6] <- c("#001859","#660053","#058a00","#009682","#4d4d4d","#bababa")
-
-# next line is needed for consistency in color-cluster assignments between libdspatial and the generated legend below
-names(pal) <- levels(hyp2$label)
     
 ## create a unified legend spanning all possible cluster values (regardless of presence in a given sample)
+# ## make sure the legend is generated from data with all 15 clusters present
+# length(unique(hyp2samp$label))
+# 15
+
 leg.tmp <- ggplot(as.data.table(colData(hyp2samp))[,.(label,array_row,array_col)],aes(x=array_row,y=array_col,col=label))+geom_point()+
         scale_color_manual(values=as.character(pal))+theme(
                     legend.text = element_text(size = 9),
@@ -120,7 +169,7 @@ plt <- lapply(
 )
 
     
-pdf("plots/Manuscript/2A-Bayesspace k15 cluster spotplots.pdf",height=6,width=4)
+pdf("plots/Manuscript/2A-Bayesspace k15 cluster spotplots.pdf",height=5,width=3.75)
 ### arrangeGrob() on the spotplot list --> 2x1 of plots from that list only, constituting the "first column" of the parent; leg.tmp2 is an additional thing being plotted in the second column of the parent.
 do.call("grid.arrange",list(arrangeGrob(grobs=plt,ncol=1,nrow=2),leg.tmp2,ncol=2,widths=c(3,1)))
 dev.off()
@@ -134,13 +183,26 @@ rm(plt,leg.tmp,leg.tmp2,hyp2samp)
 rownames(hyp2) <- rowData(hyp2)$gene_name
 hypselect <- hyp2[,hyp2$label %in% c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2")]
 
-cairo_pdf("plots/Manuscript/2B-Marker violins.pdf",height=6,width=4)
+## easiest way to get strip titles to show as desired is to just rename the variable (rowname) being used to title them:
+hypselect <- hypselect[c("NR5A1","AGRP","FEZF1","NPY","LAMP5","POMC","ADCYAP1","GHRH","MBP","ERMN"),]
+stopifnot(nrow(hypselect)==10)
+# check that the rownames are in the order we listed above before modifying
+rownames(hypselect)
+# okay, so we can do this:
+mknm <- cbind(rownames(hypselect),c(rep(c(" (VMH)", " (ARC)"),4)," (WM)"," (WM.2)"))
+rownames(hypselect) <- unlist(lapply(c(1:10),function(x){paste0(mknm[x,1],mknm[x,2])}))
 
-plotExpression(hypselect,features=c("LAMP5","AGRP","ANKRD34B","NPY","NR5A1","POMC","FEZF1","GAD1","SLC17A6","GAD2","ADCYAP1","GHRH","MBP","ERMN"),colour_by = "label",x="label",scales = "free_y",ncol = 2,point_fun = function(...) geom_quasirandom_rast(..., width=0.4, groupOnX=TRUE, bandwidth=1,size=0.2,alpha=0.8,dev="cairo",raster.dpi=600))+
+#
+
+# save plot
+cairo_pdf("plots/Manuscript/2B-Marker violins.pdf",height=2.5,width=3.75)
+
+plotExpression(hypselect,features=rownames(hypselect),colour_by = "label",x="label",scales = "free_y",ncol = 2,point_fun = function(...) geom_quasirandom_rast(..., width=0.4, groupOnX=TRUE, bandwidth=1,size=0.2,alpha=0.8,dev="cairo",raster.dpi=600))+
     scale_color_manual(values=pal)+
     guides(color="none")+
-    theme(axis.text.x=element_text(angle=90,vjust=0.5))
-    
+    scale_y_continuous(n.breaks=3)+
+    theme(axis.title = element_text(size=9),axis.text.y=element_text(size=8),axis.title.x = element_blank(),axis.text.x=element_blank(),strip.background = element_blank(),strip.text=element_text(size=9))
+
 dev.off()
 
 rm(hypselect)
