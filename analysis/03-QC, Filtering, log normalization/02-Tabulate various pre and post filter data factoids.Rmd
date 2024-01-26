@@ -48,6 +48,7 @@ spelist <- list(unfilt,alltissu,hyp2)
 names(spelist) <- c("raw","tiss_spots","final")
 
 sbp <- MulticoreParam(3)
+register(sbp)
 spemetrics <- bplapply(spelist,BPPARAM = sbp,FUN=function(x){
     # coldata to d.t
     tmp1 <- as.data.table(colData(x))
@@ -100,10 +101,32 @@ for (i in c(1:length(val1))){
         newname <- paste0(mets[j],"_",curv1,"vs_",curv2)
         newname %<>% gsub(x=.,pattern="^(.*)_$",replacement="\\1")
         setnames(restab,"newcol",newname)
+        rm(getv1,getv2,newname)
     }
     rm(j,curv1,curv2)
 }
-rm(i)
+rm(i,val1,val2,mets)
+```
 
+### now, get the additional sample metrics output by spaceranger and bind them in
+```{r}
+samps <- restab$sample_id
+samps # examine and append approp output dirs
+samps[1:7] <- paste0("spaceranger_230511/",samps[1:7])
+i<-1
+for (i in c(1:length(samps))){
+    curmd <- fread(paste0("processed-data/01_spaceranger/",samps[i],"/outs/metrics_summary.csv"))
+    curmd[,sample_id:=gsub(samps[i],pattern="^spaceranger_230511/(V.*)$",replacement="\\1")]
+    
+    if(i==1){addnlmd <- copy(curmd)}
+    else{addnlmd <- rbind(addnlmd,curmd)}
+    rm(curmd)
+}
+
+restab <- merge.data.table(addnlmd,restab,by="sample_id")
+```
+
+# save (will be a supp tab)
+```{r}
 fwrite(restab,"data/03-QC_filters/02-UMI_gene_nspot_metrics_pre-and-post-filter.txt",sep='\t',quote=F)
 ```

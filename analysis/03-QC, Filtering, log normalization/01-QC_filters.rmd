@@ -21,7 +21,7 @@ library(gridExtra)
 
 ## load pre-assembled SPE object of unfiltered data
 ```{r}
-load("processed-data/02_build_spe/spe_raw_w-V13M13-362.Rdata")
+load("processed-data/02_build_spe/spe_raw_w_V13M13-362.Rdata")
 hyp <- spe_raw
 rm(spe_raw)
 gc(full=T)
