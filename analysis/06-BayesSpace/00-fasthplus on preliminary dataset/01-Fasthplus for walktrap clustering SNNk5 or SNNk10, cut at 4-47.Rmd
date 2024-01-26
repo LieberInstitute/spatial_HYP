@@ -36,8 +36,9 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 ```
 
 ```{r}
-# list obj with SGEs of harmony-corrected embeddings for top 10, top 20%ile HVGs
-pcas <- readRDS("analysis/data/spe_053123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
+# list obj with preliminary dataset after filtering and count normalization, containing harmony-corrected embeddings for different feature sets, including top 10%ile and top 20%ile.
+# in this preliminary data, but not the final dataset, one sample was clipped to a small region where the visium data was consistent with the RNAscope from an adjacent section.
+pcas <- readRDS("SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_Harmony-PCA-UMAP.RDS")
 # subset to HVG portions of the object for memory
 pcas <- pcas[c(1:2)]
 ```
@@ -73,7 +74,6 @@ walkclusts5.4_47 <- list(walkclusts5.hvg10.4_47,walkclusts5.hvg20.4_47)
 names(walkclusts5.4_47) <- c("walK5.hvg10.cut4_47","walK5.hvg20.cut4_47")
 rm(g_walk5, h.glist5, walkclusts5.hvg10.4_47,walkclusts5.hvg20.4_47)
 gc(full=T)
-saveRDS(walkclusts5.4_47,"analysis/data/H02-clustering/sampleBlock-hvg10-20_harmonySampleBlock-walktrap-SNNk5_cutAt4-47.RDS")
 ```
 
 HVG10/HVG20, snngraph k=10, cut_at 4-47.
@@ -111,23 +111,18 @@ names(walkclusts10.4_47) <- c("walK10.hvg10.cut4_47","walK10.hvg20.cut4_47")
 
 rm(g_walk10, h.glist10, walkclusts10.hvg10.4_47,walkclusts10.hvg20.4_47)
 gc(full=T)
-
-saveRDS(walkclusts10.4_47,"analysis/data/H02-clustering/sampleBlock-hvg10-20_harmonySampleBlock-walktrap-SNNk10_cutAt4-47.RDS")
 ```
 
-Fasthplus, adapted from dlPFC 2022-23 code
+Fasthplus, adapted from dlPFC 2022-23 code (https://github.com/LieberInstitute/spatialDLPFC/tree/main/code/analysis/06_fasthplus)
 ```{r}
-walkclusts5 <- readRDS("analysis/data/H02-clustering/sampleBlock-hvg10-20_harmonyBrnumBlock-walktrap-SNNk5_cutAt4-47.RDS")
-walkclusts10 <- readRDS("analysis/data/H02-clustering/sampleBlock-hvg10-20_harmonyBrnumBlock-walktrap-SNNk10_cutAt4-47.RDS")
-
-names(walkclusts5[[1]]) <- paste0(names(walkclusts5)[1],"_",names(walkclusts5[[1]]))
-names(walkclusts5[[2]]) <- paste0(names(walkclusts5)[2],"_",names(walkclusts5[[2]]))
-names(walkclusts10[[1]]) <- paste0(names(walkclusts10)[1],"_",names(walkclusts10[[1]]))
-names(walkclusts10[[2]]) <- paste0(names(walkclusts10)[2],"_",names(walkclusts10[[2]]))
+names(walkclusts5.4_47[[1]]) <- paste0(names(walkclusts5.4_47)[1],"_",names(walkclusts5.4_47[[1]]))
+names(walkclusts5.4_47[[2]]) <- paste0(names(walkclusts5.4_47)[2],"_",names(walkclusts5.4_47[[2]]))
+names(walkclusts10.4_47[[1]]) <- paste0(names(walkclusts10.4_47)[1],"_",names(walkclusts10.4_47[[1]]))
+names(walkclusts10.4_47[[2]]) <- paste0(names(walkclusts10.4_47)[2],"_",names(walkclusts10.4_47[[2]]))
 
 # concat all clustering calls for a given HARMONY dimred (hvg 10%ile or 20%ile)
-allwalk.hvg10 <- c(walkclusts5[[1]],walkclusts10[[1]])
-allwalk.hvg20 <- c(walkclusts5[[2]],walkclusts10[[2]])
+allwalk.hvg10 <- c(walkclusts5.4_47[[1]],walkclusts10.4_47[[1]])
+allwalk.hvg20 <- c(walkclusts5.4_47[[2]],walkclusts10.4_47[[2]])
 # check names from above carried over:
 names(allwalk.hvg10)
 
@@ -184,16 +179,13 @@ fhres.hvg20 <- bplapply(X=allwalk.hvg20,BPPARAM=bpparam,BPOPTIONS=bpoptions(RNGs
     hpb(D = reducedDims(hyp2.tmp)$HARMONY, L = colData(hyp2.tmp)$label, t = updated_t, r = 100)
 })
 
-saveRDS(fhres.hvg10,"local_results_ref/fhres.hvg10.RDS")
-saveRDS(fhres.hvg20,"local_results_ref/fhres.hvg20.RDS")
-
 ### tabulate
 fhrestab <- cbind(names(fhres.hvg10),unlist(fhres.hvg10))
 fhrestab <- rbind(fhrestab,cbind(names(fhres.hvg20),unlist(fhres.hvg20)))
 fhrestab <- as.data.table(fhrestab)
 names(fhrestab) <- c("cluster_set_k","hpb")
 
-write.table(fhrestab,"analysis/data/H02-clustering/fasth_graph-based-hvg10-20_k4-47_results.txt",sep='\t',quote=F,row.names=F,col.names=T)
+# write.table(fhrestab,"fasth_graph-based-hvg10-20_k4-47_results.txt",sep='\t',quote=F,row.names=F,col.names=T)
 ```
 
 find optimal k(s)
@@ -228,5 +220,5 @@ for (i in c(1:length(unique(fhrestab$clust_cond)))){
 
 }
 
-write.table(fhresinflec,"analysis/data/H02-clustering/fasth_graph-based-hvg10-20_k4-47_psivalests.txt")
+# write.table(fhresinflec,"fasth_graph-based-hvg10-20_k4-47_psivalests.txt")
 ```
