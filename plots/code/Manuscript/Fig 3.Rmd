@@ -389,45 +389,113 @@ rm(mkres,pltdat)
 ```
 
 ### TF gsea for ARC and VMH ###
-### VMH hits of interest: NR5A1_mouse_TRRUST_Transcription_Factors_2019 , PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors , PMC8143797-elife-62857-fig4-data2.xlsx-CAMTA1_ChIP_RNAseq_merged-ENSEMBL_CAMTA1_Rummagene_transcription_factors
-### ARC: PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors , PMC8093144-Table_3.docx-0-Table-3_Presumptive_AR_Cofactors_In_AR_Pull-Down_Proteins_4_AR_Rummagene_transcription_factors , RCOR3_Transcription_Factor_PPIs
+VMH unique: RXRA, MYT1L, NR3C1
+
+ARC unique: 
+RARA
+NR2F2 (OXT repressor (Chu, Zingg), retinoid-activated (Kruse)), 
+EGR1 (CREEDSID_GENE_553 UP)
+
+Shared:
+INSM1 (DE after perturbation)
+AR (targets for VMH, activators for ARC)
+EGR1 (CREEDSID_GENE_552/553 DOWN) 
 ```{r}
-mktfres <- readRDS("data/11-GSEA/02a-Marker TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+# load results
+mktfres <- readRDS("data/11-GSEA/08-Marker TF-target GSEA results from 02a filtered to TFs expressed in avg 3pct of cluster spots and at least 1pct of cluster spots in 5samps.RDS")
 
+### filter to signif, + enriched k15 nnsvg10 60k XVMH, XARC
+pltdat <- mktfres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH"]]
+pltdat[,spdom:="VMH"]
+tmp <- mktfres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC"]] 
+tmp[,spdom:="ARC"]
+pltdat <- as.data.table(rbind(pltdat,tmp))
+rm(tmp)
+##
 
-pltdat <- mktfres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH"]][pathway %in% c("NR5A1_mouse_TRRUST_Transcription_Factors_2019" , "PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors" , "PMC8143797-elife-62857-fig4-data2.xlsx-CAMTA1_ChIP_RNAseq_merged-ENSEMBL_CAMTA1_Rummagene_transcription_factors")]
+# filter to TFs of interest to get the specific sets for plotting, then extract them regardless of stats so can plot for both ARC and VMH
+pltdat <- pltdat[tf %in% c("RXRA","MYT1L","NR3C1","RARA","NR2F2","EGR1","INSM1","AR","EGR1")]
 
-pltdat <- rbind(pltdat,mktfres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC"]][pathway %in% c("PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors" , "PMC8093144-Table_3.docx-0-Table-3_Presumptive_AR_Cofactors_In_AR_Pull-Down_Proteins_4_AR_Rummagene_transcription_factors" , "INSM1_DEFICIENCY_MOUSE_GSE46139_CREEDSID_GENE_299_DOWN_TF_Perturbations_Followed_by_Expression")])
+pways <- unique(c(pltdat[spdom=="VMH"&padj<0.05,pathway],pltdat[spdom=="ARC"&padj<0.05,pathway]))
+pltdat <- pltdat[pathway %in% pways]
+## reorder columns for ease of viewing
+pltdat <- pltdat[,c(10,3,5,6,7,1,2,4,8,9)]
+pltdat <- pltdat[NES>0]
+####
+```
 
-pltdat[spdom %in% grep(spdom,pattern="VMH",value=T),spdom:="VMH"]
-pltdat[spdom %in% grep(spdom,pattern="ARC",value=T),spdom:="ARC"]
+### browsing for sets (most signif and/or non-rummagene if possible) to subset to
+•RXRA: PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors
+•MYT1L: PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors
+•NR3C1: PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors
+•RARA: RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression
+•NR2F2: NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression
+•EGR1: EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression, EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression
+•INSM1: PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors
+•AR: PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors, PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors
 
-## clean names and data sources
-pltdat[pathway=="NR5A1_mouse_TRRUST_Transcription_Factors_2019",source:="TRRUST"]
-pltdat[pathway=="NR5A1_mouse_TRRUST_Transcription_Factors_2019",pathway:="NR5A1"]
+### subset to these "pathways" (gene sets)
+```{r}
+pltdat <- pltdat[pathway %in% c(
+    "PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",
+    "PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",
+    "RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",
+    "NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",
+    "EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",
+    "EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",
+    "PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",
+    "PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",
+    "PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors")]
+
+## add column for database source
 pltdat[pathway=="PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",pathway:="RXRA"]
-pltdat[pathway=="PMC8143797-elife-62857-fig4-data2.xlsx-CAMTA1_ChIP_RNAseq_merged-ENSEMBL_CAMTA1_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="PMC8143797-elife-62857-fig4-data2.xlsx-CAMTA1_ChIP_RNAseq_merged-ENSEMBL_CAMTA1_Rummagene_transcription_factors",pathway:="CAMTA1"]
-
+pltdat[pathway=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",source:="Rummagene"]
 pltdat[pathway=="PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors",pathway:="AR (Activators)"]
-pltdat[pathway=="PMC8093144-Table_3.docx-0-Table-3_Presumptive_AR_Cofactors_In_AR_Pull-Down_Proteins_4_AR_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="PMC8093144-Table_3.docx-0-Table-3_Presumptive_AR_Cofactors_In_AR_Pull-Down_Proteins_4_AR_Rummagene_transcription_factors",pathway:="AR (Cofactors)"]
-pltdat[pathway=="INSM1_DEFICIENCY_MOUSE_GSE46139_CREEDSID_GENE_299_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
-pltdat[pathway=="INSM1_DEFICIENCY_MOUSE_GSE46139_CREEDSID_GENE_299_DOWN_TF_Perturbations_Followed_by_Expression",pathway:="INSM1 (KO DEGs)"]
+
+## tf names for plot axis
+pltdat[pathway=="PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",tf:="RXRA"]
+pltdat[pathway=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",tf:="MYT1L"]
+pltdat[pathway=="PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",tf:="NR3C1"]
+pltdat[pathway=="RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",tf:="RARA (KD Down)"]
+pltdat[pathway=="NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",tf:="NR2F2 (KD Down)"]
+pltdat[pathway=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",tf:="EGR1 (KO Down)"]
+pltdat[pathway=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",tf:="EGR1 (KO Up)"]
+pltdat[pathway=="PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",tf:="INSM1"]
+pltdat[pathway=="PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",tf:="AR"]
+pltdat[pathway=="PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors",tf:="AR (Activators)"]
 
 # reorder domains so we can easily assign colors matching the general scheme
 pltdat[,spdom:=factor(spdom,levels=c("VMH","ARC"))]
 
 ## addd a newline to GEO TF Perturbations to save whitespace
 pltdat[source=="GEO TF Perturbations",source:="GEO TF\n Perturbations"]
+```
 
-pdf("plots/Manuscript/3X-marker_TFtargs_GSEA.pdf",height=2,width=4)
-ggplot(pltdat,aes(y=pathway,x=-log10(padj)))+
+
+# plot and save
+```{r}
+
+### for this to work, we have to manually make a double legend kinda clunkily. modified slightly from https://stackoverflow.com/questions/62541720/ggplot2-show-multiple-keys-shapes-in-size-legend -- speciifically, defining these variables below and then the scale_size_manual call.
+
+## get the breaks based on generating the plot once quick, then get a vector of the same values to feed into the legend override
+breaks <- seq(0.9, 1.8, 0.3)
+n_breaks <- length(breaks)
+labels <- c(breaks, rep("", n_breaks))
+shapes <- c(rep(16,n_breaks),rep(17,n_breaks))
+breaks2 <- rep(breaks, 2)
+## 
+pdf("plots/Manuscript/3X-marker_TFtargs_GSEA.pdf",height=3,width=4)
+ggplot(pltdat,aes(y=tf,x=-log10(padj)))+
     geom_point(aes(col=spdom,size=NES,shape=source))+
     ylab("Term")+
-    scale_size(guide="none")+
     scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
     xlab("-log10 (GSEA FDR)")+
     labs(col="Domain",shape="Source Database")+
@@ -437,10 +505,14 @@ ggplot(pltdat,aes(y=pathway,x=-log10(padj)))+
     guides(col=guide_legend(override.aes=list(size=2.5)),
            shape=guide_legend(override.aes=list(size = 2.5)))+
     # ^ make legend points bigger
-    theme(axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 10), legend.text = element_text(size=9,hjust = 0.5), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.005, "in"),axis.title.y=element_text(size=11))
+    scale_size_continuous(range = c(0.75,3.5),breaks = breaks2, labels = labels,
+                        guide = guide_legend(ncol=2, nrow=4,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,direction="vertical"))+
+    # ^ show both shapes plotted on the scale
+    theme(axis.text.y = element_text(size = 9), axis.title.x = element_text(size = 10), axis.text.x = element_text(size = 9), legend.text = element_text(size=9,hjust = 0.5), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.005, "in"),axis.title.y=element_text(size=10))
+
 dev.off()
 
-rm(pltdat,mktfres)
+#rm(pltdat,mktfres)
 ```
 
 ### disease gene GSEA ###

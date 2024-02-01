@@ -16,6 +16,7 @@ library(Biostrings)
 library(ggplot2)
 library(gridExtra)
 require(colorout)
+library(ggstance) # for y axis dodge
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 
@@ -35,7 +36,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 define a consistent sex•region color palette to use across plots
 ```{r}
-sexregpal <- c("VMH Fem. Up"="#eb69ff","VMH Male Up"="#5d186b","ARC Fem. Up"="#69ff63","ARC Male Up"="#215220")
+sexregpal <- c("VMH Fem. Up"="#af45c4","VMH Male Up"="#59103e","ARC Fem. Up"="#1fde72","ARC Male Up"="#053b05")
 ```
 
 Sex DE GSEA
@@ -107,95 +108,148 @@ rm(pltdat,sexreslist)
 
 5B-sex de GSEA - TFs
 
-## VMH-male: PMC10307746-12672_2023_738_MOESM12_ESM.docx-0-Supplementary_Table_S3_The_Top_100_MTF1-correlated_Genes_That_Obtained_From_The_GEPIA2_0_Database_MTF1_Rummagene_transcription_factors, 	
-PMC7162552-pcbi.1007800.s006.txt--TFEA_TFE3_Rummagene_transcription_factors,SOX5_OE_FETALCORTEX_HUMAN_GSE89057_RNASEQ_UP_TF_Perturbations_Followed_by_Expression, PMC4342183-dddt-9-1103.pdf-33-ZNF121_ZNF121_Rummagene_transcription_factors
-## VMH-female: GATA3_OE_MOUSE_GSE12999_CREEDSID_GENE_2531_DOWN_TF_Perturbations_Followed_by_Expression, ESR1_MUT_HUMAN_GSE1045_CREEDSID_GENE_1193_DOWN_TF_Perturbations_Followed_by_Expression, PMC8554124-DataSheet4.XLSX-17-HOXC10_HOXC10_Rummagene_transcription_factors, KLF4_human_TRRUST_Transcription_Factors_2019
-## ARC-male: PMC4122406-pone.0104158.s010.pdf-87-ZNF286_ZNF286A_Rummagene_transcription_factors, PMC3921124-pone.0087610.s009.pdf-1-ESR1_ESR1_Rummagene_transcription_factors, 	
-PMC3470785-NIHMS377161-supplement-12.pdf-669-ZNF598_ZNF598_Rummagene_transcription_factors
-## ARC-female: RUNX2_mouse_TRRUST_Transcription_Factors_2019, 	
-PMC7339813-Supplementary_Data2.docx-37-PRRX1_PRRX1_Rummagene_transcription_factors, PMC9357817-6934744.f1.docx-3-AR_AR_Rummagene_transcription_factors
+VMH UNIQUE Male:
+MYT1L
+TCF20 (rare LOF NDD gene Vetrini '19)
+
+VMH UNIQUE Fem:
+PPARA
+PPARG
+
+VMH shared-ish
+ESR1 (KD-down, female; ESR1 (targets, interactors male)
+AR (KD-bidir DE, female; targets male)
+
+ARC unique male:
+LIN28B (growth phenos)
+ASH1L (ID/ASD in mice https://www.nature.com/articles/s42003-021-02282-z )
+
+ARC unique female:
+VDR (KO-bidir DE)
+ESR1 (KO-bidir DE)
+
+ARC shared: 
+STAT3 (required for hypothalamic response to leptin Buettner 06)        
 
 
 ```{r}
-sexreslist <- readRDS("data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+sexreslist <- readRDS("data/11-GSEA/09-Sex DE TF-target GSEA results from 04a filtered to TFs expressed in avg 1pct of cluster spots and at least .25pct of cluster spots in 3samps.RDS")
 
-vmhs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH"]][pathway %in% c("PMC10307746-12672_2023_738_MOESM12_ESM.docx-0-Supplementary_Table_S3_The_Top_100_MTF1-correlated_Genes_That_Obtained_From_The_GEPIA2_0_Database_MTF1_Rummagene_transcription_factors"," 	
-PMC7162552-pcbi.1007800.s006.txt--TFEA_TFE3_Rummagene_transcription_factors","SOX5_OE_FETALCORTEX_HUMAN_GSE89057_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",
-#"PMC4342183-dddt-9-1103.pdf-33-ZNF121_ZNF121_Rummagene_transcription_factors",
-"GATA3_OE_MOUSE_GSE12999_CREEDSID_GENE_2531_DOWN_TF_Perturbations_Followed_by_Expression","ESR1_MUT_HUMAN_GSE1045_CREEDSID_GENE_1193_DOWN_TF_Perturbations_Followed_by_Expression","PMC8554124-DataSheet4.XLSX-17-HOXC10_HOXC10_Rummagene_transcription_factors","KLF4_human_TRRUST_Transcription_Factors_2019",
-#"PMC4122406-pone.0104158.s010.pdf-87-ZNF286_ZNF286A_Rummagene_transcription_factors",
-"PMC3921124-pone.0087610.s009.pdf-1-ESR1_ESR1_Rummagene_transcription_factors",
-#"PMC3470785-NIHMS377161-supplement-12.pdf-669-ZNF598_ZNF598_Rummagene_transcription_factors",
-"RUNX2_mouse_TRRUST_Transcription_Factors_2019","PMC7339813-Supplementary_Data2.docx-37-PRRX1_PRRX1_Rummagene_transcription_factors","PMC9357817-6934744.f1.docx-3-AR_AR_Rummagene_transcription_factors")]
+### subset to TFs planned to plot, then get the corresponding gene set names we want to use for plotting those stats
+pltdat <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH"]]
+pltdat[,spdom:="VMH"]
+tmp <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC"]]
+tmp[,spdom:="ARC"]
+pltdat <- rbind(pltdat,tmp)
+rm(tmp)
+### tfs to plot
+pltdat <- pltdat[tf %in% c("MYT1L","TCF20","PPARA","PPARG","ESR1","AR","LIN28B","ASH1L","VDR","STAT3")]
 
-arcs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC"]][pathway %in% c("PMC10307746-12672_2023_738_MOESM12_ESM.docx-0-Supplementary_Table_S3_The_Top_100_MTF1-correlated_Genes_That_Obtained_From_The_GEPIA2_0_Database_MTF1_Rummagene_transcription_factors"," 	
-PMC7162552-pcbi.1007800.s006.txt--TFEA_TFE3_Rummagene_transcription_factors","SOX5_OE_FETALCORTEX_HUMAN_GSE89057_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",
-#"PMC4342183-dddt-9-1103.pdf-33-ZNF121_ZNF121_Rummagene_transcription_factors",
-"GATA3_OE_MOUSE_GSE12999_CREEDSID_GENE_2531_DOWN_TF_Perturbations_Followed_by_Expression","ESR1_MUT_HUMAN_GSE1045_CREEDSID_GENE_1193_DOWN_TF_Perturbations_Followed_by_Expression","PMC8554124-DataSheet4.XLSX-17-HOXC10_HOXC10_Rummagene_transcription_factors","KLF4_human_TRRUST_Transcription_Factors_2019",
-#"PMC4122406-pone.0104158.s010.pdf-87-ZNF286_ZNF286A_Rummagene_transcription_factors",
-"PMC3921124-pone.0087610.s009.pdf-1-ESR1_ESR1_Rummagene_transcription_factors",
-#"PMC3470785-NIHMS377161-supplement-12.pdf-669-ZNF598_ZNF598_Rummagene_transcription_factors",
-"RUNX2_mouse_TRRUST_Transcription_Factors_2019","PMC7339813-Supplementary_Data2.docx-37-PRRX1_PRRX1_Rummagene_transcription_factors","PMC9357817-6934744.f1.docx-3-AR_AR_Rummagene_transcription_factors")]
+pways <- unique(c(pltdat[spdom=="VMH"&padj<0.05,pathway],pltdat[spdom=="ARC"&padj<0.05,pathway]))
+pltdat <- pltdat[pathway %in% pways]
+## reorder columns for ease of viewing
+pltdat <- pltdat[,c(10,3,5,6,7,1,2,4,8,9)]
+```
 
-pltdat <- rbind(vmhs,arcs)
-pltdat[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)",replacement="\\1")]
-pltdat[spdom=="VMH",sexreg:=ifelse(NES>0,yes="VMH Male Up",no="VMH Fem. Up")]
-pltdat[spdom=="ARC",sexreg:=ifelse(NES>0,yes="ARC Male Up",no="ARC Fem. Up")]
-rm(vmhs,arcs)
+browse for particular sets to extract and plot
+•MYT1L: PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors
+•TCF20: PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors
+•PPARA: PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression, PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression
+•PPARG: PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression, PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression
+•ESR1: ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression, 	
+PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors, PMC5998130-41467_2018_4619_MOESM10_ESM.xlsx-OHT_ESR1-Unnamed_2_ESR1_Rummagene_transcription_factors
+•AR: AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022, AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression, AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression
+•LIN28B: PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors
+•PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors
+•VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression, VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression
+•ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression, ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression
+•STAT3: PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors, STAT3_human_TRRUST_Transcription_Factors_2019
 
-## flip all NESes to be positive
-pltdat[NES<0,NES:=-1*NES]
+```{r}
+pltdat <- pltdat[pathway %in% c(
+    "PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors",
+    "PMC5998130-41467_2018_4619_MOESM10_ESM.xlsx-OHT_ESR1-Unnamed_2_ESR1_Rummagene_transcription_factors",
+    "AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression",
+    "PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression",
+    "STAT3_human_TRRUST_Transcription_Factors_2019",
+    "PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors"
+    ),]
 
-## tidy gene sources
-pltdat[pathway=="PMC10307746-12672_2023_738_MOESM12_ESM.docx-0-Supplementary_Table_S3_The_Top_100_MTF1-correlated_Genes_That_Obtained_From_The_GEPIA2_0_Database_MTF1_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="PMC7162552-pcbi.1007800.s006.txt--TFEA_TFE3_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="SOX5_OE_FETALCORTEX_HUMAN_GSE89057_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",source:="GEO TF\nPerturbations"]
-pltdat[pathway=="PMC4342183-dddt-9-1103.pdf-33-ZNF121_ZNF121_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="GATA3_OE_MOUSE_GSE12999_CREEDSID_GENE_2531_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF\nPerturbations"]
-pltdat[pathway=="ESR1_MUT_HUMAN_GSE1045_CREEDSID_GENE_1193_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF\nPerturbations"]
-pltdat[pathway=="PMC8554124-DataSheet4.XLSX-17-HOXC10_HOXC10_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="KLF4_human_TRRUST_Transcription_Factors_2019",source:="TRRUST"]
-pltdat[pathway=="PMC4122406-pone.0104158.s010.pdf-87-ZNF286_ZNF286A_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="PMC3921124-pone.0087610.s009.pdf-1-ESR1_ESR1_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="PMC3470785-NIHMS377161-supplement-12.pdf-669-ZNF598_ZNF598_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="RUNX2_mouse_TRRUST_Transcription_Factors_2019",source:="TRRUST"]
-pltdat[pathway=="PMC7339813-Supplementary_Data2.docx-37-PRRX1_PRRX1_Rummagene_transcription_factors",source:="Rummagene"]
-pltdat[pathway=="PMC9357817-6934744.f1.docx-3-AR_AR_Rummagene_transcription_factors",source:="Rummagene"]
+## data sourcesr
+pltdat[pathway %in% grep(pathway,pattern="Rummagene",value=T),source:="Rummagene"]
+pltdat[pathway %in% grep(pathway,pattern="TRRUST",value=T),source:="TRRUST"]
+pltdat[pathway %in% grep(pathway,pattern="CREEDSID",value=T),source:="GEO TF\nPerturbations"]
+pltdat[pathway %in% grep(pathway,pattern="ChEA",value=T),source:="ChEA 2022"]
 
-### tidy gene names
-pltdat[pathway=="PMC10307746-12672_2023_738_MOESM12_ESM.docx-0-Supplementary_Table_S3_The_Top_100_MTF1-correlated_Genes_That_Obtained_From_The_GEPIA2_0_Database_MTF1_Rummagene_transcription_factors",pathway:="MTF1"]
-pltdat[pathway=="PMC7162552-pcbi.1007800.s006.txt--TFEA_TFE3_Rummagene_transcription_factors",pathway:="TFE3"]
-pltdat[pathway=="SOX5_OE_FETALCORTEX_HUMAN_GSE89057_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",pathway:="SOX5 (OE -> Up)"]
-pltdat[pathway=="PMC4342183-dddt-9-1103.pdf-33-ZNF121_ZNF121_Rummagene_transcription_factors",pathway:="ZNF121"]
-pltdat[pathway=="GATA3_OE_MOUSE_GSE12999_CREEDSID_GENE_2531_DOWN_TF_Perturbations_Followed_by_Expression",pathway:="GATA3 (OE -> Down)"]
-pltdat[pathway=="ESR1_MUT_HUMAN_GSE1045_CREEDSID_GENE_1193_DOWN_TF_Perturbations_Followed_by_Expression",pathway:="ESR1 (Mut -> Down)"]
-pltdat[pathway=="PMC8554124-DataSheet4.XLSX-17-HOXC10_HOXC10_Rummagene_transcription_factors",pathway:="HOXC10"]
-pltdat[pathway=="KLF4_human_TRRUST_Transcription_Factors_2019",pathway:="KLF4"]
-pltdat[pathway=="PMC4122406-pone.0104158.s010.pdf-87-ZNF286_ZNF286A_Rummagene_transcription_factors",pathway:="ZNF286"]
-pltdat[pathway=="PMC3921124-pone.0087610.s009.pdf-1-ESR1_ESR1_Rummagene_transcription_factors",pathway:="ESR1"]
-pltdat[pathway=="PMC3470785-NIHMS377161-supplement-12.pdf-669-ZNF598_ZNF598_Rummagene_transcription_factors",pathway:="ZNF598"]
-pltdat[pathway=="RUNX2_mouse_TRRUST_Transcription_Factors_2019",pathway:="RUNX2"]
-pltdat[pathway=="PMC7339813-Supplementary_Data2.docx-37-PRRX1_PRRX1_Rummagene_transcription_factors",pathway:="PRRX1"]
-pltdat[pathway=="PMC9357817-6934744.f1.docx-3-AR_AR_Rummagene_transcription_factors",pathway:="AR"]
+## TF specifics where applicable
+pltdat[pathway %in% c("PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression"),tf:="PPARA (KO DE)"]
+pltdat[pathway %in% c("PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="PPARG (OE DE)"]
+pltdat[pathway=="ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression",tf:="ESR1 (KD Down)"]
+pltdat[pathway=="PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors",tf:="ESR1 (Interactors)"]
+pltdat[pathway %in% c("AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression"),tf:="AR (KD DE)"]
+pltdat[pathway %in% c("VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="VDR (KO DE)"]
+pltdat[pathway %in% c(
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
+     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="ESR1 (KO DE)"]
 
+### group by sex•region, flip all NES to positive
+pltdat[NES<0&spdom=="ARC",sexreg:="ARC Fem. Up"]
+pltdat[NES>0&spdom=="ARC",sexreg:="ARC Male Up"]
+pltdat[NES<0&spdom=="VMH",sexreg:="VMH Fem. Up"]
+pltdat[NES>0&spdom=="VMH",sexreg:="VMH Male Up"]
+pltdat[,NES:=abs(NES)]
+```
+
+
+```{r}
+### for this to work, we have to manually make a double legend kinda clunkily. modified slightly from https://stackoverflow.com/questions/62541720/ggplot2-show-multiple-keys-shapes-in-size-legend -- speciifically, defining these variables below and then the scale_size_manual call.
+
+## get the breaks based on generating the plot once quick, then get a vector of the same values to feed into the legend override
+breaks <- seq(1.5,2.5,0.5)
+n_breaks <- length(breaks)
+labels <- c(c(rep("",n_breaks),breaks,rep("",2*n_breaks)))
+shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks))
+breaks2 <- rep(breaks, 4)
+
+seeds <- sample(c(1:656139287),40,replace=F)
 ### make plot
-pdf("plots/Manuscript/5B as 4L-Sex DEG TF GSEA.pdf",height=1.5,width=4.5)
-ggplot(pltdat,aes(y=pathway,x=-log10(padj),size=NES))+
-    geom_point(aes(col=sexreg,size=NES,shape=source),alpha=0.7)+
+pdf("plots/Manuscript/5B as 4L-Sex DEG TF GSEA.pdf",height=4,width=5)
+
+ggplot(pltdat,aes(y=tf,x=-log10(padj),size=NES))+
+    geom_point(aes(col=sexreg,size=NES,shape=source,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
     ylab("Term")+
-    scale_color_manual(values=sexregpal,guide="none")+
-    # scale point size for better visibility by doubling the max range of size increase
-    scale_radius(range = c(min(pltdat$NES),1.5*max(pltdat$NES)),trans = "identity",guide="none")+
+    scale_color_manual(values=sexregpal)+
     xlab("-log10 (FDR)")+
     labs(shape="Source Database",col="DE Gene Set")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed")+
-    scale_shape_manual(values=c("Rummagene"=16,"TRRUST"=15,"GEO TF\nPerturbations"=18))+
-    guides(col="none")+
-    guides(size="none")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.125,color="darkred")+
+    scale_shape_manual(values=c("Rummagene"=16,"TRRUST"=15,"GEO TF\nPerturbations"=18,"ChEA 2022"=17))+
+    #add minor gridlines between TFs to contain jittered points
+    geom_hline(yintercept = seq(0.5,length(unique(pltdat$tf))-0.5),color="grey",linewidth=0.125)+
+    #guides(size="none")+
     # ^ necess. to get spacing to work in theme
     guides(shape=guide_legend(override.aes=list(size = 2)))+
     # ^ make legend points bigger
-    theme(axis.text.y = element_text(size = 9),axis.title.y=element_text(size=10), axis.title.x = element_text(size = 10), axis.text.x = element_text(size = 9), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.005, "in"),legend.margin = margin(t = 0.1,0,0,-0.1,unit="in"))
+    scale_size_continuous(range = c(0.75,3.5),breaks = breaks2, labels = labels, guide = guide_legend(ncol=4, nrow=3,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,label.hjust=0.5,direction="vertical"))+
+    theme(axis.text.y = element_text(size = 9),axis.title.y=element_text(size=10), axis.title.x = element_text(size = 10), axis.text.x = element_text(size = 9), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.005, "in"),legend.margin = margin(t = 0.1,0,0,-0.1,unit="in"),panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),axis.ticks.y=element_line(color = "#595959",linewidth = 0.25),legend.spacing.x = unit(-0.015,"in"))
+
 dev.off()
 
 rm(pltdat,sexreslist)

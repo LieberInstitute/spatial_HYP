@@ -85,7 +85,7 @@ mkreslist <- list(
 names(mkreslist) <- c("k15_HARMONYlmbna_nnsvg10_60kiter","k20_HARMONYlmbna_nnsvg10_60kiter","k31_HARMONYlmbna_nnsvg10_60kiter","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed")
 ```
 
-### get the clustering sets for the four Bayesspace runs we're reporting so we can extract and filter to TFs expressed in the cluster at >0.0025% of spots in ≥ 3 samples and with a mean expression in at least 1% of spots for all 4 clustering approaches
+### get the clustering sets for the four Bayesspace runs we're reporting so we can extract and filter to TFs expressed in the cluster at >1% of spots in ≥ 5 samples and with a mean expression in at least 5% of spots cohort wide (for each clustering paradigm separately)
 ```{r}
 bscls <- lapply(list.files("data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out",pattern=".txt",full.names = T),fread)
 
@@ -133,8 +133,6 @@ mkreslist.filt <- bpmapply(R=mkreslist,C=bscls,N=as.list(names(bscls)),BPPARAM=s
     i<-1
     for (i in c(1:length(R))){
         curclus <- gsub(names(R)[i],pattern=paste0(N,"_(.*)$"),replacement="\\1")
-        # exclude collapsed X14, X15, for which results weren't calculated
-        if(curclus %in% c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_X14","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_X15")){next(i)}
         tflogcts <- as.data.table(as.data.frame(as.matrix(logcounts(hyp2[,hyp2$label==curclus]))),keep.rownames=T)
         setnames(tflogcts,"rn","tf")
         tflogcts <- melt(tflogcts,id.vars="tf",value.name="logcounts")
@@ -148,10 +146,10 @@ mkreslist.filt <- bpmapply(R=mkreslist,C=bscls,N=as.list(names(bscls)),BPPARAM=s
         tflogcts[is.na(pctxpr),pctxpr:=0]
         # get each unique pair of tf-sample-pctxpr, where we fetch the max row value of pctxpr for a tf-sample pair (which will be >0 and = the % of spots expressing in any row where the gene was detected for that sample)
         tffilt <- tflogcts[,max(pctxpr),by=c("tf","samp")]
-        # calculate mean % spots expressing dataset wide and number of samples with expression over 0.25%. each tf occurs once per sample, so take the mean across rows with a given TF value for samplewise means, or tabulate the number of TF occurrences with the pctxpr filter to get the number of passing rows
+        # calculate mean % spots expressing dataset wide and number of samples with expression over 1%. each tf occurs once per sample, so take the mean across rows with a given TF value for samplewise means, or tabulate the number of TF occurrences with the pctxpr filter to get the number of passing rows
         setnames(tffilt,"V1","pctxpr")
         tffilt[,meanxpr:=mean(pctxpr),by="tf"]
-        tffilt[pctxpr>.0025,Nxpr:=.N,by="tf"]
+        tffilt[pctxpr>.01,Nxpr:=.N,by="tf"]
         # na rows returned in Nxpr will be meaningless in this result, since we just will subset to max Nxpr analogous to what we did above, resulting in a table of X tfs with their mean + spot %age and number of samples over threshold. set na values to 0 to avoid errors relating to NAs here.
         tffilt[is.na(Nxpr),Nxpr:=0]
         tffilt2 <- tffilt[,max(Nxpr),by="tf"]
@@ -159,9 +157,9 @@ mkreslist.filt <- bpmapply(R=mkreslist,C=bscls,N=as.list(names(bscls)),BPPARAM=s
         ## add baack the mean expression to the number of threshold-passing samples by merging parts of the old data ttable to the above result
         tffilt2 <- merge.data.table(tffilt2,unique(tffilt[,.(tf,meanxpr)],by="tf"))
         
-        # FINALLY  get the TFs meeting criteria (majority of samples expressing in > 0.25% of spots and >1% of spots in the clustering expressing on average across the dataset) and filter the result table to them
+        # FINALLY  get the TFs meeting criteria (majority of samples expressing in >3% of spots and >5% of spots in the clustering expressing on average across the dataset) and filter the result table to them
         
-        keeptfs <- tffilt2[Nxpr>4&meanxpr>0.01,tf]
+        keeptfs <- tffilt2[Nxpr>4&meanxpr>0.05,tf]
         # filter the current cluster's results to these TFs
         filtres[[i]] <- R[[i]][tf %in% keeptfs]
         names(filtres)[i] <- names(R)[i]
@@ -185,7 +183,7 @@ for (i in c(1:4)){
 }
 rm(i)
 
-saveRDS(megalist.filt,"data/11-GSEA/08-Marker TF-target GSEA results from 02a filtered to TFs expressed in avg 1pct of cluster spots and at least .25pct of cluster spots in 5samps.RDS")
+saveRDS(megalist.filt,"data/11-GSEA/08-Marker TF-target GSEA results from 02a filtered to TFs expressed in avg 3pct of cluster spots and at least 1pct of cluster spots in 5samps.RDS")
 ```
 
 ```{r}
@@ -249,7 +247,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-01-28
+ date     2024-01-30
  rstudio  2023.09.1+494 Desert Sunflower (desktop)
  pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
 
