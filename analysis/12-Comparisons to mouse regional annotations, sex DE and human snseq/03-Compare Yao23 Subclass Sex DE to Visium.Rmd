@@ -19,6 +19,7 @@ require(colorout)
 library(orthogene)
 library(biomaRt)
 library(gtools)
+library(BiocParallel)
 source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
@@ -35,7 +36,7 @@ load dreamlet results for Visium and Yao 23 mouse scseq
 ms <- fread("data/12-Mouse comparisons/02-Yao23-HYP-subclass-sexDE_dreamlet_donormouse-ranfx.txt")
 msn <- fread("data/12-Mouse comparisons/02-Yao23-HYP-ncells-per-subclass.txt")
 
-vde <- fread("data/09-Sex DE/01b-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt")
+vde <- readRDS("data/09-Sex DE/01-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-20-31-15VMHARCclpsd.RDS")
 ```
 
 ## get 1-1 mapping mouse orthologs and filter the two datasets accordingly
@@ -68,48 +69,55 @@ msgenes <- msgenes[input_gene %in% mschrs$external_gene_name]
 
 ## now filter the sex DE result tables
 ms <- ms[ID %in% msgenes$input_gene]
-vde <- vde[gene_name %in% msgenes$ortholog_gene & !(chromosome_name %in% c("chrX","chrY","chrMT"))]
+vde <- lapply(vde,FUN=function(x){x[gene_name %in% msgenes$ortholog_gene & !(chromosome_name %in% c("chrX","chrY","chrMT"))]})
 
 ### merge the gene info so we can merge the DE results downstream for gene logFC correlation calcs
 ms <- merge(ms,msgenes,by.x="ID",by.y="input_gene")
-vde <- merge(vde,msgenes,by.x="gene_name",by.y="ortholog_gene")
+vde <- lapply(vde,FUN=function(x){merge(x,msgenes,by.x="gene_name",by.y="ortholog_gene")})
 ```
 
 ## get unique combinations of clusters, join and correlate the two male-vs-female logFCs for each
 ```{r}
-cluspairs <- expand.grid(unique(ms$assay),unique(vde$assay))
-cluspairs <- as.data.table(cluspairs)
-cluspairs[,Var1:=as.character(Var1)]
-cluspairs[,Var2:=as.character(Var2)]
+cluspairs <- lapply(vde,FUN=function(x){
+    tmp <- as.data.table(expand.grid(unique(ms$assay),unique(x$assay)))
+    tmp[,Var1:=as.character(Var1)]
+    tmp[,Var2:=as.character(Var2)]
+    return(tmp)})
 
 # initialize result table
-restab <- as.data.frame(matrix(nrow=nrow(cluspairs),ncol=4))
+sbp<-MulticoreParam(workers=4)
+register(sbp)
 
-## calculate pairwise logFCs
-i <- 1
-for (i in c(1:nrow(cluspairs))){
-    msassay <- cluspairs[i,Var1]
-    hgassay <- cluspairs[i,Var2]
+restabs <- bpmapply(x=vde,y=cluspairs,SIMPLIFY = F, BPPARAM=sbp,FUN=function(x,y){
+    restab <- as.data.frame(matrix(nrow=nrow(y),ncol=4))
     
-    # filter to current clusters and merge by human gene name
-    tmpms <- copy(ms)[assay==msassay][,.(logFC,ortholog_gene)]
-    tmpvde <- copy(vde)[assay==hgassay][,.(logFC,gene_name)]
-    setnames(tmpms,"logFC","logFCms")
-    
-    tmpcompare <- merge.data.table(tmpms,tmpvde,by.x="ortholog_gene",by.y="gene_name")
-    
-    restab[i,1] <- msassay
-    restab[i,2] <- hgassay
-    restab[i,3] <- cor(tmpcompare$logFCms,tmpcompare$logFC,use="pairwise.complete.obs",method="pearson")
-     restab[i,4] <- cor(tmpcompare$logFCms,tmpcompare$logFC,use="pairwise.complete.obs",method="spearman")
-     rm(tmpms,tmpvde,tmpcompare,mgassay,hgassay)
-}
-rm(i)
+    i <- 1
+    for (i in c(1:nrow(y))){
+        msassay <- y[i,Var1]
+        hgassay <- y[i,Var2]
+        
+        # filter to current clusters and merge by human gene name
+        tmpms <- copy(ms)[assay==msassay][,.(t,ortholog_gene)]
+        tmpx <- x[assay==hgassay][,.(t,gene_name)]
+        setnames(tmpms,"t","tms")
+        
+        tmpcompare <- merge.data.table(tmpms,tmpx,by.x="ortholog_gene",by.y="gene_name")
+        
+        restab[i,1] <- msassay
+        restab[i,2] <- hgassay
+        restab[i,3] <- cor(tmpcompare$tms,tmpcompare$t,use="pairwise.complete.obs",method="pearson")
+         restab[i,4] <- cor(tmpcompare$tms,tmpcompare$t,use="pairwise.complete.obs",method="spearman")
+         rm(tmpms,tmpx,tmpcompare,mgassay,hgassay)
+    }
+    rm(i)
+    restab <- as.data.table(restab)
+    setnames(restab,c("mouse_subclass","human_domain","pcc","spearmancor"))
+    return(restab)
+})
+names(restabs) <- names(vde)
 
-restab <- as.data.table(restab)
-setnames(restab,c("mouse_subclass","human_domain","pcc","spearmancor"))
 
-fwrite(restab,"data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE_logFCcorrels_to_singleSpDom-MvF.txt",sep='\t',quote=F)
+saveRDS(restabs,"data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed.RDS")
 ```
 
 ```{r}

@@ -108,7 +108,7 @@ names(pal) <- levels(hyp2$label)
 ```
 
 ### Panel A: k15 clustering ###
-### run this block twice -- the first time its run, axes will come out with numbers on the first sample ###
+
 
 ### custom function to extrct legend from one plot to extend to all ###
 ```{r}
@@ -120,6 +120,7 @@ extract_legend <- function(my_ggp) {
 }
 ```
 
+### run this block twice -- the first time its run, axes will come out with numbers on the first sample ###
 ```{r}
 ### extract two samples to plot ###
 tmp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]

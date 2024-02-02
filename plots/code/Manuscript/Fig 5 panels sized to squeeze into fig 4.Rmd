@@ -275,7 +275,7 @@ sexdis[,signif:=ifelse(FDR<0.05,yes="*",no="")]
 
 
 pdf("plots/Manuscript/5C as 4M-sex DE_disease_GSEA.pdf",height=2.5,width=5)
-ggplot(sexdis,aes(x=pathway,y=spdom,fill=ES))+
+ggplot(sexdis,aes(x=pathway,y=spdom,fill=NES))+
     geom_tile()+
     geom_text(aes(label=signif),size=2)+
     scale_x_discrete(expand = c(0,0)) +
