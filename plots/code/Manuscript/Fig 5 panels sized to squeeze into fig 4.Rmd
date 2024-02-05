@@ -143,7 +143,7 @@ tmp[,spdom:="ARC"]
 pltdat <- rbind(pltdat,tmp)
 rm(tmp)
 ### tfs to plot
-pltdat <- pltdat[tf %in% c("MYT1L","TCF20","PPARA","PPARG","ESR1","AR","LIN28B","ASH1L","VDR","STAT3")]
+pltdat <- pltdat[tf %in% c("MYT1L","TCF20","PPARA","PPARG","ESR1","AR","LIN28B","ASH1L","VDR","STAT3","ZNF142")]
 
 pways <- unique(c(pltdat[spdom=="VMH"&padj<0.05,pathway],pltdat[spdom=="ARC"&padj<0.05,pathway]))
 pltdat <- pltdat[pathway %in% pways]
@@ -164,6 +164,7 @@ PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_
 •VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression, VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression
 •ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression, ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression
 •STAT3: PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors, STAT3_human_TRRUST_Transcription_Factors_2019
+•ZNF142: ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_UP_TF_Perturbations_Followed_by_Expression, ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_DOWN_TF_Perturbations_Followed_by_Expression
 
 ```{r}
 pltdat <- pltdat[pathway %in% c(
@@ -186,13 +187,15 @@ pltdat <- pltdat[pathway %in% c(
     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression",
     "STAT3_human_TRRUST_Transcription_Factors_2019",
-    "PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors"
+    "PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors",
+    "ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",
+    "ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_DOWN_TF_Perturbations_Followed_by_Expression"
     ),]
 
 ## data sourcesr
 pltdat[pathway %in% grep(pathway,pattern="Rummagene",value=T),source:="Rummagene"]
 pltdat[pathway %in% grep(pathway,pattern="TRRUST",value=T),source:="TRRUST"]
-pltdat[pathway %in% grep(pathway,pattern="CREEDSID",value=T),source:="GEO TF\nPerturbations"]
+pltdat[pathway %in% grep(pathway,pattern="CREEDSID|_GSE",value=T),source:="GEO TF\nPerturbations"]
 pltdat[pathway %in% grep(pathway,pattern="ChEA",value=T),source:="ChEA 2022"]
 
 ## TF specifics where applicable
@@ -209,6 +212,8 @@ pltdat[pathway %in% c("VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbatio
 pltdat[pathway %in% c(
     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
      "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="ESR1 (KO DE)"]
+pltdat[pathway=="ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",tf:="ZNF142 (siRNA Up)"]
+pltdat[pathway=="ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_DOWN_TF_Perturbations_Followed_by_Expression",tf:="ZNF142 (siRNA Down)"]
 
 ### group by sex•region, flip all NES to positive
 pltdat[NES<0&spdom=="ARC",sexreg:="ARC Fem. Up"]
@@ -229,9 +234,8 @@ labels <- c(c(rep("",n_breaks),breaks,rep("",2*n_breaks)))
 shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks))
 breaks2 <- rep(breaks, 4)
 
-seeds <- sample(c(1:656139287),40,replace=F)
 ### make plot
-pdf("plots/Manuscript/5B as 4L-Sex DEG TF GSEA.pdf",height=4,width=5)
+pdf("plots/Manuscript/5B as 4M-Sex DEG TF GSEA.pdf",height=4,width=5)
 
 ggplot(pltdat,aes(y=tf,x=-log10(padj),size=NES))+
     geom_point(aes(col=sexreg,size=NES,shape=source,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
@@ -248,11 +252,12 @@ ggplot(pltdat,aes(y=tf,x=-log10(padj),size=NES))+
     guides(shape=guide_legend(override.aes=list(size = 2)))+
     # ^ make legend points bigger
     scale_size_continuous(range = c(0.75,3.5),breaks = breaks2, labels = labels, guide = guide_legend(ncol=4, nrow=3,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,label.hjust=0.5,direction="vertical"))+
+    # ^ make size legend with all point types
     theme(axis.text.y = element_text(size = 9),axis.title.y=element_text(size=10), axis.title.x = element_text(size = 10), axis.text.x = element_text(size = 9), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.005, "in"),legend.margin = margin(t = 0.1,0,0,-0.1,unit="in"),panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),axis.ticks.y=element_line(color = "#595959",linewidth = 0.25),legend.spacing.x = unit(-0.015,"in"))
 
 dev.off()
 
-rm(pltdat,sexreslist)
+# rm(pltdat,sexreslist)
 
 ```
 
