@@ -3,6 +3,13 @@ library(data.table)
 library(zellkonverter)
 library(SingleCellExperiment)
 
+setDTthreads(5)
+
+### data sources
+# https://allen-brain-cell-atlas.s3.us-west-2.amazonaws.com/index.html#metadata/WMB-10X/20230630/views/
+# https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv3/20230630/WMB-10Xv3-HY-raw.h5ad
+# https://allen-brain-cell-atlas.s3-us-west-2.amazonaws.com/expression_matrices/WMB-10Xv2/20230630/WMB-10Xv2-HY-raw.h5ad
+
 cellmeta <- fread("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/cell_metadata_with_cluster_annotation.csv")
 hypv2 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv2-HY-raw.h5ad")
 hypv3 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv3-HY-raw.h5ad")

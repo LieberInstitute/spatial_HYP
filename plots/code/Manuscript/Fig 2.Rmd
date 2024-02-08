@@ -227,7 +227,7 @@ dev.off()
 rm(hypselect)
 ```
 
-# width of 7 --> 3 2x1.5 spotplots with inch of spacing total between
+# width of 7 --> four 1.75x1.5 spotplots with inch of spacing total between
 
 ### Fig 2C: GHRH in V12D05-350_D1 ###
 ```{r}
@@ -236,9 +236,30 @@ hypselect <- hyp2[, hyp2$sample_id == "V12D05-350_D1"]
 rownames(hypselect) <- rowData(hypselect)$gene_name
 
 pdf("plots/Manuscript/2C-GHRH in V12D05-350_D1.pdf", height = 1.75, width = 1.5)
-vis_gene(hypselect, geneid = "GHRH", spatial = T, auto_crop = T, point_size = 0.65, pdf_file = NULL, return_plots = T, na_color = NA) +
+vis_gene(hypselect, geneid = "GHRH", spatial = T, auto_crop = T, point_size = 0.525, alpha=0.8, pdf_file = NULL, return_plots = T, na_color = NA, viridis = FALSE) +
+    ggtitle("GHRH V12D05-350_D1") +
     # counter vis_gene's plot margins to use the allocated area
-    theme(axis.text = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), plot.title = element_blank(), legend.key.size = unit(0.125, "in"), legend.margin = margin(-0.4, 0, 0, 0, unit = "in"), axis.ticks = element_blank(), plot.margin = margin(0, -0.025, 0, -.45, unit = "in"), legend.position = "bottom", legend.justification = 0.5, legend.background = element_blank())
+    theme(
+        axis.text = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        legend.text = element_text(size = 8, margin = margin(-0.1, 0, 0, 0, "in")),
+        legend.title = element_blank(),
+        plot.title = element_text(
+            size = 9,
+            hjust = 0.5,
+            margin = margin(0, 0, 0, 0, "in")
+        ),
+        legend.key.size = unit(0.125, "in"),
+        legend.margin = margin(-0.4, 0, 0, 0, unit = "in"),
+        axis.ticks = element_blank(),
+        plot.margin = margin(0.05, -0.025, 0, -.45, unit = "in"),
+        legend.position = "bottom",
+        legend.justification = 0.5,
+        legend.spacing.x = unit(0, "in"),
+        legend.box.margin = margin(0, 0, 0, 0, "in"),
+        legend.background = element_blank()
+    )
 dev.off()
 
 rm(hypselect)
@@ -251,9 +272,30 @@ hypselect <- hyp2[, hyp2$sample_id == "V12D05-348_C1"]
 rownames(hypselect) <- rowData(hypselect)$gene_name
 
 pdf("plots/Manuscript/2D-POMC in V12D05-348_C1.pdf", height = 1.75, width = 1.5)
-vis_gene(hypselect, geneid = "POMC", spatial = T, auto_crop = T, point_size = 0.65, pdf_file = NULL, return_plots = T, na_color = NA) +
+vis_gene(hypselect, geneid = "POMC", spatial = T, auto_crop = T, point_size = 0.525, alpha=0.8, pdf_file = NULL, return_plots = T, na_color = NA, viridis = FALSE) +
+    ggtitle("POMC V12D05-348_C1") +
     # counter vis_gene's plot margins to use the allocated area
-    theme(axis.text = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), plot.title = element_blank(), legend.key.size = unit(0.125, "in"), legend.margin = margin(-0.4, 0, 0, 0, unit = "in"), axis.ticks = element_blank(), plot.margin = margin(0, -0.025, 0, -.45, unit = "in"), legend.position = "bottom", legend.justification = 0.5, legend.background = element_blank())
+    theme(
+        axis.text = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        legend.text = element_text(size = 8, margin = margin(-0.1, 0, 0, 0, "in")),
+        legend.title = element_blank(),
+        plot.title = element_text(
+            size = 9,
+            hjust = 0.5,
+            margin = margin(0, 0, 0, 0, "in")
+        ),
+        legend.key.size = unit(0.125, "in"),
+        legend.margin = margin(-0.4, 0, 0, 0, unit = "in"),
+        axis.ticks = element_blank(),
+        plot.margin = margin(0.05, -0.025, 0, -.45, unit = "in"),
+        legend.position = "bottom",
+        legend.justification = 0.5,
+        legend.spacing.x = unit(0, "in"),
+        legend.box.margin = margin(0, 0, 0, 0, "in"),
+        legend.background = element_blank()
+    )
 dev.off()
 
 rm(hypselect)
@@ -266,9 +308,30 @@ hypselect <- hyp2[, hyp2$sample_id == "V12D07-075_D1"]
 rownames(hypselect) <- rowData(hypselect)$gene_name
 
 pdf("plots/Manuscript/2E-FEZF1 in V12D05-075_D1.pdf", height = 1.75, width = 1.5)
-vis_gene(hypselect, geneid = "FEZF1", spatial = T, auto_crop = T, point_size = 0.65, pdf_file = NULL, return_plots = T, na_color = NA) +
+vis_gene(hypselect, geneid = "FEZF1", spatial = T, auto_crop = T, point_size = 0.525, alpha=0.8, pdf_file = NULL, return_plots = T, na_color = NA, viridis = FALSE) +
+    ggtitle("FEZF1 V12D07-075_D1") +
     # counter vis_gene's plot margins to use the allocated area
-    theme(axis.text = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), plot.title = element_blank(), legend.key.size = unit(0.125, "in"), legend.margin = margin(-0.4, 0, 0, 0, unit = "in"), axis.ticks = element_blank(), plot.margin = margin(0, -0.025, 0, -.45, unit = "in"), legend.position = "bottom", legend.justification = 0.5, legend.background = element_blank())
+    theme(
+        axis.text = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        legend.text = element_text(size = 8, margin = margin(-0.1, 0, 0, 0, "in")),
+        legend.title = element_blank(),
+        plot.title = element_text(
+            size = 9,
+            hjust = 0.5,
+            margin = margin(0, 0, 0, 0, "in")
+        ),
+        legend.key.size = unit(0.125, "in"),
+        legend.margin = margin(-0.4, 0, 0, 0, unit = "in"),
+        axis.ticks = element_blank(),
+        plot.margin = margin(0.05, -0.025, 0, -.45, unit = "in"),
+        legend.position = "bottom",
+        legend.justification = 0.5,
+        legend.spacing.x = unit(0, "in"),
+        legend.box.margin = margin(0, 0, 0, 0, "in"),
+        legend.background = element_blank()
+    )
 dev.off()
 
 rm(hypselect)
@@ -282,11 +345,31 @@ hypselect <- hyp2[, hyp2$sample_id == "V12Y31-080_A1"]
 rownames(hypselect) <- rowData(hypselect)$gene_name
 
 pdf("plots/Manuscript/2F-KISS1R in V12Y31-080_A1.pdf", height = 1.75, width = 1.5)
-vis_gene(hypselect, geneid = "KISS1R", spatial = T, auto_crop = T, point_size = 0.65, pdf_file = NULL, return_plots = T, na_color = NA) +
+vis_gene(hypselect, geneid = "KISS1R", spatial = T, auto_crop = T, point_size = 0.525, alpha=0.8, pdf_file = NULL, return_plots = T, na_color = NA, viridis = FALSE) +
+    ggtitle("KISS1R V12Y31-080_A1") +
     # counter vis_gene's plot margins to use the allocated area
-    theme(axis.text = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), plot.title = element_blank(), legend.key.size = unit(0.125, "in"), legend.margin = margin(-0.4, 0, 0, 0, unit = "in"), axis.ticks = element_blank(), plot.margin = margin(0, -0.025, 0, -.45, unit = "in"), legend.position = "bottom", legend.justification = 0.5, legend.background = element_blank())
+    theme(
+        axis.text = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        legend.text = element_text(size = 8, margin = margin(-0.1, 0, 0, 0, "in")),
+        legend.title = element_blank(),
+        plot.title = element_text(
+            size = 9,
+            hjust = 0.5,
+            margin = margin(0, 0, 0, 0, "in")
+        ),
+        legend.key.size = unit(0.125, "in"),
+        legend.margin = margin(-0.4, 0, 0, 0, unit = "in"),
+        axis.ticks = element_blank(),
+        plot.margin = margin(0.05, -0.025, 0, -.45, unit = "in"),
+        legend.position = "bottom",
+        legend.justification = 0.5,
+        legend.spacing.x = unit(0, "in"),
+        legend.box.margin = margin(0, 0, 0, 0, "in"),
+        legend.background = element_blank()
+    )
 dev.off()
-
 # rm(hypselect)
 ```
 
