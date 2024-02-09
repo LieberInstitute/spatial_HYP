@@ -19,6 +19,8 @@ library(ggplot2) # Dependency for several plotting functions
 library(gridExtra)
 library(SpatialExperiment) # Dependency
 library(escheR) # spotplots with domain outlines
+library(ggtext) # mixed fonts in ggplot elements
+library(ggstance) # y axis dodge
 require(colorout) # Utility for RStudio
 ColorOut() 
 
@@ -86,12 +88,12 @@ p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
 pdf("plots/Manuscript/3A-ANKRD34B.pdf",height=1.75,width=2)
 p+
-    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("ANKRD34B (V12Y31-\n080_A1 - Male)")+
+    ggtitle("*ANKRD34B* (V12Y31-<br>080_A1 - Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
 dev.off()
 
 rm(ank,p,anklab)
@@ -116,12 +118,12 @@ p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
 pdf("plots/Manuscript/3B-LAMP5.pdf",height=1.75,width=2)
 p+
-    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("LAMP5 (V12D05-\n350_D1 - Female)")+
+    ggtitle("*LAMP5* (V12D05-<br>350_D1 - Female)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(lamp,lamplab,p)
@@ -145,12 +147,12 @@ p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
 pdf("plots/Manuscript/3C-GABRE.pdf",height=1.75,width=2)
 p+
-    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("GABRE")+
+    ggtitle("*GABRE* (V12Y31-<br>080_A1 - Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(gabre,gabrelab,p)
@@ -175,12 +177,12 @@ p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
 pdf("plots/Manuscript/3D-CYP26A1.pdf",height=1.75,width=2)
 p+
-    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("CYP26A1")+
+    ggtitle("*CYP26A1* (V12D05-<br>350_D1 - Female)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(cyp,cyplab,p)
@@ -211,12 +213,12 @@ p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
 pdf("plots/Manuscript/3X-NMU-VMHsvg.pdf",height=1.75,width=2)
 p+
-    scale_color_manual(values=c("purple","darkgreen","green"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf","#e949c1"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("NMU")+
+    ggtitle("*NMU* (V12D05-<br>350_D1 - Female)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(nmu,nmulab,p)
@@ -246,12 +248,12 @@ p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
 pdf("plots/Manuscript/3X-GAL-ARCsvg.pdf",height=1.75,width=2)
 p+
-    scale_color_manual(values=c("purple","darkgreen","green"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf","#e949c1"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("GAL")+
+    ggtitle("*GAL* (V12Y31-<br>080_A1 - Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(gal,gallab,p)
@@ -280,7 +282,7 @@ gabre$Domain <- factor(gabrelab$cl2,levels=c("VMH","ARC"))
 ### make a ggplot of nothing in particular, we just want the legend
 p <- ggplot(as.data.table(colData(gabre))[!is.na(Domain)],aes(x=sum_umi,y=expr_chrM_ratio,color=Domain))+
     geom_point()+
-    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
 
 pl <- extract_legend(p)
@@ -315,7 +317,7 @@ gal$Domain <- factor(gallab$cl,levels=c("VMH","ARC.1","ARC.2"))
 ### make a ggplot of nothing in particular, we just want the legend
 p <- ggplot(as.data.table(colData(gal))[!is.na(Domain)],aes(x=sum_umi,y=expr_chrM_ratio,color=Domain))+
     geom_point()+
-    scale_color_manual(values=c("purple","darkgreen","green"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf","#e949c1"),na.value = NA)+
     theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
 
 pl <- extract_legend(p)
@@ -347,16 +349,16 @@ pltdat[,genesource:=gsub(genesource,pattern="^(WP)_.*$",replacement="Wikipathway
 pltdat[,genesource:=gsub(genesource,pattern="^(DESCARTES)_.*$",replacement="Descartes scRNA-seq\n(Human)")]
 
 ### Simplify terms themselves
-pltdat[pathway=="GOCC_GLUTAMATERGIC_SYNAPSE",pathway:="Glutamatergic synapse"]
-pltdat[pathway=="GOCC_GABA_ERGIC_SYNAPSE",pathway:="GABAergic synapse"]
+pltdat[pathway=="GOCC_GLUTAMATERGIC_SYNAPSE",pathway:="Glutamatergic\n synapse"]
+pltdat[pathway=="GOCC_GABA_ERGIC_SYNAPSE",pathway:="GABAergic\nsynapse"]
 pltdat[pathway=="HP_HYPERACTIVITY",pathway:="Hyperactivity"]
-pltdat[pathway=="HP_ABNORMAL_AGGRESIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",pathway:="Aggressive/impulsive behavior"]
-pltdat[pathway=="WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",pathway:="Kisspeptin receptor system (ovarian)"]
+pltdat[pathway=="HP_ABNORMAL_AGGRESIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",pathway:="Aggressive/impulsive\nbehavior"]
+pltdat[pathway=="WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",pathway:="Kisspeptin receptor\nsystem (ovarian)"]
 pltdat[pathway=="GOBP_AXONEME_ASSEMBLY",pathway:="Axoneme assembly"]
-pltdat[pathway=="GOCC_CILIARY_PLASM",pathway:="Ciliary plasma membrane"]
-pltdat[pathway=="HP_CENTRAL_ADRENAL_INSUFFICIENCY",pathway:="Central adrenal insufficiency"]
-pltdat[pathway=="DESCARTES_FETAL_ADRENAL_SYMPATHOBLASTS",pathway:="Fetal adrenal sympathoblasts"]
-pltdat[pathway=="GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY",pathway:="Neuropeptide signaling"]
+pltdat[pathway=="GOCC_CILIARY_PLASM",pathway:="Ciliary plasma\nmembrane"]
+pltdat[pathway=="HP_CENTRAL_ADRENAL_INSUFFICIENCY",pathway:="Central adrenal\ninsufficiency"]
+pltdat[pathway=="DESCARTES_FETAL_ADRENAL_SYMPATHOBLASTS",pathway:="Fetal adrenal\nsympathoblasts"]
+pltdat[pathway=="GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY",pathway:="Neuropeptide\nsignaling"]
 
 ### make domain a factor so we can match it to prior color schemes
 pltdat$spdom <- factor(pltdat$spdom,levels=c("VMH","ARC"))
@@ -366,21 +368,21 @@ pltdat$spdom
 
 ### plot:
 pdf("plots/Manuscript/3X-marker_msigdb_GSEA.pdf",height=3.5,width=3)
-ggplot(pltdat,aes(x=pathway,y=-log10(padj)))+
-    geom_point(aes(col=spdom,size=NES))+
-    xlab("Term")+
-    scale_size(guide="none")+
+ggplot(pltdat,aes(y=pathway,x=-log10(padj)))+
+    geom_point(aes(col=spdom,size=NES),position = position_dodge2v(preserve = "single",height=0.75))+
+    ylab("Term")+
     # scale_color_manual(values=wc2cols)+
-    ylab("-log10\nFDR")+
-    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    xlab("-log10\nFDR")+
+    xlim(0,30)+
+    scale_size_continuous(range = c(0.75,3.5))+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     labs(col="Domain")+
-    geom_hline(yintercept=-log10(0.05),linetype="dashed")+
-    # guides(col=guide_legend(byrow=T))+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.125)+
+    guides(col=guide_legend(byrow=T))+
     # # ^ necess. to get spacing to work in theme
-    # guides(col=guide_legend(override.aes=list(size=2.5)))+
-    guides(col="none")+
+    guides(col=guide_legend(override.aes=list(size=2.5)))+
     # ^ make legend points bigger
-    theme(axis.text.y = element_text(size = 10), axis.title.y=element_text(size=11), axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 10.5,angle=-90,hjust=0,vjust=0.5), legend.text = element_text(size=9), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.125, "in"))
+    theme(axis.text.y = element_text(size = 8,margin=margin(0,0,0,-0.15,"in")), axis.title.x = element_text(size = 9), axis.title.y=element_text(size=9,margin=margin(0,0,0,0.2,unit="in")),axis.text.x = element_text(size = 8), legend.text = element_text(size=8,hjust = 0.5), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.125, "in"),plot.margin=margin(0.05,-0.075,0,-0.1,unit="in"),legend.margin = margin(0,0.075,0,-0.2,unit="in"),legend.box.background = element_blank(),legend.key = element_blank())
 dev.off()
 
 
@@ -496,7 +498,7 @@ pdf("plots/Manuscript/3X-marker_TFtargs_GSEA.pdf",height=3,width=4)
 ggplot(pltdat,aes(y=tf,x=-log10(padj)))+
     geom_point(aes(col=spdom,size=NES,shape=source))+
     ylab("Term")+
-    scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     xlab("-log10 (GSEA FDR)")+
     labs(col="Domain",shape="Source Database")+
     geom_vline(xintercept=-log10(0.05),linetype="dashed")+
@@ -505,15 +507,17 @@ ggplot(pltdat,aes(y=tf,x=-log10(padj)))+
     guides(col=guide_legend(override.aes=list(size=2.5)),
            shape=guide_legend(override.aes=list(size = 2.5)))+
     # ^ make legend points bigger
-    scale_size_continuous(range = c(0.75,3.5),breaks = breaks2, labels = labels,
-                        guide = guide_legend(ncol=2, nrow=4,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,direction="vertical"))+
+    scale_size_continuous(range = c(0.75,3.5),
+                          breaks = breaks2, 
+                          labels = labels,
+                          guide = guide_legend(ncol=2, nrow=4,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,direction="vertical",label.hjust=0.05,vjust=0))+
     # ^ show both shapes plotted on the scale
-    theme(axis.text.y = element_text(size = 9), axis.title.x = element_text(size = 10), axis.text.x = element_text(size = 9), legend.text = element_text(size=9,hjust = 0.5), legend.title = element_text(size=10,hjust=0.5),legend.spacing.y = unit(0.005, "in"),axis.title.y=element_text(size=10))
-
+    theme(axis.text.y = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.x = element_text(size = 8), legend.text = element_text(size=8,hjust = 0.5), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.005, "in"),axis.title.y=element_text(size=9,margin=margin(0,0,0,0.02,"in")),legend.box.background = element_blank(),legend.margin = margin(0,0,0,-0.135,unit="in"),plot.margin = margin(0,-0.14,0,0.03))
 dev.off()
 
 #rm(pltdat,mktfres)
 ```
+
 
 ### disease gene GSEA ###
 ```{r}
@@ -567,7 +571,7 @@ LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlap
 locale:
 [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 
-time zone: America/Chicago
+time zone: America/New_York
 tzcode source: internal
 
 attached base packages:
@@ -575,90 +579,48 @@ attached base packages:
 [8] base     
 
 other attached packages:
- [1] escheR_1.2.0                colorout_1.3-0.1           
- [3] scater_1.30.1               scuttle_1.12.0             
- [5] spatialLIBD_1.14.1          SpatialExperiment_1.12.0   
- [7] SingleCellExperiment_1.24.0 SummarizedExperiment_1.32.0
- [9] Biobase_2.62.0              GenomicRanges_1.54.1       
-[11] MatrixGenerics_1.14.0       matrixStats_1.2.0          
-[13] gridExtra_2.3               ggplot2_3.4.4              
-[15] Cairo_1.6-2                 ggrastr_1.0.2              
-[17] Biostrings_2.70.1           GenomeInfoDb_1.38.5        
-[19] XVector_0.42.0              IRanges_2.36.0             
-[21] S4Vectors_0.40.2            BiocGenerics_0.48.1        
-[23] data.table_1.14.10          rlang_1.1.3                
+ [1] ggstance_0.3.6              ggtext_0.1.2               
+ [3] colorout_1.3-0.1            escheR_1.2.0               
+ [5] SpatialExperiment_1.12.0    SingleCellExperiment_1.24.0
+ [7] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+ [9] GenomicRanges_1.54.1        MatrixGenerics_1.14.0      
+[11] matrixStats_1.2.0           gridExtra_2.3              
+[13] ggplot2_3.4.4               Cairo_1.6-2                
+[15] ggrastr_1.0.2               Biostrings_2.70.2          
+[17] GenomeInfoDb_1.38.5         XVector_0.42.0             
+[19] IRanges_2.36.0              S4Vectors_0.40.2           
+[21] BiocGenerics_0.48.1         data.table_1.14.10         
+[23] rlang_1.1.3                
 
 loaded via a namespace (and not attached):
-  [1] later_1.3.2                   BiocIO_1.12.0                
-  [3] bitops_1.0-7                  filelock_1.0.3               
-  [5] fields_15.2                   tibble_3.2.1                 
-  [7] XML_3.99-0.16                 lifecycle_1.0.4              
-  [9] edgeR_4.0.11                  doParallel_1.0.17            
- [11] rprojroot_2.0.4               lattice_0.22-5               
- [13] magrittr_2.0.3                rmarkdown_2.25               
- [15] limma_3.58.1                  plotly_4.10.4                
- [17] sass_0.4.8                    jquerylib_0.1.4              
- [19] yaml_2.3.8                    httpuv_1.6.13                
- [21] spam_2.10-0                   sessioninfo_1.2.2            
- [23] cowplot_1.1.2                 DBI_1.2.1                    
- [25] RColorBrewer_1.1-3            golem_0.4.1                  
- [27] maps_3.4.2                    abind_1.4-5                  
- [29] zlibbioc_1.48.0               purrr_1.0.2                  
- [31] RCurl_1.98-1.14               rappdirs_0.3.3               
- [33] GenomeInfoDbData_1.2.11       ggrepel_0.9.5                
- [35] irlba_2.3.5.1                 pheatmap_1.0.12              
- [37] DelayedMatrixStats_1.24.0     codetools_0.2-19             
- [39] DelayedArray_0.28.0           DT_0.31                      
- [41] tidyselect_1.2.0              farver_2.1.1                 
- [43] ScaledMatrix_1.10.0           viridis_0.6.4                
- [45] shinyWidgets_0.8.1            BiocFileCache_2.10.1         
- [47] GenomicAlignments_1.38.2      jsonlite_1.8.8               
- [49] BiocNeighbors_1.20.2          ellipsis_0.3.2               
- [51] iterators_1.0.14              foreach_1.5.2                
- [53] tools_4.3.2                   Rcpp_1.0.12                  
- [55] glue_1.7.0                    SparseArray_1.2.3            
- [57] xfun_0.41                     here_1.0.1                   
- [59] dplyr_1.1.4                   withr_3.0.0                  
- [61] BiocManager_1.30.22           fastmap_1.1.1                
- [63] fansi_1.0.6                   digest_0.6.34                
- [65] rsvd_1.0.5                    R6_2.5.1                     
- [67] mime_0.12                     colorspace_2.1-0             
- [69] RSQLite_2.3.5                 config_0.3.2                 
- [71] utf8_1.2.4                    tidyr_1.3.0                  
- [73] generics_0.1.3                rtracklayer_1.62.0           
- [75] httr_1.4.7                    htmlwidgets_1.6.4            
- [77] S4Arrays_1.2.0                scatterplot3d_0.3-44         
- [79] pkgconfig_2.0.3               gtable_0.3.4                 
- [81] blob_1.2.4                    htmltools_0.5.7              
- [83] dotCall64_1.1-1               scales_1.3.0                 
- [85] png_0.1-8                     attempt_0.3.1                
- [87] knitr_1.45                    rstudioapi_0.15.0            
- [89] rjson_0.2.21                  curl_5.2.0                   
- [91] cachem_1.0.8                  Polychrome_1.5.1             
- [93] BiocVersion_3.18.1            parallel_4.3.2               
- [95] vipor_0.4.7                   AnnotationDbi_1.64.1         
- [97] restfulr_0.0.15               pillar_1.9.0                 
- [99] grid_4.3.2                    vctrs_0.6.5                  
-[101] promises_1.2.1                BiocSingular_1.18.0          
-[103] dbplyr_2.4.0                  beachmat_2.18.0              
-[105] xtable_1.8-4                  beeswarm_0.4.0               
-[107] paletteer_1.5.0               evaluate_0.23                
-[109] magick_2.8.2                  cli_3.6.2                    
-[111] locfit_1.5-9.8                compiler_4.3.2               
-[113] Rsamtools_2.18.0              crayon_1.5.2                 
-[115] labeling_0.4.3                rematch2_2.1.2               
-[117] ggbeeswarm_0.7.2              viridisLite_0.4.2            
-[119] BiocParallel_1.36.0           munsell_0.5.0                
-[121] lazyeval_0.2.2                Matrix_1.6-5                 
-[123] ExperimentHub_2.10.0          benchmarkme_1.0.8            
-[125] sparseMatrixStats_1.14.0      bit64_4.0.5                  
-[127] KEGGREST_1.42.0               statmod_1.5.0                
-[129] shiny_1.8.0                   interactiveDisplayBase_1.40.0
-[131] AnnotationHub_3.10.0          memoise_2.0.1                
-[133] bslib_0.6.1                   benchmarkmeData_1.0.4        
-[135] bit_4.0.5                    
+ [1] bitops_1.0-7            magrittr_2.0.3          clue_0.3-65            
+ [4] GetoptLong_1.0.5        compiler_4.3.2          png_0.1-8              
+ [7] vctrs_0.6.5             stringr_1.5.1           pkgconfig_2.0.3        
+[10] shape_1.4.6             crayon_1.5.2            fastmap_1.1.1          
+[13] magick_2.8.2            labeling_0.4.3          utf8_1.2.4             
+[16] rmarkdown_2.25          markdown_1.12           sessioninfo_1.2.2      
+[19] ggbeeswarm_0.7.2        xfun_0.41               zlibbioc_1.48.0        
+[22] DelayedArray_0.28.0     parallel_4.3.2          cluster_2.1.6          
+[25] R6_2.5.1                stringi_1.8.3           RColorBrewer_1.1-3     
+[28] Rcpp_1.0.12             iterators_1.0.14        knitr_1.45             
+[31] Matrix_1.6-5            tidyselect_1.2.0        rstudioapi_0.15.0      
+[34] abind_1.4-5             yaml_2.3.8              doParallel_1.0.17      
+[37] codetools_0.2-19        lattice_0.22-5          tibble_3.2.1           
+[40] withr_3.0.0             evaluate_0.23           xml2_1.3.6             
+[43] circlize_0.4.15         pillar_1.9.0            foreach_1.5.2          
+[46] generics_0.1.3          rprojroot_2.0.4         RCurl_1.98-1.14        
+[49] munsell_0.5.0           commonmark_1.9.1        scales_1.3.0           
+[52] glue_1.7.0              pheatmap_1.0.12         scatterplot3d_0.3-44   
+[55] tools_4.3.2             grid_4.3.2              colorspace_2.1-0       
+[58] GenomeInfoDbData_1.2.11 beeswarm_0.4.0          vipor_0.4.7            
+[61] cli_3.6.2               Polychrome_1.5.1        fansi_1.0.6            
+[64] S4Arrays_1.2.0          viridisLite_0.4.2       ComplexHeatmap_2.18.0  
+[67] dplyr_1.1.4             gtable_0.3.4            digest_0.6.34          
+[70] SparseArray_1.2.3       rjson_0.2.21            farver_2.1.1           
+[73] htmltools_0.5.7         lifecycle_1.0.4         here_1.0.1             
+[76] GlobalOptions_0.1.2     gridtext_0.1.5         
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────
+─ Session info ───────────────────────────────────────────────────────────
  setting  value
  version  R version 4.3.2 (2023-10-31)
  os       macOS Ventura 13.6
@@ -667,170 +629,111 @@ loaded via a namespace (and not attached):
  language (EN)
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
- tz       America/Chicago
- date     2024-01-21
+ tz       America/New_York
+ date     2024-02-08
  rstudio  2023.09.1+494 Desert Sunflower (desktop)
  pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────
- package                * version   date (UTC) lib source
- abind                    1.4-5     2016-07-21 [1] CRAN (R 4.3.0)
- AnnotationDbi            1.64.1    2023-11-02 [1] Bioconductor
- AnnotationHub            3.10.0    2023-10-24 [1] Bioconductor
- attempt                  0.3.1     2020-05-03 [1] CRAN (R 4.3.0)
- beachmat                 2.18.0    2023-10-24 [1] Bioconductor
- beeswarm                 0.4.0     2021-06-01 [1] CRAN (R 4.3.2)
- benchmarkme              1.0.8     2022-06-12 [1] CRAN (R 4.3.0)
- benchmarkmeData          1.0.4     2020-04-23 [1] CRAN (R 4.3.0)
- Biobase                * 2.62.0    2023-10-24 [1] Bioconductor
- BiocFileCache            2.10.1    2023-10-26 [1] Bioconductor
- BiocGenerics           * 0.48.1    2023-11-02 [1] Bioconductor
- BiocIO                   1.12.0    2023-10-26 [1] Bioconductor
- BiocManager              1.30.22   2023-08-08 [1] CRAN (R 4.3.0)
- BiocNeighbors            1.20.2    2024-01-07 [1] Bioconductor 3.18 (R 4.3.2)
- BiocParallel             1.36.0    2023-10-26 [1] Bioconductor
- BiocSingular             1.18.0    2023-10-24 [1] Bioconductor
- BiocVersion              3.18.1    2023-11-18 [1] Bioconductor 3.18 (R 4.3.2)
- Biostrings             * 2.70.1    2023-10-25 [1] Bioconductor
- bit                      4.0.5     2022-11-15 [1] CRAN (R 4.3.2)
- bit64                    4.0.5     2020-08-30 [1] CRAN (R 4.3.2)
- bitops                   1.0-7     2021-04-24 [1] CRAN (R 4.3.2)
- blob                     1.2.4     2023-03-17 [1] CRAN (R 4.3.0)
- bslib                    0.6.1     2023-11-28 [1] CRAN (R 4.3.1)
- cachem                   1.0.8     2023-05-01 [1] CRAN (R 4.3.2)
- Cairo                  * 1.6-2     2023-11-28 [1] CRAN (R 4.3.1)
- cli                      3.6.2     2023-12-11 [1] CRAN (R 4.3.2)
- codetools                0.2-19    2023-02-01 [1] CRAN (R 4.3.0)
- colorout               * 1.3-0.1   2024-01-11 [1] local
- colorspace               2.1-0     2023-01-23 [1] CRAN (R 4.3.2)
- config                   0.3.2     2023-08-30 [1] CRAN (R 4.3.0)
- cowplot                  1.1.2     2023-12-15 [1] CRAN (R 4.3.2)
- crayon                   1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
- curl                     5.2.0     2023-12-08 [1] CRAN (R 4.3.2)
- data.table             * 1.14.10   2023-12-08 [1] CRAN (R 4.3.2)
- DBI                      1.2.1     2024-01-12 [1] CRAN (R 4.3.2)
- dbplyr                   2.4.0     2023-10-26 [1] CRAN (R 4.3.1)
- DelayedArray             0.28.0    2023-10-24 [1] Bioconductor
- DelayedMatrixStats       1.24.0    2023-11-06 [1] Bioconductor
- digest                   0.6.34    2024-01-11 [1] CRAN (R 4.3.2)
- doParallel               1.0.17    2022-02-07 [1] CRAN (R 4.3.0)
- dotCall64                1.1-1     2023-11-28 [1] CRAN (R 4.3.2)
- dplyr                    1.1.4     2023-11-17 [1] CRAN (R 4.3.2)
- DT                       0.31      2023-12-09 [1] CRAN (R 4.3.1)
- edgeR                    4.0.11    2024-01-19 [1] Bioconductor 3.18 (R 4.3.2)
- ellipsis                 0.3.2     2021-04-29 [1] CRAN (R 4.3.2)
- escheR                 * 1.2.0     2023-10-26 [1] Bioconductor
- evaluate                 0.23      2023-11-01 [1] CRAN (R 4.3.1)
- ExperimentHub            2.10.0    2023-10-26 [1] Bioconductor
- fansi                    1.0.6     2023-12-08 [1] CRAN (R 4.3.2)
- farver                   2.1.1     2022-07-06 [1] CRAN (R 4.3.2)
- fastmap                  1.1.1     2023-02-24 [1] CRAN (R 4.3.2)
- fields                   15.2      2023-08-17 [1] CRAN (R 4.3.2)
- filelock                 1.0.3     2023-12-11 [1] CRAN (R 4.3.2)
- foreach                  1.5.2     2022-02-02 [1] CRAN (R 4.3.0)
- generics                 0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
- GenomeInfoDb           * 1.38.5    2023-12-30 [1] Bioconductor 3.18 (R 4.3.2)
- GenomeInfoDbData         1.2.11    2024-01-11 [1] Bioconductor
- GenomicAlignments        1.38.2    2024-01-16 [1] Bioconductor 3.18 (R 4.3.2)
- GenomicRanges          * 1.54.1    2023-10-29 [1] Bioconductor
- ggbeeswarm               0.7.2     2023-04-29 [1] CRAN (R 4.3.0)
- ggplot2                * 3.4.4     2023-10-12 [1] CRAN (R 4.3.1)
- ggrastr                * 1.0.2     2023-06-01 [1] CRAN (R 4.3.0)
- ggrepel                  0.9.5     2024-01-10 [1] CRAN (R 4.3.2)
- glue                     1.7.0     2024-01-09 [1] CRAN (R 4.3.2)
- golem                    0.4.1     2023-06-05 [1] CRAN (R 4.3.0)
- gridExtra              * 2.3       2017-09-09 [1] CRAN (R 4.3.0)
- gtable                   0.3.4     2023-08-21 [1] CRAN (R 4.3.0)
- here                     1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
- htmltools                0.5.7     2023-11-03 [1] CRAN (R 4.3.2)
- htmlwidgets              1.6.4     2023-12-06 [1] CRAN (R 4.3.1)
- httpuv                   1.6.13    2023-12-06 [1] CRAN (R 4.3.1)
- httr                     1.4.7     2023-08-15 [1] CRAN (R 4.3.0)
- interactiveDisplayBase   1.40.0    2023-10-26 [1] Bioconductor
- IRanges                * 2.36.0    2023-10-24 [1] Bioconductor
- irlba                    2.3.5.1   2022-10-03 [1] CRAN (R 4.3.2)
- iterators                1.0.14    2022-02-05 [1] CRAN (R 4.3.0)
- jquerylib                0.1.4     2021-04-26 [1] CRAN (R 4.3.0)
- jsonlite                 1.8.8     2023-12-04 [1] CRAN (R 4.3.2)
- KEGGREST                 1.42.0    2023-10-26 [1] Bioconductor
- knitr                    1.45      2023-10-30 [1] CRAN (R 4.3.2)
- labeling                 0.4.3     2023-08-29 [1] CRAN (R 4.3.0)
- later                    1.3.2     2023-12-06 [1] CRAN (R 4.3.2)
- lattice                  0.22-5    2023-10-24 [1] CRAN (R 4.3.2)
- lazyeval                 0.2.2     2019-03-15 [1] CRAN (R 4.3.2)
- lifecycle                1.0.4     2023-11-07 [1] CRAN (R 4.3.1)
- limma                    3.58.1    2023-10-31 [1] Bioconductor
- locfit                   1.5-9.8   2023-06-11 [1] CRAN (R 4.3.2)
- magick                   2.8.2     2023-12-20 [1] CRAN (R 4.3.1)
- magrittr                 2.0.3     2022-03-30 [1] CRAN (R 4.3.2)
- maps                     3.4.2     2023-12-15 [1] CRAN (R 4.3.1)
- Matrix                   1.6-5     2024-01-11 [1] CRAN (R 4.3.2)
- MatrixGenerics         * 1.14.0    2023-10-26 [1] Bioconductor
- matrixStats            * 1.2.0     2023-12-11 [1] CRAN (R 4.3.2)
- memoise                  2.0.1     2021-11-26 [1] CRAN (R 4.3.0)
- mime                     0.12      2021-09-28 [1] CRAN (R 4.3.2)
- munsell                  0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
- paletteer                1.5.0     2022-10-19 [1] CRAN (R 4.3.0)
- pheatmap                 1.0.12    2019-01-04 [1] CRAN (R 4.3.0)
- pillar                   1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
- pkgconfig                2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
- plotly                   4.10.4    2024-01-13 [1] CRAN (R 4.3.1)
- png                      0.1-8     2022-11-29 [1] CRAN (R 4.3.2)
- Polychrome               1.5.1     2022-05-03 [1] CRAN (R 4.3.0)
- promises                 1.2.1     2023-08-10 [1] CRAN (R 4.3.2)
- purrr                    1.0.2     2023-08-10 [1] CRAN (R 4.3.2)
- R6                       2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
- rappdirs                 0.3.3     2021-01-31 [1] CRAN (R 4.3.2)
- RColorBrewer             1.1-3     2022-04-03 [1] CRAN (R 4.3.0)
- Rcpp                     1.0.12    2024-01-09 [1] CRAN (R 4.3.2)
- RCurl                    1.98-1.14 2024-01-09 [1] CRAN (R 4.3.1)
- rematch2                 2.1.2     2020-05-01 [1] CRAN (R 4.3.0)
- restfulr                 0.0.15    2022-06-16 [1] CRAN (R 4.3.2)
- rjson                    0.2.21    2022-01-09 [1] CRAN (R 4.3.2)
- rlang                  * 1.1.3     2024-01-10 [1] CRAN (R 4.3.2)
- rmarkdown                2.25      2023-09-18 [1] CRAN (R 4.3.2)
- rprojroot                2.0.4     2023-11-05 [1] CRAN (R 4.3.1)
- Rsamtools                2.18.0    2023-10-24 [1] Bioconductor
- RSQLite                  2.3.5     2024-01-21 [1] CRAN (R 4.3.2)
- rstudioapi               0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
- rsvd                     1.0.5     2021-04-16 [1] CRAN (R 4.3.0)
- rtracklayer              1.62.0    2023-10-26 [1] Bioconductor
- S4Arrays                 1.2.0     2023-10-24 [1] Bioconductor
- S4Vectors              * 0.40.2    2023-11-23 [1] Bioconductor 3.18 (R 4.3.2)
- sass                     0.4.8     2023-12-06 [1] CRAN (R 4.3.1)
- ScaledMatrix             1.10.0    2023-11-06 [1] Bioconductor
- scales                   1.3.0     2023-11-28 [1] CRAN (R 4.3.2)
- scater                 * 1.30.1    2023-11-16 [1] Bioconductor
- scatterplot3d            0.3-44    2023-05-05 [1] CRAN (R 4.3.0)
- scuttle                * 1.12.0    2023-10-24 [1] Bioconductor
- sessioninfo              1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
- shiny                    1.8.0     2023-11-17 [1] CRAN (R 4.3.1)
- shinyWidgets             0.8.1     2024-01-10 [1] CRAN (R 4.3.1)
- SingleCellExperiment   * 1.24.0    2023-11-06 [1] Bioconductor
- spam                     2.10-0    2023-10-23 [1] CRAN (R 4.3.2)
- SparseArray              1.2.3     2023-12-25 [1] Bioconductor 3.18 (R 4.3.2)
- sparseMatrixStats        1.14.0    2023-10-24 [1] Bioconductor
- SpatialExperiment      * 1.12.0    2023-10-26 [1] Bioconductor
- spatialLIBD            * 1.14.1    2023-11-30 [1] Bioconductor 3.18 (R 4.3.2)
- statmod                  1.5.0     2023-01-06 [1] CRAN (R 4.3.2)
- SummarizedExperiment   * 1.32.0    2023-11-06 [1] Bioconductor
- tibble                   3.2.1     2023-03-20 [1] CRAN (R 4.3.2)
- tidyr                    1.3.0     2023-01-24 [1] CRAN (R 4.3.2)
- tidyselect               1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
- utf8                     1.2.4     2023-10-22 [1] CRAN (R 4.3.2)
- vctrs                    0.6.5     2023-12-01 [1] CRAN (R 4.3.2)
- vipor                    0.4.7     2023-12-18 [1] CRAN (R 4.3.1)
- viridis                  0.6.4     2023-07-22 [1] CRAN (R 4.3.0)
- viridisLite              0.4.2     2023-05-02 [1] CRAN (R 4.3.0)
- withr                    3.0.0     2024-01-16 [1] CRAN (R 4.3.1)
- xfun                     0.41      2023-11-01 [1] CRAN (R 4.3.2)
- XML                      3.99-0.16 2023-11-29 [1] CRAN (R 4.3.1)
- xtable                   1.8-4     2019-04-21 [1] CRAN (R 4.3.0)
- XVector                * 0.42.0    2023-10-24 [1] Bioconductor
- yaml                     2.3.8     2023-12-11 [1] CRAN (R 4.3.2)
- zlibbioc                 1.48.0    2023-10-26 [1] Bioconductor
+─ Packages ───────────────────────────────────────────────────────────────
+ package              * version   date (UTC) lib source
+ abind                  1.4-5     2016-07-21 [1] CRAN (R 4.3.0)
+ beeswarm               0.4.0     2021-06-01 [1] CRAN (R 4.3.2)
+ Biobase              * 2.62.0    2023-10-24 [1] Bioconductor
+ BiocGenerics         * 0.48.1    2023-11-02 [1] Bioconductor
+ Biostrings           * 2.70.2    2024-01-28 [1] Bioconductor 3.18 (R 4.3.2)
+ bitops                 1.0-7     2021-04-24 [1] CRAN (R 4.3.2)
+ Cairo                * 1.6-2     2023-11-28 [1] CRAN (R 4.3.1)
+ circlize               0.4.15    2022-05-10 [1] CRAN (R 4.3.0)
+ cli                    3.6.2     2023-12-11 [1] CRAN (R 4.3.2)
+ clue                   0.3-65    2023-09-23 [1] CRAN (R 4.3.2)
+ cluster                2.1.6     2023-12-01 [1] CRAN (R 4.3.2)
+ codetools              0.2-19    2023-02-01 [1] CRAN (R 4.3.0)
+ colorout             * 1.3-0.1   2024-01-11 [1] local
+ colorspace             2.1-0     2023-01-23 [1] CRAN (R 4.3.2)
+ commonmark             1.9.1     2024-01-30 [1] CRAN (R 4.3.2)
+ ComplexHeatmap         2.18.0    2023-10-26 [1] Bioconductor
+ crayon                 1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
+ data.table           * 1.14.10   2023-12-08 [1] CRAN (R 4.3.2)
+ DelayedArray           0.28.0    2023-10-24 [1] Bioconductor
+ digest                 0.6.34    2024-01-11 [1] CRAN (R 4.3.2)
+ doParallel             1.0.17    2022-02-07 [1] CRAN (R 4.3.0)
+ dplyr                  1.1.4     2023-11-17 [1] CRAN (R 4.3.2)
+ escheR               * 1.2.0     2023-10-26 [1] Bioconductor
+ evaluate               0.23      2023-11-01 [1] CRAN (R 4.3.1)
+ fansi                  1.0.6     2023-12-08 [1] CRAN (R 4.3.2)
+ farver                 2.1.1     2022-07-06 [1] CRAN (R 4.3.2)
+ fastmap                1.1.1     2023-02-24 [1] CRAN (R 4.3.2)
+ foreach                1.5.2     2022-02-02 [1] CRAN (R 4.3.0)
+ generics               0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
+ GenomeInfoDb         * 1.38.5    2023-12-30 [1] Bioconductor 3.18 (R 4.3.2)
+ GenomeInfoDbData       1.2.11    2024-01-11 [1] Bioconductor
+ GenomicRanges        * 1.54.1    2023-10-29 [1] Bioconductor
+ GetoptLong             1.0.5     2020-12-15 [1] CRAN (R 4.3.0)
+ ggbeeswarm             0.7.2     2023-04-29 [1] CRAN (R 4.3.0)
+ ggplot2              * 3.4.4     2023-10-12 [1] CRAN (R 4.3.1)
+ ggrastr              * 1.0.2     2023-06-01 [1] CRAN (R 4.3.0)
+ ggstance             * 0.3.6     2022-11-16 [1] CRAN (R 4.3.0)
+ ggtext               * 0.1.2     2022-09-16 [1] CRAN (R 4.3.0)
+ GlobalOptions          0.1.2     2020-06-10 [1] CRAN (R 4.3.0)
+ glue                   1.7.0     2024-01-09 [1] CRAN (R 4.3.2)
+ gridExtra            * 2.3       2017-09-09 [1] CRAN (R 4.3.0)
+ gridtext               0.1.5     2022-09-16 [1] CRAN (R 4.3.2)
+ gtable                 0.3.4     2023-08-21 [1] CRAN (R 4.3.0)
+ here                   1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
+ htmltools              0.5.7     2023-11-03 [1] CRAN (R 4.3.2)
+ IRanges              * 2.36.0    2023-10-24 [1] Bioconductor
+ iterators              1.0.14    2022-02-05 [1] CRAN (R 4.3.0)
+ knitr                  1.45      2023-10-30 [1] CRAN (R 4.3.2)
+ labeling               0.4.3     2023-08-29 [1] CRAN (R 4.3.0)
+ lattice                0.22-5    2023-10-24 [1] CRAN (R 4.3.2)
+ lifecycle              1.0.4     2023-11-07 [1] CRAN (R 4.3.1)
+ magick                 2.8.2     2023-12-20 [1] CRAN (R 4.3.1)
+ magrittr               2.0.3     2022-03-30 [1] CRAN (R 4.3.2)
+ markdown               1.12      2023-12-06 [1] CRAN (R 4.3.1)
+ Matrix                 1.6-5     2024-01-11 [1] CRAN (R 4.3.2)
+ MatrixGenerics       * 1.14.0    2023-10-26 [1] Bioconductor
+ matrixStats          * 1.2.0     2023-12-11 [1] CRAN (R 4.3.2)
+ munsell                0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
+ pheatmap               1.0.12    2019-01-04 [1] CRAN (R 4.3.0)
+ pillar                 1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
+ pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
+ png                    0.1-8     2022-11-29 [1] CRAN (R 4.3.2)
+ Polychrome             1.5.1     2022-05-03 [1] CRAN (R 4.3.0)
+ R6                     2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
+ RColorBrewer           1.1-3     2022-04-03 [1] CRAN (R 4.3.0)
+ Rcpp                   1.0.12    2024-01-09 [1] CRAN (R 4.3.2)
+ RCurl                  1.98-1.14 2024-01-09 [1] CRAN (R 4.3.1)
+ rjson                  0.2.21    2022-01-09 [1] CRAN (R 4.3.2)
+ rlang                * 1.1.3     2024-01-10 [1] CRAN (R 4.3.2)
+ rmarkdown              2.25      2023-09-18 [1] CRAN (R 4.3.2)
+ rprojroot              2.0.4     2023-11-05 [1] CRAN (R 4.3.1)
+ rstudioapi             0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
+ S4Arrays               1.2.0     2023-10-24 [1] Bioconductor
+ S4Vectors            * 0.40.2    2023-11-23 [1] Bioconductor 3.18 (R 4.3.2)
+ scales                 1.3.0     2023-11-28 [1] CRAN (R 4.3.2)
+ scatterplot3d          0.3-44    2023-05-05 [1] CRAN (R 4.3.0)
+ sessioninfo            1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
+ shape                  1.4.6     2021-05-19 [1] CRAN (R 4.3.0)
+ SingleCellExperiment * 1.24.0    2023-11-06 [1] Bioconductor
+ SparseArray            1.2.3     2023-12-25 [1] Bioconductor 3.18 (R 4.3.2)
+ SpatialExperiment    * 1.12.0    2023-10-26 [1] Bioconductor
+ stringi                1.8.3     2023-12-11 [1] CRAN (R 4.3.1)
+ stringr                1.5.1     2023-11-14 [1] CRAN (R 4.3.1)
+ SummarizedExperiment * 1.32.0    2023-11-06 [1] Bioconductor
+ tibble                 3.2.1     2023-03-20 [1] CRAN (R 4.3.2)
+ tidyselect             1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
+ utf8                   1.2.4     2023-10-22 [1] CRAN (R 4.3.2)
+ vctrs                  0.6.5     2023-12-01 [1] CRAN (R 4.3.2)
+ vipor                  0.4.7     2023-12-18 [1] CRAN (R 4.3.1)
+ viridisLite            0.4.2     2023-05-02 [1] CRAN (R 4.3.0)
+ withr                  3.0.0     2024-01-16 [1] CRAN (R 4.3.1)
+ xfun                   0.41      2023-11-01 [1] CRAN (R 4.3.2)
+ xml2                   1.3.6     2023-12-04 [1] CRAN (R 4.3.2)
+ XVector              * 0.42.0    2023-10-24 [1] Bioconductor
+ yaml                   2.3.8     2023-12-11 [1] CRAN (R 4.3.2)
+ zlibbioc               1.48.0    2023-10-26 [1] Bioconductor
 
  [1] /Users/bmulvey/Library/R/arm64/4.3/library
  [2] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
 
-───────────────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────
