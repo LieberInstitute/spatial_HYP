@@ -55,7 +55,7 @@ cocores <- melt(cocores[topname %in% keepres,],id.vars=c("topnode","topname"),va
 setnames(cocores,"score","scCoco Score (top\n150 Visium Markers)")
 cocores[topname=="Periventricular hypothalamic nucleus, posterior part",topname:="Posterior periventricular nu."]
 
-pdf("plots/Manuscript/6A-scCoco registration to adult mouse ISH of hyp.pdf",width=7,height=4)
+pdf("plots/Manuscript/5A-scCoco registration to adult mouse ISH of hyp.pdf",width=7,height=4)
 ggplot(cocores,aes(x=region,y=topname,fill=`scCoco Score (top\n150 Visium Markers)`))+
     geom_tile()+
     scale_fill_gradient2(low="white",mid="yellow",high="red",midpoint=0.5)+
@@ -68,7 +68,7 @@ ggplot(cocores,aes(x=region,y=topname,fill=`scCoco Score (top\n150 Visium Marker
 dev.off()
 ```
 
-# 6B: Spatial registration to Yao '23
+# 5B: Spatial registration to Yao '23
 ```{r}
 spatregs <- readRDS("data/10-Spatial Registration/02g-sphyp-k15-20-31-15clps_ABAms-47subclass-47withVMHARCclps.RDS")
 
@@ -119,11 +119,11 @@ vmhplots <- melt(vmhplots,id.vars=c("ngenes","sphyp_domain"),variable.name="Subc
 setnames(vmhplots,"ngenes","Top n Human Domain Markers")
 vmhplots <- vmhplots[`Top n Human Domain Markers`<600]
 ```
-## 6B continued: make a palette for 4 line colors that aren't egregiously colorblind-unfriendly
+## 5B continued: make a palette for 4 line colors that aren't egregiously colorblind-unfriendly
 ```{r}
 set.seed(82229)
 pal <- Polychrome::createPalette(9,M = 100000,range = c(40,60),seedcolors = "#000000")
-swatch(pal)
+Polychrome::swatch(pal)
 
 # k fine
 dev.off()
@@ -139,7 +139,7 @@ extract_legend <- function(my_ggp) {
   return(step3)
 }
 ```
-## 6B continued: save plots
+## 5B continued: save plots
 ```{r}
 arcpal <- copy(pal)
 names(arcpal) <- unique(arcplots$Subclass)
@@ -164,7 +164,7 @@ leg.tmp <- extract_legend(arcplt[[2]])
 arcplt[[2]] <- arcplt[[2]]+guides(color="none")
 dev.off()
 
-pdf("plots/Manuscript/6Bi-ARC.1, ARC.2 to ARH subclasses.pdf",height=3,width=3.75)
+pdf("plots/Manuscript/5Bi-ARC.1, ARC.2 to ARH subclasses.pdf",height=3,width=3.75)
 do.call("grid.arrange",list(arrangeGrob(grobs=arcplt,ncol=2),leg.tmp,nrow=2,heights=c(12,8)))
 dev.off()
 
@@ -194,12 +194,12 @@ leg.tmp <- extract_legend(vmhplt[[2]])
 vmhplt[[2]] <- vmhplt[[2]]+guides(color="none")
 dev.off()
 
-pdf("plots/Manuscript/6Bii-VMH.1, VMH.2 to VMH subclasses.pdf",height=3,width=3.75)
+pdf("plots/Manuscript/5Bii-VMH.1, VMH.2 to VMH subclasses.pdf",height=3,width=3.75)
 do.call("grid.arrange",list(arrangeGrob(grobs=vmhplt,ncol=2),leg.tmp,nrow=2,heights=c(12,8)))
 dev.off()
 ```
 
-### 6C: scatter plot per Visium cluster, with each dot representing a Yao23 subclass
+### 5C: scatter plot per Visium cluster, with each dot representing a Yao23 subclass
 ```{r}
 correls <- readRDS("data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed.RDS")
 
@@ -222,7 +222,12 @@ correls[mouse_subclass == "x080_GPi_Skor1_Gaba_Glut",
 correls[mouse_subclass == "x116_PVpo_VMPO_MPN_Hmx2_Gaba", 
         mouse_subclass := "x116_PVpo_VMPO_\nMPN_Hmx2_Gaba"]
 
+### assign VMH color to the VMH subclasses and ARC to ARC
+correls[mouse_subclass %in% grep(mouse_subclass,pattern="VMH",value=T),label:="VMH"]
+correls[mouse_subclass %in% grep(mouse_subclass,pattern="ARH",value=T),label:="ARC"]
+correls[!(label %in% c("ARC","VMH")),label:="Other"]
 
+pal <- c("VMH"="#5dd959","ARC"="#8c63cf","Other"="#000000")
 
 ### need to change something about the invisible bounds around the ggrepel text overexpanding the x-axis?
 
@@ -240,8 +245,10 @@ for (i in c(1:length(unique(correls$human_domain)))) {
     curdat[, xcoord := c(1:nrow(curdat))]
     
     plts <- ggplot(curdat, aes(x = xcoord, y = spearmancor)) +
-        geom_point() +
+        geom_point(aes(col=label)) +
+        scale_color_manual(values=pal) +
         ylim(-0.5, 0.5) +
+        guides(col="none") +
         geom_text_repel(
             aes(label = ifelse(is.na(subcl_label), NA, subcl_label)),
             nudge_x = -35 * sign(curdat$spearmancor),
@@ -270,7 +277,7 @@ for (i in c(1:length(unique(correls$human_domain)))) {
     ### save
     pdf(
         paste0(
-            "plots/Manuscript/6C_alt-YaoSexDE_spearcorrels_",
+            "plots/Manuscript/5C-YaoSexDE_spearcorrels_",
             unique(correls$human_domain)[i],
             ".pdf"
         ),
@@ -279,6 +286,30 @@ for (i in c(1:length(unique(correls$human_domain)))) {
     )
     print(plts)
     dev.off()
+    
+    ### extract a legend from one of the plots
+    
+    if (i == length(unique(correls$human_domain))) {
+        plts <- ggplot(curdat, aes(x = xcoord, y = spearmancor)) +
+                geom_point(aes(col=label)) +
+                scale_color_manual(values=pal) +
+                ylim(-0.5, 0.5) +
+                labs(col="Mouse\nSubclass")
+                theme(legend.title=element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin = margin(0,0,0,0,unit="in"))
+        
+        leg <- extract_legend(plts)
+        dev.off()
+        
+        pdf(
+            "plots/Manuscript/5C-YaoSexDE_spearcorrels_sharedlegend.pdf",
+            height = 1.4,
+            width = 1
+        )
+        do.call("grid.arrange",list(leg))
+        dev.off()
+    }
+    ####
+    
     rm(plts,curdat)
 }
 ```
