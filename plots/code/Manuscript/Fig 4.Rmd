@@ -21,13 +21,14 @@ library(SpatialExperiment) # Dependency
 library(escheR) # spotplots with domain outlines
 library(ggrepel) # for plotting labels on a volcano cleanly
 require(colorout) # Utility for RStudio
+library(ggtext) # mixed font styles in ggplots
 ColorOut() 
 
 # code reformatting in Rstudio
-options("styler.addins_style_transformer" = "biocthis::bioc_style()") 
+options(styler.addins_style_transformer = "biocthis::bioc_style()") 
 
 # set plotting defaults for ggplot
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 10), axis.title.x = element_text(size = 11), axis.text.y = element_text(size = 10), axis.title.y = element_text(size =11), plot.title = element_text(size = 12,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=9), legend.title = element_text(size=10,hjust=0.5)))
+theme_set(theme_bw() + theme(axis.text.x = element_text(size = 10), axis.title.x = element_text(size = 11), axis.text.y = element_text(size = 10), axis.title.y = element_text(size = 11), plot.title = element_text(size = 12, hjust = 0.5), strip.text = element_text(size = 18), legend.text = element_text(size = 9), legend.title = element_text(size = 10, hjust = 0.5)))
 ```
 
 ### Setup: load data, cluster assignments, and rename from generic to appropriate region (VMH/ARC/WM)
@@ -70,7 +71,7 @@ rm(tmpcd)
 ```
 
 
-4A-4C: Sex DE volcanos for ARC VMH WM
+4A: Sex DE volcanos for VMH
 ```{r}
 sexderes <- fread("data/09-Sex DE/01c-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 
@@ -80,53 +81,144 @@ vmhde <- sexderes[assay=="VMH"]
 vmhde[,genelabel:=as.character(NA)]
 vmhde[gene_name %in% c("CACNA1D", "ANKRD17", "PTGR1", "HACE1"),genelabel:=gene_name]
 
-vmhvol <- ggplot(vmhde,aes(y=-log10(P.Value),x=logFC))+
-    geom_point(size=0.6,col="#001859")+
-    geom_hline(yintercept=-log10(0.05),linetype="dashed",color="black")+
-    geom_hline(yintercept=-log10(max(sexderes[adj.P.Val<0.05&assay=="VMH",P.Value])),linetype="dashed",color="red")+
-    geom_text_repel(aes(y=-log10(P.Value),x=logFC,label = ifelse(is.na(genelabel), "",gene_name)),nudge_y =-0.2,nudge_x=0.5,min.segment.length = 0)+
-    xlab("VMH logFC\n(Male vs. Female)")+
-    ylab("-log10 (p-value)")+
-    xlim(-2.25,2.25)+
-    theme(axis.title.x=element_text(size=11),axis.text.x = element_text(size=10),axis.title.y = element_text(size=11),axis.text.y=element_text(size=10))
+vmhvol <- ggplot(vmhde, aes(y = -log10(P.Value), x = logFC)) +
+    geom_point(size = 0.4,
+               col = "#5dd959") +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(max(sexderes[adj.P.Val<0.05&assay=="VMH",P.Value])),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+            x = logFC,
+            label = ifelse(is.na(genelabel), "", gene_name)),
+        nudge_y = ifelse(vmhde$genelabel %in% c("PTGR1","CACNA1D"), yes = 1.2, no = -0.4),
+        nudge_x = ifelse(vmhde$genelabel%in%c("HACE1","CACNA1D"),yes=sign(vmhde$logFC)*1,no=sign(vmhde$logFC)*0.3),
+        min.segment.length = 0,
+        size = 2,
+        segment.size = 0.25) +
+    xlab("VMH logFC\n(Male vs. Female)") +
+    ylab("-log10 (p-value)") +
+    xlim(-2.25, 2.25) +
+    theme(axis.title.x = element_text(size = 10),
+        axis.text.x = element_text(size = 9),
+        axis.title.y = element_text(size = 10),
+        axis.text.y = element_text(size = 9))
 
-#dl.jt.res[assay=="VMH"&-log10(P.Value)>12] # label PTGR1, ANKRD17, NAB2, BCR
+pdf("plots/Manuscript/4A-VMH Sex DE Volcano.pdf",height=2.5,width=2.3)
+vmhvol
+dev.off()
 
+rm(vmhvol)
+```
+
+4B: ARC Volcano
+```{r}
 arcde <- sexderes[assay=="ARC"]
 arcde[,genelabel:=as.character(NA)]
 arcde[gene_name %in% c("PENK", "IGFLR1", "IGFBP6","CAPS2"),genelabel:=gene_name]
 
-arcvol <- ggplot(arcde,aes(y=-log10(P.Value),x=logFC))+
-    geom_point(size=0.6,col="#058a00")+
-    geom_hline(yintercept=-log10(0.05),linetype="dashed",color="black")+
-    geom_hline(yintercept=-log10(max(sexderes[adj.P.Val<0.05&assay=="ARC",P.Value])),linetype="dashed",color="red")+
-    geom_text_repel(aes(y=-log10(P.Value),x=logFC,label = ifelse(is.na(genelabel), "",gene_name)),nudge_y = 6,nudge_x=sign(arcde$logFC)*0.65,min.segment.length = 0)+
-    xlab("ARC logFC\n(Male vs. Female)")+
-    ylab("-log10 (p-value)")+
-    xlim(-3,3)+
-    theme(axis.title.x=element_text(size=11),axis.text.x = element_text(size=10),axis.title.y = element_text(size=11),axis.text.y=element_text(size=10))
-
-arcvmh <- merge.data.table(sexderes[assay=="VMH",.(ID,logFC)],sexderes[assay=="ARC",.(ID,logFC)],by="ID",suffixes=c("_VMH","_ARC"))
-
-cor(arcvmh$logFC_ARC,arcvmh$logFC_VMH,method="pearson")
-
-arcvmhcor <- ggplot(arcvmh,aes(x=logFC_VMH,y=logFC_ARC))+
-    geom_point(size=0.9,col="#157e82")+
-    geom_abline(slope=1,intercept=0,linetype="dashed",col="black")+
-    geom_text(aes(x=-1.2,y=2.6),label="Pearson Coef=0.512",size=2.5)+
-    xlim(-2.6,2.6)+
-    ylim(-2.6,2.6)+
-    xlab("logFC VMH")+
-    ylab("logFC ARC")+
-    theme(plot.title = element_text(hjust = 0.5))+
-    theme(axis.title.x=element_text(size=11),axis.text.x = element_text(size=10),axis.title.y = element_text(size=11),axis.text.y=element_text(size=10),title = element_text(size=11))
-
-arcvmhcor
+arcvol <- ggplot(arcde, aes(y = -log10(P.Value), x = logFC)) +
+    geom_point(size = 0.4,
+               col = "#8c63cf") +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(max(sexderes[adj.P.Val<0.05&assay=="ARC",P.Value])),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+                        x = logFC,
+                        label = ifelse(is.na(genelabel), "", gene_name)),
+        nudge_y = 4,
+        nudge_x = 2*sign(arcde$logFC)/(3*abs(arcde$logFC)),
+        min.segment.length = 0,
+        size = 2,
+        segment.size = 0.25) +
+    xlab("ARC logFC\n(Male vs. Female)") +
+    ylab("-log10 (p-value)") +
+    xlim(-3, 3) +
+    theme(axis.title.x = element_text(size = 10),
+        axis.text.x = element_text(size = 9),
+        axis.title.y = element_text(size = 10),
+        axis.text.y = element_text(size = 9))
+    
+pdf("plots/Manuscript/4B-ARC Sex DE Volcano.pdf",height=2.5,width=2.3)
+arcvol
 dev.off()
-plts <- list(vmhvol,arcvol,arcvmhcor)
+rm(arcvol)
+```
 
-pdf("plots/Manuscript/4A-C-ARC, VMH volcanos and lfc correls.pdf",height=2.5,width=7)
-do.call("grid.arrange",c(plts,ncol=3))
+4C: ARC-VMH sex DE t stat correls
+```{r}
+# make primary plotting table
+setnames(vmhde,"t","tvmh")
+setnames(arcde,"t","tarc")
+
+arcvmh <- merge(vmhde[,.(ID,tvmh)],arcde[,.(ID,tarc)],by="ID",all.x=T,all.y=T)
+
+## get genes significant in one, both, and neither
+setnames(arcde,"adj.P.Val","arcadjp")
+setnames(vmhde,"adj.P.Val","vmhadjp")
+setnames(arcde,"logFC","arclogfc")
+setnames(vmhde,"logFC","vmhlogfc")
+arcvmh2 <- merge(vmhde[,.(ID,vmhadjp,vmhlogfc)],arcde[,.(ID,arcadjp,arclogfc)],by="ID",all.x=T,all.y=T)
+
+arcvmh2[vmhadjp<0.05&arcadjp<0.05,de:="Both"]
+arcvmh2[vmhadjp<0.05&(arcadjp>=0.05|is.na(arcadjp)),de:="VMH"]
+arcvmh2[(vmhadjp>=0.05|is.na(vmhadjp))&arcadjp<0.05,de:="ARC"]
+arcvmh2[(vmhadjp>=0.05|is.na(vmhadjp))&(arcadjp>=0.05|is.na(arcadjp)),de:="Neither"]
+
+## add that information for point coloring
+arcvmh <- merge(arcvmh,arcvmh2[,.(ID,de)],by="ID",all=T)
+arcvmh[,de:=factor(de,levels=c("VMH","ARC","Both","Neither"))]
+
+# make a palette for these four colors
+pal <- c("Both"="#157e82","VMH"="#5dd959","ARC"="#8c63cf","Neither"="#808080")
+# get pearson correlation to include in plot
+cor(arcvmh$tvmh,arcvmh$tarc,method="pearson")
+
+arcvmhcor <- ggplot(arcvmh, aes(x = tvmh, y = tarc)) +
+    geom_point(aes(col = de), size = ifelse(arcvmh$de %in% c("Both", "VMH", "ARC"), 0.65, 0.2),alpha=0.7) +
+    scale_color_manual(values = pal) +
+    scale_fill_manual(values=pal) +
+    guides(fill="none")+
+    geom_abline(
+        slope = 1,
+        intercept = 0,
+        linetype = "dashed",
+        col = "black",
+        linewidth = 0.25
+    ) +
+    geom_text(aes(x = -5.5, y = 12), label = "Pearson Coef=0.379", size =
+                  2.5) +
+    xlim(-9, 12) +
+    ylim(-9, 12) +
+    labs(color = "Sex DE\nDomains") +
+    xlab("VMH Sex DE *t*<br>(Male vs. Female)") +
+    ylab("ARC Sex DE *t*<br>(Male vs. Female)") +
+    theme(
+        axis.title.x = element_markdown(size = 10),
+        axis.text.x = element_text(size = 9),
+        axis.title.y = element_markdown(size = 10),
+        axis.text.y = element_text(size = 9),
+        legend.title = element_text(size = 9, hjust = 0.5),
+        legend.position = c(.89, .23),
+        legend.box.background = element_blank(),
+        legend.key.size=unit(0.125,"in"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.text=element_text(size=8,
+                                 margin=margin(0,0.05,0,-0.05,"in"),
+                                 vjust=0.5))
+
+pdf("plots/Manuscript/4C-ARC, VMH DE correls.pdf",height=2.5,width=3)
+arcvmhcor
 dev.off()
 
 
