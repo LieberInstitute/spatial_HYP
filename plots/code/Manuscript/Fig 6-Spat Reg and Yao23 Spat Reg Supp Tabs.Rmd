@@ -19,6 +19,7 @@ library(pheatmap)
 require(colorout)
 library(ggrepel)
 library(Polychrome)
+library(ggtext)
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 
@@ -119,7 +120,7 @@ vmhplots <- melt(vmhplots,id.vars=c("ngenes","sphyp_domain"),variable.name="Subc
 setnames(vmhplots,"ngenes","Top n Human Domain Markers")
 vmhplots <- vmhplots[`Top n Human Domain Markers`<600]
 ```
-## 5B continued: make a palette for 4 line colors that aren't egregiously colorblind-unfriendly
+## 5B continued: make a palette for 4 line colors that aren't egregiously colorblind-unfriendly. keep this for 5C.
 ```{r}
 set.seed(82229)
 pal <- Polychrome::createPalette(9,M = 100000,range = c(40,60),seedcolors = "#000000")
@@ -143,6 +144,7 @@ extract_legend <- function(my_ggp) {
 ```{r}
 arcpal <- copy(pal)
 names(arcpal) <- unique(arcplots$Subclass)
+### do not regenerate this for the sex de plot--otherwise they'll be in a different order
 arcplt <- list()
 arcplt[[1]] <- ggplot(arcplots[sphyp_domain=="ARC.1"],aes(x=`Top n Human Domain Markers`,y=`PCC (marker t stats)`,col=Subclass))+
     geom_line(size=0.7,alpha=0.7)+
@@ -199,119 +201,206 @@ do.call("grid.arrange",list(arrangeGrob(grobs=vmhplt,ncol=2),leg.tmp,nrow=2,heig
 dev.off()
 ```
 
-### 5C: scatter plot per Visium cluster, with each dot representing a Yao23 subclass
+### 5C: plots as above, for VMH domain - VMH clusters / ARC domain - ARC clusters
 ```{r}
-correls <- readRDS("data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed.RDS")
+deregs <- readRDS("data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed_bytopNhumanDEGs.RDS")
 
-correls[[1]][human_domain=="X11",human_domain:="VMH.1"]
-correls[[1]][human_domain=="X12",human_domain:="VMH.2"]
-correls[[1]][human_domain=="X3",human_domain:="ARC.1"]
-correls[[1]][human_domain=="X5",human_domain:="ARC.2"]
-correls[[1]][human_domain=="X1",human_domain:="WM.1"]
-correls[[1]][human_domain=="X9",human_domain:="WM.2"]
+plotdereg <- deregs[[1]]
+plotdereg[human_domain=="X3",human_domain:="ARC.1"]
+plotdereg[human_domain=="X5",human_domain:="ARC.2"]
+plotdereg[human_domain=="X11",human_domain:="VMH.1"]
+plotdereg[human_domain=="X12",human_domain:="VMH.2"]
+
+### plots: VMH subdomains to VMH clusters / ARCsubdomains to ARC clusters spatreg values as a function of n genes
+plotdereg <- plotdereg[mouse_subclass %in% grep(mouse_subclass,pattern="VMH|ARH",value=T)]
+
+### set up names for ease of plot rendering
+setnames(plotdereg,"top_n_human","Top n Human Sex DEGs")
+setnames(plotdereg,"mouse_subclass","Subclass")
+
+### get arc, vmh domain data
+arcplots <- plotdereg[human_domain %in% c("ARC.1","ARC.2")&Subclass %in% grep(Subclass,pattern="ARH",value=T)]
+
+vmhplots <- plotdereg[human_domain %in% c("VMH.1","VMH.2")&Subclass %in% grep(Subclass,pattern="VMH",value=T)]
+```
+
+## 5C continued: save plots
+```{r}
+### using the previously defined arc-type palette for consistency
+arcplots[,Subclass:=factor(Subclass,levels=names(arcpal))]
+arcplt <- list()
+
+arcplt[[1]] <- ggplot(arcplots[human_domain=="ARC.1"],aes(x=log10(`Top n Human Sex DEGs`),y=spearmancor,col=Subclass))+
+    geom_line(linewidth=0.7,alpha=0.7)+
+    scale_color_manual(values=arcpal)+
+    guides(color="none")+
+    ggtitle("ARC.1")+
+    ylab("Spearman Correlation (Human-<br>Mouse DE *t* stats)")+
+    ylim(-0.25,0.5)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_markdown(size=9),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10))
+
+arcplt[[2]] <- ggplot(arcplots[human_domain=="ARC.2"],aes(x=log10(`Top n Human Sex DEGs`),y=spearmancor,col=Subclass))+
+    geom_line(linewidth=0.7,alpha=0.7)+
+    scale_color_manual(values=arcpal)+
+    ggtitle("ARC.2")+
+    ylim(-0.25,0.5)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_blank(),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10),legend.background = element_blank())
+
+### extract legend to plot one time alongside the two plots:
+leg.tmp <- extract_legend(arcplt[[2]])
+arcplt[[2]] <- arcplt[[2]]+guides(color="none")
+dev.off()
+
+pdf("plots/Manuscript/5Ci-Sex DE correls-ARC.1, ARC.2 to ARH subclasses.pdf",height=3,width=3.75)
+do.call("grid.arrange",list(arrangeGrob(grobs=arcplt,ncol=2),leg.tmp,nrow=2,heights=c(12,8)))
+dev.off()
 
 
-correls <- correls[[1]][human_domain %in% c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2")]
-### make cell type names more point-label friendly for the cell types that will get labeled: 214, 047, 054, 088, 096, 250, 16
-correls[mouse_subclass == "x214_LGv_SPFp_SPFm_Gata3_Gaba", 
-        mouse_subclass := "x214_LGv_SPFp_\nSPFm_Gata3_Gaba"]
 
-correls[mouse_subclass == "x080_GPi_Skor1_Gaba_Glut", 
-        mouse_subclass := "x080_GPi_Skor1_\nGaba_Glut"]
+##### and VMH
+vmhpal <- copy(pal[c(1,3)])
+names(vmhpal) <- unique(vmhplots$Subclass)
+vmhplt <- list()
+vmhplt[[1]] <- ggplot(vmhplots[human_domain=="VMH.1"],aes(x=log10(`Top n Human Sex DEGs`),y=spearmancor,col=Subclass))+
+    geom_line(size=0.7,alpha=0.7)+
+    scale_color_manual(values=vmhpal)+
+    guides(color="none")+
+    ggtitle("VMH.1")+
+    ylab("Spearman Correlation (Human-<br>Mouse DE *t* stats)")+
+    ylim(-0.25,0.5)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_markdown(size=9),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10))
 
-correls[mouse_subclass == "x116_PVpo_VMPO_MPN_Hmx2_Gaba", 
-        mouse_subclass := "x116_PVpo_VMPO_\nMPN_Hmx2_Gaba"]
+vmhplt[[2]] <- ggplot(vmhplots[human_domain=="VMH.2"],aes(x=log10(`Top n Human Sex DEGs`),y=spearmancor,col=Subclass))+
+    geom_line(size=0.7,alpha=0.7)+
+    scale_color_manual(values=vmhpal)+
+    ggtitle("VMH.2")+
+    ylim(-0.25,0.5)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_blank(),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10),legend.background = element_blank())
 
-### assign VMH color to the VMH subclasses and ARC to ARC
-correls[mouse_subclass %in% grep(mouse_subclass,pattern="VMH",value=T),label:="VMH"]
-correls[mouse_subclass %in% grep(mouse_subclass,pattern="ARH",value=T),label:="ARC"]
-correls[!(label %in% c("ARC","VMH")),label:="Other"]
+### extract legend to plot one time alongside the two plots:
+leg.tmp <- extract_legend(vmhplt[[2]])
+vmhplt[[2]] <- vmhplt[[2]]+guides(color="none")
+dev.off()
 
-pal <- c("VMH"="#5dd959","ARC"="#8c63cf","Other"="#000000")
+pdf("plots/Manuscript/5Cii-Sex DE correls-VMH.1, VMH.2 to VMH subclasses.pdf",height=3,width=3.75)
+do.call("grid.arrange",list(arrangeGrob(grobs=vmhplt,ncol=2),leg.tmp,nrow=2,heights=c(12,8)))
+dev.off()
+```
 
-### need to change something about the invisible bounds around the ggrepel text overexpanding the x-axis?
 
-## loop through the six human domains and write the corresponding plot
-i <- 1
-for (i in c(1:length(unique(correls$human_domain)))) {
-    curdat <-
-        copy(correls[human_domain == unique(correls$human_domain)[i]])
-    setorderv(curdat, c("human_domain", "spearmancor"))
-    curdat[, mouse_subclass := factor(mouse_subclass, levels = as.character(curdat$mouse_subclass))] # factor levels should now match the row order of the data table
-    curdat[, subcl_label := as.character(NA)]
-    curdat[c(1, nrow(curdat)), subcl_label := mouse_subclass]
-    
-    ## create a numerical x coordinate system to work with ggrepel more easily (since we're not using axis labels, doesn't matter what's actually composing the x axis udner the hood)
-    curdat[, xcoord := c(1:nrow(curdat))]
-    
-    plts <- ggplot(curdat, aes(x = xcoord, y = spearmancor)) +
-        geom_point(aes(col=label)) +
-        scale_color_manual(values=pal) +
-        ylim(-0.5, 0.5) +
-        guides(col="none") +
-        geom_text_repel(
-            aes(label = ifelse(is.na(subcl_label), NA, subcl_label)),
-            nudge_x = -35 * sign(curdat$spearmancor),
-            nudge_y = 0.1 * sign(curdat$spearmancor),
-            size = 2,
-            box.padding = 0,
-            point.padding = 0,
-            min.segment.length = 0
-        ) +
-        xlim(1, nrow(curdat)) +
-        # can just place axis titles centered along all these panels in illustrator.
-        #xlab("Yao '23 Mouse HYP Subclass")+
-        #ylab("Spearman Correlation (Mouse\nvs Human Sex DE t)")+
-        ggtitle(unique(correls$human_domain)[i]) +
-        theme(
-            axis.text.x = element_blank(),
-            axis.text.y = element_text(size = 9),
-            axis.title.x = element_blank(),
-            axis.title.y = element_blank(),
-            plot.title = element_text(size = 11),
-            axis.ticks.length.x = unit(0, "pt"),
-            panel.grid.major.x = element_blank(),
-            panel.grid.minor.x = element_blank()
-        )
-    
-    ### save
-    pdf(
-        paste0(
-            "plots/Manuscript/5C-YaoSexDE_spearcorrels_",
-            unique(correls$human_domain)[i],
-            ".pdf"
-        ),
-        height = 2.3,
-        width = 2.3
-    )
-    print(plts)
-    dev.off()
-    
-    ### extract a legend from one of the plots
-    
-    if (i == length(unique(correls$human_domain))) {
-        plts <- ggplot(curdat, aes(x = xcoord, y = spearmancor)) +
-                geom_point(aes(col=label)) +
-                scale_color_manual(values=pal) +
-                ylim(-0.5, 0.5) +
-                labs(col="Mouse\nSubclass")
-                theme(legend.title=element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin = margin(0,0,0,0,unit="in"))
-        
-        leg <- extract_legend(plts)
-        dev.off()
-        
-        pdf(
-            "plots/Manuscript/5C-YaoSexDE_spearcorrels_sharedlegend.pdf",
-            height = 1.4,
-            width = 1
-        )
-        do.call("grid.arrange",list(leg))
-        dev.off()
-    }
-    ####
-    
-    rm(plts,curdat)
-}
+### old 5C: scatter plot per Visium cluster, with each dot representing a Yao23 subclass, using all genes
+```{r}
+# correls <- readRDS("data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed.RDS")
+# 
+# correls[[1]][human_domain=="X11",human_domain:="VMH.1"]
+# correls[[1]][human_domain=="X12",human_domain:="VMH.2"]
+# correls[[1]][human_domain=="X3",human_domain:="ARC.1"]
+# correls[[1]][human_domain=="X5",human_domain:="ARC.2"]
+# correls[[1]][human_domain=="X1",human_domain:="WM.1"]
+# correls[[1]][human_domain=="X9",human_domain:="WM.2"]
+# 
+# 
+# correls <- correls[[1]][human_domain %in% c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2")]
+# ### make cell type names more point-label friendly for the cell types that will get labeled: 214, 047, 054, 088, 096, 250, 16
+# correls[mouse_subclass == "x214_LGv_SPFp_SPFm_Gata3_Gaba", 
+#         mouse_subclass := "x214_LGv_SPFp_\nSPFm_Gata3_Gaba"]
+# 
+# correls[mouse_subclass == "x080_GPi_Skor1_Gaba_Glut", 
+#         mouse_subclass := "x080_GPi_Skor1_\nGaba_Glut"]
+# 
+# correls[mouse_subclass == "x116_PVpo_VMPO_MPN_Hmx2_Gaba", 
+#         mouse_subclass := "x116_PVpo_VMPO_\nMPN_Hmx2_Gaba"]
+# 
+# ### assign VMH color to the VMH subclasses and ARC to ARC
+# correls[mouse_subclass %in% grep(mouse_subclass,pattern="VMH",value=T),label:="VMH"]
+# correls[mouse_subclass %in% grep(mouse_subclass,pattern="ARH",value=T),label:="ARC"]
+# correls[!(label %in% c("ARC","VMH")),label:="Other"]
+# 
+# pal <- c("VMH"="#5dd959","ARC"="#8c63cf","Other"="#000000")
+# 
+# ### need to change something about the invisible bounds around the ggrepel text overexpanding the x-axis?
+# 
+# ## loop through the six human domains and write the corresponding plot
+# i <- 1
+# for (i in c(1:length(unique(correls$human_domain)))) {
+#     curdat <-
+#         copy(correls[human_domain == unique(correls$human_domain)[i]])
+#     setorderv(curdat, c("human_domain", "spearmancor"))
+#     curdat[, mouse_subclass := factor(mouse_subclass, levels = as.character(curdat$mouse_subclass))] # factor levels should now match the row order of the data table
+#     curdat[, subcl_label := as.character(NA)]
+#     curdat[c(1, nrow(curdat)), subcl_label := mouse_subclass]
+#     
+#     ## create a numerical x coordinate system to work with ggrepel more easily (since we're not using axis labels, doesn't matter what's actually composing the x axis udner the hood)
+#     curdat[, xcoord := c(1:nrow(curdat))]
+#     
+#     plts <- ggplot(curdat, aes(x = xcoord, y = spearmancor)) +
+#         geom_point(aes(col=label)) +
+#         scale_color_manual(values=pal) +
+#         ylim(-0.5, 0.5) +
+#         guides(col="none") +
+#         geom_text_repel(
+#             aes(label = ifelse(is.na(subcl_label), NA, subcl_label)),
+#             nudge_x = -35 * sign(curdat$spearmancor),
+#             nudge_y = 0.1 * sign(curdat$spearmancor),
+#             size = 2,
+#             box.padding = 0,
+#             point.padding = 0,
+#             min.segment.length = 0
+#         ) +
+#         xlim(1, nrow(curdat)) +
+#         # can just place axis titles centered along all these panels in illustrator.
+#         #xlab("Yao '23 Mouse HYP Subclass")+
+#         #ylab("Spearman Correlation (Mouse\nvs Human Sex DE t)")+
+#         ggtitle(unique(correls$human_domain)[i]) +
+#         theme(
+#             axis.text.x = element_blank(),
+#             axis.text.y = element_text(size = 9),
+#             axis.title.x = element_blank(),
+#             axis.title.y = element_blank(),
+#             plot.title = element_text(size = 11),
+#             axis.ticks.length.x = unit(0, "pt"),
+#             panel.grid.major.x = element_blank(),
+#             panel.grid.minor.x = element_blank()
+#         )
+#     
+#     ### save
+#     pdf(
+#         paste0(
+#             "plots/Manuscript/5C-YaoSexDE_spearcorrels_",
+#             unique(correls$human_domain)[i],
+#             ".pdf"
+#         ),
+#         height = 2.3,
+#         width = 2.3
+#     )
+#     print(plts)
+#     dev.off()
+#     
+#     ### extract a legend from one of the plots
+#     
+#     if (i == length(unique(correls$human_domain))) {
+#         plts <- ggplot(curdat, aes(x = xcoord, y = spearmancor)) +
+#                 geom_point(aes(col=label)) +
+#                 scale_color_manual(values=pal) +
+#                 ylim(-0.5, 0.5) +
+#                 labs(col="Mouse\nSubclass")
+#                 theme(legend.title=element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin = margin(0,0,0,0,unit="in"))
+#         
+#         leg <- extract_legend(plts)
+#         dev.off()
+#         
+#         pdf(
+#             "plots/Manuscript/5C-YaoSexDE_spearcorrels_sharedlegend.pdf",
+#             height = 1.4,
+#             width = 1
+#         )
+#         do.call("grid.arrange",list(leg))
+#         dev.off()
+#     }
+#     ####
+#     
+#     rm(plts,curdat)
+# }
 ```
 
 
