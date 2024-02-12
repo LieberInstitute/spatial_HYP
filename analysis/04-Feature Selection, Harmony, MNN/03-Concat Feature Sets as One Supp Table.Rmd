@@ -33,5 +33,30 @@ genes[,hvg20:=ifelse(genes %in% hvg20,TRUE,FALSE)]
 genes[,svg10:=ifelse(genes %in% svg10,TRUE,FALSE)]
 genes[,svg20:=ifelse(genes %in% svg20,TRUE,FALSE)]
 
-fwrite(genes,"data/Supp Tabs/Table S2a-Feature sets.txt",sep='\t',quote=F)
+fwrite(genes,"local_supptab_assembly/Supp X-Feature sets.txt",sep='\t',quote=F)
+```
+
+### get the raw nnSVG results
+```{r}
+svgres <- readRDS("data/04-feature_selection/01-hyp2n9_nnSVG_samplewise_n3s0.5.RDS")
+
+i<-1
+for (i in c(1:length(svgres))){
+    tmp <- svgres[[i]]
+    getnames <- c("gene_id","gene_name",grep(names(tmp),pattern="^nnSVG",value=T))
+    tmp <- tmp[,..getnames]
+    
+    tmp[,sample:=names(svgres)[i]]
+
+    if (i==1){
+        svgres2 <- tmp
+    } else {
+        svgres2 <- rbind(svgres2,tmp)
+    }
+}
+
+reord <- c("sample","gene_name",grep(names(svgres2),pattern="^nnSVG",value=T),"gene_id")
+svgres2 <- svgres2[,..reord]
+
+fwrite(svgres2,"local_supptab_assembly/Supp X-nnSVG raw.txt",sep='\t',quote=F)
 ```
