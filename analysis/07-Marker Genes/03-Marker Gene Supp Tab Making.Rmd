@@ -30,12 +30,16 @@ slibdmk <- slibdmk[names(slibdmk) %in% grep(names(slibdmk),pattern="HARMONYlmbna
 
 slmn <- names(slibdmk)
 mapply(x=slibdmk,y=slmn,FUN=function(x,y){
-    fwrite(x,paste0("local_supptab_assembly/Marker Analysis",y,".txt"),sep="\t",quote=F)
+    z <- melt.data.table(x,id.vars=c("ensembl","gene"),measure.vars=names(x)[c(1:(ncol(x)-2))])
+    z[,domain:=gsub(variable,pattern="^.*_(X.*)$",replacement="\\1")]
+    z[,variable:=gsub(variable,pattern="^(.*)_X.*$",replacement="\\1")]
+    z <- dcast.data.table(z,ensembl+gene+domain~variable)
+    fwrite(z,paste0("local_supptab_assembly/Marker Analysis",y,".txt"),sep="\t",quote=F)
 })
 
 ```
 
-## export one-to-one comparisons of ARC and VMH from each
+## export one-to-one comparisons of ARC and VMH from each. since there's only one cluster compared in any iteration, we only need the mean and rank columns (which == min, max, median) 
 ```{r}
 ### get gene info to merge using the SPE
 hyp2 <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
@@ -49,6 +53,7 @@ comparatives <- readRDS("data/07-Marker_genes/02-nnsvg10_HRM-lmbna_bspace_VMHand
 
 
 ### since these were run only with the two clusters of interest as input, we only need the first output (there's outputs for cluster A vs cluster B and B vs A from each, which are equivalent as depleted in A must then == enriched in B)
+
 comparewrangle <- list()
 comparewrangle[[1]] <- as.data.table(comparatives[[1]][[1]],keep.rownames=T)
 comparewrangle[[2]] <- as.data.table(comparatives[[2]][[1]],keep.rownames=T)
@@ -65,6 +70,13 @@ for (j in c(4:6)){
             names(comparatives[[j]])[i]
     }
 }
+
+### subset to only the mean and rank columns + relevant meta
+keepnames <- c("rn",grep(names(comparewrangle[[1]]),pattern="self|other|mean|rank",value=T))
+comparewrangle <- lapply(comparewrangle,FUN=function(x){
+  x <- x[,..keepnames]
+  return(x)
+})
 
 ### add gene info
 comparewrangle <- lapply(comparewrangle,FUN=function(x){
