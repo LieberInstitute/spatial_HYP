@@ -18,7 +18,7 @@ library(gridExtra)
 library(SpatialExperiment)
 library(ggspavis)
 require(colorout)
-source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 library(gtools)

@@ -36,6 +36,8 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 ```
 
 ```{r}
+arcsvg <- fread("data/08-Nucleus-specific SVGs/02b-ARC nnSVG nomsig genes and ranks per sample.txt")
+
 # markers of the six two-marker ARC types defined in sn-RNAseq of developing human hypothalamus (POMC marked two of these for 11 total)
 arcsubtypes <- arcsvg[gene_name %in% c("POMC", "CBLN1", "GHRH", "GSX1", "SST", "PCP4", "TBX3", "KISS1", "TAC3", "NPY", "AGRP")]
 
