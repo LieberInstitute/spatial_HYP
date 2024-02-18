@@ -157,7 +157,7 @@ mkreslist.filt <- bpmapply(R=mkreslist,C=bscls,N=as.list(names(bscls)),BPPARAM=s
         ## add baack the mean expression to the number of threshold-passing samples by merging parts of the old data ttable to the above result
         tffilt2 <- merge.data.table(tffilt2,unique(tffilt[,.(tf,meanxpr)],by="tf"))
         
-        # FINALLY  get the TFs meeting criteria (majority of samples expressing in >3% of spots and >5% of spots in the clustering expressing on average across the dataset) and filter the result table to them
+        # FINALLY  get the TFs meeting criteria (majority of samples expressing in >1% of spots and >5% of spots in the clustering expressing on average across the dataset) and filter the result table to them
         
         keeptfs <- tffilt2[Nxpr>4&meanxpr>0.05,tf]
         # filter the current cluster's results to these TFs

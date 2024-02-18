@@ -148,3 +148,56 @@ pdf("plots/Manuscript/Supplemental S-EscheR of GLP1R in VMH and ARC.pdf",height=
 plfun("GLP1R")
 dev.off()
 ```
+
+### we can't even use the function above for part of this since chrm %age is already in the coldata, but for a supp fig of VMH - mitochondrial reads:
+```{r}
+# only label VMH distinctly:
+hyp2m <- hyp2
+hyp2m$label <- as.character(hyp2m$label)
+colData(hyp2m)$label[colData(hyp2m)$label!="VMH"] <- "Other"
+colData(hyp2m)$label <- factor(colData(hyp2m)$label,levels=c("VMH","Other"))
+
+samplistm <- lapply(samps,FUN=function(x){
+    s <- hyp2m[,hyp2m$sample_id==x]
+    return(s)})
+
+mfun <- function(){
+    # x <- vis_grid_gene(hyp2,geneid=genename,return_plots=T,spatial=F,auto_crop = T,point_size = 1.5,na_color = NA)
+    # x <- lapply(x,FUN=function(p){p+
+    #         theme(axis.text=element_blank(),axis.title = element_blank(),plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+    # })
+    # do.call("grid.arrange",x)
+    plts <- lapply(samplistm,FUN=function(x){
+        colData(x)$lct <- colData(x)$expr_chrM_ratio
+        
+        # plot
+        p <- make_escheR(x)
+        p <- p |> add_fill("lct",size=0.25,point_size = 0.9)
+        p <- p |> add_ground(var = "label",stroke=0.25,point_size = 0.9)
+        p <- p+
+            scale_color_manual(values=c("#8faad6","#8fd6d2"),na.value = NA)+
+            ggtitle(paste0(unique(x$sample_id),"\n(",unique(x$Sex),")"))+
+            labs(fill="% chrM\nreads")+
+            scale_fill_gradient(low="white",high="black")+
+            theme(plot.title=element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
+        
+        return(p)
+    })
+    
+    do.call("grid.arrange",plts)
+}
+
+pdf("plots/Manuscript/Supplemental S-EscheR of pct chrM in VMH.pdf",height=10.5,width=8)
+mfun()
+dev.off()
+
+
+
+
+
+
+
+
+
+
+```

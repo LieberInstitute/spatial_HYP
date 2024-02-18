@@ -1,0 +1,564 @@
+---
+title: "Fig 6-Spat Reg and Yao23 Spat Reg Supp Tabs"
+author: "Bernard Mulvey"
+date: "2023-12-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(pheatmap)
+require(colorout)
+library(ggrepel)
+library(ggtext)
+library(Polychrome)
+library(ggtext)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 10), axis.title.x = element_text(size = 11), axis.text.y = element_text(size = 10), axis.title.y = element_text(size=11), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=9), legend.title = element_text(size=10,hjust=0.5)))
+```
+
+
+### 6A: scCoco results in heatmap format
+```{r}
+cocores <- readRDS("data/10-Spatial Registration/01-scCoco query of top 150 markers per k15-20-31-collapsedK15 domain in ABA ms hyp CCF areas.RDS")
+
+cocores <- cocores[[4]]
+cocores <- as.data.table(cocores[["scores_per_target_level_region_all"]])
+
+setnames(cocores,c(3:15),gsub(names(cocores)[3:15],pattern="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_(X.*)",replacement="\\1"))
+setnames(cocores,c("XVMH","XARC"),c("VMH","ARC"))
+cocores <- cocores[,.(topnode,topname,VMH,ARC,X1, X2, X4, X6, X7, X8, X9, X10, X13, X14, X15)]
+
+keepres <- c("")
+i <- 3
+for (i in c(3:15)){
+    curvar <- names(cocores)[i]
+    setorderv(cocores,curvar,-1)
+    keepres <- c(keepres,cocores[c(1:3),topname])
+}
+keepres <- unique(keepres)[keepres!=""]
+rm(i,curvar)
+
+cocores <- melt(cocores[topname %in% keepres,],id.vars=c("topnode","topname"),variable.name="region",value.name="score")
+setnames(cocores,"score","scCoco Score (top\n150 Visium Markers)")
+cocores[topname=="Periventricular hypothalamic nucleus, posterior part",topname:="Posterior periventricular nu."]
+
+pdf("plots/Manuscript/5A-scCoco registration to adult mouse ISH of hyp.pdf",width=7,height=4)
+ggplot(cocores,aes(x=region,y=topname,fill=`scCoco Score (top\n150 Visium Markers)`))+
+    geom_tile()+
+    scale_fill_gradient2(low="white",mid="yellow",high="red",midpoint=0.5)+
+    theme(axis.text.x = element_text(size = 9,angle = 90, hjust = 1))+
+    scale_x_discrete(expand = c(0,0))+
+    scale_y_discrete(expand=c(0,0))+
+    ylab("Allen Mouse Atlas Region Name")+
+    xlab("Visium Cluster")+
+    theme(axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size=11),legend.title = element_text(size=10,hjust=0.5),legend.text=element_text(size=9))
+dev.off()
+```
+
+# 5B: Spatial registration to Yao '23
+```{r}
+spatregs <- readRDS("data/10-Spatial Registration/02g-sphyp-k15-20-31-15clps_ABAms-47subclass-47withVMHARCclps.RDS")
+
+jointrestabs <- list()
+i<-1
+for (i in c(1:length(spatregs))){
+    j <- 1
+    for (j in c(1:length(spatregs[[i]]))){
+        newdat <- copy(spatregs[[i]][[j]])
+        newdat[,ngenes:=as.numeric(gsub(names(spatregs[[i]])[j],pattern="^ABA.*_top_(.*)_sphyp.*$",replacement="\\1"))]
+        newdat[,comparison:=gsub(names(spatregs[[i]])[j],pattern="^(.*)_top.*$",replacement="\\1")]
+        if(j==1){
+            curres <- copy(newdat)
+        }
+        else{curres <- rbind(curres,newdat)}
+        rm(newdat)
+    }
+    jointrestabs[[i]] <- copy(curres)
+    names(jointrestabs)[i] <- unique(curres$comparison)
+    rm(j,curres)
+}
+
+### save these as Supp Tabs since we made them
+i<-1
+for (i in c(1:8)){
+    fwrite(jointrestabs[[i]],paste0("local_supptab_assembly/Yao23 Spatreg sheets/",names(jointrestabs)[i],".txt"),sep='\t',quote=F)
+}
+
+
+### plots: VMH subdomains to VMH clusters / ARCsubdomains to ARC clusters spatreg values as a function of n genes
+plotspatreg <- jointrestabs[["ABA23_HYP_subclass_to_sphypk15"]]
+keepcols <- c("ngenes","sphyp_domain",grep(colnames(plotspatreg),pattern="VMH|ARH",value=T))
+plotspatreg <- plotspatreg[sphyp_domain %in% c("VMH.1","VMH.2","ARC.1","ARC.2"),..keepcols]
+rm(keepcols)
+
+arccols <- c("ngenes","sphyp_domain",grep(colnames(plotspatreg),pattern="ARH",value=T))
+arcplots <- plotspatreg[sphyp_domain %in% c("ARC.1","ARC.2"),..arccols]
+
+vmhcols <- c("ngenes","sphyp_domain",grep(colnames(plotspatreg),pattern="VMH",value=T))
+vmhplots <- plotspatreg[sphyp_domain %in% c("VMH.1","VMH.2"),..vmhcols]
+
+### melt so that we can have colored lines for the subclasses vs. ea spatial domain --> 4x plots with 2-4 subclasses ea.
+arcplots <- melt(arcplots,id.vars=c("ngenes","sphyp_domain"),variable.name="Subclass",value.name="PCC (marker t stats)")
+setnames(arcplots,"ngenes","Top n Human Domain Markers")
+#arcplots <- arcplots[`Top n Human Domain Markers`<600]
+
+vmhplots <- melt(vmhplots,id.vars=c("ngenes","sphyp_domain"),variable.name="Subclass",value.name="PCC (marker t stats)")
+setnames(vmhplots,"ngenes","Top n Human Domain Markers")
+#vmhplots <- vmhplots[`Top n Human Domain Markers`<600]
+```
+## 5B continued: make a palette for 4 line colors that aren't egregiously colorblind-unfriendly. keep this for 5C.
+```{r}
+set.seed(82229)
+pal <- Polychrome::createPalette(9,M = 100000,range = c(40,60),seedcolors = "#000000")
+Polychrome::swatch(pal)
+
+# k fine
+dev.off()
+pal <- pal[c(2:4,7)]
+```
+
+helper function to extract a legend and use as grob: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+```{r}
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+```
+## 5B continued: save plots
+```{r}
+arcpal <- copy(pal)
+names(arcpal) <- unique(arcplots$Subclass)
+### do not regenerate this for the sex de plot--otherwise they'll be in a different order
+arcplt <- list()
+arcplt[[1]] <- ggplot(arcplots[sphyp_domain=="ARC.1"],aes(x=log10(`Top n Human Domain Markers`),y=`PCC (marker t stats)`,col=Subclass))+
+    geom_line(size=0.7,alpha=0.7)+
+    scale_color_manual(values=arcpal)+
+    guides(color="none")+
+    ggtitle("ARC.1")+
+    ylim(-0.25,0.5)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_text(size=9),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10))
+
+arcplt[[2]] <- ggplot(arcplots[sphyp_domain=="ARC.2"],aes(x=log10(`Top n Human Domain Markers`),y=`PCC (marker t stats)`,col=Subclass))+
+    geom_line(size=0.7,alpha=0.7)+
+    scale_color_manual(values=arcpal)+
+    ggtitle("ARC.2")+
+    ylim(-0.25,0.5)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_blank(),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10),legend.background = element_blank())
+
+### extract legend to plot one time alongside the two plots:
+leg.tmp <- extract_legend(arcplt[[2]])
+arcplt[[2]] <- arcplt[[2]]+guides(color="none")
+dev.off()
+
+pdf("plots/Manuscript/5Bi-ARC.1, ARC.2 to ARH subclasses.pdf",height=3,width=3.75)
+do.call("grid.arrange",list(arrangeGrob(grobs=arcplt,ncol=2),leg.tmp,nrow=2,heights=c(12,8)))
+dev.off()
+
+
+
+##### and VMH
+vmhpal <- copy(pal[c(1,3)])
+names(vmhpal) <- unique(vmhplots$Subclass)
+vmhplt <- list()
+vmhplt[[1]] <- ggplot(vmhplots[sphyp_domain=="VMH.1"],aes(x=log10(`Top n Human Domain Markers`),y=`PCC (marker t stats)`,col=Subclass))+
+    geom_line(size=0.7,alpha=0.7)+
+    scale_color_manual(values=vmhpal)+
+    guides(color="none")+
+    ggtitle("VMH.1")+
+    ylim(0.0,0.6)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_text(size=9),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10))
+
+vmhplt[[2]] <- ggplot(vmhplots[sphyp_domain=="VMH.2"],aes(x=log10(`Top n Human Domain Markers`),y=`PCC (marker t stats)`,col=Subclass))+
+    geom_line(size=0.7,alpha=0.7)+
+    scale_color_manual(values=vmhpal)+
+    ggtitle("VMH.2")+
+    ylim(0.0,0.6)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_blank(),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10),legend.background = element_blank())
+
+### extract legend to plot one time alongside the two plots:
+leg.tmp <- extract_legend(vmhplt[[2]])
+vmhplt[[2]] <- vmhplt[[2]]+guides(color="none")
+dev.off()
+
+pdf("plots/Manuscript/5Bii-VMH.1, VMH.2 to VMH subclasses.pdf",height=3,width=3.75)
+do.call("grid.arrange",list(arrangeGrob(grobs=vmhplt,ncol=2),leg.tmp,nrow=2,heights=c(12,8)))
+dev.off()
+```
+
+### 5C: plots as above, for VMH domain - VMH clusters / ARC domain - ARC clusters
+```{r}
+deregs <- readRDS("data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed_bytopNhumanDEGs.RDS")
+
+plotdereg <- deregs[[1]]
+plotdereg[human_domain=="X3",human_domain:="ARC.1"]
+plotdereg[human_domain=="X5",human_domain:="ARC.2"]
+plotdereg[human_domain=="X11",human_domain:="VMH.1"]
+plotdereg[human_domain=="X12",human_domain:="VMH.2"]
+
+### plots: VMH subdomains to VMH clusters / ARCsubdomains to ARC clusters spatreg values as a function of n genes
+plotdereg <- plotdereg[mouse_subclass %in% grep(mouse_subclass,pattern="VMH|ARH",value=T)]
+
+### set up names for ease of plot rendering
+setnames(plotdereg,"top_n_human","Top n Human Sex DEGs")
+setnames(plotdereg,"mouse_subclass","Subclass")
+
+### get arc, vmh domain data
+arcplots <- plotdereg[human_domain %in% c("ARC.1","ARC.2")&Subclass %in% grep(Subclass,pattern="ARH",value=T)]
+
+vmhplots <- plotdereg[human_domain %in% c("VMH.1","VMH.2")&Subclass %in% grep(Subclass,pattern="VMH",value=T)]
+```
+
+## 5C continued: save plots
+```{r}
+### using the previously defined arc-type palette for consistency
+arcplots[,Subclass:=factor(Subclass,levels=names(arcpal))]
+arcplt <- list()
+
+arcplt[[1]] <- ggplot(arcplots[human_domain=="ARC.1"],aes(x=log10(`Top n Human Sex DEGs`),y=spearmancor,col=Subclass))+
+    geom_line(linewidth=0.7,alpha=0.7)+
+    scale_color_manual(values=arcpal)+
+    guides(color="none")+
+    ggtitle("ARC.1")+
+    ylab("Spearman Correlation (Human-<br>Mouse DE *t* stats)")+
+    ylim(-0.6,0.1)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_markdown(size=9),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10))
+
+arcplt[[2]] <- ggplot(arcplots[human_domain=="ARC.2"],aes(x=log10(`Top n Human Sex DEGs`),y=spearmancor,col=Subclass))+
+    geom_line(linewidth=0.7,alpha=0.7)+
+    scale_color_manual(values=arcpal)+
+    ggtitle("ARC.2")+
+    ylim(-0.6,0.1)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_blank(),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10),legend.background = element_blank())
+
+### extract legend to plot one time alongside the two plots:
+leg.tmp <- extract_legend(arcplt[[2]])
+arcplt[[2]] <- arcplt[[2]]+guides(color="none")
+dev.off()
+
+pdf("plots/Manuscript/5Ci-Sex DE correls-ARC.1, ARC.2 to ARH subclasses.pdf",height=3,width=3.75)
+do.call("grid.arrange",list(arrangeGrob(grobs=arcplt,ncol=2),leg.tmp,nrow=2,heights=c(12,8)))
+dev.off()
+
+
+
+##### and VMH
+vmhpal <- copy(pal[c(1,3)])
+names(vmhpal) <- unique(vmhplots$Subclass)
+vmhplt <- list()
+vmhplt[[1]] <- ggplot(vmhplots[human_domain=="VMH.1"],aes(x=log10(`Top n Human Sex DEGs`),y=spearmancor,col=Subclass))+
+    geom_line(size=0.7,alpha=0.7)+
+    scale_color_manual(values=vmhpal)+
+    guides(color="none")+
+    ggtitle("VMH.1")+
+    ylab("Spearman Correlation (Human-<br>Mouse DE *t* stats)")+
+    ylim(-0.6,0.1)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_markdown(size=9),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10))
+
+vmhplt[[2]] <- ggplot(vmhplots[human_domain=="VMH.2"],aes(x=log10(`Top n Human Sex DEGs`),y=spearmancor,col=Subclass))+
+    geom_line(size=0.7,alpha=0.7)+
+    scale_color_manual(values=vmhpal)+
+    ggtitle("VMH.2")+
+    ylim(-0.6,0.1)+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8),axis.text.x=element_text(size=8,angle=90,vjust=1,hjust=0.5), axis.title.y = element_blank(),legend.title = element_text(size=8,hjust=0.5),legend.text=element_text(size=8),plot.title = element_text(size=10),legend.background = element_blank())
+
+### extract legend to plot one time alongside the two plots:
+leg.tmp <- extract_legend(vmhplt[[2]])
+vmhplt[[2]] <- vmhplt[[2]]+guides(color="none")
+dev.off()
+
+pdf("plots/Manuscript/5Cii-Sex DE correls-VMH.1, VMH.2 to VMH subclasses.pdf",height=3,width=3.75)
+do.call("grid.arrange",list(arrangeGrob(grobs=vmhplt,ncol=2),leg.tmp,nrow=2,heights=c(12,8)))
+dev.off()
+```
+
+
+### old 5C: scatter plot per Visium cluster, with each dot representing a Yao23 subclass, using all genes
+```{r}
+# correls <- readRDS("data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed.RDS")
+# 
+# correls[[1]][human_domain=="X11",human_domain:="VMH.1"]
+# correls[[1]][human_domain=="X12",human_domain:="VMH.2"]
+# correls[[1]][human_domain=="X3",human_domain:="ARC.1"]
+# correls[[1]][human_domain=="X5",human_domain:="ARC.2"]
+# correls[[1]][human_domain=="X1",human_domain:="WM.1"]
+# correls[[1]][human_domain=="X9",human_domain:="WM.2"]
+# 
+# 
+# correls <- correls[[1]][human_domain %in% c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2")]
+# ### make cell type names more point-label friendly for the cell types that will get labeled: 214, 047, 054, 088, 096, 250, 16
+# correls[mouse_subclass == "x214_LGv_SPFp_SPFm_Gata3_Gaba", 
+#         mouse_subclass := "x214_LGv_SPFp_\nSPFm_Gata3_Gaba"]
+# 
+# correls[mouse_subclass == "x080_GPi_Skor1_Gaba_Glut", 
+#         mouse_subclass := "x080_GPi_Skor1_\nGaba_Glut"]
+# 
+# correls[mouse_subclass == "x116_PVpo_VMPO_MPN_Hmx2_Gaba", 
+#         mouse_subclass := "x116_PVpo_VMPO_\nMPN_Hmx2_Gaba"]
+# 
+# ### assign VMH color to the VMH subclasses and ARC to ARC
+# correls[mouse_subclass %in% grep(mouse_subclass,pattern="VMH",value=T),label:="VMH"]
+# correls[mouse_subclass %in% grep(mouse_subclass,pattern="ARH",value=T),label:="ARC"]
+# correls[!(label %in% c("ARC","VMH")),label:="Other"]
+# 
+# pal <- c("VMH"="#5dd959","ARC"="#8c63cf","Other"="#000000")
+# 
+# ### need to change something about the invisible bounds around the ggrepel text overexpanding the x-axis?
+# 
+# ## loop through the six human domains and write the corresponding plot
+# i <- 1
+# for (i in c(1:length(unique(correls$human_domain)))) {
+#     curdat <-
+#         copy(correls[human_domain == unique(correls$human_domain)[i]])
+#     setorderv(curdat, c("human_domain", "spearmancor"))
+#     curdat[, mouse_subclass := factor(mouse_subclass, levels = as.character(curdat$mouse_subclass))] # factor levels should now match the row order of the data table
+#     curdat[, subcl_label := as.character(NA)]
+#     curdat[c(1, nrow(curdat)), subcl_label := mouse_subclass]
+#     
+#     ## create a numerical x coordinate system to work with ggrepel more easily (since we're not using axis labels, doesn't matter what's actually composing the x axis udner the hood)
+#     curdat[, xcoord := c(1:nrow(curdat))]
+#     
+#     plts <- ggplot(curdat, aes(x = xcoord, y = spearmancor)) +
+#         geom_point(aes(col=label)) +
+#         scale_color_manual(values=pal) +
+#         ylim(-0.5, 0.5) +
+#         guides(col="none") +
+#         geom_text_repel(
+#             aes(label = ifelse(is.na(subcl_label), NA, subcl_label)),
+#             nudge_x = -35 * sign(curdat$spearmancor),
+#             nudge_y = 0.1 * sign(curdat$spearmancor),
+#             size = 2,
+#             box.padding = 0,
+#             point.padding = 0,
+#             min.segment.length = 0
+#         ) +
+#         xlim(1, nrow(curdat)) +
+#         # can just place axis titles centered along all these panels in illustrator.
+#         #xlab("Yao '23 Mouse HYP Subclass")+
+#         #ylab("Spearman Correlation (Mouse\nvs Human Sex DE t)")+
+#         ggtitle(unique(correls$human_domain)[i]) +
+#         theme(
+#             axis.text.x = element_blank(),
+#             axis.text.y = element_text(size = 9),
+#             axis.title.x = element_blank(),
+#             axis.title.y = element_blank(),
+#             plot.title = element_text(size = 11),
+#             axis.ticks.length.x = unit(0, "pt"),
+#             panel.grid.major.x = element_blank(),
+#             panel.grid.minor.x = element_blank()
+#         )
+#     
+#     ### save
+#     pdf(
+#         paste0(
+#             "plots/Manuscript/5C-YaoSexDE_spearcorrels_",
+#             unique(correls$human_domain)[i],
+#             ".pdf"
+#         ),
+#         height = 2.3,
+#         width = 2.3
+#     )
+#     print(plts)
+#     dev.off()
+#     
+#     ### extract a legend from one of the plots
+#     
+#     if (i == length(unique(correls$human_domain))) {
+#         plts <- ggplot(curdat, aes(x = xcoord, y = spearmancor)) +
+#                 geom_point(aes(col=label)) +
+#                 scale_color_manual(values=pal) +
+#                 ylim(-0.5, 0.5) +
+#                 labs(col="Mouse\nSubclass")
+#                 theme(legend.title=element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin = margin(0,0,0,0,unit="in"))
+#         
+#         leg <- extract_legend(plts)
+#         dev.off()
+#         
+#         pdf(
+#             "plots/Manuscript/5C-YaoSexDE_spearcorrels_sharedlegend.pdf",
+#             height = 1.4,
+#             width = 1
+#         )
+#         do.call("grid.arrange",list(leg))
+#         dev.off()
+#     }
+#     ####
+#     
+#     rm(plts,curdat)
+# }
+```
+
+
+### OLD 6B (Spearman) and 6C or Supp Fig (Pearson): sex DE logFC correlations between mouse genes sex DE for each subclass in HYP dissections from Yao 23 and human orthologs in each domain
+```{r}
+# correls <- readRDS("data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed.RDS")
+# 
+# ## 
+# correls[[1]][human_domain=="X11",human_domain:="VMH.1"]
+# correls[[1]][human_domain=="X12",human_domain:="VMH.2"]
+# correls[[1]][human_domain=="X3",human_domain:="ARC.1"]
+# correls[[1]][human_domain=="X5",human_domain:="ARC.2"]
+# correls[[1]][human_domain=="X1",human_domain:="WM.1"]
+# correls[[1]][human_domain=="X9",human_domain:="WM.2"]
+# 
+# correls <- correls[human_domain %in% c("VMH.1","VMH.2","ARC.1","ARC.2","WM.1","WM.2")]
+# 
+# pccs <- dcast(correls, mouse_subclass ~ human_domain, value.var = "pcc")
+# spears <- dcast(correls, mouse_subclass ~ human_domain, value.var="spearmancor")
+# 
+# pccs <- as.data.frame(pccs)
+# rownames(pccs) <- pccs$mouse_subclass
+# pccs$mouse_subclass <- NULL
+# 
+# spears <- as.data.frame(spears)
+# rownames(spears) <- spears$mouse_subclass
+# spears$mouse_subclass <- NULL
+# 
+# pdf("plots/Manuscript/6C-Yaosubclass_sexDE_vs_visium_Pearsoncors.pdf",height=6,width=3.5)
+# pheatmap(as.matrix(pccs),treeheight_col=0,treeheight_row = 0)
+# dev.off()
+# 
+# 
+# pdf("plots/Manuscript/6B-Yaosubclass_sexDE_vs_visium_spearmancors.pdf",height=10,width=7)
+# pheatmap(as.matrix(spears),treeheight_col=0,treeheight_row = 0)
+# dev.off()
+```
+
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+
+R version 4.3.2 (2023-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Ventura 13.6
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/New_York
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] default_1.0.0       ggrepel_0.9.5       colorout_1.3-0.1   
+ [4] pheatmap_1.0.12     gridExtra_2.3       ggplot2_3.4.4      
+ [7] Biostrings_2.70.2   GenomeInfoDb_1.38.5 XVector_0.42.0     
+[10] IRanges_2.36.0      S4Vectors_0.40.2    BiocGenerics_0.48.1
+[13] data.table_1.14.10  rlang_1.1.3        
+
+loaded via a namespace (and not attached):
+ [1] utf8_1.2.4              generics_0.1.3          bitops_1.0-7           
+ [4] digest_0.6.34           magrittr_2.0.3          evaluate_0.23          
+ [7] grid_4.3.2              RColorBrewer_1.1-3      fastmap_1.1.1          
+[10] rprojroot_2.0.4         sessioninfo_1.2.2       fansi_1.0.6            
+[13] scales_1.3.0            cli_3.6.2               crayon_1.5.2           
+[16] munsell_0.5.0           withr_3.0.0             yaml_2.3.8             
+[19] tools_4.3.2             dplyr_1.1.4             colorspace_2.1-0       
+[22] GenomeInfoDbData_1.2.11 here_1.0.1              vctrs_0.6.5            
+[25] R6_2.5.1                lifecycle_1.0.4         zlibbioc_1.48.0        
+[28] pkgconfig_2.0.3         pillar_1.9.0            gtable_0.3.4           
+[31] glue_1.7.0              Rcpp_1.0.12             xfun_0.41              
+[34] tibble_3.2.1            tidyselect_1.2.0        rstudioapi_0.15.0      
+[37] knitr_1.45              farver_2.1.1            htmltools_0.5.7        
+[40] rmarkdown_2.25          labeling_0.4.3          compiler_4.3.2         
+[43] RCurl_1.98-1.14        
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.3.2 (2023-10-31)
+ os       macOS Ventura 13.6
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/New_York
+ date     2024-02-07
+ rstudio  2023.09.1+494 Desert Sunflower (desktop)
+ pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
+
+─ Packages ───────────────────────────────────────────────────────────────
+ package          * version   date (UTC) lib source
+ BiocGenerics     * 0.48.1    2023-11-02 [1] Bioconductor
+ Biostrings       * 2.70.2    2024-01-28 [1] Bioconductor 3.18 (R 4.3.2)
+ bitops             1.0-7     2021-04-24 [1] CRAN (R 4.3.2)
+ cli                3.6.2     2023-12-11 [1] CRAN (R 4.3.2)
+ colorout         * 1.3-0.1   2024-01-11 [1] local
+ colorspace         2.1-0     2023-01-23 [1] CRAN (R 4.3.2)
+ crayon             1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
+ data.table       * 1.14.10   2023-12-08 [1] CRAN (R 4.3.2)
+ default          * 1.0.0     2017-08-07 [1] CRAN (R 4.3.0)
+ digest             0.6.34    2024-01-11 [1] CRAN (R 4.3.2)
+ dplyr              1.1.4     2023-11-17 [1] CRAN (R 4.3.2)
+ evaluate           0.23      2023-11-01 [1] CRAN (R 4.3.1)
+ fansi              1.0.6     2023-12-08 [1] CRAN (R 4.3.2)
+ farver             2.1.1     2022-07-06 [1] CRAN (R 4.3.2)
+ fastmap            1.1.1     2023-02-24 [1] CRAN (R 4.3.2)
+ generics           0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
+ GenomeInfoDb     * 1.38.5    2023-12-30 [1] Bioconductor 3.18 (R 4.3.2)
+ GenomeInfoDbData   1.2.11    2024-01-11 [1] Bioconductor
+ ggplot2          * 3.4.4     2023-10-12 [1] CRAN (R 4.3.1)
+ ggrepel          * 0.9.5     2024-01-10 [1] CRAN (R 4.3.2)
+ glue               1.7.0     2024-01-09 [1] CRAN (R 4.3.2)
+ gridExtra        * 2.3       2017-09-09 [1] CRAN (R 4.3.0)
+ gtable             0.3.4     2023-08-21 [1] CRAN (R 4.3.0)
+ here               1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
+ htmltools          0.5.7     2023-11-03 [1] CRAN (R 4.3.2)
+ IRanges          * 2.36.0    2023-10-24 [1] Bioconductor
+ knitr              1.45      2023-10-30 [1] CRAN (R 4.3.2)
+ labeling           0.4.3     2023-08-29 [1] CRAN (R 4.3.0)
+ lifecycle          1.0.4     2023-11-07 [1] CRAN (R 4.3.1)
+ magrittr           2.0.3     2022-03-30 [1] CRAN (R 4.3.2)
+ munsell            0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
+ pheatmap         * 1.0.12    2019-01-04 [1] CRAN (R 4.3.0)
+ pillar             1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
+ pkgconfig          2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
+ R6                 2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
+ RColorBrewer       1.1-3     2022-04-03 [1] CRAN (R 4.3.0)
+ Rcpp               1.0.12    2024-01-09 [1] CRAN (R 4.3.2)
+ RCurl              1.98-1.14 2024-01-09 [1] CRAN (R 4.3.1)
+ rlang            * 1.1.3     2024-01-10 [1] CRAN (R 4.3.2)
+ rmarkdown          2.25      2023-09-18 [1] CRAN (R 4.3.2)
+ rprojroot          2.0.4     2023-11-05 [1] CRAN (R 4.3.1)
+ rstudioapi         0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
+ S4Vectors        * 0.40.2    2023-11-23 [1] Bioconductor 3.18 (R 4.3.2)
+ scales             1.3.0     2023-11-28 [1] CRAN (R 4.3.2)
+ sessioninfo        1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
+ tibble             3.2.1     2023-03-20 [1] CRAN (R 4.3.2)
+ tidyselect         1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
+ utf8               1.2.4     2023-10-22 [1] CRAN (R 4.3.2)
+ vctrs              0.6.5     2023-12-01 [1] CRAN (R 4.3.2)
+ withr              3.0.0     2024-01-16 [1] CRAN (R 4.3.1)
+ xfun               0.41      2023-11-01 [1] CRAN (R 4.3.2)
+ XVector          * 0.42.0    2023-10-24 [1] Bioconductor
+ yaml               2.3.8     2023-12-11 [1] CRAN (R 4.3.2)
+ zlibbioc           1.48.0    2023-10-26 [1] Bioconductor
+
+ [1] /Users/bmulvey/Library/R/arm64/4.3/library
+ [2] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
+
+──────────────────────────────────────────────────────────────────────────
