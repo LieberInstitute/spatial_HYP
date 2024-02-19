@@ -78,29 +78,26 @@ pltdat[pathway=="YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17",pathway:="Tem
 pltdat[pathway=="GABRIELY_MIR21_TARGETS",pathway:="miR-21 targets"]
 pltdat[pathway=="MIR30A_3P",pathway:="miR-30a_3P targets"]
 pltdat[pathway=="MCLACHLAN_DENTAL_CARIES_UP",pathway:="Dental caries"]
-pltdat[pathway=="FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2",pathway:="Thecal cell (early atretic ovarian follicle)"]
+pltdat[pathway=="FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2",pathway:="Thecal cell (ovarian follicle)"]
 
 ### flip sign on negative NES scores
 pltdat[NES<0,NES:=-1*NES]
 
-pdf("plots/Manuscript/5A as 4K-Sex DEG msigdb GSEA.pdf",height=4,width=3)
+pdf("plots/Manuscript/4K-Sex DEG msigdb GSEA.pdf",height=4,width=2)
 ggplot(pltdat,aes(x=pathway,y=-log10(padj)))+
-    geom_point(aes(col=sexreg,size=NES))+#,shape=genesource))+
+    geom_point(aes(col=sexreg,stroke=0,size=NES),alpha=0.7)+#,shape=genesource))+
     xlab("Term")+
     #Amplify the scaling by NES by 2x for better visualization
     scale_radius(range = c(1.25*min(pltdat$NES),1.25*max(pltdat$NES)),trans = "identity",guide="none")+
     scale_color_manual(values=sexregpal)+
     ylab("-log10 (FDR)")+
-    labs(col="DE Gene Set")+
+    #labs(col="DE Gene Set")+
     geom_hline(yintercept=-log10(0.05),linetype="dashed")+
     #scale_shape_manual(values=c("MSigDB Literature-Curated"=16,"GO Mol. Fxn"=15,"Human Phenotypes"=18,"MSigDB miRNA Targets"=17))+
-    guides(col=guide_legend(byrow=T))+
-    # ^ necess. to get spacing to work in theme
-    guides(col=guide_legend(override.aes=list(size=2.5)),
-           #shape=guide_legend(override.aes=list(size = 2.5)),
-           )+
-    # ^ make legend points bigger
-    theme(axis.text.y = element_text(size = 9),axis.title.y=element_text(size=10), axis.title.x = element_text(size = 10,margin=margin(-0.15,0,0,0,unit="in")), axis.text.x = element_text(size = 9,angle=90,hjust=1,vjust=0.5,margin=margin(0,0.1,0,0.1,"in")), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5,margin=margin(0,0,-0.1,0,"in")),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,-0.1,unit = "in"))
+    guides(col="none")+
+    guides(fill="none")+
+    #shape=guide_legend(override.aes=list(size = 2.5)),
+    theme(axis.text.y = element_text(size = 9),axis.title.y=element_text(size=9), axis.title.x = element_text(size = 10,margin=margin(-0.15,0,0,0,unit="in")), axis.text.x = element_text(size = 9,angle=90,hjust=1,vjust=0.5,margin=margin(0,0.1,0,0.1,"in")), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5,margin=margin(0,0,-0.1,0,"in")),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,-0.1,unit = "in"))
 dev.off()
 
 rm(pltdat,sexreslist)
@@ -235,11 +232,11 @@ shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks))
 breaks2 <- rep(breaks, 4)
 
 ### make plot
-pdf("plots/Manuscript/5B as 4M-Sex DEG TF GSEA.pdf",height=4,width=5)
+pdf("plots/Manuscript/4L-Sex DEG TF GSEA.pdf",height=4,width=3.25)
 
 ggplot(pltdat,aes(y=tf,x=-log10(padj),size=NES))+
-    geom_point(aes(col=sexreg,size=NES,shape=source,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
-    ylab("Term")+
+    geom_point(aes(col=sexreg,stroke=0,size=NES,shape=source,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
+    ylab("TF")+
     scale_color_manual(values=sexregpal)+
     xlab("-log10 (FDR)")+
     labs(shape="Source Database",col="DE Gene Set")+
@@ -252,8 +249,9 @@ ggplot(pltdat,aes(y=tf,x=-log10(padj),size=NES))+
     guides(shape=guide_legend(override.aes=list(size = 2)))+
     # ^ make legend points bigger
     scale_size_continuous(range = c(0.75,3.5),breaks = breaks2, labels = labels, guide = guide_legend(ncol=4, nrow=3,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,label.hjust=0.5,direction="vertical"))+
+    guides(col=guide_legend(override.aes=list(stroke = 0,size=3.5)))+
     # ^ make size legend with all point types
-    theme(axis.text.y = element_text(size = 9),axis.title.y=element_text(size=10), axis.title.x = element_text(size = 10), axis.text.x = element_text(size = 9), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.005, "in"),legend.margin = margin(t = 0.1,0,0,-0.1,unit="in"),panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),axis.ticks.y=element_line(color = "#595959",linewidth = 0.25),legend.spacing.x = unit(-0.015,"in"))
+    theme(axis.text.y = element_text(size = 8),axis.title.y=element_text(size=9,margin=margin(0,-0.175,0,0,"in")), axis.title.x = element_text(size = 9), axis.text.x = element_text(size = 8), legend.text = element_text(size=6), legend.title = element_text(size=7,hjust=0.5),legend.spacing.y = unit(0.005, "in"),legend.margin = margin(t = 0.1,0,0,-0.1,unit="in"),panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),axis.ticks.y=element_line(color = "#595959",linewidth = 0.25),legend.spacing.x = unit(-0.015,"in"))
 
 dev.off()
 
@@ -261,7 +259,7 @@ dev.off()
 
 ```
 
-5C-disease enrichments
+4M-disease enrichments
 ```{r}
 sexdis <- readRDS("data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs.RDS")
 
@@ -277,18 +275,20 @@ setnames(sexdis,"padj","FDR")
 
 sexdis[,signif:=ifelse(FDR<0.05,yes="*",no="")]
 
+## subset to spdoms with at least one signif enrichment
+keepdom <- sexdis[signif=="*",.N,by="spdom"]$spdom
+sexdis <- sexdis[spdom %in% keepdom]
 
-
-pdf("plots/Manuscript/5C as 4M-sex DE_disease_GSEA.pdf",height=2.5,width=5)
-ggplot(sexdis,aes(x=pathway,y=spdom,fill=NES))+
+pdf("plots/Manuscript/4M-sex DE_disease_GSEA.pdf",height=4,width=2.5)
+ggplot(sexdis,aes(y=pathway,x=spdom,fill=NES))+
     geom_tile()+
     geom_text(aes(label=signif),size=2)+
     scale_x_discrete(expand = c(0,0)) +
     scale_y_discrete(expand = c(0,0)) +
     scale_fill_gradient2()+
-    theme(plot.background = element_blank(),axis.line = element_blank(),panel.grid = element_blank(),panel.border = element_blank(),axis.text.x = element_text(angle=90,vjust=0.5,hjust=1,size=9),axis.text.y = element_text(size=9),axis.title.x = element_text(size = 10), axis.title.y = element_text(size = 10), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,0))+
-    xlab("Disease Gene Set")+
-    ylab("Domain")
+    theme(plot.background = element_blank(),axis.line = element_blank(),panel.grid = element_blank(),panel.border = element_blank(),axis.text.x = element_text(angle=90,hjust=1,vjust=0.5,size=8),axis.text.y = element_text(size=8),axis.title.x = element_text(size = 8), axis.title.y = element_text(size = 8), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,0))+
+    xlab("Domain")+
+    ylab("Disease-Gene Set")
 
 dev.off()
 ```

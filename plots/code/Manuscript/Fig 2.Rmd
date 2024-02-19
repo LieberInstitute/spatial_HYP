@@ -161,10 +161,10 @@ plt <-
         pdf_file = NULL,
         colors = pal,
         spatial = T,
-        alpha = 0.75,
+        alpha = 0.95,
         auto_crop = T,
         return_plots = T,
-        point_size = 0.975,
+        point_size = 0.95,
         sort_clust = F
     )
 
