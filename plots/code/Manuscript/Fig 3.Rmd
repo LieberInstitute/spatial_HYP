@@ -334,10 +334,10 @@ rm(p,pl,gallab,gal)
 
 ### msigdb GSEA for arc and vmh ###
 ```{r}
-mkres <- readRDS("data/11-GSEA/01c-Marker mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
+mkres <- readRDS("data/11-GSEA/01a-Marker msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
-pltdat <- mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH"]][pathway %in% c("GOCC_GLUTAMATERGIC_SYNAPSE","GOCC_GABA_ERGIC_SYNAPSE","HP_HYPERACTIVITY","HP_ABNORMAL_AGGRESIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR","WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY","GOBP_AXONEME_ASSEMBLY","GOCC_CILIARY_PLASM","HP_CENTRAL_ADRENAL_INSUFFICIENCY","DESCARTES_FETAL_ADRENAL_SYMPATHOBLASTS","GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")]
-pltdat <- rbind(pltdat,mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC"]][pathway %in% c("GOCC_GLUTAMATERGIC_SYNAPSE","GOCC_GABA_ERGIC_SYNAPSE","HP_HYPERACTIVITY","HP_ABNORMAL_AGGRESIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR","WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY","GOBP_AXONEME_ASSEMBLY","GOCC_CILIARY_PLASM","HP_CENTRAL_ADRENAL_INSUFFICIENCY","DESCARTES_FETAL_ADRENAL_SYMPATHOBLASTS","GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")])
+pltdat <- mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH"]][pathway %in% c("GOCC_GLUTAMATERGIC_SYNAPSE","GOCC_GABA_ERGIC_SYNAPSE","HP_HYPERACTIVITY","HP_ABNORMAL_AGGRESIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR","WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY","GOBP_AXONEME_ASSEMBLY","GOCC_CILIARY_PLASM","HP_CENTRAL_ADRENAL_INSUFFICIENCY","PID_INSULIN_GLUCOSE_PATHWAY","GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")]
+pltdat <- rbind(pltdat,mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC"]][pathway %in% c("GOCC_GLUTAMATERGIC_SYNAPSE","GOCC_GABA_ERGIC_SYNAPSE","HP_HYPERACTIVITY","HP_ABNORMAL_AGGRESIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR","WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY","GOBP_AXONEME_ASSEMBLY","GOCC_CILIARY_PLASM","HP_CENTRAL_ADRENAL_INSUFFICIENCY","PID_INSULIN_GLUCOSE_PATHWAY","GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")])
 
 pltdat[,spdom:=gsub(spdom,pattern="^.*_X(.*)$",replacement="\\1")]
 
@@ -346,7 +346,6 @@ pltdat[,genesource:=gsub(pathway,pattern="^(GOCC)_.*$",replacement="GO Cell\nCom
 pltdat[,genesource:=gsub(genesource,pattern="^(GOBP)_.*$",replacement="GO Biol. Process")]
 pltdat[,genesource:=gsub(genesource,pattern="^(HP)_.*$",replacement="Human Phenotypes")]
 pltdat[,genesource:=gsub(genesource,pattern="^(WP)_.*$",replacement="Wikipathways")]
-pltdat[,genesource:=gsub(genesource,pattern="^(DESCARTES)_.*$",replacement="Descartes scRNA-seq\n(Human)")]
 
 ### Simplify terms themselves
 pltdat[pathway=="GOCC_GLUTAMATERGIC_SYNAPSE",pathway:="Glutamatergic\n synapse"]
@@ -357,7 +356,7 @@ pltdat[pathway=="WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",pathway:=
 pltdat[pathway=="GOBP_AXONEME_ASSEMBLY",pathway:="Axoneme assembly"]
 pltdat[pathway=="GOCC_CILIARY_PLASM",pathway:="Ciliary plasma\nmembrane"]
 pltdat[pathway=="HP_CENTRAL_ADRENAL_INSUFFICIENCY",pathway:="Central adrenal\ninsufficiency"]
-pltdat[pathway=="DESCARTES_FETAL_ADRENAL_SYMPATHOBLASTS",pathway:="Fetal adrenal\nsympathoblasts"]
+pltdat[pathway=="PID_INSULIN_GLUCOSE_PATHWAY",pathway:="Insulin-glucose\npathway"]
 pltdat[pathway=="GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY",pathway:="Neuropeptide\nsignaling"]
 
 ### make domain a factor so we can match it to prior color schemes

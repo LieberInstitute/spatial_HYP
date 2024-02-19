@@ -65,7 +65,29 @@ clustres[[2]][spdom=="X5",spdom:="ARC.2"]
 clustres[[2]][spdom=="X11",spdom:="VMH.1"]
 clustres[[2]][spdom=="X12",spdom:="VMH.2"]
 
+# same for k20, k31
+clustres[[2]][spdom=="X3",spdom:="ARC.1"]
+clustres[[2]][spdom=="X5",spdom:="ARC.2"]
+clustres[[2]][spdom=="X11",spdom:="VMH.1"]
+clustres[[2]][spdom=="X12",spdom:="VMH.2"]
 
+### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
+clustres[[3]][spdom=="X7",spdom:="VMH20.1"]
+clustres[[3]][spdom=="X9",spdom:="VMH20.2"]
+clustres[[3]][spdom=="X13",spdom:="VMH20.3"]
+clustres[[3]][spdom=="X14",spdom:="ARC20.1"]
+clustres[[3]][spdom=="X18",spdom:="ARC20.2"]
+
+clustres[[4]][spdom=="X3",spdom:="VMH31.1"]
+clustres[[4]][spdom=="X4",spdom:="VMH31.2"]
+clustres[[4]][spdom=="X6",spdom:="VMH31.3"]
+clustres[[4]][spdom=="X19",spdom:="VMH31.4"]
+clustres[[4]][spdom=="X20",spdom:="VMH31.5"]
+clustres[[4]][spdom=="X29",spdom:="VMH31.6"]
+clustres[[4]][spdom=="X1",spdom:="ARC31.1"]
+clustres[[4]][spdom=="X7",spdom:="ARC31.2"]
+clustres[[4]][spdom=="X8",spdom:="ARC31.3"]
+clustres[[4]][spdom=="X21",spdom:="ARC31.4"]
 
 unique(clustres[[1]]$spdom)
 
@@ -213,6 +235,29 @@ clustres[[2]][spdom=="X5",spdom:="ARC.2"]
 clustres[[2]][spdom=="X11",spdom:="VMH.1"]
 clustres[[2]][spdom=="X12",spdom:="VMH.2"]
 
+clustres[[2]][spdom=="X3",spdom:="ARC.1"]
+clustres[[2]][spdom=="X5",spdom:="ARC.2"]
+clustres[[2]][spdom=="X11",spdom:="VMH.1"]
+clustres[[2]][spdom=="X12",spdom:="VMH.2"]
+
+### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
+clustres[[3]][spdom=="X7",spdom:="VMH20.1"]
+clustres[[3]][spdom=="X9",spdom:="VMH20.2"]
+clustres[[3]][spdom=="X13",spdom:="VMH20.3"]
+clustres[[3]][spdom=="X14",spdom:="ARC20.1"]
+clustres[[3]][spdom=="X18",spdom:="ARC20.2"]
+
+clustres[[4]][spdom=="X3",spdom:="VMH31.1"]
+clustres[[4]][spdom=="X4",spdom:="VMH31.2"]
+clustres[[4]][spdom=="X6",spdom:="VMH31.3"]
+clustres[[4]][spdom=="X19",spdom:="VMH31.4"]
+clustres[[4]][spdom=="X20",spdom:="VMH31.5"]
+clustres[[4]][spdom=="X29",spdom:="VMH31.6"]
+clustres[[4]][spdom=="X1",spdom:="ARC31.1"]
+clustres[[4]][spdom=="X7",spdom:="ARC31.2"]
+clustres[[4]][spdom=="X8",spdom:="ARC31.3"]
+clustres[[4]][spdom=="X21",spdom:="ARC31.4"]
+
 ### name the result list
 names(clustres) <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
 
@@ -261,6 +306,24 @@ mkdisres[`BayesSpace Run`=="k15"&Domain=="X3",Domain:="ARC.1"]
 mkdisres[`BayesSpace Run`=="k15"&Domain=="X5",Domain:="ARC.2"]
 mkdisres[`BayesSpace Run`=="k15"&Domain=="X11",Domain:="VMH.1"]
 mkdisres[`BayesSpace Run`=="k15"&Domain=="X12",Domain:="VMH.2"]
+
+### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
+mkdisres[Domain=="X7"&`BayesSpace Run`=="k20",Domain:="VMH20.1"]
+mkdisres[Domain=="X9"&`BayesSpace Run`=="k20",Domain:="VMH20.2"]
+mkdisres[Domain=="X13"&`BayesSpace Run`=="k20",Domain:="VMH20.3"]
+mkdisres[Domain=="X14"&`BayesSpace Run`=="k20",Domain:="ARC20.1"]
+mkdisres[Domain=="X18"&`BayesSpace Run`=="k20",Domain:="ARC20.2"]
+
+mkdisres[Domain=="X3"&`BayesSpace Run`=="k31",Domain:="VMH31.1"]
+mkdisres[Domain=="X4"&`BayesSpace Run`=="k31",Domain:="VMH31.2"]
+mkdisres[Domain=="X6"&`BayesSpace Run`=="k31",Domain:="VMH31.3"]
+mkdisres[Domain=="X19"&`BayesSpace Run`=="k31",Domain:="VMH31.4"]
+mkdisres[Domain=="X20"&`BayesSpace Run`=="k31",Domain:="VMH31.5"]
+mkdisres[Domain=="X29"&`BayesSpace Run`=="k31",Domain:="VMH31.6"]
+mkdisres[Domain=="X1"&`BayesSpace Run`=="k31",Domain:="ARC31.1"]
+mkdisres[Domain=="X7"&`BayesSpace Run`=="k31",Domain:="ARC31.2"]
+mkdisres[Domain=="X8"&`BayesSpace Run`=="k31",Domain:="ARC31.3"]
+mkdisres[Domain=="X21"&`BayesSpace Run`=="k31",Domain:="ARC31.4"]
 
 mkdisres[,spdom:=NULL]
 
