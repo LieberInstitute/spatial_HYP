@@ -70,6 +70,8 @@ bscl.vmharc <- bscl.vmharc[cl %in% c("X3","X5"),cl2:="ARC"]
 rm(tmpcd)
 ```
 
+panels A-F: previously 1.75 height / 2 width; moving sample IDs to legend --> one line plot titles --> saves .18 inches of space / plot --> save w new height 1.57in.
+
 ### Panel A ANKRD34B (VMH) ###
 ```{r}
 ### extract sample to plot ###
@@ -86,11 +88,11 @@ p <- make_escheR(ank)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/3A-ANKRD34B.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/3A-ANKRD34B.pdf",height=1.57,width=2)
 p+
     scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*ANKRD34B* (V12Y31-<br>080_A1 - Male)")+
+    ggtitle("*ANKRD34B* (Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
@@ -116,11 +118,11 @@ p <- make_escheR(lamp)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/3B-LAMP5.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/3B-LAMP5.pdf",height=1.57,width=2)
 p+
     scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*LAMP5* (V12D05-<br>350_D1 - Female)")+
+    ggtitle("*LAMP5* (Female)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
@@ -145,11 +147,11 @@ p <- make_escheR(gabre)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/3C-GABRE.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/3C-GABRE.pdf",height=1.57,width=2)
 p+
     scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*GABRE* (V12Y31-<br>080_A1 - Male)")+
+    ggtitle("*GABRE* (Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
@@ -175,11 +177,11 @@ p <- make_escheR(cyp)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/3D-CYP26A1.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/3D-CYP26A1.pdf",height=1.57,width=2)
 p+
     scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*CYP26A1* (V12D05-<br>350_D1 - Female)")+
+    ggtitle("*CYP26A1* (Female)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
@@ -188,7 +190,7 @@ dev.off()
 rm(cyp,cyplab,p)
 ```
 
-### ISH panels follow D ###
+### ISH panels follow F ###
 ###########################
 
 ### intra-VMH SVG: NMU ###
@@ -211,11 +213,11 @@ p <- make_escheR(nmu)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/3X-NMU-VMHsvg.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/3X-NMU-VMHsvg.pdf",height=1.57,width=2)
 p+
     scale_color_manual(values=c("#5dd959","#8c63cf","#e949c1"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*NMU* (V12D05-<br>350_D1 - Female)")+
+    ggtitle("*NMU* (Female)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
@@ -246,11 +248,11 @@ p <- make_escheR(gal)
 p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
 p <- p |> add_ground(var = "Domain",stroke=0.15,point_size = 0.6)
 
-pdf("plots/Manuscript/3X-GAL-ARCsvg.pdf",height=1.75,width=2)
+pdf("plots/Manuscript/3X-GAL-ARCsvg.pdf",height=1.57,width=2)
 p+
     scale_color_manual(values=c("#5dd959","#8c63cf","#e949c1"),na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*GAL* (V12Y31-<br>080_A1 - Male)")+
+    ggtitle("*GAL* (Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
@@ -366,24 +368,40 @@ pltdat$spdom
 # a: you're welcome
 
 ### plot:
-pdf("plots/Manuscript/3X-marker_msigdb_GSEA.pdf",height=3.5,width=3)
+### 2/24/24: move legend to beneath plot
+pdf("plots/Manuscript/3X-marker_msigdb_GSEA.pdf",height=4,width=3)
 ggplot(pltdat,aes(y=pathway,x=-log10(padj)))+
     geom_point(aes(col=spdom,size=NES),position = position_dodge2v(preserve = "single",height=0.75))+
     ylab("Term")+
     # scale_color_manual(values=wc2cols)+
-    xlab("-log10\nFDR")+
+    xlab("-log10 (FDR)")+
     xlim(0,30)+
     scale_size_continuous(range = c(0.75,3.5))+
     scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     labs(col="Domain")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.125)+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.5)+
     guides(col=guide_legend(byrow=T))+
     # # ^ necess. to get spacing to work in theme
     guides(col=guide_legend(override.aes=list(size=2.5)))+
     # ^ make legend points bigger
-    theme(axis.text.y = element_text(size = 8,margin=margin(0,0,0,-0.15,"in")), axis.title.x = element_text(size = 9), axis.title.y=element_text(size=9,margin=margin(0,0,0,0.2,unit="in")),axis.text.x = element_text(size = 8), legend.text = element_text(size=8,hjust = 0.5), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.125, "in"),plot.margin=margin(0.05,-0.075,0,-0.1,unit="in"),legend.margin = margin(0,0.075,0,-0.2,unit="in"),legend.box.background = element_blank(),legend.key = element_blank())
+    theme(
+        axis.text.y = element_text(size = 8, margin = margin(0, 0, 0, -0.15, "in")),
+        axis.title.x = element_text(size = 9),
+        axis.title.y = element_text(size = 9, margin = margin(0, 0, 0, 0.2, unit = "in")),
+        axis.text.x = element_text(size = 8),
+        legend.text = element_text(size = 8, hjust = 0.5),
+        legend.title = element_text(size = 9, hjust = 0.5),
+        legend.spacing.y = unit(0.075, "in"),
+        plot.margin = margin(0.05, 0.01, 0, -0.1, unit = "in"),
+        legend.position = "bottom",
+        legend.direction = "vertical",
+        legend.box.margin = margin(0, -0.3, 0, 0, unit = "in"),
+        legend.spacing.x = unit(0.05, "in"),
+        legend.box.background = element_blank(),
+        legend.margin= margin(0,0.25,0,0,"in"),
+        legend.key = element_blank()
+    )
 dev.off()
-
 
 
 rm(mkres,pltdat)
@@ -482,6 +500,7 @@ pltdat[source=="GEO TF Perturbations",source:="GEO TF\n Perturbations"]
 
 
 # plot and save
+# SEPARATE away the legend on the illustrator side to go between the GSEA and TF plots horizontally instead (doesn't fit as co-plotted after trying to lay out figure in AI. would be a bigger pain to rejigger the custom multi-shape-size axis thing to render that way on the R end.)
 ```{r}
 
 ### for this to work, we have to manually make a double legend kinda clunkily. modified slightly from https://stackoverflow.com/questions/62541720/ggplot2-show-multiple-keys-shapes-in-size-legend -- speciifically, defining these variables below and then the scale_size_manual call.
@@ -500,7 +519,7 @@ ggplot(pltdat,aes(y=tf,x=-log10(padj)))+
     scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
     xlab("-log10 (GSEA FDR)")+
     labs(col="Domain",shape="Source Database")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.5)+
     guides(col=guide_legend(byrow=T))+
     # ^ necess. to get spacing to work in theme
     guides(col=guide_legend(override.aes=list(size=2.5)),
@@ -548,7 +567,7 @@ ggplot(mkdis,aes(y=spdom,x=pathway,fill=-log10 (FDR)))+
     scale_y_discrete(expand = c(0,0)) +
     scale_fill_gradient(low="white",high="red")+
     labs(fill="-log10\n(FDR)")+
-    theme(plot.background = element_blank(),axis.line = element_blank(),panel.grid = element_blank(),panel.border = element_blank(),axis.text.x = element_text(angle=90,vjust=0.5,hjust=1,size=10),axis.text.y = element_text(size=10),axis.title.x = element_text(size = 11), axis.title.y = element_text(size = 11), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5),legend.margin = margin(0,0,0,0),legend.key.height = unit(0.125,"in"))+
+    theme(plot.background = element_blank(),axis.line = element_blank(),panel.grid = element_blank(),panel.border = element_blank(),axis.text.x = element_text(angle=90,vjust=0.5,hjust=1,size=9),axis.text.y = element_text(size=9),axis.title.x = element_text(size = 10), axis.title.y = element_text(size = 10), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.margin = margin(0,0,0,0),legend.key.height = unit(0.125,"in"))+
     xlab("Disease Gene Set")+
     ylab("Domain")
 # ^ okay, whatever legend.key.height is using to define "0.25 inches" is wildly off. had to fiddle with that number til it worked

@@ -97,7 +97,7 @@ ggplot(pltdat,aes(x=pathway,y=-log10(padj)))+
     guides(col="none")+
     guides(fill="none")+
     #shape=guide_legend(override.aes=list(size = 2.5)),
-    theme(axis.text.y = element_text(size = 9),axis.title.y=element_text(size=9), axis.title.x = element_text(size = 10,margin=margin(-0.15,0,0,0,unit="in")), axis.text.x = element_text(size = 9,angle=90,hjust=1,vjust=0.5,margin=margin(0,0.1,0,0.1,"in")), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5,margin=margin(0,0,-0.1,0,"in")),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,-0.1,unit = "in"))
+    theme(axis.text.y = element_text(size = 8),axis.title.y=element_text(size=9), axis.title.x = element_text(size = 9,margin=margin(-0.15,0,0,0,unit="in")), axis.text.x = element_text(size = 8,angle=90,hjust=1,vjust=0.5,margin=margin(0,0.1,0,0.1,"in")), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5,margin=margin(0,0,-0.1,0,"in")),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,-0.1,unit = "in"))
 dev.off()
 
 rm(pltdat,sexreslist)
@@ -286,7 +286,7 @@ ggplot(sexdis,aes(y=pathway,x=spdom,fill=NES))+
     scale_x_discrete(expand = c(0,0)) +
     scale_y_discrete(expand = c(0,0)) +
     scale_fill_gradient2()+
-    theme(plot.background = element_blank(),axis.line = element_blank(),panel.grid = element_blank(),panel.border = element_blank(),axis.text.x = element_text(angle=90,hjust=1,vjust=0.5,size=8),axis.text.y = element_text(size=8),axis.title.x = element_text(size = 8), axis.title.y = element_text(size = 8), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,0))+
+    theme(plot.background = element_blank(),axis.line = element_blank(),panel.grid = element_blank(),panel.border = element_blank(),axis.text.x = element_text(angle=90,hjust=1,vjust=0.5,size=8),axis.text.y = element_text(size=8),axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.125, "in"),legend.margin = margin(0,0,0,0))+
     xlab("Domain")+
     ylab("Disease-Gene Set")
 
@@ -326,7 +326,7 @@ pltdat$label <- NULL
 pltdat <- -log10(pltdat)
 
 pdf("plots/Manuscript/5D-FDR sig sex DEG enrichments in dis genesets.pdf",height=3,width=3.5)
-pheatmap::pheatmap(pltdat,cluster_cols = F,treeheight_row = 0,fontsize = 9,fontsize_row = 10)
+pheatmap::pheatmap(pltdat,cluster_cols = F,treeheight_row = 0,fontsize = 9,fontsize_row = 9)
 dev.off()
 ```
 
