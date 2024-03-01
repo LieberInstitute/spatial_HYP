@@ -23,6 +23,8 @@ library(scater) # Fig 2B
 require(colorout) # Utility for RStudio
 library(Polychrome) # Generate a visually-discernible palette for 15 colors
 library(ComplexHeatmap)
+library(circlize) #colorRamp2
+library(viridis) # magma
 library(ggtext) # mixed font formats in ggplot elements
 ColorOut()
 
@@ -267,6 +269,7 @@ gc(full = T)
 ```
 
 ### 2C, continued: Z-scale logcounts, make a subsetted spe with the columns already ordered by cluster since complexheatmap was giving issues with this, make plot.
+### this is not immediately cooperating for an axis flip so just do it in illustrator. we can dump the domain color legend (which is the same as A and B) in AI too.
 ```{r}
 # z scale rows, from tony https://github.com/LieberInstitute/spatial_DG_lifespan/blob/9419eb91453cda1df494d93dc91156d819042c66/code/Pseudobulk/top_infant_DE_heatmap_enrichment.R#L106
 
@@ -350,7 +353,7 @@ rownames(hypselect) <- rowData(hypselect)$gene_name
 
 pdf("plots/Manuscript/2D-GHRH in V12D05-350_D1.pdf", height = 1.75, width = 1.5)
 vis_gene(hypselect, geneid = "GHRH", spatial = T, auto_crop = T, point_size = 0.525, alpha=0.8, pdf_file = NULL, return_plots = T, na_color = NA, viridis = FALSE,cont_colors = magma(n=256,begin=0,end=0.7)) +
-    ggtitle("*GHRH* (V12D05-<br>350_D1 - Female)") +
+    ggtitle("*GHRH*") +
     # counter vis_gene's plot margins to use the allocated area
     theme(
         axis.text = element_blank(),
@@ -387,7 +390,7 @@ rownames(hypselect) <- rowData(hypselect)$gene_name
 
 pdf("plots/Manuscript/2E-POMC in V12D05-348_C1.pdf", height = 1.75, width = 1.5)
 vis_gene(hypselect, geneid = "POMC", spatial = T, auto_crop = T, point_size = 0.525, alpha=0.8, pdf_file = NULL, return_plots = T, na_color = NA, viridis = FALSE,cont_colors = magma(n=256,begin=0,end=0.7)) +
-    ggtitle("*POMC* (V12D05-<br>348_C1 - Female)") +
+    ggtitle("*POMC*") +
     # counter vis_gene's plot margins to use the allocated area
     theme(
         axis.text = element_blank(),
@@ -424,7 +427,7 @@ rownames(hypselect) <- rowData(hypselect)$gene_name
 
 pdf("plots/Manuscript/2F-FEZF1 in V12D05-075_D1.pdf", height = 1.75, width = 1.5)
 vis_gene(hypselect, geneid = "FEZF1", spatial = T, auto_crop = T, point_size = 0.525, alpha=0.8, pdf_file = NULL, return_plots = T, na_color = NA, viridis = FALSE,cont_colors = magma(n=256,begin=0,end=0.7)) +
-    ggtitle("*FEZF1* (V12D07-<br>075_D1 - Male)") +
+    ggtitle("*FEZF1*") +
     # counter vis_gene's plot margins to use the allocated area
     theme(
         axis.text = element_blank(),
@@ -462,7 +465,7 @@ rownames(hypselect) <- rowData(hypselect)$gene_name
 
 pdf("plots/Manuscript/2G-KISS1R in V12Y31-080_A1.pdf", height = 1.75, width = 1.5)
 vis_gene(hypselect, geneid = "KISS1R", spatial = T, auto_crop = T, point_size = 0.525, alpha=0.8, pdf_file = NULL, return_plots = T, na_color = NA, viridis = FALSE,cont_colors = magma(n=256,begin=0,end=0.7)) +
-    ggtitle("*KISS1R* (V12Y31-<br>080_A1 - Male)") +
+    ggtitle("*KISS1R*") +
     # counter vis_gene's plot margins to use the allocated area
     theme(
         axis.text = element_blank(),
@@ -512,7 +515,7 @@ sessioninfo::session_info()
 ```
 R version 4.3.2 (2023-10-31)
 Platform: aarch64-apple-darwin20 (64-bit)
-Running under: macOS Ventura 13.6
+Running under: macOS Ventura 13.6.4
 
 Matrix products: default
 BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
@@ -529,19 +532,21 @@ attached base packages:
 [8] methods   base     
 
 other attached packages:
- [1] ggtext_0.1.2                ComplexHeatmap_2.18.0      
- [3] Polychrome_1.5.1            colorout_1.3-0.1           
- [5] scater_1.30.1               scuttle_1.12.0             
- [7] spatialLIBD_1.14.1          SpatialExperiment_1.12.0   
- [9] SingleCellExperiment_1.24.0 SummarizedExperiment_1.32.0
-[11] Biobase_2.62.0              GenomicRanges_1.54.1       
-[13] MatrixGenerics_1.14.0       matrixStats_1.2.0          
-[15] gridExtra_2.3               ggplot2_3.4.4              
-[17] Cairo_1.6-2                 ggrastr_1.0.2              
-[19] Biostrings_2.70.2           GenomeInfoDb_1.38.5        
-[21] XVector_0.42.0              IRanges_2.36.0             
-[23] S4Vectors_0.40.2            BiocGenerics_0.48.1        
-[25] data.table_1.14.10          rlang_1.1.3                
+ [1] viridis_0.6.5               viridisLite_0.4.2          
+ [3] circlize_0.4.15             ggtext_0.1.2               
+ [5] ComplexHeatmap_2.18.0       Polychrome_1.5.1           
+ [7] colorout_1.3-0.1            scater_1.30.1              
+ [9] scuttle_1.12.0              spatialLIBD_1.14.1         
+[11] SpatialExperiment_1.12.0    SingleCellExperiment_1.24.0
+[13] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+[15] GenomicRanges_1.54.1        MatrixGenerics_1.14.0      
+[17] matrixStats_1.2.0           gridExtra_2.3              
+[19] ggplot2_3.4.4               Cairo_1.6-2                
+[21] ggrastr_1.0.2               Biostrings_2.70.2          
+[23] GenomeInfoDb_1.38.5         XVector_0.42.0             
+[25] IRanges_2.36.0              S4Vectors_0.40.2           
+[27] BiocGenerics_0.48.1         data.table_1.14.10         
+[29] rlang_1.1.3                
 
 loaded via a namespace (and not attached):
   [1] later_1.3.2                   BiocIO_1.12.0                
@@ -560,75 +565,73 @@ loaded via a namespace (and not attached):
  [27] maps_3.4.2                    abind_1.4-5                  
  [29] zlibbioc_1.48.0               purrr_1.0.2                  
  [31] RCurl_1.98-1.14               rappdirs_0.3.3               
- [33] circlize_0.4.15               GenomeInfoDbData_1.2.11      
- [35] ggrepel_0.9.5                 irlba_2.3.5.1                
- [37] pheatmap_1.0.12               commonmark_1.9.1             
- [39] DelayedMatrixStats_1.24.0     codetools_0.2-19             
- [41] DelayedArray_0.28.0           xml2_1.3.6                   
- [43] DT_0.31                       tidyselect_1.2.0             
- [45] shape_1.4.6                   farver_2.1.1                 
- [47] ScaledMatrix_1.10.0           viridis_0.6.5                
- [49] shinyWidgets_0.8.1            BiocFileCache_2.10.1         
- [51] GenomicAlignments_1.38.2      jsonlite_1.8.8               
- [53] GetoptLong_1.0.5              BiocNeighbors_1.20.2         
- [55] ellipsis_0.3.2                iterators_1.0.14             
- [57] foreach_1.5.2                 tools_4.3.2                  
- [59] Rcpp_1.0.12                   glue_1.7.0                   
- [61] SparseArray_1.2.3             xfun_0.41                    
- [63] here_1.0.1                    dplyr_1.1.4                  
- [65] withr_3.0.0                   BiocManager_1.30.22          
- [67] fastmap_1.1.1                 fansi_1.0.6                  
- [69] digest_0.6.34                 rsvd_1.0.5                   
- [71] R6_2.5.1                      mime_0.12                    
- [73] colorspace_2.1-0              markdown_1.12                
- [75] RSQLite_2.3.5                 config_0.3.2                 
- [77] utf8_1.2.4                    tidyr_1.3.1                  
- [79] generics_0.1.3                rtracklayer_1.62.0           
- [81] httr_1.4.7                    htmlwidgets_1.6.4            
- [83] S4Arrays_1.2.0                scatterplot3d_0.3-44         
- [85] pkgconfig_2.0.3               gtable_0.3.4                 
- [87] blob_1.2.4                    htmltools_0.5.7              
- [89] dotCall64_1.1-1               clue_0.3-65                  
- [91] scales_1.3.0                  png_0.1-8                    
- [93] attempt_0.3.1                 knitr_1.45                   
- [95] rstudioapi_0.15.0             rjson_0.2.21                 
- [97] curl_5.2.0                    cachem_1.0.8                 
- [99] GlobalOptions_0.1.2           stringr_1.5.1                
-[101] BiocVersion_3.18.1            parallel_4.3.2               
-[103] vipor_0.4.7                   AnnotationDbi_1.64.1         
-[105] restfulr_0.0.15               pillar_1.9.0                 
-[107] vctrs_0.6.5                   promises_1.2.1               
-[109] BiocSingular_1.18.0           dbplyr_2.4.0                 
-[111] beachmat_2.18.0               xtable_1.8-4                 
-[113] cluster_2.1.6                 beeswarm_0.4.0               
-[115] paletteer_1.6.0               evaluate_0.23                
-[117] magick_2.8.2                  cli_3.6.2                    
-[119] locfit_1.5-9.8                compiler_4.3.2               
-[121] Rsamtools_2.18.0              crayon_1.5.2                 
-[123] labeling_0.4.3                rematch2_2.1.2               
-[125] ggbeeswarm_0.7.2              stringi_1.8.3                
-[127] viridisLite_0.4.2             BiocParallel_1.36.0          
-[129] munsell_0.5.0                 lazyeval_0.2.2               
-[131] Matrix_1.6-5                  ExperimentHub_2.10.0         
-[133] benchmarkme_1.0.8             sparseMatrixStats_1.14.0     
-[135] bit64_4.0.5                   KEGGREST_1.42.0              
-[137] statmod_1.5.0                 shiny_1.8.0                  
-[139] interactiveDisplayBase_1.40.0 AnnotationHub_3.10.0         
-[141] gridtext_0.1.5                memoise_2.0.1                
-[143] bslib_0.6.1                   benchmarkmeData_1.0.4        
-[145] bit_4.0.5                    
+ [33] GenomeInfoDbData_1.2.11       ggrepel_0.9.5                
+ [35] irlba_2.3.5.1                 commonmark_1.9.1             
+ [37] DelayedMatrixStats_1.24.0     codetools_0.2-19             
+ [39] DelayedArray_0.28.0           xml2_1.3.6                   
+ [41] DT_0.31                       shape_1.4.6                  
+ [43] tidyselect_1.2.0              farver_2.1.1                 
+ [45] ScaledMatrix_1.10.0           shinyWidgets_0.8.1           
+ [47] BiocFileCache_2.10.1          GenomicAlignments_1.38.2     
+ [49] jsonlite_1.8.8                GetoptLong_1.0.5             
+ [51] BiocNeighbors_1.20.2          ellipsis_0.3.2               
+ [53] iterators_1.0.14              foreach_1.5.2                
+ [55] tools_4.3.2                   Rcpp_1.0.12                  
+ [57] glue_1.7.0                    SparseArray_1.2.3            
+ [59] xfun_0.41                     here_1.0.1                   
+ [61] dplyr_1.1.4                   withr_3.0.0                  
+ [63] BiocManager_1.30.22           fastmap_1.1.1                
+ [65] fansi_1.0.6                   digest_0.6.34                
+ [67] rsvd_1.0.5                    R6_2.5.1                     
+ [69] mime_0.12                     colorspace_2.1-0             
+ [71] markdown_1.12                 RSQLite_2.3.5                
+ [73] config_0.3.2                  utf8_1.2.4                   
+ [75] tidyr_1.3.1                   generics_0.1.3               
+ [77] rtracklayer_1.62.0            httr_1.4.7                   
+ [79] htmlwidgets_1.6.4             S4Arrays_1.2.0               
+ [81] scatterplot3d_0.3-44          pkgconfig_2.0.3              
+ [83] gtable_0.3.4                  blob_1.2.4                   
+ [85] htmltools_0.5.7               dotCall64_1.1-1              
+ [87] clue_0.3-65                   scales_1.3.0                 
+ [89] png_0.1-8                     attempt_0.3.1                
+ [91] knitr_1.45                    rstudioapi_0.15.0            
+ [93] rjson_0.2.21                  curl_5.2.0                   
+ [95] GlobalOptions_0.1.2           cachem_1.0.8                 
+ [97] stringr_1.5.1                 BiocVersion_3.18.1           
+ [99] parallel_4.3.2                vipor_0.4.7                  
+[101] AnnotationDbi_1.64.1          restfulr_0.0.15              
+[103] pillar_1.9.0                  vctrs_0.6.5                  
+[105] promises_1.2.1                BiocSingular_1.18.0          
+[107] dbplyr_2.4.0                  beachmat_2.18.0              
+[109] cluster_2.1.6                 xtable_1.8-4                 
+[111] beeswarm_0.4.0                paletteer_1.6.0              
+[113] evaluate_0.23                 magick_2.8.2                 
+[115] cli_3.6.2                     locfit_1.5-9.8               
+[117] compiler_4.3.2                Rsamtools_2.18.0             
+[119] crayon_1.5.2                  labeling_0.4.3               
+[121] rematch2_2.1.2                ggbeeswarm_0.7.2             
+[123] stringi_1.8.3                 BiocParallel_1.36.0          
+[125] munsell_0.5.0                 lazyeval_0.2.2               
+[127] Matrix_1.6-5                  ExperimentHub_2.10.0         
+[129] benchmarkme_1.0.8             sparseMatrixStats_1.14.0     
+[131] bit64_4.0.5                   KEGGREST_1.42.0              
+[133] statmod_1.5.0                 shiny_1.8.0                  
+[135] interactiveDisplayBase_1.40.0 AnnotationHub_3.10.0         
+[137] gridtext_0.1.5                memoise_2.0.1                
+[139] bslib_0.6.1                   benchmarkmeData_1.0.4        
+[141] bit_4.0.5                    
 > sessioninfo::session_info()
 ─ Session info ───────────────────────────────────────────────────────────
  setting  value
  version  R version 4.3.2 (2023-10-31)
- os       macOS Ventura 13.6
+ os       macOS Ventura 13.6.4
  system   aarch64, darwin20
  ui       RStudio
  language (EN)
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/New_York
- date     2024-02-08
+ date     2024-02-26
  rstudio  2023.09.1+494 Desert Sunflower (desktop)
  pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
 
@@ -659,7 +662,7 @@ loaded via a namespace (and not attached):
  bslib                    0.6.1       2023-11-28 [1] CRAN (R 4.3.1)
  cachem                   1.0.8       2023-05-01 [1] CRAN (R 4.3.2)
  Cairo                  * 1.6-2       2023-11-28 [1] CRAN (R 4.3.1)
- circlize                 0.4.15      2022-05-10 [1] CRAN (R 4.3.0)
+ circlize               * 0.4.15      2022-05-10 [1] CRAN (R 4.3.0)
  cli                      3.6.2       2023-12-11 [1] CRAN (R 4.3.2)
  clue                     0.3-65      2023-09-23 [1] CRAN (R 4.3.2)
  cluster                  2.1.6       2023-12-01 [1] CRAN (R 4.3.2)
@@ -740,7 +743,6 @@ loaded via a namespace (and not attached):
  mime                     0.12        2021-09-28 [1] CRAN (R 4.3.2)
  munsell                  0.5.0       2018-06-12 [1] CRAN (R 4.3.0)
  paletteer                1.6.0       2024-01-21 [1] CRAN (R 4.3.1)
- pheatmap                 1.0.12      2019-01-04 [1] CRAN (R 4.3.0)
  pillar                   1.9.0       2023-03-22 [1] CRAN (R 4.3.0)
  pkgconfig                2.0.3       2019-09-22 [1] CRAN (R 4.3.0)
  plotly                   4.10.4      2024-01-13 [1] CRAN (R 4.3.1)
@@ -792,8 +794,8 @@ loaded via a namespace (and not attached):
  utf8                     1.2.4       2023-10-22 [1] CRAN (R 4.3.2)
  vctrs                    0.6.5       2023-12-01 [1] CRAN (R 4.3.2)
  vipor                    0.4.7       2023-12-18 [1] CRAN (R 4.3.1)
- viridis                  0.6.5       2024-01-29 [1] CRAN (R 4.3.2)
- viridisLite              0.4.2       2023-05-02 [1] CRAN (R 4.3.0)
+ viridis                * 0.6.5       2024-01-29 [1] CRAN (R 4.3.2)
+ viridisLite            * 0.4.2       2023-05-02 [1] CRAN (R 4.3.0)
  withr                    3.0.0       2024-01-16 [1] CRAN (R 4.3.1)
  xfun                     0.41        2023-11-01 [1] CRAN (R 4.3.2)
  XML                      3.99-0.16.1 2024-01-22 [1] CRAN (R 4.3.1)
