@@ -57,6 +57,9 @@ cocores <- melt(cocores[topname %in% keepres,],id.vars=c("topnode","topname"),va
 setnames(cocores,"score","scCoco Score (top\n150 Visium Markers)")
 cocores[topname=="Periventricular hypothalamic nucleus, posterior part",topname:="Posterior periventricular nu."]
 
+otherlevs <- unique(cocores$topname[!cocores$topname %in% c("Ventromedial hypothalamic nucleus","Arcuate hypothalamic nucleus")])
+cocores[,topname:=factor(topname,levels=c(otherlevs,"Arcuate hypothalamic nucleus","Ventromedial hypothalamic nucleus"))]
+
 pdf("plots/Manuscript/5A-scCoco registration to adult mouse ISH of hyp.pdf",width=7,height=4)
 ggplot(cocores,aes(x=region,y=topname,fill=`scCoco Score (top\n150 Visium Markers)`))+
     geom_tile()+
