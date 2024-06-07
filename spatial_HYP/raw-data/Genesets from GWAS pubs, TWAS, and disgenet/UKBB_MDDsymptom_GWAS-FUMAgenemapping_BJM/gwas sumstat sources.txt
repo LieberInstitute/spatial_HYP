@@ -1,0 +1,9 @@
+
+weight loss during worst dep wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/20536_2.gwas.imputed_v3.both_sexes.tsv.bgz -O ~/Desktop/20536_2.gwas.imputed_v3.both_sexes.tsv.bgz
+
+weight gain during west dep wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/20536_1.gwas.imputed_v3.both_sexes.tsv.bgz -O ~/Desktop/20536_1.gwas.imputed_v3.both_sexes.tsv.bgz
+
+tiredness during worst dep: wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/20450.gwas.imputed_v3.both_sexes.tsv.bgz -O 20450.gwas.imputed_v3.both_sexes.tsv.bgz
+
+changes in sleep during any depression wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/20532.gwas.imputed_v3.both_sexes.tsv.bgz -O 20532.gwas.imputed_v3.both_sexes.tsv.bgz
+
