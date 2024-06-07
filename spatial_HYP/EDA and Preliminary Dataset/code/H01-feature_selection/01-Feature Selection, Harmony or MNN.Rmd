@@ -1,0 +1,212 @@
+---
+title: "01-Feature Selection (Harmony)"
+author: "Bernie Mulvey"
+date: "2023-05-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater) # addPerCellQC
+# library(nnSVG)
+library(BiocParallel)
+library(scran)
+library(parallel)
+# library(scCustomize)
+# library(fasthplus)
+# library(STexampleData)
+# library(harmony)
+library(batchelor) ## MNN
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+demos <- fread("raw-data/demos.txt")
+
+demos <- demos[BrNum %in% colData(hyp2)$brnum]
+setnames(demos,"BrNum","brnum")
+demos <- as.data.frame(demos)
+
+tmp <- merge(colData(hyp2)[,c("brnum","sample_id","key")],demos,by="brnum")
+# ^ has no rownames. and they need to be unique anyhow, so change hyp2 colnames and rownames(colData to $key:
+colnames(hyp2) <- colData(hyp2)$key
+rownames(colData(hyp2)) <- colData(hyp2)$key
+
+# check if they're same order. prob not.
+rownames(tmp) <- tmp$key
+sum(rownames(tmp)==colData(hyp2)$key) # 0
+sortrn <- rownames(colData(hyp2))
+# reorder
+tmp <- tmp[sortrn,]
+stopifnot(sum(rownames(tmp)==colData(hyp2)$key)==nrow(colData(hyp2)))
+#
+colData(hyp2) <- cbind(colData(hyp2),tmp)
+
+colnames(colData(hyp2))
+# double check using the two key columns now in coldata
+colnames(colData(hyp2))[33] <- "key2"
+stopifnot((sum(colData(hyp2)$key==colData(hyp2)$key2))==nrow(colData(hyp2)))
+# k. also fix "Best Rin PFC" and "BMI (calculated)" to not have spaces
+colnames(colData(hyp2))[c(39,40)] <- c("best_rin_pfc","bmi")
+rm(tmp,demos,sortrn)
+```
+
+### mean-variance relationships: blocking on sample_id for gene variances, to account for tech variance between the multiple replicates from a couple donors. 
+### NOT DONE: S. HICKS DISCOURAGED: Subsequently with harmony, use brnum for blocking since duplicate variances should have been accounted for in the hvg identification from sample-blocked variance.
+### do NOT use harmony for the SPE with one sample clipped to single quadrant--harmony will falsely assume we have the same cell types in all sections which will not be the case w/ this cropped section. 
+```{r}
+hyp2.vars <- modelGeneVar(hyp2,block=hyp2$sample_id)
+
+varperblock <- hyp2.vars$per.block
+plts <- list()
+
+rn <- rownames(varperblock[[1]])
+
+i <- 1
+for (i in c(1:length(varperblock))){
+    hyp2.vars.dt <- cbind(as.data.table(as.character(rownames(varperblock[[i]]))),varperblock[[i]]$total)
+    hyp2.means.dt <- cbind(as.data.table(as.character(rownames(varperblock[[i]]))),varperblock[[i]]$mean)
+
+    setnames(hyp2.vars.dt,2,"var_log_xpr")
+    setnames(hyp2.means.dt,2,"mean_log_xpr")
+    hyp2.mnvar.pltdat <- merge(hyp2.means.dt,hyp2.vars.dt,by="V1")
+    plts[[i]] <- ggplot(hyp2.mnvar.pltdat, aes(x = mean_log_xpr, y = var_log_xpr)) +
+        geom_point() +
+        geom_function(fun=metadata(varperblock[[i]])$trend,col="blue")+
+        ggtitle(paste0("Mean-var curve-",names(varperblock)[i],"\n sample_id blocking"))
+    rm(hyp2.mnvar.pltdat,hyp2.vars.dt,hyp2.means.dt)
+}
+
+library(gridExtra)
+pdf("plots/spe_070123/H01-feature_selection_and_harmony/samplewiseblocking_meanvars.pdf",height=14,width=10)
+do.call("grid.arrange",c(plts,nrow=4,ncol=2))
+dev.off()
+rm(plts,varperblock)
+```
+
+#### nnSVG-run:
+does not take batch variables nor does it take in reduced dims. So these results are actually unchanged from pre-harmony.
+
+# filepath to those results are therefore in the harmony-less data directories: analysis/data/01-feature_selection/nnSVG_samplewise_n3s0.5_052423.RDS and analysis/data/01-feature_selection/meangeneranks_nnSVG_samplewise_n3s0.5.txt
+#### 
+
+get top 10, 20 %ile HVGs from sample_id-blocking'd variances; run harmony on top 10 and 20 HVGs and top 10, 20 nnsvg
+```{r}
+hyp2.hvg10 <- scran::getTopHVGs(hyp2.vars,prop = 0.1)
+hyp2.hvg20 <- scran::getTopHVGs(hyp2.vars,prop=0.2)
+
+nnsvgs <- fread("analysis/data/spe_070123/01-feature_selection/meangeneranks_nnSVG_samplewise_n3s0.5.txt")
+setorderv(nnsvgs,"meanrank",1)
+# for simplicity, retrieve ENS ids here since that's whta the HVGs are
+nnsvg10 <- nnsvgs[c(1:length(hyp2.hvg10)),gene_id]
+nnsvg20 <- nnsvgs[c(1:length(hyp2.hvg20)),gene_id]
+
+saveRDS(hyp2.hvg10,"analysis/data/spe_070123/H01-feature_selection/HVG10pctile_sample-blocked.RDS")
+saveRDS(hyp2.hvg20,"analysis/data/spe_070123/H01-feature_selection/HVG20pctile_sample-blocked.RDS")
+saveRDS(nnsvg10,"analysis/data/spe_070123/H01-feature_selection/nnsvg10pctile.RDS")
+saveRDS(nnsvg20,"analysis/data/spe_070123/H01-feature_selection/nnsvg20pctile.RDS")
+
+
+pcas <- list()
+set.seed(42)
+pcas[[1]] <- scater::runPCA(hyp2,subset_row=hyp2.hvg10)
+set.seed(42)
+pcas[[2]] <- scater::runPCA(hyp2,subset_row=hyp2.hvg20)
+set.seed(42)
+pcas[[3]] <- scater::runPCA(hyp2,subset_row=nnsvg10)
+set.seed(42)
+pcas[[4]] <- scater::runPCA(hyp2,subset_row=nnsvg20)
+
+set.seed(42)
+pcas[[1]] <- scater::runUMAP(pcas[[1]],dimred="PCA")
+set.seed(42)
+pcas[[2]] <- scater::runUMAP(pcas[[2]],dimred="PCA")
+set.seed(42)
+pcas[[3]] <- scater::runUMAP(pcas[[3]],dimred="PCA")
+set.seed(42)
+pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="PCA")
+```
+### do NOT use harmony for the SPE with one sample clipped to single quadrant--harmony will falsely assume we have the same cell types in all sections which will not be the case w/ this cropped section. 
+
+```{r}
+set.seed(42)
+pcas[[1]] <- RunHarmony(pcas[[1]],group.by.vars = "sample_id")
+set.seed(42)
+pcas[[2]] <- RunHarmony(pcas[[2]],group.by.vars = "sample_id")
+set.seed(42)
+pcas[[3]] <- RunHarmony(pcas[[3]],group.by.vars = "sample_id")
+set.seed(42)
+pcas[[4]] <- RunHarmony(pcas[[4]],group.by.vars = "sample_id")
+
+
+set.seed(42)
+pcas[[1]] <- scater::runUMAP(pcas[[1]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[2]] <- scater::runUMAP(pcas[[2]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[3]] <- scater::runUMAP(pcas[[3]],dimred="HARMONY",name="HARMONY_UMAP")
+set.seed(42)
+pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="HARMONY",name="HARMONY_UMAP")
+
+names(pcas) <- c("hvg10pctile","hvg20pctile","nnsvg10pctile","nnsvg20pctile")
+
+saveRDS(pcas,"analysis/data/spe_053123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_HARMONY-PCA-UMAP.RDS")
+```
+
+#### MNN correction with ordered batch corrections within spatial rep sets. we can do this by specifying brnum (donor) as the batch factor
+```{r}
+sbp <- MulticoreParam(10)
+register(sbp)
+### pcas have already been initialized so we can use batchelor::reducedMNN, which takes in the unadjusted PCA. higher k = more aggressive correction. this returns a DataFrame, which we have to append to the reduceddims ourselves after calculated.
+set.seed(42)
+mnn30.1 <- reducedMNN(reducedDim(pcas[[1]],"PCA"),batch = pcas[[1]]$brnum,k=30,BPPARAM=sbp)
+
+reducedDim(pcas[[1]],"mnn30") <- mnn30.1
+
+mnn30.2 <- reducedMNN(reducedDim(pcas[[2]],"PCA"),batch = pcas[[2]]$brnum,k=30,BPPARAM=sbp)
+
+reducedDim(pcas[[2]],"mnn30") <- mnn30.2
+
+
+mnn30.3 <- reducedMNN(reducedDim(pcas[[3]],"PCA"),batch = pcas[[3]]$brnum,k=30,BPPARAM=sbp)
+
+reducedDim(pcas[[3]],"mnn30") <- mnn30.3
+
+mnn30.4 <- reducedMNN(reducedDim(pcas[[4]],"PCA"),batch = pcas[[4]]$brnum,k=30,BPPARAM=sbp)
+
+reducedDim(pcas[[4]],"mnn30") <- mnn30.4
+
+### UMAP from mnn k=30
+set.seed(42)
+pcas[[1]] <- scater::runUMAP(pcas[[1]],dimred="mnn30",name = "mnn30_UMAP")
+set.seed(42)
+pcas[[2]] <- scater::runUMAP(pcas[[2]],dimred="mnn30",name = "mnn30_UMAP")
+set.seed(42)
+pcas[[3]] <- scater::runUMAP(pcas[[3]],dimred="mnn30",name = "mnn30_UMAP")
+set.seed(42)
+pcas[[4]] <- scater::runUMAP(pcas[[4]],dimred="mnn30",name = "mnn30_UMAP")
+
+```
+
+### save reduced dimension set
+```{r}
+names(pcas) <- c("hvg10pctile","hvg20pctile","nnsvg10pctile","nnsvg20pctile")
+
+saveRDS(pcas,"analysis/data/spe_070123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_MNNk30-PCA-UMAP.RDS")
+```

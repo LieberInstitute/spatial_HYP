@@ -1,0 +1,197 @@
+---
+title: "Disgenet queries for gene resource"
+author: "Bernard Mulvey"
+date: "2023-09-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(disgenet2r)
+require(colorout)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+#### Diseases to collect ######
+ASD
+ADHD
+AUD
+Cannabis use
+Alzheimer's
+MDD (disease ontology #s 12294 (atypical depression, which is included in virtually any study) and depressive disorders parent, 1596)
+PTSD
+Anorexia
+BIP
+SCZ
+BMI
+Lefthanded
+Opioid use
+Panic
+OCD
+Tourettes
+#####
+
+### MDD ### 
+We'll do this one first, because there's genes I know that disgene lists as "curated" for MDD despite a publication in 2019 (Border, Johnson '19 Am J Psy) demonstrating beyond a doubt these early candidates from genetic studies of tiny handfuls of cases and controls are garbage. So we will be filtering out the following bullshit genes:
+1. SLC6A4
+2. BDNF
+3. COMT
+4. HTR2A
+5. TPH1, TPH2
+6. DRD2, DRD3, DRD4
+7. MAOA
+8. MTHFR
+9. APOE
+10. SLC6A3
+11. CLOCK
+12. DTNBP1
+13. ACE
+14. DBH
+15. ANCB1
+
+SLC6A4 BDNF COMT HTR2A TPH1 TPH2 DRD2 DRD3 DRD4 MAOA MTHFR APOE SLC6A3 CLOCK DTNBP1 ACE DBH ANCB1
+
+```{r}
+Sys.setenv(DISGENET_API_KEY="67559ece77977094389864b58d27185e8ac48ad3")
+
+mdd <- disgenet2r::disease2gene(database = "CURATED",vocabulary = "DO",disease = c("12294", "1596"))
+
+mdd2 <- as.data.table(mdd@qresult)
+bullshit <- c("SLC6A4", "BDNF", "COMT", "HTR2A", "TPH1", "TPH2", "DRD2", "DRD3", "DRD4", "MAOA", "MTHFR", "APOE", "SLC6A3", "CLOCK", "DTNBP1", "ACE", "DBH", "ANCB1")
+
+mdd2 <- mdd2[!(gene_symbol %in% bullshit)]
+
+mdd3 <- mdd2[,.(geneid,gene_symbol,uniprotid)]
+mdd3[,dx:="MDD"]
+mdd3[,query:="DisOntol_12294_1596"]
+restab <- copy(mdd3)
+rm(mdd,mdd2,mdd3,bullshit)
+```
+
+#### ASD ####
+Parent-most DO term 0060041
+```{r}
+asd <- disgenet2r::disease2gene(database = "CURATED",vocabulary = "DO",disease = "0060041")
+
+asd <- as.data.table(asd@qresult)
+
+asd <- asd[,.(geneid,gene_symbol,uniprotid)]
+asd[,dx:="ASD"]
+asd[,query:="DisOntol_0060041"]
+restab <- rbind(restab,asd)
+```
+
+
+## ok this is silly nonsense. queue the loop.
+### NO CYCLOTHYMIA for bipolar query
+### NDD query = intellectual disability parent term 1059 (includes autosomal, non-syndromic, syndromic forms; EXcludes ADHD, specific learning disabilities (e.g. reading/writing/dyscalculia, ADHD, communication-domain-specific disorders))
+# Cannabis use disorder 9505
+# Alzheimer's 10652
+# PTSD 2055
+# Anorexia 8689
+# BIP 14042 0060166 (BIP 1 and 2 only)
+# SCZ 5419
+# BMI (obesity) 9970
+# Opioid use disorder 11206
+# Panic 594
+# OCD 10933
+# Tourettes 11119
+# GAD 14320
+# NDD 1059
+```{r}
+# disq <- list(ADHD="1094",AUD="1574",Cannabis="9505",AD="10652",PTSD="2055",Anorexia="8689",BIP=c("14042","0060166"),SCZ="5419",BMI="9970",OUD="11206",Panic="594",OCD="10933",TS="11119",GAD="14320",NDD="1059")
+
+## test thru loop to find any that won't work
+# i<-8
+# for (i in c(8:length(disq))){
+#   x <- disq[[i]]
+#   res <- disease2gene(disease = x,vocabulary = "DO",database = "CURATED")
+#   res <- as.data.table(res@qresult)
+#   res <- res[,.(geneid,gene_symbol,uniprotid)]
+#   res[,query:=paste0("DisOntol_",x)]
+# }
+
+# errors on these, which we'll have to fetch a different way
+# PTSD disq[[5]]
+# BIP disq[[7]] 
+### disgenet web only shows UMLS IDs for BIP: C0853193 (BIP I) and C0236788 (II)
+### disgenet web has DO2055 for PTSD, but doesn't list it if you try and search it? UMLS works though: C0038436
+
+disq <- list(ADHD="1094",AUD="1574",Cannabis="9505",AD="10652",Anorexia="8689",SCZ="5419",BMI="9970",OUD="11206",Panic="594",OCD="10933",TS="11119",GAD="14320",NDD="1059")
+
+reslist <- lapply(disq,FUN=function(x){
+  res <- disease2gene(disease = x,vocabulary = "DO",database = "CURATED")
+  res <- as.data.table(res@qresult)
+  res <- res[,.(geneid,gene_symbol,uniprotid)]
+  res[,query:=paste0("DisOntol_",x)]
+  return(res)
+})
+
+i <- 1
+for (i in c(1:length(reslist))){
+  tmp <- reslist[[i]]
+  tmp[,dx:=names(reslist)[i]]
+  if(i==1){restab2 <- copy(tmp)}
+  else{restab2 <- rbind(restab2,tmp)}
+  rm(tmp)
+}
+
+restab2 <- rbind(restab,restab2)
+rm(restab)
+
+```
+
+### fetch the two goofy ones
+```{r}
+disq <- list(BIP=c("C0853193","C0236788"),PTSD="C0038436")
+restab3 <- lapply(disq,FUN=function(x){
+  res <- disease2gene(disease = x,vocabulary = "UMLS",database = "CURATED")
+  res <- as.data.table(res@qresult)
+  res <- res[,.(geneid,gene_symbol,uniprotid)]
+  return(res)
+})
+
+### WTF?
+restab3 <- disease2gene(disease = "C0853193",vocabulary = "UMLS",database = "CURATED")
+restab3 <- as.data.table(restab3@qresult)
+restab4 <- disease2gene(disease="C0236788",vocabulary="UMLS",database="CURATED")
+restab4 <- as.data.table(restab4@qresult)
+restab3 <- rbind(restab3,restab4)
+restab3 <- restab3[,.(geneid,gene_symbol,uniprotid)]
+
+restab3[,dx:="BIP"]
+restab3[,query:="UMLS_C0236788_UMLS_C0853193"]
+restab2 <- rbind(restab2,restab3)
+rm(restab3,restab4)
+
+# ptsd = 
+ptsd <- disease2gene(disease = "C0038436",vocabulary = "UMLS",database = "CURATED")
+ 
+
+i <- 1
+for (i in c(1:length(restab3))){
+  tmp <- reslist[[i]]
+  tmp[,dx:=names(reslist)[i]]
+  if(i==1){restab2 <- copy(tmp)}
+  else{restab2 <- rbind(restab2,tmp)}
+  rm(tmp)
+}
+
+
+```

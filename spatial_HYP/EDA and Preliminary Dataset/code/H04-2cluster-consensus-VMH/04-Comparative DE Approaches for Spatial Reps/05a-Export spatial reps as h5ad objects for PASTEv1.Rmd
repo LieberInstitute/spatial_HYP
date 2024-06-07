@@ -1,0 +1,71 @@
+---
+title: "05-Export spatial reps as h5ad objects for PASTEv1"
+author: "Bernard Mulvey"
+date: "2023-07-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(scran)
+library(edgeR)
+library(jaffelab)
+library(PCAtools) # findElbowPoint
+library(zellkonverter)
+library(reticulate)
+library(basilisk)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+### Load SPE with vmh already annotated and set up
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+# change/ensure colnames/colData's rownames == colData()$keys
+colnames(hyp2.vmh) <- colData(hyp2.vmh)$key
+
+## add demographics
+demos <- fread("raw-data/demos.txt")
+tmpcd <- as.data.table(colData(hyp2.vmh),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum")
+tmpcd <- as.data.frame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd$rn <- NULL
+tmpcd <- tmpcd[colnames(hyp2.vmh),]
+
+
+colData(hyp2.vmh) <- DataFrame(tmpcd) 
+stopifnot(identical(colnames(hyp2.vmh),rownames(colData(hyp2.vmh))))
+rm(tmpcd)
+
+writeH5AD(hyp2.vmh[,hyp2.vmh$sample_id=="V12D05-348_C1"],"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/d1s1.h5ad")
+writeH5AD(hyp2.vmh[,hyp2.vmh$sample_id=="V12D05-350_C1"],"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/d1s2.h5ad")
+writeH5AD(hyp2.vmh[,hyp2.vmh$sample_id=="V12D05-348_D1"],"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/d2s1.h5ad")
+writeH5AD(hyp2.vmh[,hyp2.vmh$sample_id=="V12D05-350_D1"],"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/d2s2.h5ad")
+
+write.table(as.data.table(hyp2.vmh[,hyp2.vmh$sample_id=="V12D05-348_C1"]@int_colData@listData$spatialCoords),"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/d1s1_coord.csv",row.names=F,col.names=F,sep=',')
+
+write.table(as.data.table(hyp2.vmh[,hyp2.vmh$sample_id=="V12D05-350_C1"]@int_colData@listData$spatialCoords),"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/d1s2_coord.csv",row.names=F,col.names=F,sep=',')
+
+write.table(as.data.table(hyp2.vmh[,hyp2.vmh$sample_id=="V12D05-348_D1"]@int_colData@listData$spatialCoords),"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/d2s1_coord.csv",row.names=F,col.names=F,sep=',')
+
+write.table(as.data.table(hyp2.vmh[,hyp2.vmh$sample_id=="V12D05-350_D1"]@int_colData@listData$spatialCoords),"analysis/data/H04-2cluster-consensus-VMH/Comparative DE approaches/d2s2_coord.csv",row.names=F,col.names=F,sep=',')
+```
+
+```{r}
+
+```

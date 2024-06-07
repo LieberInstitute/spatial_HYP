@@ -1,0 +1,103 @@
+---
+title: "04-Plot VMH-only nnSVGs"
+author: "Bernard Mulvey"
+date: "2023-06-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(SpatialExperiment)
+library(ggspavis)
+library(scater) # addPerCellQC
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(gridExtra)
+library(spatialLIBD)
+# theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+Load up data
+```{r}
+hyp2.vmh <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+rownames(hyp2.vmh) <- rowData(hyp2.vmh)$gene_name
+hyp2.vmh <- hyp2.vmh[,which(hyp2.vmh$BSp_q2_consensus_vmh=="VMH")]
+
+vmhsvg <- fread("analysis/data/spe_053123/H04-2cluster-consensus-VMH/03a-meangeneranks_nnSVG_samplewise_n3s0.5_VMHspotsonly.txt")
+
+### subset to genes that were ranked in at least 3 samples (i.e. min # of samples in the smallest group by sex (males))
+vmhsvg <- vmhsvg[n_naSamps<=5]
+### anddddd drop MT genes for now
+vmhsvg <- vmhsvg[!(gene_name %in% grep(gene_name,pattern="^MT-",value=T))]
+
+```
+
+### without post-cropping D07075B1
+```{r}
+
+vmhsvgs <- vmhsvg$gene_name
+
+i <- 1
+for (i in c(1:length(vmhsvgs))){
+    curgene <- vmhsvgs[i]
+    plt <- spatialLIBD::vis_grid_gene(hyp2.vmh,geneid = curgene,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    pdf(paste0("plots/spe_053123/H04-2cluster-consensus-VMH/04a-VMHonly-svgs/",curgene,".pdf"),width=10,height=8)
+    do.call("grid.arrange",plt)
+    dev.off()
+}
+
+rm(plt,curgene,i,vmhsvgs,vmhsvg)
+```
+
+
+### AFTER post-cropping D07075B1 (data, plots spe053123 -> H04-03b); only plot svgs not previously identified in above run.
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+### crop V12D07-075_B1 first -- see code/00 blah blah .rmd
+coordstmp <- as.data.frame(spatialCoords(hyp2))
+rownames(coordstmp) <- colnames(hyp2)
+coordstmp <- as.data.table(coordstmp,keep.rownames=T)
+coordstmp <- coordstmp[,diag:=pxl_col_in_fullres+pxl_row_in_fullres]
+coordstmp <- coordstmp[!(rn %in% grep(rn,pattern="V12D07-075_B1",value=T)&diag>30000)]
+
+hyp2 <- hyp2[,colnames(hyp2)%in%coordstmp$rn]
+stopifnot(dim(hyp2)[2]==nrow(coordstmp))
+
+### now cut to VMH spots only, set rownames to gene name
+hyp2.vmh <- hyp2[,which(hyp2$BSp_q2_consensus_vmh=="VMH")]
+rownames(hyp2.vmh) <- rowData(hyp2.vmh)$gene_name
+
+### get VMH SVGs to plot
+vmhsvg2 <- fread("analysis/data/spe_053123/H04-2cluster-consensus-VMH/03b-meangeneranks_nnSVG_samplewise_n3s0.5_VMHspotsonly_postcropD07075B1.txt")
+
+### subset to genes that were significant (i.e. factored into mean rank) in at least 3 samples (i.e. min # of samples in the smallest group by sex (males))
+vmhsvg2 <- vmhsvg2[n_naSamps<=5]
+### anddddd drop MT genes for now
+vmhsvg2 <- vmhsvg2[!(gene_name %in% grep(gene_name,pattern="^MT-",value=T))]
+vmhsvg2 <- vmhsvg2[!(gene_name %in% vmhsvg$gene_name)]
+
+vmhsvgs <- vmhsvg2$gene_name
+
+i <- 1
+for (i in c(1:length(vmhsvgs))){
+    curgene <- vmhsvgs[i]
+    plt <- spatialLIBD::vis_grid_gene(hyp2.vmh,geneid = "CD74",return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    pdf(paste0("plots/spe_053123/H04-2cluster-consensus-VMH/04b-VMHonly-svgs_D07075B1postcrop/",curgene,".pdf"),width=10,height=8)
+    do.call("grid.arrange",plt)
+    dev.off()
+}
+```

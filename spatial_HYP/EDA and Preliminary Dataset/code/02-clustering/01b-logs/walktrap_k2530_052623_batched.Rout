@@ -1,0 +1,186 @@
+
+R version 4.2.1 Patched (2022-08-30 r82775) -- "Funny-Looking Kid"
+Copyright (C) 2022 The R Foundation for Statistical Computing
+Platform: x86_64-conda-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(data.table)
+> library(Biostrings)
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which.max, which.min
+
+Loading required package: S4Vectors
+Loading required package: stats4
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:data.table’:
+
+    first, second
+
+The following objects are masked from ‘package:base’:
+
+    expand.grid, I, unname
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:data.table’:
+
+    shift
+
+Loading required package: XVector
+Loading required package: GenomeInfoDb
+
+Attaching package: ‘Biostrings’
+
+The following object is masked from ‘package:base’:
+
+    strsplit
+
+> library(SpatialExperiment)
+Loading required package: SingleCellExperiment
+Loading required package: SummarizedExperiment
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: ‘MatrixGenerics’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+Loading required package: GenomicRanges
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: ‘Biobase’
+
+The following object is masked from ‘package:MatrixGenerics’:
+
+    rowMedians
+
+The following objects are masked from ‘package:matrixStats’:
+
+    anyMissing, rowMedians
+
+> library(ggspavis)
+Loading required package: ggplot2
+Registered S3 method overwritten by 'ggside':
+  method from   
+  +.gg   ggplot2
+> library(scater) # addPerCellQC
+Loading required package: scuttle
+> library(scran)
+> library(igraph)
+
+Attaching package: ‘igraph’
+
+The following object is masked from ‘package:scater’:
+
+    normalize
+
+The following object is masked from ‘package:GenomicRanges’:
+
+    union
+
+The following object is masked from ‘package:Biostrings’:
+
+    union
+
+The following object is masked from ‘package:XVector’:
+
+    path
+
+The following object is masked from ‘package:IRanges’:
+
+    union
+
+The following object is masked from ‘package:S4Vectors’:
+
+    union
+
+The following objects are masked from ‘package:BiocGenerics’:
+
+    normalize, path, union
+
+The following objects are masked from ‘package:stats’:
+
+    decompose, spectrum
+
+The following object is masked from ‘package:base’:
+
+    union
+
+> 
+> hyp2 <- readRDS("hyp_umi600_gene450_chrm35_lognorm.RDS")
+> hyp2.vgs.list <- readRDS("nnSVG_HVG_and_combo_featurelists.RDS")
+> glists2 <- readRDS("SNNgraphs_svgsAndHvgs_k25_k30_WITHOUTcovariates_052623.RDS")
+> pcalist <- readRDS("nnsvg_HVG_and_combos_PCA_NOcovariates.RDS")
+> 
+> taskid <- as.numeric(Sys.getenv("SGE_TASK_ID"))
+> k <- ceiling(taskid/7)
+> 
+> if (taskid>7){taskid<-taskid-7}
+> ### This block still wouldn't run locally even with better mem mgmt. Save relevant files and run through JHPCE. Each feature set is trying to use about 20 GB for the k=25 (so ~140 GB total for k25), and probably 25% more for the k=30 (175 GB). glists2[[]] is just the k=25 and k=30 SNNgraphs so run the commented out block below accordingly. 
+> 
+> 
+> tmpwalk <- igraph::cluster_walktrap(glists2[[k]][[taskid]])
+> walkclusts.tmpout <- tmpwalk$membership
+>      
+>  
+> ### split run only, continued
+>  
+> saveRDS(walkclusts.tmpout,paste0("out/",names(glists2)[k],"_",names(pcalist)[taskid],"_walktrap_clusters_nocovar.RDS"))
+> 
+> 
+> proc.time()
+    user   system  elapsed 
+5758.003   99.150 5864.052 

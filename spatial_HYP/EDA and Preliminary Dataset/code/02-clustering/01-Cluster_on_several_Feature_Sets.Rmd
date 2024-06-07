@@ -1,0 +1,147 @@
+---
+title: "02-Cluster on Several Feature Sets"
+author: "Bernie Mulvey"
+date: "2023-05-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater) # addPerCellQC
+# library(nnSVG)
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(Polychrome)
+# library(fasthplus)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm.RDS")
+hyp2.vgs.list <- readRDS("analysis/data/01-feature_selection/nnSVG_HVG_and_combo_featurelists.RDS")
+
+sbp <- MulticoreParam(workers=7)
+register(sbp)
+
+pcalist <- bpmapply(X=hyp2.vgs.list,Y=as.list(names(hyp2.vgs.list)),BPPARAM = sbp,SIMPLIFY=FALSE,FUN = function(X,Y){
+  set.seed(42)
+    # 3 reduced dim tables are already in the object, so grab #4 (newly created)
+  tmp <- scater::runPCA(hyp2,name = paste0("PCA"),subset_row=X)
+  return(reducedDims(tmp)[[4]])
+})
+stopifnot(sum(rownames(pcalist[[1]])==colnames(hyp2))==ncol(hyp2))
+
+# saveRDS(pcalist,"analysis/data/02-clustering/nnsvg_HVG_and_combos_PCA_NOcovariates.RDS")
+
+#clean up
+gc(full=T)
+```
+
+### UMAP
+```{r}
+umaplist <- bpmapply(X=hyp2.vgs.list,Y=as.list(names(hyp2.vgs.list)),Z=pcalist,BPPARAM = sbp,SIMPLIFY=FALSE,FUN = function(X,Y,Z){
+    set.seed(42)
+    # pass the corresp. pca in to speed alog UMAP generation
+    hyp2.tmp <- copy(hyp2)
+    reducedDims(hyp2.tmp)$PCA <- Z 
+    # 3 reduced dim tables are already in the object, #4 is the appended PCA, so grab #5 (newly created)
+    tmp <- scater::runUMAP(hyp2.tmp,name = paste0(Y,"_UMAP"),dimred="PCA",subset_row=X)
+  return(reducedDims(tmp)[[5]])
+})
+# sanity check-UMAP coords came out in the same row order as the spe obj
+stopifnot(sum(rownames(umaplist[[1]])==colnames(hyp2))==ncol(hyp2))
+# change colnames to those expected by ggspavis for plotting later
+umaplist <- lapply(umaplist,FUN=function(x){colnames(x) <- c("UMAP1","UMAP2")})
+
+# saveRDS(umaplist,"analysis/data/02-clustering/nnsvg_HVG_and_combos_UMAPs_NOcovariates.RDS")
+
+#clean up
+gc(full=T)
+```
+
+# walktrap (using PCA space): spatially UNAWARE clustering for all 7 sets across 5 initial values of k
+# in the walktrap algorithm, k does NOT specify a number of resultant or expected clusters; rather, k is just number of nearest neighbors utilized for calculating the relatedness SNNgraph in the first step (which is then used to generate any number of clusters via igraph::cluster_walktrap processing of the SNNgraph)
+```{r}
+ks <- c(10,15,20,25,30)
+glists <- list()
+for (i in c(1:5)){
+    curk <- ks[i]
+    ### cannot directly assign the bplapply output to a position in the parent list for whatever reason. but storing the list of bplapply results and then passing that to a slot in a parent list works just fine. 
+    curlist <- bplapply(pcalist,BPPARAM = sbp,FUN=function(x){
+        hyp2.tmp <- copy(hyp2)
+        reducedDims(hyp2.tmp)$PCA <- x
+        scran::buildSNNGraph(hyp2.tmp,k=curk,use.dimred="PCA")
+    })
+    glists[[i]] <- curlist
+    rm(curlist)
+    gc(full=T)
+}
+
+# make sure names are retained in result lists
+names(glists) <- paste0("k",ks)
+
+# not needed:
+# lapply(glists,FUN=function(x){names(x)<-names(pcalist)})
+
+# clean up
+rm(curk,i)
+gc(full=T)
+
+```
+
+
+### walktrap, second step--actual cluster assignments ###
+### this is a RAM killer, so throttle down the parallelization to 4 cpus at a time (2 cycles per feature sets)
+
+## coded this stupidly, only got through k=10,15,20 before hitting mem ceiling. rerun for glists 4+5 -> SPLIT RUN into K 10,15,20 and K 25,30 --> bound after the fact into the intended list obj
+```{r}
+sbp <- MulticoreParam(workers=4)
+register(sbp)
+walkclusts <- list()
+walkclusts.out <- list()
+
+i<-1
+for (i in c(1:5)){ # really 1:3
+    tmpwalks <- bplapply(glists[[i]],igraph::cluster_walktrap,BPPARAM = sbp)
+    walkclusts[[i]] <- tmpwalks
+    walkclusts.tmpout <- lapply(walkclusts[[i]],FUN=function(x){x$membership})
+    walkclusts.out[[i]] <- walkclusts.tmpout
+    names(walkclusts[[i]]) <- names(pcalist)
+    names(walkclusts.out[[i]]) <- names(pcalist)
+    rm(tmpwalks) # bunch of many GB crap hanging around til the next run
+    gc(full=T)
+}
+
+### split run only
+# names(walkclusts.out)[1:3] <- names(glists)[1:3]
+# saveRDS(walkclusts.out,"analysis/code/02-clustering/7featureset_k10-30by5s_walktrap_clusters_NOcovars_k10-20only.RDS")
+```
+
+### jhpce portion -- get rid of glists used above to conserve memory, save k25 and k30 as temporary RDS object to pass to JHPCE
+```{r}
+glists2 <- list(glists[[4]],glists[[5]])
+names(glists2) <- names(glists)[4:5]
+names(glists2)
+saveRDS(glists2,"~/Desktop/SNNgraphs_svgsAndHvgs_k25_k30_WITHOUTcovariates_052623.RDS")
+rm(glists)
+gc(full=T)
+```
+
+
+### k25 and k30 walktrap: Each feature set is trying to use about 20 GB for the k=25 (so ~140 GB total for k25), and probably 25% more for the k=30 (175 GB). glists2[[]] is just the k=25 and k=30 SNNgraphs so run the commented out block below accordingly.
+#### see analysis/code/02-clustering/walktrap_k25_k30_nocov_batched.sh and .R

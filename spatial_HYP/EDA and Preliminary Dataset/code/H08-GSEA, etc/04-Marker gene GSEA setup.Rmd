@@ -1,0 +1,44 @@
+---
+title: "04-Marker gene GSEA setup"
+author: "Bernard Mulvey"
+date: "2023-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+mks <- readRDS("analysis/data/spe_053123/H06-Spatial Registration/01-spatialHYP_single-spdomain_sLIBD-enrichmntmodelres.RDS")
+mks <- as.data.table(mks[["enrichment"]])
+
+
+i<-1
+for (i in c(1:15)){
+  curdom <- paste0("X",i)
+  curfc <- paste0("logFC_",curdom)
+  writecols <- c("gene",curfc)
+  write.table(mks[,..writecols],paste0("analysis/data/spe_053123/H08-GSEA, GO etc/04-Domain marker lfc for GSEA prerank input/",curdom,".rnk"),sep='\t',quote=F,row.names=F,col.names=F)
+}
+```

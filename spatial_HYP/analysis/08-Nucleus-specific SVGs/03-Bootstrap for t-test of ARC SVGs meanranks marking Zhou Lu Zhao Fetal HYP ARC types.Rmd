@@ -1,0 +1,60 @@
+---
+title: "03-Bootstrap for t-test of ARC SVGs meanranks marking Zhou Lu Zhao Fetal HYP ARC types"
+author: "Bernard Mulvey"
+date: "2024-02-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+arcsvg <- fread("data/08-Nucleus-specific SVGs/02b-ARC nnSVG nomsig genes and ranks per sample.txt")
+
+# markers of the six two-marker ARC types defined in sn-RNAseq of developing human hypothalamus (POMC marked two of these for 11 total)
+arcsubtypes <- arcsvg[gene_name %in% c("POMC", "CBLN1", "GHRH", "GSX1", "SST", "PCP4", "TBX3", "KISS1", "TAC3", "NPY", "AGRP")]
+
+arctypemeans <- arcsubtypes$meanrank
+
+set.seed(42)
+### draw 11 meanranks randomly 10k times for a null distribution of those values
+randraws <- list()
+i<-1
+for (i in c(1:10000)){
+    tmprow <- sample(c(1:nrow(arcsvg)),size=11,replace = F)
+    tmpd <- copy(arcsvg)[tmprow,]
+    randraws[[i]] <- tmpd$meanrank
+    rm(tmpd,tmprow)
+}
+
+# test the null distribution of meanranks against the observed meanranks
+t.test(unlist(randraws),arctypemeans)
+# p<3e-9
+```

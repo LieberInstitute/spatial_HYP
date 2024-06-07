@@ -1,0 +1,155 @@
+---
+title: "02-Plot top 20 markers per cluster for select BSpace-hvg-svg clusterings"
+author: "Bernie Mulvey"
+date: "2023-06-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+knitr::opts_knit$set(root.dir = here::here())
+
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(scater)
+library(SpatialExperiment)
+library(Polychrome)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+Read in markers from SpatialLIBD registration_wrapper and spe obj
+```{r}
+bs.markers <- readRDS("analysis/data/spe_053123/H03-marker_genes/04-BSpace_HVG1020-SVG1020_q9-15-20-31_sLIBD-regwrapper-enrichment-res.RDS")
+
+# data where lognormed, THEN bad part of d07-075 b1 cropped. same data used for marker identification.
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_D07-075_B1 crop 070223.RDS")
+
+# set hyp2 rownames to gene symbols as markers were identified after making this change
+rownames(hyp2) <- rowData(hyp2)$gene_name
+
+# set hyp2 colnames to colD(hyp2)$key for unique identifiers
+colnames(hyp2) <- colData(hyp2)$key
+
+# drop repeat instances of gene names
+drops <- as.data.table(rownames(hyp2))[,.N,by="V1"]
+keeprows <- drops[N==1,V1]
+hyp2 <- hyp2[rownames(hyp2) %in% keeprows,]
+rm(drops,keeprows)
+
+
+# load clustering assignments, change names to be same format as markers list
+bscl <- list.files("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out",pattern=".txt",full.names = T)
+bscls <- lapply(bscl,fread)
+names(bscls) <- gsub(bscl,pattern="^.*03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out\\/BSpace_Harmony_(.*)\\.txt$",replacement="\\1")
+
+bscls <- lapply(bscls,FUN=function(x){
+    x <- x[rn %in% colnames(hyp2)]
+    y <- DataFrame(x)
+    rownames(y) <- y$rn
+    colnames(y)[2] <- "cl"
+    y$cl <- paste0("X",y$cl)
+    y <- y[colnames(hyp2),]
+    return(y)
+})
+```
+
+```{r}
+# just fix nnsvg10pctile_15 for now, since this is the preliminary dataset
+
+
+
+i<-9
+#for (i in c(1:16)){
+    curname<-names(bscls)[i]
+    curmkset <- bs.markers[[curname]]
+    y <- bscls[[i]]
+    # assign clusters
+    colLabels(hyp2) <- as.factor(y$cl)
+    rm(y)
+    k <- 1
+    iter <- length(unique(grep(names(curmkset),pattern="fdr_",value=T)))
+    pltlst <- list()
+    for(k in c(1:iter)){
+        curfdr <- paste0("fdr_X",k)
+        setorderv(curmkset,cols=curfdr)
+        curmk <- curmkset[1:20,rn]
+        # png(paste0("~/Desktop/KM Lab/local_hthspatial/plots/spe_053123/H03-marker_genes/BSpace_",curname,"_top20markers/slibd_enrichment_cluster_X",k,".png"),width=2000,height=800)
+        pltlst[[k]] <- plotExpression(hyp2,features = curmk,x="label",colour_by = "label")
+        rm(curfdr,curmk)
+    }
+#}
+k<-1
+for (k in c(1:iter)){
+    curname<-names(bscls)[9]
+    png(paste0("~/Desktop/KM Lab/local_hthspatial/plots/spe_053123/H03-marker_genes/BSpace_",curname,"_top20markers/slibd_enrichment_cluster_X",k,".png"),width=2000,height=800)
+    print(pltlst[[k]])
+    dev.off()
+}
+```
+
+
+
+##### OLD CODE ca. June 2023 -- looping through different BSpace clustering regimes -- this is super slow and doesn't line up with cluster identities plotted in other code in this repo. ###########
+
+# The "select" conditions, based on visual inspection of Harmony PCA/UMAP and/or spotplots of clustering assignments, are the following:
+
+•HVGs 10%ile, q=15 (umap and spotplot)***
+•HVGs 10%ile, q=20 (umap)
+•HVGs 10%ile q=31 (umap and spotplot)***
+•HVGs 20%ile, q=15 (umap)
+•HVGs 20%ile, q=20 (umap)
+•HVGs 20%ile, q=31 (umap)
+•nnsvgs 10%ile q=31 (UMAP and spotplot)***
+•nnsvgs 10%ile q=20 (umap)
+•svgs 20%ile q=15 (spotplot)
+•svgs 20%ile q=31 (spotplot)--distinct subarchitecture of VMH oval not seen with SVGs @ 10%ile
+•svgs 10%ile q=15 (spotplot/allen atlas expectations)
+
+# note 09-09-23: these plots were previously rendered (and now have been removed from the repo). the cluster labels were mixed up relative to the spotplots of the cluster assignments because in this code, was setting collabel(spe) <- factor(clusterresults[,"cluster_assignment_col"]), where the cluster assignment column was just a numeral (and so the levels were not equivalent to the actual numeral assigned a cluster).
+```{r}
+# just fix nnsvg10pctile_15 for now, since this is the preliminary dataset
+# still not working -_-
+mklistnames <- list("nnsvg10pctile_15")
+
+i<-1
+for (i in c(1:1)){
+    curname <- mklistnames[[i]]
+    curmkset <- bs.markers[[curname]]
+    y <- bscls[[curname]]
+    y <- as.data.frame(y)
+    rownames(y) <- y$rn
+    # safeguard against reordered rows
+    if((sum(rownames(colData(hyp2))==rownames(y)))!=ncol(hyp2)){
+        y <- y[rownames(colData(hyp2)),]
+    }
+    colnames(y)[2] <- "cl"
+    y$cl <- paste0("X",y$cl)
+    # assign clusters
+    colLabels(hyp2) <- as.factor(y$cl)
+    rm(y)
+    k<-1
+    for (k in c(1:length(curmkset))){
+        curmks <- as.data.table(curmkset[[k]],keep.rownames=T)
+        setnames(curmks,"rn","gene_name")
+        setorder(curmks,mean.logFC.cohen)
+        pltmks <- curmks[1:20,gene_name]
+        plt <- plotExpression(hyp2,features = pltmks,x="label",colour_by = "label")
+        png(paste0("plots/spe_053123/H03-marker_genes/BSpace_",curname,"/cluster_",names(curmkset)[k],".png"),width=2000,height=800)
+        print(plt)
+        dev.off()
+        rm(plt,pltmks,curmks)
+    }
+    rm(k,curmkset,curname,y)
+}
+
+```

@@ -1,0 +1,94 @@
+---
+title: "01-Define Consensus VMH Spots Across BayesSpace q2 CLusterings"
+author: "Bernard Mulvey"
+date: "2023-06-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+
+knitr::opts_knit$set(root.dir = here::here())
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(Polychrome)
+library(pheatmap)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+Load req'd data
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS") 
+
+# change colnames/colData's rownames to keys
+colnames(hyp2) <- colData(hyp2)$key
+#
+
+q2s <- list.files("analysis/data/H02-clustering/03b-BSpace_Harmony_q2",pattern=".txt",full.names = T)
+q2s <- grep(q2s,pattern="png",value=T,invert=T)
+
+q2list <- lapply(q2s,FUN=function(x){
+    x <- fread(x)
+    y <- as.data.frame(x)
+    rownames(y) <- y$rn
+    if(sum(rownames(y)==colnames(hyp2))!=ncol(hyp2)){
+        y <- y[colnames(hyp2),]
+    }
+    y
+})
+names(q2list) <- gsub(q2s,pattern="^.*(bspace_k2.*)\\.txt$",replacement="\\1")
+rm(q2s)
+
+```
+
+### set names of each table of labels to be a unique one so we can bind them all together
+### we're specifically interested in cluster 2 of three segmentations that separated out the VMH visually: hvg20%ile, nnsvg 10%ile, nnsvg20 %ile
+```{r}
+q2list <- q2list[c(2:4)]
+
+i <-1
+for (i in c(1:3)){
+    colnames(q2list[[i]])[2] <- paste0(names(q2list)[i],"_label")
+    as.data.table(q2list[[i]])
+}
+rm(i)
+
+q2s <- merge.data.table(q2list[[1]],q2list[[2]],by="rn")
+q2s <- merge.data.table(q2s,q2list[[3]],by="rn")
+q2s <- as.data.table(q2s)
+# since the VMH cluster is #2 in all three of these result sets, we just need the row's cluster assignments to sum to 6. since we have unique rownames for every spot, super easy in data.table.
+q2s[,rowsum:=sum(.SD,na.rm=T),by="rn"]
+q2s[,consensus_q2_vmh:=ifelse(rowsum==6,yes="VMH",no="other")]
+nrow(q2s[consensus_q2_vmh=="VMH"])
+# 4.9 of 34k spots
+
+q2vmh <- q2s[,.(rn,consensus_q2_vmh)]
+q2vmh <- as.data.frame(q2vmh)
+rownames(q2vmh) <- q2vmh$rn
+q2vmh <- DataFrame(q2vmh)
+if(sum(rownames(q2vmh)==colnames(hyp2))!=ncol(hyp2)){
+    q2vmh <- q2vmh[colnames(hyp2),]
+}
+colData(hyp2)$BSp_q2_consensus_vmh <- factor(q2vmh[,2])
+
+# save new SPE with consensus VMH spots in coldata
+saveRDS(hyp2,"data/processing/hyp_umi600_gene450_chrm35_lognorm_061323_HarmonyBSpc-q2VMH_rowname-key.RDS")
+
+# write consensus  clusters
+write.table(q2vmh,"analysis/data/H04-2cluster-consensus-VMH/01-spots_in_VMH_per_Harmony-BSpaceQ2_hvg20-svg10-and-svg20.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```

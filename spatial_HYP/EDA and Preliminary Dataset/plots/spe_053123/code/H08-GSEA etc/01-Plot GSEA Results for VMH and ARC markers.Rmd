@@ -1,0 +1,78 @@
+---
+title: "01-Domain Marker GSEA Results"
+author: "Bernard Mulvey"
+date: "2023-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+gseas <- fread("analysis/data/spe_053123/H08-GSEA, GO etc/04-Domain marker GSEA/collated_gsea_results.txt")
+# for some reason, data.table is treating NES as non-numeric
+gseas[,NES:=as.numeric(NES)]
+## ah it said NAs introduced
+## gseas[is.na(NES)] --> doesn't matter, all are FDR 1
+
+# also, a bunch of FDRs are straight 0s, so correct this to the next lowest value
+gseas[FDR_qval>0,min(FDR_qval)]
+# ^ 4.150378e-6
+gseas[FDR_qval==0,FDR_qval:=4.150378e-6]
+
+gseas <- gseas[FDR_qval<0.05]
+
+gseasets <- list(gseas[spdomain=="x5"],gseas[spdomain=="x6"],gseas[spdomain=="x8"],gseas[spdomain=="x9"],gseas[spdomain=="x13"])
+names(gseasets) <- c("x5","x6","x8","x9","x13")
+
+plts <- lapply(gseasets,FUN=function(x){
+    # set in descending order to get top enrichments
+    setorderv(x,"NES",order = -1)
+    d <- x[1:10]
+    d[,NAME:=gsub(NAME,pattern="_",replacement=" ")]
+    tmp <- ggplot(d,aes(y=rankAtMax,x=NAME,size=NES))+
+        geom_point()+
+        ylab("N Genes Driving Max Enrichment")+
+        xlab("MSigDB Term")+
+        theme(axis.text.x = element_text(size=8,angle = 30,vjust=1,hjust=1))+
+        ggtitle(unique(d$spdomain))
+    # not necessary here -- all of the top 10 for all of these are below the 1/1000 permutations used for p testing and so p is zero and so FDR is 0:
+    #if(length(unique(d$FDR_qval))>1){
+    #    tmp <- tmp+aes(col=FDR_qval)
+    #}
+    return(tmp)
+})
+
+names(plts) <- names(gseasets)
+
+i <- 1
+for (i in c(1:5)){
+pdf(paste0("plots/spe_053123/H08-GSEA etc/01-Marker GSEA/",names(plts)[i],".pdf"),height=6,width=10)
+print(plts[[i]])
+dev.off()
+}
+
+
+
+```
