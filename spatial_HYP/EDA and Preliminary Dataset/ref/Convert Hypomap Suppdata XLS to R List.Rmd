@@ -1,0 +1,32 @@
+---
+title: "Convert Hypomap Suppdata XLS to R List"
+author: "Bernard Mulvey"
+date: "2023-06-23"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+require(colorout)
+ColorOut()
+library(readxl)
+
+```
+
+### load hypomap data into a list
+```{r}
+hypomap <- list()
+hypomapnames <- excel_sheets("~/Desktop/KM Lab/Other Groups\' Published Data/Hypomap cell type hierarchy, markers and DEGs Steuernagel 22 Nat Metab.xlsx")
+i <- 1
+for (i in c(1:22)){
+    hypomap[[i]] <- as.data.table(read_excel(path = "~/Desktop/KM Lab/Other Groups\' Published Data/Hypomap cell type hierarchy, markers and DEGs Steuernagel 22 Nat Metab.xlsx",sheet=i))
+    names(hypomap)[i] <- hypomapnames[i]
+}
+rm(i,hypomapnames)
+
+saveRDS(hypomap,"local_results_ref/hypomap_sheetlist.RDS")
+```

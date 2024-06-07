@@ -1,0 +1,108 @@
+---
+title: "02-GWAS, TWAS, Disgenet, Union Set Enrichments in VMH, ARC Sex DEGs"
+author: "Bernard Mulvey"
+date: "2023-09-01"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(hypeR)
+
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+degs <- readRDS("analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/spatialHYP_dreamletSexDE.RDS")
+
+gwas <- fread("analysis/ref/Genesets from GWAS pubs, TWAS, and disgenet/gwassets.txt")
+twas <- fread("analysis/ref/Genesets from GWAS pubs, TWAS, and disgenet/twassets.txt")
+dgn <- fread("analysis/ref/Genesets from GWAS pubs, TWAS, and disgenet/disgenet_curated_genes.txt")
+setnames(dgn,"gene_symbol","symbol")
+un <- fread("analysis/ref/Genesets from GWAS pubs, TWAS, and disgenet/nonredundant_union_set_genesymbols.txt")
+
+dissets <- list(gwas,twas,dgn,un)
+names(dissets) <- c("gwas","twas","dgn","union")
+
+reslist <- lapply(dissets,FUN=function(x){
+i <- 1
+    for (i in c(1:30)){
+    if (i<16){
+        dom <- paste0("x",i)
+        domname <- paste0(dom,"_MaleUp")
+    }
+    else{
+        d <- i-15
+        dom <- paste0("x",d)
+        domname <- paste0(dom,"_FemUp")
+    }
+    
+    curde <- degs[assay==dom]
+
+    if (i<16){
+        cursig <- curde[P.Value<0.01&logFC>0,ID]
+    }
+    else {
+        cursig <- curde[P.Value<0.01&logFC<0,ID]
+    }
+    
+    if(length(cursig)==0){
+        next(i)
+    }
+    
+    j<-1
+    tmplists <- list()
+    
+    for (j in c(1:length(unique(x$dx)))){
+        curdx <- unique(x$dx)[j]
+        # subset disease genes to shared genes with the DE analysis
+        curdxset <- x[dx==curdx&symbol %in% unique(curde$ID),symbol]
+        tmplists[[j]] <- curdxset
+    }
+    names(tmplists) <- unique(x$dx)
+    tmpres <- hypeR::hypeR(signature=cursig,genesets=tmplists,background = nrow(curde)-length(cursig),test = "hypergeometric")
+    tmpres2 <- as.data.table(tmpres$data)
+    tmpres2[,spdomain_sex:=domname]
+    
+    if(i==1){resdat <- copy(tmpres2)}
+    else{resdat <- rbind(resdat,tmpres2)}
+    rm(tmpres2,tmpres,tmplists,curdx,cursig,curde)
+    }
+    return(resdat)
+})
+
+names(reslist) <- names(dissets)
+
+i<-1
+for (i in c(1:4)){
+    reslist[[i]][,genesource:=names(dissets)[i]]
+    curres <- reslist[[i]]
+    if(i==1){
+        allres <- copy(curres)
+    }
+    else{
+        allres <- rbind(allres,curres)
+    }
+}
+
+setnames(allres,"fdr","genesource_alldxes_domain_FDR")
+allres[,globalfdr:=p.adjust(pval,method = "BH")]
+
+write.table(allres,"analysis/data/spe_053123/H08-GSEA, GO etc/02-dreamlet spdomain sex DE enrichment for GWAS, TWAS, disgenet, joint dis-gene signatures.txt")
+```

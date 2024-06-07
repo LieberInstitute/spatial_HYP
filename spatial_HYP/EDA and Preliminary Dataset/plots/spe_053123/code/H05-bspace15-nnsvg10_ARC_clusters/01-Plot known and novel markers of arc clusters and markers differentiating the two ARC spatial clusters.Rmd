@@ -1,0 +1,95 @@
+---
+title: Plot known and novel markers of arc clusters and markers differentiating the
+  two ARC spatial clusters
+author: "Bernard Mulvey"
+date: "2023-07-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(scater)
+library(SpatialExperiment)
+library(Polychrome)
+library(spatialLIBD)
+```
+
+### loadup
+```{r}
+n10k15.8 <- fread("analysis/data/spe_053123/H03-marker_genes/ARC cluster 8 markers vs ARC clust 13 in harm-bspace nnsvg10 k15.txt")
+
+n10k15.13 <- fread("analysis/data/spe_053123/H03-marker_genes/ARC cluster 13 markers vs ARC clust 8 in harm-bspace nnsvg10 k15.txt")
+
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+colnames(hyp2) <- colData(hyp2)$key
+rownames(hyp2) <- rowData(hyp2)$gene_name
+
+bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
+
+bscl <- as.data.frame(bscl)
+rownames(bscl) <- bscl$rn
+bscl <- DataFrame(bscl[,2])
+colnames(bscl) <- "cl"
+colLabels(hyp2) <- as.factor(bscl$cl)
+```
+
+### selected some from Campbell, Macosko 17 nat neurosci (adult mouse arcuate/median eminence) and some from examining cluster markers at the data level (ranks) for clusters 8 and 13 --> viewing 1 by 1.
+
+```{r}
+setorderv(n10k15.8,"full.logFC.cohen.X13",-1)
+coh8 <- n10k15.8[c(1:10),rn]
+setorderv(n10k15.8,"full.AUC.X13",-1)
+auc8 <- n10k15.8[c(1:10),rn]
+setorderv(n10k15.8,"full.logFC.detected.X13",-1)
+det8 <- n10k15.8[c(1:10),rn]
+
+setorderv(n10k15.13,"full.logFC.cohen.X8",-1)
+coh13 <- n10k15.13[c(1:10),rn]
+setorderv(n10k15.13,"full.AUC.X8",-1)
+auc13 <- n10k15.13[c(1:10),rn]
+setorderv(n10k15.13,"full.logFC.detected.X8",-1)
+det13 <- n10k15.13[c(1:10),rn]
+
+diff13 <- unique(c(coh13,auc13,det13))
+diff8 <- unique(c(coh8,auc8,det8))
+rm(det13,auc13,coh13,det8,auc8,coh8)
+
+plotgenes <- c("AGRP","POMC","GABRE","CYP26A1","GHRH","NECAB2","TRH","KISS1","SLC6A3","ESR1","AR","CYP19A1","BDNF","MC4R",diff8,diff13)
+
+i <- 1
+for (i in c(1:length(plotgenes))){
+    curgene <- plotgenes[i]
+    if(curgene %in% diff8){
+        curfileend <- "_cl8-vs-cl13-marker"
+    }
+    else if (curgene %in% diff13){
+        curfileend <- "_cl13-vs-cl8-marker"
+    }
+    else if (curgene %in% c("ESR1","AR","CYP19A1","BDNF","MC4R")){curfileend <- "GeneralInterest"}
+    else{curfileend <- ""}
+    plt <- spatialLIBD::vis_grid_gene(hyp2,geneid = curgene,return_plots = T,spatial=F,point_size = 1,auto_crop = T)
+    ### adjust font sizes
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+            })
+    pdf(paste0("plots/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/01-Known, novel markers and subcluster differentiating genes/",curgene,curfileend,"_ARC.pdf"),width=10,height=8)
+    do.call("grid.arrange",plt)
+    dev.off()
+}
+
+
+
+
+
+
+
+
+
+
+```

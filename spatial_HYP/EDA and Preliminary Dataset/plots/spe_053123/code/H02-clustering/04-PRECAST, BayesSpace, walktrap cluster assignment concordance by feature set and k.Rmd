@@ -1,0 +1,195 @@
+---
+title: "05-PRECAST, BayesSpace, walktrap cluster assignment concordance by feature
+  set and k"
+author: "Bernard Mulvey"
+date: "2023-06-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+
+knitr::opts_knit$set(root.dir = here::here())
+library(ggplot2)
+library(data.table)
+library(Biostrings)
+library(gridExtra)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(SpatialExperiment)
+library(ggspavis)
+library(scater)
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(Polychrome)
+library(pheatmap)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+Sorta working from sections 5.3-5.5 here, though I'm a bit fuzzy on how we're gonna construct these tables. http://bioconductor.org/books/3.17/OSCA.advanced/clustering-redux.html 
+
+
+Load req'd data
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+
+# change colnames/colData's rownames to keys
+colnames(hyp2) <- colData(hyp2)$key
+
+#
+wts <- readRDS("analysis/data/H02-clustering/02-walktraps_snn5.10_HVG1020-OR-SVG-1020_cut9.15.20.31.RDS")
+
+#
+prcsts <- readRDS("analysis/data/H02-clustering/04c-PRECAST_clusters_hvg1020_nnsvg1020_k9-15-20-31.RDS")
+
+#
+bscl <- list.files("analysis/data/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/",pattern=".txt",full.names = T)
+
+bss <- lapply(bscl,FUN=fread)
+names(bss) <- gsub(bscl,pattern="^.*9-15-20-31_out\\/BSpace_Harmony_(.*)\\.txt$",replacement="\\1")
+rm(bscl)
+
+```
+
+get lists sorted in the same order of feature set•k so we can iterate through each quadrio (SNN k5, SNN k10, BSpace, PRECAST) stepwise.
+
+thought i was naming the list items uniformly but ugh guess not.
+```{r}
+names(prcsts)
+names(bss)
+names(wts)
+
+wts5 <- wts[names(wts) %in% grep(names(wts),pattern="walK5",value=T)]
+wts10 <- wts[names(wts) %in% grep(names(wts),pattern="walK10",value=T)]
+
+names(wts5) <- gsub(names(wts5),pattern="^w.*_(.*)pctile_cut(.*)$",replacement=paste0("\\1","_k","\\2"))
+# some of these don't have percentile in the name
+names(wts5) <- gsub(names(wts5),pattern="^w.*_(.*)_cut(.*)$",replacement=paste0("\\1","_k","\\2"))
+
+names(wts10) <- gsub(names(wts10),pattern="^w.*_(.*)pctile_cut(.*)$",replacement=paste0("\\1","_k","\\2"))
+# some of these don't have percentile in the name
+names(wts10) <- gsub(names(wts10),pattern="^w.*_(.*)_cut(.*)$",replacement=paste0("\\1","_k","\\2"))
+
+names(prcsts) <- gsub(names(prcsts),pattern="svg",replacement="nnsvg")
+
+names(bss) <- gsub(names(bss),pattern="^analysis.*//BSpace_Harmony_(.*)pctile_(.*).txt$",replacement=paste0("\\1","_k","\\2"))
+
+stopifnot(names(wts5)==names(wts10)) # these are already paired
+
+bss <- bss[paste0(names(wts5))]
+stopifnot(names(wts5)==names(wts10)) # these are paired now
+
+prcsts <- prcsts[paste0(names(wts5))]
+stopifnot(names(prcsts)==names(wts5))
+
+# finally, make sure these are all data.tables with two rows: rn (rownames) and cluster
+lapply(prcsts,is.data.table) # yes
+lapply(bss,is.data.table) # yes
+lapply(wts5,is.data.table) # no
+lapply(wts10,is.data.table) # no
+
+
+wts5 <- lapply(wts5,FUN=function(x){
+    x <- as.data.frame(x)
+    rownames(x) <- colnames(hyp2)
+    x <- as.data.table(x,keep.rownames=T)
+    setnames(x,c("rn","wt5_label"))
+    x
+})
+
+
+wts10 <- lapply(wts10,FUN=function(x){
+    x <- as.data.frame(x)
+    rownames(x) <- colnames(hyp2)
+    x <- as.data.table(x,keep.rownames=T)
+    setnames(x,c("rn","wt10_label"))
+    x
+})
+
+bss <- lapply(bss,setnames,c("rn","bs_label"))
+
+prcsts <- lapply(prcsts,setnames,c("rn","prcst_label"))
+## yeesh okay now these are all uniformly formatted.
+
+rm(wts)
+```
+
+For each featureset•k combination, check cell type assignment agreements (wts5-wts10, wts5-bss, wts5-prcst, wts10-bss, wts10-prcst, bss-prcst)
+
+```{r}
+i <- 1
+for (i in c(1:length(wts5))){
+    tmptab <- merge.data.table(wts5[[i]],wts10[[i]],by="rn")
+    tmptab <- merge.data.table(tmptab,bss[[i]],by="rn")
+    tmptab <- merge.data.table(tmptab,prcsts[[i]],by="rn")
+    
+    ### wt nearest neighbors 5 vs 10
+    jac_wt510 <- bluster::linkClustersMatrix(tmptab$wt5_label,tmptab$wt10_label)
+    # first argument is reflected in rows, second in columns
+    rownames(jac_wt510) <- paste0("walktrap5_",rownames(jac_wt510))
+    colnames(jac_wt510) <- paste0("walktrap10_",colnames(jac_wt510))
+    
+    ### wt nearest neighbors 5 vs bayesspace
+    jac_wt5bss <- bluster::linkClustersMatrix(tmptab$wt5_label,tmptab$bs_label)
+    rownames(jac_wt5bss) <- paste0("walktrap5_",rownames(jac_wt5bss))
+    colnames(jac_wt5bss) <- paste0("bsp_",colnames(jac_wt5bss))
+    
+    ### wt nearest neighbors 5 vs precast
+    jac_wt5prc <- bluster::linkClustersMatrix(tmptab$wt5_label,tmptab$prcst_label)
+    rownames(jac_wt5prc) <- paste0("walktrap5_",rownames(jac_wt5prc))
+    colnames(jac_wt5prc) <- paste0("prcst_",colnames(jac_wt5prc))
+    
+    ### wt nearest neighbors 10 vs bayesspace
+    jac_wt10bss <- bluster::linkClustersMatrix(tmptab$wt10_label,tmptab$bs_label)
+    rownames(jac_wt10bss) <- paste0("walktrap10_",rownames(jac_wt10bss))
+    colnames(jac_wt10bss) <- paste0("bsp_",colnames(jac_wt10bss))
+    
+    ### wt nearest neighbors 10 vs precast
+    jac_wt10prc <- bluster::linkClustersMatrix(tmptab$wt10_label,tmptab$prcst_label)
+    rownames(jac_wt10prc) <- paste0("walktrap10_",rownames(jac_wt10prc))
+    colnames(jac_wt10prc) <- paste0("prcst_",colnames(jac_wt10prc))
+    
+    ### bayesspace vs precast
+    jac_bsprc <- bluster::linkClustersMatrix(tmptab$bs_label,tmptab$prcst_label)
+    rownames(jac_bsprc) <- paste0("bsp_",rownames(jac_bsprc))
+    colnames(jac_bsprc) <- paste0("prcst_",colnames(jac_bsprc))
+    
+    
+    ### plots
+    pdf(paste0("plots/H02-clustering/05-cluster jaccards between bspc, prcst, walktr x4 feat sets by k9-15-20-31/wtrap5vs10neighbors_",names(wts5)[i],".pdf"),width=7,height=7)
+    pheatmap(jac_wt510,cluster_cols=F,cluster_rows=F)
+    dev.off()
+    
+    pdf(paste0("plots/H02-clustering/05-cluster jaccards between bspc, prcst, walktr x4 feat sets by k9-15-20-31/wtrap5vsBSpace_",names(wts5)[i],".pdf"),width=7,height=7)
+    pheatmap(jac_wt5bss,cluster_cols=F,cluster_rows=F)
+    dev.off()
+    
+    pdf(paste0("plots/H02-clustering/05-cluster jaccards between bspc, prcst, walktr x4 feat sets by k9-15-20-31/wtrap5vsPRECAST_",names(wts5)[i],".pdf"),width=7,height=7)
+    pheatmap(jac_wt5prc,cluster_cols=F,cluster_rows=F)
+    dev.off()
+    
+    pdf(paste0("plots/H02-clustering/05-cluster jaccards between bspc, prcst, walktr x4 feat sets by k9-15-20-31/wtrap10vsBSpace_",names(wts5)[i],".pdf"),width=7,height=7)
+    pheatmap(jac_wt10bss,cluster_cols=F,cluster_rows=F)
+    dev.off()
+    
+    pdf(paste0("plots/H02-clustering/05-cluster jaccards between bspc, prcst, walktr x4 feat sets by k9-15-20-31/wtrap10vsPRECAST_",names(wts5)[i],".pdf"),width=7,height=7)
+    pheatmap(jac_wt10prc,cluster_cols=F,cluster_rows=F)
+    dev.off()
+    
+    pdf(paste0("plots/H02-clustering/05-cluster jaccards between bspc, prcst, walktr x4 feat sets by k9-15-20-31/wtrap5vsBSpace_",names(wts5)[i],".pdf"),width=7,height=7)
+    pheatmap(jac_wt5bss,cluster_cols=F,cluster_rows=F)
+    dev.off()
+    
+    pdf(paste0("plots/H02-clustering/05-cluster jaccards between bspc, prcst, walktr x4 feat sets by k9-15-20-31/BSPacevsPRECAST_",names(wts5)[i],".pdf"),width=7,height=7)
+    pheatmap(jac_bsprc,cluster_cols=F,cluster_rows=F)
+    dev.off()
+    
+    rm(tmptab,list=grep(ls(),pattern="jac_",value = T))
+}
+
+```

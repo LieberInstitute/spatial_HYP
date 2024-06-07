@@ -1,0 +1,105 @@
+---
+title: "Plot pseudobulk ARC13 enriched genes vs ARC8"
+author: "Bernard Mulvey"
+date: "2023-07-24"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(SpatialExperiment)
+#library(ggspavis)
+library(scater) # addPerCellQC
+require(colorout)
+ColorOut()
+library(BiocParallel)
+library(scran)
+library(parallel)
+library(spatialLIBD)
+library(gridExtra)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+#setup
+
+Load SPE, set spot names to coldata$key, add bayesspsace nnsvg10 k=15 labels. Crop V12D07-075-B1 down to the portion containing ISH-verified VMH. (This contains some spots of ARC clusters as well).
+```{r}
+hyp2 <- readRDS("data/processing/hyp_umi600_gene450_chrm35_lognorm_053123.RDS")
+
+colnames(hyp2) <- colData(hyp2)$key
+
+bscl <- fread("analysis/data/spe_053123/H02-clustering/03-bs_harmony_hvg1020_nnsvg1020_9-15-20-31_out/BSpace_Harmony_nnsvg10pctile_15.txt")
+bscl <- as.data.frame(bscl)
+rownames(bscl) <- bscl$rn
+
+colLabels(hyp2) <- as.factor(bscl$BShar_nnsvg10pctile_15)
+
+### crop V12D07-075-B1 as previously
+coordstmp <- as.data.frame(spatialCoords(hyp2))
+rownames(coordstmp) <- colnames(hyp2)
+coordstmp <- as.data.table(coordstmp,keep.rownames=T)
+coordstmp <- coordstmp[,diag:=pxl_col_in_fullres+pxl_row_in_fullres]
+coordstmp <- coordstmp[!(rn %in% grep(rn,pattern="V12D07-075_B1",value=T)&diag>30000)]
+
+hyp2 <- hyp2[,colnames(hyp2)%in%coordstmp$rn]
+stopifnot(dim(hyp2)[2]==nrow(coordstmp))
+
+rm(bscl,coordstmp)
+
+# for plotting just the arcuate, also create a "hyp2a" object that only covers clusters 8 and 13
+hyp2a <- hyp2[,which(hyp2$label %in% c(8,13))]
+
+# load chromosome info for genes in case we want to see anything re X/Y later. (queried rownames of hyp2 in biomart human genes v 109 for this.)
+chrs <- fread("raw-data/ENSG_chromosomes.txt")
+allg <- as.data.table(rowData(hyp2),keep.rownames=T)
+allg <- merge.data.table(allg,chrs,by.x="rn",by.y="gene_id",all.x=T)
+allg <- as.data.frame(allg)
+rownames(allg) <- allg$rn
+allg <- DataFrame(allg)
+### CRITICAL TO REORDER HERE OR GENES SOMEHOW GET MIS-LABELED LATER (easy test for this is examining DDX3Y expression spotplot in hyp2 now vs after)
+allg <- allg[rownames(hyp2),]
+rowData(hyp2) <- allg
+### spot checks confirm gene-chr pairs are correct. chrY genes are absent in female samples up to this point.
+rm(chrs,allg)
+
+## finally, for plotting simplicity/interpretability, switch rownames to gene names
+rownames(hyp2) <- rowData(hyp2)$gene_name
+rownames(hyp2a) <- rowData(hyp2)$gene_name
+
+### load dupcor-less pseudobulk results
+deres <- fread("analysis/data/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/pseudobulk_ARC13-vs-ARC8_NOdupcor.txt")
+### grab plotting candidates, i.e. enough for like 10-20 xenium backup genes (50 or so). specifically, we weren't able to discern cluster 13 markers using findmarkers metrics, so we want 13>8 genes (logFC>0)
+plotg <- deres[adj.P.Val<0.1&logFC>0,gene_name]
+``` 
+
+```{r}
+i <- 1
+for (i in c(1:length(plotg))){
+    plt <- vis_grid_gene(hyp2,geneid=plotg[i],pdf_file=NULL,return_plots=T,spatial=F,point_size=1)
+    # adjust formatting for pdf
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))})
+    pdf(paste0("plots/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/03-Pseudobulk ARC13 enriched vs ARC8-no dupcor/",plotg[i],"_ARC13up_allspots.pdf"),height=8,width=10)
+    do.call("grid.arrange",plt)
+    dev.off()
+    
+    ## and again just for arc spots
+    plt <- vis_grid_gene(hyp2a,geneid=plotg[i],pdf_file=NULL,return_plots=T,spatial=F,point_size = 1)
+    # adjust formatting for pdf
+    plt <- lapply(plt,FUN=function(x){x+
+            theme(plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))})
+    pdf(paste0("plots/spe_053123/H05-bspace15-nnsvg10_ARC_clusters/03-Pseudobulk ARC13 enriched vs ARC8-no dupcor/",plotg[i],"_ARC13up_arconly.pdf"),height=8,width=10)
+    do.call("grid.arrange",plt)
+    dev.off()
+}
+
+
+
+
+
+```

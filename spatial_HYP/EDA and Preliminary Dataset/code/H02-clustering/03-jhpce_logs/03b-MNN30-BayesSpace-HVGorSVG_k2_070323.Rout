@@ -1,0 +1,206 @@
+
+R version 4.3.0 (2023-04-21) -- "Already Tomorrow"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(data.table)
+
+Attaching package: ‘data.table’
+
+The following object is masked from ‘package:rlang’:
+
+    :=
+
+> library(Biostrings)
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
+    table, tapply, union, unique, unsplit, which.max, which.min
+
+Loading required package: S4Vectors
+Loading required package: stats4
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:data.table’:
+
+    first, second
+
+The following object is masked from ‘package:utils’:
+
+    findMatches
+
+The following objects are masked from ‘package:base’:
+
+    expand.grid, I, unname
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:data.table’:
+
+    shift
+
+Loading required package: XVector
+Loading required package: GenomeInfoDb
+
+Attaching package: ‘Biostrings’
+
+The following object is masked from ‘package:base’:
+
+    strsplit
+
+> library(SpatialExperiment)
+Loading required package: SingleCellExperiment
+Loading required package: SummarizedExperiment
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: ‘MatrixGenerics’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+Loading required package: GenomicRanges
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: ‘Biobase’
+
+The following object is masked from ‘package:MatrixGenerics’:
+
+    rowMedians
+
+The following objects are masked from ‘package:matrixStats’:
+
+    anyMissing, rowMedians
+
+The following object is masked from ‘package:rlang’:
+
+    exprs
+
+> library(scater) # addPerCellQC
+Loading required package: scuttle
+Loading required package: ggplot2
+> library(scran)
+> library(BayesSpace)
+> library(parallel)
+> library(BiocParallel)
+> 
+> #### Load list with SPEs of Harmony on top 10%ile, 20%ile HVGs and top 10%ile, 20%ile nnsvgs
+> 
+> pcas <- readRDS("analysis/data/spe_070123/H01-feature_selection/SPEs_sampleBlock-hvgs-10or20pctile_nnsvg10or20pctile_MNNk30-PCA-UMAP.RDS")
+> 
+> ### note that reducedMNN returns the dimRed matrix as one column of a larger thing. so extract and append that to dimRed
+> pcas <- lapply(pcas,FUN=function(x){
++     reducedDim(x,"mnn30.m") <- reducedDim(x,"mnn30")$corrected
++     return(x)
++ })
+> 
+> ### sanity check on the extracted reduced dims
+> stopifnot(sum(rownames(reducedDim(pcas[[1]],"mnn30.m"))==colnames(pcas[[1]]))==ncol(pcas[[1]]))
+> 
+> # kgo
+> bpparam <- MulticoreParam(4)
+> register(bpparam)
+> k2cls <- bplapply(pcas,BPPARAM=bpparam,FUN=function(x){
++     ### according to https://github.com/LieberInstitute/spatialDLPFC/blob/main/code/analysis/03_BayesSpace/01_BayesSpace.R , don't use spatial preprocess. in order to do this you have to reset metadata.
++     ### HOWEVER, BayesSpace now throws an error if you don't actually run spatialpreproc. also, the documentation says that it ADDS metadata, which shouldn't be equiv to overwriting it. The "metadata" object in the HYP SPE is an empty list, so nothing will be modified. (Maybe LIBD used to place something in the metadata entry for something but evidently not now).
++     colData(x)$row <- colData(x)$array_row
++     colData(x)$col <- colData(x)$array_col
++     x <- spatialPreprocess(x,platform="Visium",skip.PCA=T)
++ 
++ 
++     # Main call
++     # defaults to 50k reps, LIBD uses 10k
++     # here, we're just using q=2 to separate out the two primary spatial components, whatever they may be.
++     # tmp <- spatialCluster(sce = x,init.method = "mclust",use.dimred = "HARMONY",q = 2,platform = "Visium",nrep=2000)
++     ## for spe070123, use mnn30
++     tmp <- spatialCluster(sce = x,init.method = "mclust",use.dimred = "mnn30.m",q = 2,platform = "Visium",nrep=10000)
++ 
++ 
++     # pull out clusters to save in much tinier file than an SPE
++     tmp2 <- as.data.table(cbind(rownames(colData(tmp)),colData(tmp)$spatial.cluster))
++     names(tmp2) <- c("rn","label")
++     tmp2
++ })
+Neighbors were identified for 32212 out of 32212 spots.
+Fitting model...
+Calculating labels using iterations 1000 through 10000.
+
+Neighbors were identified for 32212 out of 32212 spots.
+Fitting model...
+Calculating labels using iterations 1000 through 10000.
+
+Neighbors were identified for 32212 out of 32212 spots.
+Fitting model...
+Calculating labels using iterations 1000 through 10000.
+
+Neighbors were identified for 32212 out of 32212 spots.
+Fitting model...
+Calculating labels using iterations 1000 through 10000.
+
+> names(k2cls) <- names(pcas)
+> 
+> 
+> 
+> i <- 1
+> for (i in c(1:4)){
++ write.table(k2cls[[i]],paste0("analysis/data/spe_070123/H02-clustering/03b-BSpace_mnn30_q2/",names(k2cls)[i],".txt"),sep='\t',quote=F,row.names=F,col.names=T)
++ }
+> rm(list=ls())
+> gc(full=T)
+           used  (Mb) gc trigger    (Mb) limit (Mb)   max used    (Mb)
+Ncells  8617780 460.3   13655240   729.3         NA   12213832   652.3
+Vcells 15961591 121.8 2496831384 19049.4     307200 1899611256 14492.9
+> 
+> proc.time()
+    user   system  elapsed 
+7752.107  145.233 2128.275 

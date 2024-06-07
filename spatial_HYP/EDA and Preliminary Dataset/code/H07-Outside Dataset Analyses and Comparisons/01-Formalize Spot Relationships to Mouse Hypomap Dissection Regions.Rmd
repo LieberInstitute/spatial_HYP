@@ -1,0 +1,206 @@
+---
+title: "01-Formalize Spot Relationships to Mouse Hypomap Dissection Regions"
+author: "Bernard Mulvey"
+date: "2023-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+library(BiocParallel)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+#### Load mouse hypomap as downloaded from cellxgene in h5ad; load spatialHYP marker genes as identified by spatialLIBD enrichment module; load a table to cross-map mouse and human genes by ENS id
+```{r}
+hmap <- zellkonverter::readH5AD("raw-data/hypomap.h5ad")
+assayNames(hmap) <- "logcounts"
+mks <- readRDS("analysis/data/spe_053123/H03-marker_genes/04-BSpace_HVG1020-SVG1020_q9-15-20-31_sLIBD-regwrapper-enrichment-res.RDS")
+mks <- mks[["nnsvg10pctile_15"]]
+stopifnot(is.data.table(mks))
+
+### just capitalize symbols for now, use a more complete human<->mouse gene crossmapping reference in final ver. make these the rownames for cleaner subsetting code
+
+rowData(hmap)$feature_name <- toupper(rowData(hmap)$feature_name)
+
+hmap <- hmap[rowData(hmap)$feature_name %in% mks$gene,]
+rownames(hmap) <- rowData(hmap)$feature_name
+
+gc(full=T)
+```
+
+### bplapply thru clusters
+```{r}
+clusts <- as.list(paste0("X",c(1:15)))
+names(clusts) <- unlist(clusts)
+
+sbp <- MulticoreParam(10)
+register(sbp)
+#### since hypomap is already subsetted to genes with identifiers also in the spatial marker sets, get top 25 genes each for enrichment logFC (first) and the top 25 FDR genes not in that set --> 50 genes
+restabs <- bplapply(clusts,BPPARAM = sbp,FUN=function(x){
+    getcols <- c("rn",paste0(c("fdr_","logFC_"),x))
+    lfccol <- paste0("logFC_",x)
+    fdrcol <- paste0("fdr_",x)
+    tmp <- copy(mks)[get(lfccol)>0&rn%in%rownames(hmap),..getcols]
+    
+    setorderv(tmp,lfccol,-1)
+    mkset <- tmp[1:25,rn]
+    
+    setorderv(tmp,fdrcol)
+    mkset <- c(mkset,tmp[!(rn %in% mkset)][1:25,rn])
+    stopifnot(length(unique(mkset))==50)
+    
+    tmpdat <- as.data.table(t(as.matrix(logcounts(hmap[rownames(hmap) %in% mkset,]))),keep.rownames = T)
+    tmpdat[,mnxpr:=rowMeans(tmpdat[,c(2:51)],na.rm = T)]
+    tiles <- ecdf(tmpdat$mnxpr)
+    tmpdat[,qtile.xpr:=tiles(mnxpr)]
+    tmpdat[,topqtile:=1-qtile.xpr]
+    setorder(tmpdat,topqtile)
+    
+    ### get table for annots re: top xpr 0.5, 1, 1.5, 2, 2.5%ile cells
+    topiles <- seq(0.005,.025,by=0.005)
+    subres <- lapply(topiles,FUN=function(z){
+        curcells <- tmpdat[topqtile<=z,rn]
+        annores <- colData(hmap)[curcells,c("C7_named","C25_named","C66_named","Author_Class_Curated","Author_CellType","Region_summarized","sex","development_stage","tissue")]
+        return(as.data.table(annores,keep.rownames=T))
+    })
+    names(subres) <- paste0("top_",topiles*100,"pctile_mnxpr_cells")
+    return(subres)
+})
+
+names(restabs) <- names(clusts)
+
+# saveRDS(restabs,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01a-mshypomap-metadata_top0.5-2.5pctile_mnxprsingcells_top25FDR-top25logFC-spotmkrs_symbolmatching.RDS")
+```
+
+### expand into one big ass MF table
+```{r}
+i <- 1
+for (i in c(1:length(restabs))){
+    j <- 1
+    for (j in c(1:length(restabs[[i]]))){
+        t <- restabs[[i]][[j]]
+        t[,spdomain:=names(restabs)[i]]
+        if(j==1){
+            t[,pctile.mnxpr:=as.numeric(gsub(names(restabs[[i]])[j],pattern="^top_(.*)pctile_.*$",replacement="\\1"))]
+            out <- copy(t)
+        }
+        else{
+            # to get unique cell IDs in the 1%ile set but not 0.5%ile, etc
+            t <- t[!(rn %in% out$rn)]
+            t[,pctile.mnxpr:=as.numeric(gsub(names(restabs[[i]])[j],pattern="^top_(.*)pctile_.*$",replacement="\\1"))]
+            out <- rbind(out,t)
+        }
+    }
+    if(i==1){finalout <- copy(out)}
+    else{finalout <- rbind(finalout,out)}
+    rm(t,out)
+}
+
+### sanity check: there should be an (approx) identical # of rows for each cluster-pctile group:
+unique(finalout)[,.N,by=c("spdomain","pctile.mnxpr")]
+### YUSSSS
+
+tabulationlist <- list()
+i<-1
+for (i in c(1:length(unique(finalout$spdomain)))){
+    j<-1
+    for (j in c(1:length(unique(finalout$pctile.mnxpr)))){
+        tmp <- finalout[pctile.mnxpr==unique(pctile.mnxpr)[j]&spdomain==unique(spdomain)[i]]
+        k<-2
+        for (k in c(2:10)){
+            curcol <- names(finalout)[k]
+            fetchcols <- c("rn",curcol)
+            t <- tmp[,..fetchcols][!is.na(get(curcol))&get(curcol)!="NA"][,.N,by=curcol]
+            set(t,j=curcol,value=droplevels(t[,get(curcol)]))
+            t[,anno.pct:=N/sum(N)]
+            t[,spdomain:=unique(finalout$spdomain)[i]]
+            t[,pctile.mnxpr:=unique(finalout$pctile.mnxpr)[j]]
+            if(i==1&j==1){
+                tabulationlist[[k-1]] <- copy(t)
+            }
+            else{
+                tabulationlist[[k-1]] <- rbind(tabulationlist[[k-1]],t)
+            }
+            rm(curcol,fetchcols,t)
+        }
+        if(j==1){names(tabulationlist) <- names(finalout)[2:10]}
+        rm(k,tmp)
+    }
+    rm(j)
+}
+rm(i)
+
+## abbreviate region terms
+regs <- as.data.table(unique(as.character(tabulationlist[[6]]$Region_summarized)))
+regs$abreve <- c("Premammillary","AHN","ARC","DMN","LHA","lPOA","mPOA","PVN","posterior.PVN","VMH","ZI","Tuberal","ant.PVN","Suprachi","intermed.PVN")
+tabulationlist[[6]] <- merge.data.table(tabulationlist[[6]],regs,by.x="Region_summarized",by.y="V1")
+
+
+# saveRDS(tabulationlist,"analysis/data/spe_053123/H07-Outside Dataset Analyses and Comparisons/01b-mshypomap-metadata_TABULATIONS_top0.5-2.5pctile_mnxprsingcells_top25FDR-top25logFC-spotmkrs_symbolmatching.RDS")
+
+```
+
+### test out plotting for mouse cell type / region tabulations
+```{r}
+# 
+# pdat <- tabulationlist[[1]][spdomain=="X5"]
+# pdat[,C7_named:=droplevels(C7_named)]
+# ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=C7_named))+geom_col()
+# 
+# pdat <- tabulationlist[[2]][spdomain=="X5"&anno.pct>0.05]
+# pdat[,C25_named:=droplevels(C25_named)]
+# ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=C25_named))+geom_col()
+# 
+png("~/Desktop/hypomap_x5_c66reg.png",height=800,width=600)
+pdat <- tabulationlist[[3]][spdomain=="X5"&anno.pct>0.01]
+pdat[,C66_named:=droplevels(C66_named)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=C66_named))+geom_col()+ggtitle("SpHYP VMH cluster X5")
+dev.off()
+
+png("~/Desktop/hypomap_x5_region.png",height=800,width=600)
+pdat <- tabulationlist[[6]][spdomain=="X5"&anno.pct>0.01]
+#pdat[,Region_summarized:=droplevels(Region_summarized)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=Region_summarized))+geom_col()+ggtitle("SpHYP VMH cluster X5")
+dev.off()
+
+png("~/Desktop/hypomap_x8_region.png",height=800,width=600)
+pdat <- tabulationlist[[6]][spdomain=="X8"&anno.pct>0.01]
+#pdat[,Region_summarized:=droplevels(Region_summarized)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=Region_summarized))+geom_col()+ggtitle("SpHYP ARC cluster X8")
+dev.off()
+
+png("~/Desktop/hypomap_x9_region.png",height=800,width=600)
+pdat <- tabulationlist[[6]][spdomain=="X9"&anno.pct>0.01]
+#pdat[,Region_summarized:=droplevels(Region_summarized)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=Region_summarized))+geom_col()+ggtitle("SpHYP mystery region X9")
+dev.off()
+
+png("~/Desktop/hypomap_x13_region.png",height=800,width=600)
+pdat <- tabulationlist[[6]][spdomain=="X13"&anno.pct>0.01]
+#pdat[,Region_summarized:=droplevels(Region_summarized)]
+ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=Region_summarized))+geom_col()+ggtitle("SpHYP ARC cluster X13")
+dev.off()
+
+  # pdat <- tabulationlist[[6]][spdomain=="X14"&anno.pct>0.01]
+#ggplot(pdat,aes(x=pctile.mnxpr,y=anno.pct,fill=abreve))+geom_col()
+```
