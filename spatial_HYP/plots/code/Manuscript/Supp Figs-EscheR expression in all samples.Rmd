@@ -1,0 +1,203 @@
+---
+title: "Supp Figs-EscheR expression in all samples"
+author: "Bernard Mulvey"
+date: "2024-01-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+library(scran)
+library(scater)
+library(ggspavis)
+library(ggrastr)
+library(pheatmap)
+library(Cairo)
+library(magrittr)
+require(colorout)
+library(escheR)
+source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### load SPE and cluster assignments
+```{r}
+hyp2 <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+
+## append donor sexes
+demos <- fread("raw-data/demos.txt")
+tmpcd<-as.data.table(colData(hyp2),keep.rownames=T)
+demos <- demos[BrNum %in% unique(hyp2$brnum),.(BrNum,Sex)]
+## make sure all data is covered in demos sheet
+stopifnot(sum(demos$BrNum %in% unique(hyp2$brnum))==length(unique(hyp2$brnum)))
+## update coldata
+tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum",all.x=T)
+tmpcd <- DataFrame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd$rn <- NULL
+tmpcd <- tmpcd[colnames(hyp2),]
+colData(hyp2) <- tmpcd
+hyp2$Sex <- as.factor(hyp2$Sex)
+
+# 60k iter clustering results
+bscls <- list.files("data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out",pattern="lmbna_nnsvg10.txt",full.names=T)
+bscl <- lapply(bscls, function(x){
+    tmp <- fread(x)
+    names(tmp) <- c("rn","label")
+    return(tmp)
+})
+
+# name these for reference
+names(bscl) <- gsub(bscls,pattern="^data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out/BSpace_(.*)\\.txt$",replacement="\\1")
+
+## add a fourth entry where k=15 VMH and ARC are collapsed to a single domain each
+bscl[["k15_HARMONYlmbna_nnsvg10_collapsed"]] <- copy(bscl[["k15_HARMONYlmbna_nnsvg10"]])
+
+# add a leading character to the label assignments to prevent factor/numeric whoopsies
+bscl <- lapply(bscl,FUN=function(x){
+    x[,label:=paste0("X",label)]
+    return(x)
+})
+
+## collapse VMH and ARc to single domains for the collapsed entry
+bscl[["k15_HARMONYlmbna_nnsvg10_collapsed"]][label %in% c("X3","X5"),label:="ARC"]
+bscl[["k15_HARMONYlmbna_nnsvg10_collapsed"]][label %in% c("X11","X12"),label:="VMH"]
+
+## make cluster assignment sets DataFrames so we can use colLabels to assign
+bscl <- lapply(bscl,FUN=function(x){
+    x <- as.data.frame(x)
+    rownames(x) <- x$rn
+    x <- x[colnames(hyp2),]
+    return(x)
+})
+
+# cleanup
+rm(bscls)
+
+# make k15 collapsed the hyp2 labels to start
+
+colLabels(hyp2) <- factor(bscl[[4]]$label,levels=c("VMH","ARC",paste0("X",c(1,2,4,6:10,13:15))))
+
+# make rownames gene_names for ease of plotting
+rownames(hyp2) <- rowData(hyp2)$gene_name
+```
+
+# escher spotplot grid function
+```{r}
+#make a list of single samples with only VMH and ARC labels retained
+samps <- unique(hyp2$sample_id)
+samplist <- lapply(samps,FUN=function(x){
+    s <- hyp2[,hyp2$sample_id==x]
+    s$label <- as.character(s$label)
+    s$label[!(s$label %in% c("VMH","ARC"))] <- NA
+    return(s)})
+
+plfun <- function(genename){
+    # x <- vis_grid_gene(hyp2,geneid=genename,return_plots=T,spatial=F,auto_crop = T,point_size = 1.5,na_color = NA)
+    # x <- lapply(x,FUN=function(p){p+
+    #         theme(axis.text=element_blank(),axis.title = element_blank(),plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+    # })
+    # do.call("grid.arrange",x)
+    plts <- lapply(samplist,FUN=function(x){
+        colData(x)$lct <- logcounts(x)[genename,]
+        p <- make_escheR(x)
+        p <- p |> add_fill("lct",size=0.25,point_size = 0.9)
+        p <- p |> add_ground(var = "label",stroke=0.25,point_size = 0.9)
+        p <- p+
+            scale_color_manual(values=c("purple","darkgreen"),na.value = NA)+
+            ggtitle(paste0(unique(x$sample_id),"\n(",unique(x$Sex),") ",genename))+
+            labs(fill="log\ncounts")+
+            scale_fill_gradient(low="white",high="black")+
+            theme(plot.title=element_text(size=10),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
+        
+        return(p)
+    })
+    
+    do.call("grid.arrange",plts)
+}
+
+```
+
+### supp fig: GLP1R spotplots in VMH and ARC
+```{r}
+pdf("plots/Manuscript/Supplemental S-EscheR of GLP1R in VMH and ARC.pdf",height=10.5,width=8)
+plfun("GLP1R")
+dev.off()
+```
+
+### we can't even use the function above for part of this since chrm %age is already in the coldata, but for a supp fig of VMH - mitochondrial reads:
+```{r}
+# only label VMH distinctly:
+hyp2m <- hyp2
+hyp2m$label <- as.character(hyp2m$label)
+colData(hyp2m)$label[colData(hyp2m)$label!="VMH"] <- "Other"
+colData(hyp2m)$label <- factor(colData(hyp2m)$label,levels=c("VMH","Other"))
+
+samplistm <- lapply(samps,FUN=function(x){
+    s <- hyp2m[,hyp2m$sample_id==x]
+    return(s)})
+
+mfun <- function(){
+    # x <- vis_grid_gene(hyp2,geneid=genename,return_plots=T,spatial=F,auto_crop = T,point_size = 1.5,na_color = NA)
+    # x <- lapply(x,FUN=function(p){p+
+    #         theme(axis.text=element_blank(),axis.title = element_blank(),plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=10), legend.text = element_text(size=10), legend.title = element_text(size=10,hjust=0.5))
+    # })
+    # do.call("grid.arrange",x)
+    plts <- lapply(samplistm,FUN=function(x){
+        colData(x)$lct <- colData(x)$expr_chrM_ratio
+        
+        # plot
+        p <- make_escheR(x)
+        p <- p |> add_fill("lct",size=0.25,point_size = 0.9)
+        p <- p |> add_ground(var = "label",stroke=0.25,point_size = 0.9)
+        p <- p+
+            scale_color_manual(values=c("#8faad6","#8fd6d2"),na.value = NA)+
+            ggtitle(paste0(unique(x$sample_id),"\n(",unique(x$Sex),")"))+
+            labs(fill="% chrM\nreads")+
+            scale_fill_gradient(low="white",high="black")+
+            theme(plot.title=element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
+        
+        return(p)
+    })
+    
+    do.call("grid.arrange",plts)
+}
+
+pdf("plots/Manuscript/Supplemental S-EscheR of pct chrM in VMH.pdf",height=10.5,width=8)
+mfun()
+dev.off()
+
+
+
+
+
+
+
+
+
+
+```

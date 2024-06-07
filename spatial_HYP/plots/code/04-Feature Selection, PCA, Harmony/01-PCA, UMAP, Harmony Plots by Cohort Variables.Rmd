@@ -1,0 +1,271 @@
+---
+title: "01-PCA, UMAP, Harmony Plots by Cohort Variables"
+author: "Bernard Mulvey"
+date: "2023-11-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(ggspavis)
+require(colorout)
+
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+library(gtools)
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+```{r}
+# load SPE--already contains the additional demographic/technical data at this point (age, sex, BMI, PMI, best RIN from cortex..)
+hyp2 <- readRDS("data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
+
+# load and append demographics and other misc data
+demos <- fread("raw-data/demos.txt")
+setnames(demos,c("Best RIN PFC","BMI (calculated)"),c("best_rin_pfc","bmi"))
+tmpcd <- as.data.table(colData(hyp2))
+tmpcd <- merge.data.table(tmpcd,demos,by.x="brnum",by.y="BrNum")
+tmpcd <- DataFrame(tmpcd)
+rownames(tmpcd) <- tmpcd$key
+tmpcd <- tmpcd[colnames(hyp2),]
+colData(hyp2) <- tmpcd
+
+# get variables we want to plot
+colnames(colData(hyp2))
+
+# for dimensionality reduction at the spot level, we want to include brnum, agedeath, race, sex, PMI, best_rin_pfc, bmi, sample_id, sum_umi, sum_gene, expr_chrM, slide, and to be sure nothing too strange is happening, array_row and array_col
+labvars <- c("brnum","AgeDeath","Race","Sex","PrimaryDx","PMI","best_rin_pfc","bmi","sample_id","sum_umi","sum_gene","expr_chrM","slide","array_row","array_col")
+
+# as for dimreds, we basically want to plot each of these variables on every dimensionality reduction-feature set pair under consideration. the spe has those all stored on it, along with some 10x spaceranger-generated ones we don't care about. so to get all of these except for 10x:
+drs <- as.list(grep(reducedDimNames(hyp2),pattern="10x",value=T,invert=T))
+```
+
+```{r}
+options(StringsAsFactors = FALSE)
+lapply(drs,FUN=function(x){
+    # dimred combinations to plot #
+    if(length(grep(x,pattern="UMAP",value=T))>0){
+        zq <- rbind(c(1,2))
+    }
+    else{
+        zq <- rbind(c(1,2),c(1,3),c(2,3))
+    }
+    
+    plts <- list()
+    # iterate thru variables
+    v <- 1
+    for (v in c(1:length(labvars))){
+        m <- 1
+        for (m in c(1:nrow(zq))){
+            z <- zq[m,1]
+            q <- zq[m,2]
+            pltdat <- cbind(reducedDims(hyp2)[[x]][,c(z,q)],colData(hyp2)[,labvars[v]])
+            
+            pltdat <- as.data.table(pltdat)
+            setnames(pltdat,c(paste0(x,paste0("_Dim",z)),paste0(x,paste0("_Dim",q)),labvars[v]))
+            xvar <- names(pltdat)[1]
+            yvar <- names(pltdat)[2]
+            
+            # set dimensions to numeric, plotting variable to factor or numeric
+            set(pltdat,j=xvar,value=as.numeric(pltdat[,get(xvar)]))
+            set(pltdat,j=yvar,value=as.numeric(pltdat[,get(yvar)]))
+            if(labvars[v] %in% c("AgeDeath","PMI","best_rin_pfc","bmi","sum_umi","sum_gene","expr_chrM","array_row","array_col")){
+                set(pltdat,j=labvars[v],value=as.numeric(pltdat[,get(labvars[v])]))
+            }
+            else{
+                set(pltdat,j=labvars[v],value=as.factor(pltdat[,get(labvars[v])]))
+            }
+    
+            plts[[length(plts)+1]] <- ggplot(pltdat,aes(x=.data[[xvar]],y=.data[[yvar]],col=.data[[labvars[v]]]))+
+                geom_point()
+                #scale_color_discrete(DiscretePalette_scCustomize(num_colors = 2 + length(unique(colData(hyp2.tmp)$label)), palette = "varibow")[3:(length(unique(colData(hyp2.tmp)$label)) + 2)])
+            
+            ## determine appropriate subfolder for pllots -- github copilot came out swinging and filled most of this in near-perfectly!
+        }
+    }
+    if (length(grep(x,pattern="PCA",value=T))>0){subdir<-"01-PCA/"}
+    else if (length(grep(x,pattern="HARMONYdflt",value=T))>0){subdir<-"01-Harmonydefault/"}
+    else if (length(grep(x,pattern="HARMONYlmbna",value=T))>0){subdir<-"01-Harmonylambdanull/"}
+    else if(length(grep(x,pattern="mnn30",value=T))>0){subdir<-"01-mnn30/"}
+    else{subdir<-"01-UMAP/"}
+    
+    png(paste0("plots/04-Feature Selection, PCA, Harmony/",subdir,x,"_by_cohortvariables.png"),width=48,height=40,units="in",res=300)
+    do.call("grid.arrange",plts)
+    dev.off()
+    
+    rm(plts,pltdat,xvar,yvar)
+})
+
+```
+
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.3.1 (2023-06-16)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Ventura 13.6
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] BiocParallel_1.36.0         parallelly_1.36.0          
+ [3] default_1.0.0               gtools_3.9.4               
+ [5] colorout_1.3-0              ggspavis_1.8.0             
+ [7] gridExtra_2.3               ggplot2_3.4.4              
+ [9] Biostrings_2.70.1           XVector_0.42.0             
+[11] data.table_1.14.8           SpatialExperiment_1.12.0   
+[13] SingleCellExperiment_1.24.0 SummarizedExperiment_1.32.0
+[15] Biobase_2.62.0              GenomicRanges_1.54.1       
+[17] GenomeInfoDb_1.38.1         IRanges_2.36.0             
+[19] S4Vectors_0.40.1            BiocGenerics_0.48.1        
+[21] MatrixGenerics_1.14.0       matrixStats_1.1.0          
+[23] rlang_1.1.2                
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.4            rjson_0.2.21            xfun_0.41              
+ [4] lattice_0.22-5          vctrs_0.6.4             tools_4.3.1            
+ [7] bitops_1.0-7            generics_0.1.3          parallel_4.3.1         
+[10] tibble_3.2.1            fansi_1.0.5             pkgconfig_2.0.3        
+[13] Matrix_1.6-3            lifecycle_1.0.4         GenomeInfoDbData_1.2.11
+[16] compiler_4.3.1          farver_2.1.1            munsell_0.5.0          
+[19] codetools_0.2-19        htmltools_0.5.7         yaml_2.3.7             
+[22] RCurl_1.98-1.13         pillar_1.9.0            crayon_1.5.2           
+[25] DelayedArray_0.28.0     magick_2.8.1            abind_1.4-5            
+[28] digest_0.6.33           tidyselect_1.2.0        dplyr_1.1.4            
+[31] labeling_0.4.3          fastmap_1.1.1           rprojroot_2.0.4        
+[34] grid_4.3.1              here_1.0.1              colorspace_2.1-0       
+[37] cli_3.6.1               SparseArray_1.2.2       magrittr_2.0.3         
+[40] S4Arrays_1.2.0          utf8_1.2.4              withr_2.5.2            
+[43] scales_1.2.1            rmarkdown_2.25          evaluate_0.23          
+[46] knitr_1.45              Rcpp_1.0.11             glue_1.6.2             
+[49] ggside_0.2.2            rstudioapi_0.15.0       R6_2.5.1               
+[52] zlibbioc_1.48.0        
+
+####
+─ Session info ────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.3.1 (2023-06-16)
+ os       macOS Ventura 13.6
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2023-11-22
+ rstudio  2023.09.1+494 Desert Sunflower (desktop)
+ pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
+
+─ Packages ────────────────────────────────────────────────────────────────
+ package              * version   date (UTC) lib source
+ abind                  1.4-5     2016-07-21 [1] CRAN (R 4.3.0)
+ Biobase              * 2.62.0    2023-10-26 [1] Bioconductor
+ BiocGenerics         * 0.48.1    2023-11-02 [1] Bioconductor
+ BiocParallel         * 1.36.0    2023-10-26 [1] Bioconductor
+ Biostrings           * 2.70.1    2023-10-26 [1] Bioconductor
+ bitops                 1.0-7     2021-04-24 [1] CRAN (R 4.3.0)
+ cli                    3.6.1     2023-03-23 [1] CRAN (R 4.3.0)
+ codetools              0.2-19    2023-02-01 [1] CRAN (R 4.3.0)
+ colorout             * 1.3-0     2023-11-01 [1] local (/Users/bmulvey/Desktop/colorout)
+ colorspace             2.1-0     2023-01-23 [1] CRAN (R 4.3.0)
+ crayon                 1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
+ data.table           * 1.14.8    2023-02-17 [1] CRAN (R 4.3.0)
+ default              * 1.0.0     2017-08-07 [1] CRAN (R 4.3.0)
+ DelayedArray           0.28.0    2023-11-06 [1] Bioconductor
+ digest                 0.6.33    2023-07-07 [1] CRAN (R 4.3.0)
+ dplyr                  1.1.4     2023-11-17 [1] CRAN (R 4.3.1)
+ evaluate               0.23      2023-11-01 [1] CRAN (R 4.3.1)
+ fansi                  1.0.5     2023-10-08 [1] CRAN (R 4.3.1)
+ farver                 2.1.1     2022-07-06 [1] CRAN (R 4.3.0)
+ fastmap                1.1.1     2023-02-24 [1] CRAN (R 4.3.0)
+ generics               0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
+ GenomeInfoDb         * 1.38.1    2023-11-08 [1] Bioconductor
+ GenomeInfoDbData       1.2.11    2023-11-10 [1] Bioconductor
+ GenomicRanges        * 1.54.1    2023-10-30 [1] Bioconductor
+ ggplot2              * 3.4.4     2023-10-12 [1] CRAN (R 4.3.1)
+ ggside                 0.2.2     2022-12-04 [1] CRAN (R 4.3.0)
+ ggspavis             * 1.8.0     2023-10-24 [1] Bioconductor
+ glue                   1.6.2     2022-02-24 [1] CRAN (R 4.3.0)
+ gridExtra            * 2.3       2017-09-09 [1] CRAN (R 4.3.0)
+ gtable                 0.3.4     2023-08-21 [1] CRAN (R 4.3.0)
+ gtools               * 3.9.4     2022-11-27 [1] CRAN (R 4.3.0)
+ here                   1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
+ htmltools              0.5.7     2023-11-03 [1] CRAN (R 4.3.1)
+ IRanges              * 2.36.0    2023-10-26 [1] Bioconductor
+ knitr                  1.45      2023-10-30 [1] CRAN (R 4.3.1)
+ labeling               0.4.3     2023-08-29 [1] CRAN (R 4.3.0)
+ lattice                0.22-5    2023-10-24 [1] CRAN (R 4.3.1)
+ lifecycle              1.0.4     2023-11-07 [1] CRAN (R 4.3.1)
+ magick                 2.8.1     2023-10-22 [1] CRAN (R 4.3.1)
+ magrittr               2.0.3     2022-03-30 [1] CRAN (R 4.3.0)
+ Matrix                 1.6-3     2023-11-14 [1] CRAN (R 4.3.1)
+ MatrixGenerics       * 1.14.0    2023-10-26 [1] Bioconductor
+ matrixStats          * 1.1.0     2023-11-07 [1] CRAN (R 4.3.1)
+ munsell                0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
+ parallelly           * 1.36.0    2023-05-26 [1] CRAN (R 4.3.0)
+ pillar                 1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
+ pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
+ R6                     2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
+ Rcpp                   1.0.11    2023-07-06 [1] CRAN (R 4.3.1)
+ RCurl                  1.98-1.13 2023-11-02 [1] CRAN (R 4.3.1)
+ rjson                  0.2.21    2022-01-09 [1] CRAN (R 4.3.0)
+ rlang                * 1.1.2     2023-11-04 [1] CRAN (R 4.3.1)
+ rmarkdown              2.25      2023-09-18 [1] CRAN (R 4.3.1)
+ rprojroot              2.0.4     2023-11-05 [1] CRAN (R 4.3.1)
+ rstudioapi             0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
+ S4Arrays               1.2.0     2023-10-26 [1] Bioconductor
+ S4Vectors            * 0.40.1    2023-10-26 [1] Bioconductor
+ scales                 1.2.1     2022-08-20 [1] CRAN (R 4.3.0)
+ sessioninfo            1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
+ SingleCellExperiment * 1.24.0    2023-11-06 [1] Bioconductor
+ SparseArray            1.2.2     2023-11-08 [1] Bioconductor
+ SpatialExperiment    * 1.12.0    2023-10-24 [1] Bioconductor
+ SummarizedExperiment * 1.32.0    2023-11-06 [1] Bioconductor
+ tibble                 3.2.1     2023-03-20 [1] CRAN (R 4.3.0)
+ tidyselect             1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
+ utf8                   1.2.4     2023-10-22 [1] CRAN (R 4.3.1)
+ vctrs                  0.6.4     2023-10-12 [1] CRAN (R 4.3.1)
+ withr                  2.5.2     2023-10-30 [1] CRAN (R 4.3.1)
+ xfun                   0.41      2023-11-01 [1] CRAN (R 4.3.1)
+ XVector              * 0.42.0    2023-10-26 [1] Bioconductor
+ yaml                   2.3.7     2023-01-23 [1] CRAN (R 4.3.0)
+ zlibbioc               1.48.0    2023-10-26 [1] Bioconductor
+
+ [1] /Users/bmulvey/Library/R/arm64/4.3/library
+ [2] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
+
+───────────────────────────────────────────────────────────────────────────
