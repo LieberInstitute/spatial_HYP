@@ -1,0 +1,12 @@
+@include "insitu/_segmentation_stages.mro"
+
+call EXPAND_NUCLEI(
+    mem_model_features        = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg2_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u690963b7cd/files/xr_payload/mem_model_features.json",
+    morphology                = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg2_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u690963b7cd/files/xr_min_bundle/morphology.ome.tif",
+    pyramid_manifest          = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg2_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u690963b7cd/files/xr_payload/pyramid_manifest.tenx.json",
+    nuclei_dataset            = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg2_reseg/XENIUM_RANGER_CS/SELECT_NUCLEI_DATASET/fork0/chnk0-u690963b835/files/cells.zarr.zip",
+    max_vertices              = 13,
+    simplify_epsilon          = 0.1,
+    expansion_dist_um         = 15,
+    is_xr_import_segmentation = false,
+)

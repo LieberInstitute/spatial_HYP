@@ -1,0 +1,36 @@
+@include "insitu/_insitu_counter_cs.mro"
+
+call INSITU_COUNTER_CS(
+    transcripts              = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_RELABEL_TRANSCRIPTS/fork0/join-uc86463be71/files/transcripts.zarr.zip",
+    cells                    = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/SELECT_CELLS_DATASET/fork0/chnk0-uc86463cb4a/files/cells.zarr.zip",
+    gene_panel               = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/xr_payload/gene_panel.json",
+    morphology               = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/xr_min_bundle/morphology.ome.tif",
+    morphology_mip           = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/xr_min_bundle/morphology_mip.ome.tif",
+    morphology_focus         = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/xr_min_bundle/morphology_focus.ome.tif",
+    calibration_uuid         = "97a2fe91-b933-4101-a7d0-78900d11544f",
+    mem_model_features       = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/xr_payload/mem_model_features.json",
+    sample_sheet             = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/xr_payload/sample_sheet.json",
+    morphology_fov_json      = null,
+    overview_scan            = null,
+    overview_scan_fov_json   = null,
+    per_cycle_channel_images = {},
+    dx_plot_details          = null,
+    resized_overview_image   = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/xr_payload/resized_overview_image.jpg",
+    input_metrics_summary    = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/MERGE_METRICS/fork0/chnk0-uc86463be71/files/summary.json",
+    pyramid_manifest         = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/xr_payload/pyramid_manifest.tenx.json",
+    segmentation_plan        = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-uc86463bde7/files/segmentation_plan.json",
+    telemetry_bundle_files   = [],
+    telemetry_bundle_paths   = [],
+    pre_computed             = {
+        transcript_assignments: null,
+    },
+    xr_run_data              = {
+        command_line:              "xeniumranger resegment --xenium-bundle=/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/raw-data/xenium/20231019__161052__101923_KMon101923/output-XETG00089__00011586__Region_3__20231019__161214 --resegment-nuclei=false --id=86_reg3_reseg --localcores=48 --localmem=250 --disable-ui=true --jobmode=local",
+        original_software_version: "xenium-1.5.0.3",
+        run_id:                    "86_reg3_reseg",
+        run_timestamp:             "2024-06-08 02:04:56 UTC",
+        software_version:          "xenium-1.7.1.1",
+    },
+    xr_table                 = null,
+    spatial_plots            = null,
+)

@@ -1,0 +1,10 @@
+@include "insitu/insitu_counter_core.mro"
+
+call CREATE_TRANSCRIPTS_CSV(
+    mem_model_features     = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-ue26363cffb/files/xr_payload/mem_model_features.json",
+    transcript_assignments = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-ue26363d5bf/files/transcript_assignments.zarr",
+    cell_feature_matrix_h5 = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-ue26363d5bf/files/cell_feature_matrix_h5.h5",
+    transcripts            = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/XR_RELABEL_TRANSCRIPTS/fork0/join-ue26363d0d9/files/transcripts.zarr.zip",
+    cells                  = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/SELECT_CELLS_DATASET/fork0/chnk0-ue26363d5bc/files/cells.zarr.zip",
+    nucleus_distance       = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/COMPUTE_NUCLEAR_DISTANCE/fork0/join-ue26363d5bf/files/nucleus_distance.zarr.zip",
+)

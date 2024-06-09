@@ -1,0 +1,17 @@
+{
+    "__mem_gb": 5,
+    "__threads": 8,
+    "__vmem_gb": 8,
+    "feature_type": "Gene",
+    "input_pcs": null,
+    "is_antibody_only": false,
+    "matrix_h5": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/SETUP_ANALYZER/fork0/chnk0-ue26363d611/files/preprocessed_matrix_h5.h5",
+    "neighbor_a": null,
+    "neighbor_b": null,
+    "num_neighbors": null,
+    "parallel_clustering": true,
+    "pca_h5": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_PCA/fork0/join-ue26363d625/files/pca_h5.h5",
+    "random_seed": null,
+    "resolution": null,
+    "threads": 8
+}

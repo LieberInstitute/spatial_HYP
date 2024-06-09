@@ -1,0 +1,10 @@
+@include "insitu/_xenium_ranger_common.mro"
+
+call XR_SELECT_DATASET as SELECT_CELLS_DATASET(
+    original = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg2_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u02c163c224/files/xr_min_bundle/cells.zarr.zip",
+    choices  = {
+        "import_segmentation": null,
+        "import_transcripts": null,
+        "resegment": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg2_reseg/XENIUM_RANGER_CS/EXPAND_NUCLEI/fork0/join-u02c163c306/files/cells.zarr.zip",
+    },
+)

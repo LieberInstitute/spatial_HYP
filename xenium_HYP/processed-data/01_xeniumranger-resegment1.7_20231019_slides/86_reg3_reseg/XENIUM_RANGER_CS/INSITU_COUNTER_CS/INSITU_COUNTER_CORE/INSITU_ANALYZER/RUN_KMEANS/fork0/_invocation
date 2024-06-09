@@ -1,0 +1,10 @@
+@include "rna/_run_kmeans.mro"
+
+call RUN_KMEANS(
+    matrix_h5    = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/SETUP_ANALYZER/fork0/chnk0-uc86463cbf3/files/preprocessed_matrix_h5.h5",
+    pca_h5       = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_PCA/fork0/join-uc86463cc1d/files/pca_h5.h5",
+    random_seed  = null,
+    max_clusters = null,
+    num_bcs      = null,
+    num_pcs      = null,
+)

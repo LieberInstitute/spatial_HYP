@@ -1,0 +1,7 @@
+[stdout]
+2024-06-07 23:53:53.153165 [1701222; 0.176 GiB; 100%] Loading cells: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/SELECT_CELLS_DATASET/fork0/chnk0-ue26363d5bc/files/cells.zarr.zip
+2024-06-07 23:53:53.315210 [1701222; 0.223 GiB; 65%] Loading transcripts: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/XR_RELABEL_TRANSCRIPTS/fork0/join-ue26363d0d9/files/transcripts.zarr.zip
+2024-06-07 23:54:06.222761 [1701222; 1.556 GiB; 39%] Processing with 4 threads
+2024-06-07 23:54:23.961946 [1701222; 1.807 GiB; 246%] Writing result
+2024-06-07 23:54:24.804750 [1701222; 1.820 GiB; 242%] Done
+Warning: problem fetching io for 1701222: permission denied; final statistics may be incomplete
