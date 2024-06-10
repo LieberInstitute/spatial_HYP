@@ -1,7 +1,7 @@
 Version: 1.0
 
-RestoreWorkspace: No
-SaveWorkspace: No
+RestoreWorkspace: Yes
+SaveWorkspace: Ask
 AlwaysSaveHistory: No
 
 EnableCodeIndexing: Yes
@@ -13,3 +13,5 @@ RnwWeave: Sweave
 LaTeX: pdfLaTeX
 
 LineEndingConversion: Posix
+
+QuitChildProcessesOnExit: Yes
