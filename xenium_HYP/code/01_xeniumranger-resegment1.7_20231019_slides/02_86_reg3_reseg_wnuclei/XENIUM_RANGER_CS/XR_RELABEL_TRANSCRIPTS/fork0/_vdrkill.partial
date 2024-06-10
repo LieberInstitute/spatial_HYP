@@ -1,0 +1,22 @@
+{
+    "report": {
+        "timestamp": "0001-01-01T00:00:00Z",
+        "paths": null,
+        "errors": null,
+        "events": [
+            {
+                "Timestamp": "2024-06-10T17:13:29.302488384-04:00",
+                "DeltaBytes": 7256
+            },
+            {
+                "Timestamp": "2024-06-10T17:13:35.535096493-04:00",
+                "DeltaBytes": 697379376
+            }
+        ],
+        "count": 0,
+        "size": 0
+    },
+    "ran_split": true,
+    "ran_chunks": true,
+    "ran_join": true
+}
