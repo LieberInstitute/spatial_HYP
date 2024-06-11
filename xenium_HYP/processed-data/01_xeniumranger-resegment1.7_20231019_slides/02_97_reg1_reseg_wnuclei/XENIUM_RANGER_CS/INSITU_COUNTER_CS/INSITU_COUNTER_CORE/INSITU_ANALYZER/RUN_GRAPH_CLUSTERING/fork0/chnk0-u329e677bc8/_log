@@ -1,0 +1,185 @@
+2024-06-10 18:18:48 [time] __start__
+2024-06-10 22:18:48 [cr_ana::stages::graph_clustering] computing k-nearest neighbors with k = 348
+2024-06-10 22:18:48 [scan_rs::nn] constructing ball tree of 65924 points
+2024-06-10 22:18:48 [scan_rs::nn] querying points for 348 neighbors
+2024-06-10 22:18:52 [cr_ana::stages::graph_clustering] running louvain
+2024-06-10 22:18:52 [cr_ana::louvain] building network for neighbor matrix of shape: (65924,348)
+2024-06-10 22:18:56 [cr_ana::louvain] louvain starting cpm score -0.000016
+2024-06-10 22:18:56 [cr_ana::louvain]   iteration 0
+2024-06-10 22:18:56 [cr_ana::louvain]     cpm score: 0.173480
+2024-06-10 22:18:56 [cr_ana::louvain]   iteration 1
+2024-06-10 22:18:56 [cr_ana::louvain]     cpm score: 0.384176
+2024-06-10 22:18:56 [cr_ana::louvain]   iteration 2
+2024-06-10 22:18:56 [cr_ana::louvain]     cpm score: 0.471179
+2024-06-10 22:18:56 [cr_ana::louvain]   iteration 3
+2024-06-10 22:18:56 [cr_ana::louvain]     cpm score: 0.524528
+2024-06-10 22:18:56 [cr_ana::louvain]   iteration 4
+2024-06-10 22:18:56 [cr_ana::louvain]     cpm score: 0.561963
+2024-06-10 22:18:57 [cr_ana::louvain]   iteration 5
+2024-06-10 22:18:57 [cr_ana::louvain]     cpm score: 0.592682
+2024-06-10 22:18:57 [cr_ana::louvain]   iteration 6
+2024-06-10 22:18:57 [cr_ana::louvain]     cpm score: 0.616184
+2024-06-10 22:18:57 [cr_ana::louvain]   iteration 7
+2024-06-10 22:18:57 [cr_ana::louvain]     cpm score: 0.632043
+2024-06-10 22:18:57 [cr_ana::louvain]   iteration 8
+2024-06-10 22:18:57 [cr_ana::louvain]     cpm score: 0.645535
+2024-06-10 22:18:57 [cr_ana::louvain]   iteration 9
+2024-06-10 22:18:57 [cr_ana::louvain]     cpm score: 0.656721
+2024-06-10 22:18:57 [cr_ana::louvain]   iteration 10
+2024-06-10 22:18:57 [cr_ana::louvain]     cpm score: 0.664172
+2024-06-10 22:18:57 [cr_ana::louvain]   iteration 11
+2024-06-10 22:18:57 [cr_ana::louvain]     cpm score: 0.670730
+2024-06-10 22:18:57 [cr_ana::louvain]   iteration 12
+2024-06-10 22:18:57 [cr_ana::louvain]     cpm score: 0.677283
+2024-06-10 22:18:58 [cr_ana::louvain]   iteration 13
+2024-06-10 22:18:58 [cr_ana::louvain]     cpm score: 0.683234
+2024-06-10 22:18:58 [cr_ana::louvain]   iteration 14
+2024-06-10 22:18:58 [cr_ana::louvain]     cpm score: 0.689117
+2024-06-10 22:18:58 [cr_ana::louvain]   iteration 15
+2024-06-10 22:18:58 [cr_ana::louvain]     cpm score: 0.694266
+2024-06-10 22:18:58 [cr_ana::louvain]   iteration 16
+2024-06-10 22:18:58 [cr_ana::louvain]     cpm score: 0.698697
+2024-06-10 22:18:58 [cr_ana::louvain]   iteration 17
+2024-06-10 22:18:58 [cr_ana::louvain]     cpm score: 0.703940
+2024-06-10 22:18:58 [cr_ana::louvain]   iteration 18
+2024-06-10 22:18:58 [cr_ana::louvain]     cpm score: 0.707763
+2024-06-10 22:18:58 [cr_ana::louvain]   iteration 19
+2024-06-10 22:18:58 [cr_ana::louvain]     cpm score: 0.711852
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 20
+2024-06-10 22:18:59 [cr_ana::louvain]     cpm score: 0.715186
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 21
+2024-06-10 22:18:59 [cr_ana::louvain]     cpm score: 0.717021
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 22
+2024-06-10 22:18:59 [cr_ana::louvain]     cpm score: 0.718495
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 23
+2024-06-10 22:18:59 [cr_ana::louvain]     cpm score: 0.720078
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 24
+2024-06-10 22:18:59 [cr_ana::louvain]     cpm score: 0.722680
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 25
+2024-06-10 22:18:59 [cr_ana::louvain]     cpm score: 0.725019
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 26
+2024-06-10 22:18:59 [cr_ana::louvain]     cpm score: 0.726639
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 27
+2024-06-10 22:18:59 [cr_ana::louvain]     cpm score: 0.729180
+2024-06-10 22:18:59 [cr_ana::louvain]   iteration 28
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.732243
+2024-06-10 22:19:00 [cr_ana::louvain]   iteration 29
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.734024
+2024-06-10 22:19:00 [cr_ana::louvain]   iteration 30
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.736174
+2024-06-10 22:19:00 [cr_ana::louvain]   iteration 31
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.737984
+2024-06-10 22:19:00 [cr_ana::louvain]   iteration 32
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.738644
+2024-06-10 22:19:00 [cr_ana::louvain]   iteration 33
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.739596
+2024-06-10 22:19:00 [cr_ana::louvain]   iteration 34
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.740160
+2024-06-10 22:19:00 [cr_ana::louvain]   iteration 35
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.740615
+2024-06-10 22:19:00 [cr_ana::louvain]   iteration 36
+2024-06-10 22:19:00 [cr_ana::louvain]     cpm score: 0.741099
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 37
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.741795
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 38
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.742757
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 39
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.743946
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 40
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.745247
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 41
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.747290
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 42
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.748829
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 43
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.749281
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 44
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.749828
+2024-06-10 22:19:01 [cr_ana::louvain]   iteration 45
+2024-06-10 22:19:01 [cr_ana::louvain]     cpm score: 0.750792
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 46
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.751504
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 47
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.751625
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 48
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.751765
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 49
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.751923
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 50
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.752090
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 51
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.752427
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 52
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.752899
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 53
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.753190
+2024-06-10 22:19:02 [cr_ana::louvain]   iteration 54
+2024-06-10 22:19:02 [cr_ana::louvain]     cpm score: 0.753865
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 55
+2024-06-10 22:19:03 [cr_ana::louvain]     cpm score: 0.755871
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 56
+2024-06-10 22:19:03 [cr_ana::louvain]     cpm score: 0.756809
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 57
+2024-06-10 22:19:03 [cr_ana::louvain]     cpm score: 0.757711
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 58
+2024-06-10 22:19:03 [cr_ana::louvain]     cpm score: 0.758958
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 59
+2024-06-10 22:19:03 [cr_ana::louvain]     cpm score: 0.761039
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 60
+2024-06-10 22:19:03 [cr_ana::louvain]     cpm score: 0.764388
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 61
+2024-06-10 22:19:03 [cr_ana::louvain]     cpm score: 0.766875
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 62
+2024-06-10 22:19:03 [cr_ana::louvain]     cpm score: 0.767617
+2024-06-10 22:19:03 [cr_ana::louvain]   iteration 63
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.768479
+2024-06-10 22:19:04 [cr_ana::louvain]   iteration 64
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.769942
+2024-06-10 22:19:04 [cr_ana::louvain]   iteration 65
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.771984
+2024-06-10 22:19:04 [cr_ana::louvain]   iteration 66
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.772870
+2024-06-10 22:19:04 [cr_ana::louvain]   iteration 67
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.772884
+2024-06-10 22:19:04 [cr_ana::louvain]   iteration 68
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.772898
+2024-06-10 22:19:04 [cr_ana::louvain]   iteration 69
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.772906
+2024-06-10 22:19:04 [cr_ana::louvain]   iteration 70
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.772915
+2024-06-10 22:19:04 [cr_ana::louvain]   iteration 71
+2024-06-10 22:19:04 [cr_ana::louvain]     cpm score: 0.772920
+2024-06-10 22:19:05 [cr_ana::louvain]   iteration 72
+2024-06-10 22:19:05 [cr_ana::louvain]     cpm score: 0.772923
+2024-06-10 22:19:05 [cr_ana::louvain]   iteration 73
+2024-06-10 22:19:05 [cr_ana::louvain]     cpm score: 0.772925
+2024-06-10 22:19:05 [cr_ana::louvain]   iteration 74
+2024-06-10 22:19:05 [cr_ana::louvain]     cpm score: 0.772929
+2024-06-10 22:19:05 [cr_ana::louvain]   iteration 75
+2024-06-10 22:19:05 [cr_ana::louvain]     cpm score: 0.772931
+2024-06-10 22:19:05 [cr_ana::louvain]   iteration 76
+2024-06-10 22:19:05 [cr_ana::louvain]     cpm score: 0.772932
+2024-06-10 22:19:05 [cr_ana::louvain]   iteration 77
+2024-06-10 22:19:05 [cr_ana::louvain]     cpm score: 0.772932
+2024-06-10 22:19:05 [cr_ana::louvain] louvain optimized in 78 iterations
+2024-06-10 22:19:05 [cr_ana::louvain] louvain final cpm score: 0.772932
+2024-06-10 22:19:05 [cr_ana::stages::graph_clustering] merging clusters
+2024-06-10 22:19:05 [scan_rs::merge_clusters] computing DE params on 366 x 1766 matrix
+2024-06-10 22:19:05 [scan_rs::merge_clusters] computing DE on 896 vs 870 cells
+2024-06-10 22:19:05 [scan_rs::merge_clusters] computing DE params on 366 x 7889 matrix
+2024-06-10 22:19:06 [scan_rs::merge_clusters] computing DE on 4055 vs 3834 cells
+2024-06-10 22:19:06 [scan_rs::merge_clusters] computing DE params on 366 x 7669 matrix
+2024-06-10 22:19:06 [scan_rs::merge_clusters] computing DE on 3918 vs 3751 cells
+2024-06-10 22:19:06 [scan_rs::merge_clusters] computing DE params on 366 x 1960 matrix
+2024-06-10 22:19:06 [scan_rs::merge_clusters] computing DE on 1561 vs 399 cells
+2024-06-10 22:19:06 [scan_rs::merge_clusters] computing DE params on 366 x 8697 matrix
+2024-06-10 22:19:07 [scan_rs::merge_clusters] computing DE on 6219 vs 2478 cells
+2024-06-10 22:19:07 [scan_rs::merge_clusters] computing DE params on 366 x 3222 matrix
+2024-06-10 22:19:07 [scan_rs::merge_clusters] computing DE on 2819 vs 403 cells
+2024-06-10 22:19:07 [scan_rs::merge_clusters] computing DE params on 366 x 6382 matrix
+2024-06-10 22:19:07 [scan_rs::merge_clusters] computing DE on 6073 vs 309 cells
+2024-06-10 22:19:07 [scan_rs::merge_clusters] computing DE params on 366 x 4490 matrix
+2024-06-10 22:19:07 [scan_rs::merge_clusters] computing DE on 4079 vs 411 cells
+2024-06-10 22:19:08 [scan_rs::merge_clusters] computing DE params on 366 x 9075 matrix
+2024-06-10 22:19:08 [scan_rs::merge_clusters] computing DE on 7215 vs 1860 cells
+2024-06-10 18:19:08 [time] __end__

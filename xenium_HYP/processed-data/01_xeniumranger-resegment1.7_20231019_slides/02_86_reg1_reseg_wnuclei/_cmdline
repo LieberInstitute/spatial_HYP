@@ -1,0 +1,1 @@
+xeniumranger resegment --xenium-bundle=/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/raw-data/xenium/20231019__161052__101923_KMon101923/output-XETG00089__00011586__Region_1__20231019__161214 --resegment-nuclei=true --id=02_86_reg1_reseg_wnuclei --localcores=48 --localmem=250 --disable-ui=true --jobmode=local

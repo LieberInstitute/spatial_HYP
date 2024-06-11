@@ -1,0 +1,23 @@
+{
+    "__mem_gb": 8,
+    "__threads": 1,
+    "__vmem_gb": 16384,
+    "exclude_bot": 1,
+    "exclude_left": 1,
+    "exclude_right": 1,
+    "exclude_top": 1,
+    "expansion_dist_px": 70,
+    "expansion_dist_um": 15.0,
+    "is_xr_import_segmentation": false,
+    "max_vertices": 13,
+    "mem_model_features": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_97_reg3_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u777f678b16/files/xr_payload/mem_model_features.json",
+    "morphology": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_97_reg3_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u777f678b16/files/xr_min_bundle/morphology.ome.tif",
+    "nuclei_dataset": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_97_reg3_reseg_wnuclei/XENIUM_RANGER_CS/SELECT_NUCLEI_DATASET/fork0/chnk0-u777f67994e/files/nuclei_segmentation_dataset.zarr.zip",
+    "pyramid_manifest": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_97_reg3_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u777f678b16/files/xr_payload/pyramid_manifest.tenx.json",
+    "simplify_epsilon": 0.1,
+    "tile_dx": 4000,
+    "tile_dy": 4000,
+    "tile_overlap": 190,
+    "tile_x": 38100,
+    "tile_y": 22860
+}

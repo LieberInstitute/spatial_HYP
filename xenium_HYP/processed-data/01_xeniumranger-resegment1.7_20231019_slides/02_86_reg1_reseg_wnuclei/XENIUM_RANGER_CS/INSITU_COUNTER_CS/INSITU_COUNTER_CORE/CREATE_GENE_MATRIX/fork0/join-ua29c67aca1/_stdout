@@ -1,0 +1,10 @@
+[stdout]
+2024-06-10 21:47:26.461766 [3392950; 0.182 GiB; 100%] Assigning objects to cells.
+2024-06-10 21:47:26.461814 [3392950; 0.182 GiB; 90%] Loading RnaDataset locations: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg1_reseg_wnuclei/XENIUM_RANGER_CS/XR_RELABEL_TRANSCRIPTS/fork0/join-ua29c679d8c/files/transcripts.zarr.zip
+2024-06-10 21:47:44.440746 [3392950; 0.870 GiB; 21%] Loading cells: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg1_reseg_wnuclei/XENIUM_RANGER_CS/SELECT_CELLS_DATASET/fork0/chnk0-ua29c67ac9f/files/cells.zarr.zip
+2024-06-10 21:48:03.482134 [3392950; 12.352 GiB; 95%] Loading RnaDataset: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg1_reseg_wnuclei/XENIUM_RANGER_CS/XR_RELABEL_TRANSCRIPTS/fork0/join-ua29c679d8c/files/transcripts.zarr.zip
+2024-06-10 21:48:07.760209 [3392950; 12.352 GiB; 96%] Building matrix.
+2024-06-10 21:48:12.914980 [3392950; 12.352 GiB; 96%] Computing metrics.
+2024-06-10 21:48:13.557895 [3392950; 12.352 GiB; 96%] Writing matrix h5.
+2024-06-10 21:48:14.705408 [3392950; 12.352 GiB; 96%] Done writing matrix h5
+2024-06-10 21:48:14.710762 [3392950; 12.352 GiB; 96%] Done.

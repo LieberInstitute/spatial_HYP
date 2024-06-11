@@ -1,0 +1,50 @@
+{
+    "__mem_gb": 3,
+    "__threads": 1,
+    "__vmem_gb": 6,
+    "cluster_keys": [
+        {
+            "cluster_id": 19,
+            "cluster_type": "graphclust",
+            "feature_type": "Gene"
+        },
+        {
+            "cluster_id": 20,
+            "cluster_type": "graphclust",
+            "feature_type": "Gene"
+        },
+        {
+            "cluster_id": 21,
+            "cluster_type": "graphclust",
+            "feature_type": "Gene"
+        },
+        {
+            "cluster_id": 22,
+            "cluster_type": "graphclust",
+            "feature_type": "Gene"
+        },
+        {
+            "cluster_id": 23,
+            "cluster_type": "graphclust",
+            "feature_type": "Gene"
+        },
+        {
+            "cluster_id": 24,
+            "cluster_type": "graphclust",
+            "feature_type": "Gene"
+        },
+        {
+            "cluster_id": 25,
+            "cluster_type": "graphclust",
+            "feature_type": "Gene"
+        },
+        {
+            "cluster_id": 26,
+            "cluster_type": "graphclust",
+            "feature_type": "Gene"
+        }
+    ],
+    "clustering_h5": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_97_reg1_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/COMBINE_CLUSTERING/fork0/chnk0-u329e677bdc/files/clustering_h5.h5",
+    "is_antibody_only": false,
+    "matrix_h5": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_97_reg1_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/SETUP_ANALYZER/fork0/chnk0-u329e677bbb/files/preprocessed_matrix_h5.h5"
+}

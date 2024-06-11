@@ -1,0 +1,6 @@
+@include "insitu/insitu_analyzer.mro"
+
+call SETUP_ANALYZER(
+    filtered_matrices_h5 = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_97_reg3_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CONCATENATE_MATRIX/fork0/chnk0-u777f679bc1/files/cell_feature_matrix.h5",
+    disable_tsne         = true,
+)
