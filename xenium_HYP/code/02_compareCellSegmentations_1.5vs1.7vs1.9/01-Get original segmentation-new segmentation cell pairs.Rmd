@@ -1,0 +1,276 @@
+---
+title: "01-compare_per-sample-per-gene_logcounts_cellsegmentations_xenranger1.5vs1.7"
+author: "Bernard Mulvey"
+date: "2024-06-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Voyager)
+library(patchwork)
+library(SpatialFeatureExperiment)
+library(SingleCellExperiment)
+library(SpatialExperiment)
+library(ggplot2)
+library(gridExtra)
+library(stringr)
+library(scuttle)
+library(BiocSingular)
+library(scater)
+library(Matrix)
+library(DropletUtils)
+library(vroom)
+library(sf)
+library(here)
+
+library(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+## github copilot chat in the rstudio Viewer pane
+library(chattr) # development branch @copilot installed 031324
+# call chattr internal to disable debug mode so that this works
+chattr:::ch_debug_set_false()
+chattr_use("copilot")
+chattr_defaults(model = "copilot",
+                type = "chat",
+                max_data_files = 20,
+                max_data_frames = 20,
+                include_doc_contents = TRUE,
+                include_history = TRUE,
+                prompt = "Use the 'R for Data Science' (https://r4ds.had.co.nz/) book as main reference
+                        You can provide information about statistical methods and appropriateness of different statistical tests using material from https://compgenomr.github.io/book/, http://www.cookbook-r.com/, https://bookdown.org/rdpeng/advstatcomp/
+                            Provide answers using data.table syntax as documented in https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html and  http://brooksandrew.github.io/simpleblog/articles/advanced-data-table/
+                            Use packages: data.table, ggplot2, magrittr
+                        Provide explanations with code
+                        For code output, use RMarkdown code chunks
+                        Avoid all code chunk options")
+chattr::chattr_app("viewer",as_job=T,as_job_port=sample(c(4101:4199),size=1,replace=F))
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc on M processor macs
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+Sys.setenv("OBJC_DISABLE_INITIALIZE_FORK_SAFETY"="YES")
+
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### Define Xenium data importer to spatialfeatureexperiment format (courtesy Cindy Fang)
+### edit this function to calculate log counts, because trying to do so once in spatialfeatureexperiment won't work
+```{r}
+# Reference: https://github.com/pachterlab/SFEData/blob/main/inst/scripts/make-data.R
+
+# Read in Xenium data and create an SFE object
+# give this function a different name than readXenium, which is imported 
+# from SpatialFeatureExperiment
+readXenium_manual <- function(dir_name){
+
+    counts_path <- here(dir_name, "cell_feature_matrix.h5")
+    cell_info_path <- here(dir_name, "cells.csv.gz")
+    cell_poly_path <- here(dir_name, "cell_boundaries.csv.gz")
+    nuc_poly_path <- here(dir_name, "nucleus_boundaries.csv.gz")
+    # 
+    # Read in the data
+    sce <- read10xCounts(counts_path)
+    counts(sce) <- as(realize(counts(sce)), "dgCMatrix")
+    cell_info <- vroom(cell_info_path)
+    
+    print("Read in files")
+    
+    cell_poly <- vroom(cell_poly_path)
+    nuc_poly <- vroom(nuc_poly_path)
+    
+    names(cell_poly)[1] <- "ID"
+    names(nuc_poly)[1] <- "ID"
+    
+    # change df to sf object for cell/nuc images
+    cells_sf <- df2sf(cell_poly, c("vertex_x", "vertex_y"), geometryType = "POLYGON")
+    nuc_sf <- df2sf(nuc_poly, c("vertex_x", "vertex_y"), geometryType = "POLYGON")
+    
+    # QC check
+    all(st_is_valid(cells_sf))
+    all(st_is_valid(nuc_sf))
+    
+    # get rid if invalid cells/nucs
+    ind_invalid <- !st_is_valid(nuc_sf)
+    nuc_sf[ind_invalid,] <- nngeo::st_remove_holes(st_buffer(nuc_sf[ind_invalid,], 0))
+    
+    # add cell info
+    colData(sce) <- cbind(colData(sce), cell_info)
+    print(cell_info)
+    
+    # make spatial objects
+    spe <- toSpatialExperiment(sce, spatialCoordsNames = c("x_centroid", "y_centroid"))
+    
+    ###  log normalize the counts data, mostly just so that the plot doesn't look like its comprised of just a handful of points
+    ### and to do that, we'll need to drop zero-count cells
+    spe <- spe[,colSums(counts(spe))>0]
+    spe <- scater::computeLibraryFactors(spe)
+    spe <- scater::logNormCounts(spe)
+    sfe <- toSpatialFeatureExperiment(spe)
+    
+    # add segmented cells/nuc to spatial object
+    cellSeg(sfe, withDimnames = FALSE) <- cells_sf
+    nucSeg(sfe, withDimnames = FALSE) <- nuc_sf
+    
+    
+    # Add some QC Metrics
+    colData(sfe)$nCounts <- colSums(counts(sfe))
+    colData(sfe)$nGenes <- colSums(counts(sfe) > 0)
+    
+    is_blank <- str_detect(rownames(sfe), "^BLANK_")
+    is_neg <- str_detect(rownames(sfe), "^NegControlProbe")
+    is_neg2 <- str_detect(rownames(sfe), "^NegControlCodeword")
+    is_anti <- str_detect(rownames(sfe), "^antisense")
+    is_depr <- str_detect(rownames(sfe), "^DeprecatedCodeword")
+    is_unassigned <- str_detect(rownames(sfe), "^Unassigned")
+    
+    is_any_neg <- is_blank | is_neg | is_neg2 | is_anti | is_depr | is_unassigned
+    rowData(sfe)$is_neg <- is_any_neg
+    
+    n_panel <- nrow(sfe) - sum(is_any_neg)
+    #print(n_panel)
+    
+    # normalize counts after QC
+    colData(sfe)$nCounts_normed <- sfe$nCounts/n_panel
+    colData(sfe)$nGenes_normed <- sfe$nGenes/n_panel
+    colData(sfe)$prop_nuc <- sfe$nucleus_area / sfe$cell_area
+    
+    # add QC columns
+    sfe <- addPerCellQCMetrics(sfe, subsets = list(blank = is_blank,
+    negProbe = is_neg,
+    negCodeword = is_neg2,
+    anti = is_anti,
+    depr = is_depr,
+    unassigned = is_unassigned,
+    any_neg = is_any_neg))
+
+    # add features
+    rowData(sfe)$means <- rowMeans(counts(sfe))
+    rowData(sfe)$vars <- rowVars(counts(sfe))
+    rowData(sfe)$cv2 <- rowData(sfe)$vars/rowData(sfe)$means^2
+
+    
+    # Add cell ids and make gene names unique
+    #colnames(sfe) <- seq_len(ncol(sfe))
+    rownames(sfe) <- uniquifyFeatureNames(ID=rownames(sfe),  names=rowData(sfe)$Symbol)
+    
+    return(sfe)
+}
+```
+
+### load resegmentations and original segmentations as separate SpatialFeatureExperiment objects to start with
+```{r}
+resegs <- list.files("processed-data/01_xeniumranger-resegment1.7_20231019_slides",full.names = T)
+resegsampname <- gsub(resegs,pattern="^.*slides/(.*)$",replacement="\\1")
+resegs <- paste0(resegs,"/outs")
+
+# outs directory files were previously placed directly inside the original samplewise directories
+origsegs <- list.files("raw-data/xenium/20231019__161052__101923_KMon101923/",full.names=T)
+origsegsampname <- gsub(origsegs,pattern="^.*output-(.*)$",replacement="\\1")
+origsegsampname <- gsub(origsegsampname,pattern="^XETG.*__000[[:digit:]]{3}(..)__Region_(.).*$",replacement=paste0("\\1","_reg","\\2","_","origseg"))
+i<-1
+for (i in c(1:length(resegs))){
+    if(i==1){
+        resegsamps <- readXenium_manual(resegs[i])
+        origsamps <- readXenium_manual(origsegs[i])
+        
+        resegsamps$Sample <- resegsampname[i]
+        resegsamps$sample_id <- resegsampname[i]
+        
+        origsamps$Sample <- origsegsampname[i]
+        origsamps$sample_id <- origsegsampname[i]
+        # make unique colnames
+        resegsamps$key <- paste0(resegsamps$Sample,"_",resegsamps$cell_id)
+        colnames(resegsamps) <- resegsamps$key
+        
+        origsamps$key <- paste0(origsamps$Sample,"_",origsamps$cell_id)
+        colnames(origsamps) <- origsamps$key
+        
+        # make unique colnames in rowdata
+        colnames(rowData(origsamps))[c(5:7)] <- paste0(origsegsampname[i],"_",colnames(rowData(origsamps))[5:7]) 
+        
+        colnames(rowData(resegsamps))[c(5:7)] <- paste0(resegsampname[i],"_",colnames(rowData(resegsamps))[5:7]) 
+
+    }
+    else{
+        tmpresegsamp <- readXenium_manual(resegs[i])
+        tmpresegsamp$Sample <- resegsampname[i]
+        tmpresegsamp$sample_id <- resegsampname[i]
+        tmpresegsamp$key <- paste0(tmpresegsamp$Sample,"_",tmpresegsamp$cell_id)
+        colnames(tmpresegsamp) <- tmpresegsamp$key
+        
+        ## remove the gene identifier/etc information here since we got it when i==1; make remaining colnames sample-specific 
+        rowData(tmpresegsamp) <- rowData(tmpresegsamp)[,c(5:7)]
+        colnames(rowData(tmpresegsamp)) <- paste0(resegsampname[i],"_",colnames(rowData(tmpresegsamp)))
+        
+        resegsamps <- cbind(resegsamps,tmpresegsamp)
+        
+        tmporigsamp <- readXenium_manual(origsegs[i])
+        tmporigsamp$Sample <- origsegsampname[i]
+        tmporigsamp$sample_id <- origsegsampname[i]
+        tmporigsamp$key <- paste0(tmporigsamp$Sample,"_",tmporigsamp$cell_id)
+        colnames(tmporigsamp) <- tmporigsamp$key
+        
+        ## remove the gene identifier/etc information here since we got it when i==1; make remaining colnames sample-specific 
+        rowData(tmporigsamp) <- rowData(tmporigsamp)[,c(5:7)]
+        colnames(rowData(tmporigsamp)) <- paste0(origsegsampname[i],"_",colnames(rowData(tmporigsamp)))
+        
+        origsamps <- cbind(origsamps,tmporigsamp)
+        
+        rm(tmpresegsamp,tmporigsamp)
+    }
+}
+```
+
+
+### getting the data paired back up for plotting will be very simple, because every nucleus is segmented to a cell and we did not alter the nuclear segmentations in the re-run, PLUS a nucleus and its cell have a shared unique identifier. so we can just match each cell identifier for each sample(1.5) to that of sample(1.7).
+
+```{r}
+## get logcounts matrices into d.t format for melting, merging
+origcounts <- as.data.table(as.data.frame(as.matrix(logcounts(origsamps))),keep.rownames=T)
+
+resegcounts <- as.data.table(as.data.frame(as.matrix(logcounts(resegsamps))),keep.rownames=T)
+
+## melt so that each cell-gene-count value from a dataset is a row, i.e. so can have an x or y coord value for plotting
+origcounts.m <- melt(origcounts,id.vars=c("rn"))
+resegcounts.m <- melt(resegcounts,id.vars=c("rn"))
+
+## make column names informative
+setnames(origcounts.m,c("gene","cell","orig_value"))
+setnames(resegcounts.m,c("gene","cell","reseg_value"))
+
+## extract constant sample, cell identifiers for merging
+origcounts.m[,sample:=gsub(cell,pattern="^(.*_reg.)_.*$",replacement="\\1")]
+origcounts.m[,cell:=gsub(cell,pattern="^.*_reg._.*seg_(.*)$",replacement="\\1")]
+
+resegcounts.m[,sample:=gsub(cell,pattern="^(.*_reg.)_.*$",replacement="\\1")]
+resegcounts.m[,cell:=gsub(cell,pattern="^.*_reg._.*seg_(.*)$",replacement="\\1")]
+
+## merge to one table for plotting
+comparecounts <- merge.data.table(origcounts.m,resegcounts.m,by=c("sample","cell","gene"))
+
+## easy to sanity check, since every nucleus is assigned a cell in both xeniumranger 1.5 and 1.7, and we didn't change nuclear segmentations here, so number of cells, genes, and samples (i.e. total rows) is consistent acorss original seg and reseg. doesn't appear there are different numbers of zero-count cells between the two segmentation runs (we filtered out zero-count in the readXenium_manual function); in rstudio the environment tab shows both tables as  the exact same number of rows (220,889,759)
+stopifnot((nrow(comparecounts)==nrow(resegcounts.m)) & (nrow(comparecounts))==nrow(origcounts.m))
+
+# spot check a row to make sure we got the correct table structure (e.g., cell aaaaaaa-1 counts of AABC1 in sample 86_reg1 are in a row)
+
+## cleanup workspace/conserve memory
+rm(origcounts,resegcounts,origcounts.m,resegcounts.m,i,origsegs,origsegsampname,resegs,resegsampname)
+gc(full=T)
+```
+
+### re-run separately in a script in plots/code for plot generation. 
