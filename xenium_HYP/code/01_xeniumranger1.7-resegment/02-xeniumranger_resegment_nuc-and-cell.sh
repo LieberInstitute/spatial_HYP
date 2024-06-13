@@ -2,17 +2,17 @@
 #SBATCH --mem=285G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=24
-#SBATCH -o /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/logs/xeniumresegment_2023slides_wnuclei_%a.out
-#SBATCH -e /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/logs/xeniumresegment_2023slides_wnuclei_%a.err
+#SBATCH -o ./logs/xeniumresegment_2023slides_wnuclei_%a.out
+#SBATCH -e ./logs/xeniumresegment_2023slides_wnuclei_%a.err
 #SBATCH --array=1-6
 #SBATCH --constraint="intel"
 
 echo "**** Job starts ****"
 date
 
-# must be run from code/01_xeniumranger-resegment1.7_20231019_slides
+# must be run from code/01_
 # and files must be moved from code/
-# 01_xeniumranger-resegment1.7_20231019_slides after xeniumranger finishes
+# 01_ after xeniumranger finishes
 # because XR won't allow slashes in the output directory name (--id) argument
 
 echo "**** JHPCE info ****"
@@ -45,6 +45,6 @@ FULLPATH=$(realpath ../..)
 xeniumranger resegment --xenium-bundle=${FILE} --resegment-nuclei=true --id=${OUTPATH} --localcores=48 --localmem=250 --disable-ui=true --jobmode=local
 
 # move output where it should've been able to go in the first place
-mv ${OUTPATH} ${FULLPATH}/processed-data/01_xeniumranger-resegment1.7_20231019_slides/
+mv ${OUTPATH} ${FULLPATH}/processed-data/01_xeniumranger1.7-resegment/
 echo "**** Job ends ****"
 date
