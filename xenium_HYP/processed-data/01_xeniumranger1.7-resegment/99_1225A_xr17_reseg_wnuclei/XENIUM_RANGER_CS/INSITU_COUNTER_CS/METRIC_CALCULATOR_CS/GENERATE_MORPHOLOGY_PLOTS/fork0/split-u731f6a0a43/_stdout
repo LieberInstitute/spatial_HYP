@@ -1,0 +1,28 @@
+[stdout]
+data
+{'decoding_input_features': {'sample_id': 'c8fa98cb-069d-48f1-8b1f-0992da2b4f4e', 'num_decoding_cycles': 15, 'instrument_name': '10x Xenium', 'instrument_type': 'unknown', 'image_height_px': 3520, 'image_width_px': 2960, 'num_z_levels': 40, 'num_fields_of_view': 178, 'num_channels': 5, 'pixel_size': 0.2125, 'z_step_size': 0.75, 'num_pixels_per_image': 10419200, 'pixels_single_channel_per_zstack': 416768000, 'pixels_all_channels_per_zstack': 2083840000, 'total_pixels_single_channel_per_z_level': 1854617600, 'total_pixels_all_channels_per_z_level': 9273088000, 'total_pixels_single_channel_all_z_levels': 74184704000, 'total_pixels_all_channels_all_z_levels': 370923520000, 'pixels_all_channels_all_cycles_per_zstack': 31257600000, 'total_pixels_all_channels_all_z_levels_all_cycles': 5563852800000}, 'memory_overrides': {}}
+2024-06-12 16:51:22.862670 [3830727; 0.155 GiB; 100%] Estimating memory consumption for GENERATE_MORPHOLOGY_PLOTS.join. Features: {
+  "sample_id": "c8fa98cb-069d-48f1-8b1f-0992da2b4f4e",
+  "num_decoding_cycles": 15,
+  "instrument_name": "10x Xenium",
+  "instrument_type": "unknown",
+  "image_height_px": 3520,
+  "image_width_px": 2960,
+  "num_z_levels": 40,
+  "num_fields_of_view": 178,
+  "num_channels": 5,
+  "pixel_size": 0.2125,
+  "z_step_size": 0.75,
+  "num_pixels_per_image": 10419200,
+  "pixels_single_channel_per_zstack": 416768000,
+  "pixels_all_channels_per_zstack": 2083840000,
+  "total_pixels_single_channel_per_z_level": 1854617600,
+  "total_pixels_all_channels_per_z_level": 9273088000,
+  "total_pixels_single_channel_all_z_levels": 74184704000,
+  "total_pixels_all_channels_all_z_levels": 370923520000,
+  "pixels_all_channels_all_cycles_per_zstack": 31257600000,
+  "total_pixels_all_channels_all_z_levels_all_cycles": 5563852800000,
+  "morphology_num_pixels": 1845703566
+}
+2024-06-12 16:51:22.862751 [3830727; 0.155 GiB; 90%] Predicted memory consumption [GB]: 2.0
+2024-06-12 16:51:22.862771 [3830727; 0.155 GiB; 91%] Adjusting join memory (2.0) to be between 8-8GB.

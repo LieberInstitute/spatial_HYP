@@ -1,0 +1,16 @@
+{
+    "__mem_gb": 1,
+    "__threads": 1,
+    "__vmem_gb": 4,
+    "input_pcs": null,
+    "is_antibody_only": false,
+    "matrix_h5": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_8667C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/SETUP_ANALYZER/fork0/chnk0-u26ec6a3112/files/preprocessed_matrix_h5.h5",
+    "neighbor_a": null,
+    "neighbor_b": null,
+    "num_neighbors": null,
+    "parallel_clustering": true,
+    "pca_h5": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_8667C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_PCA/fork0/join-u26ec6a3118/files/pca_h5.h5",
+    "random_seed": null,
+    "resolution": null,
+    "threads": 8
+}

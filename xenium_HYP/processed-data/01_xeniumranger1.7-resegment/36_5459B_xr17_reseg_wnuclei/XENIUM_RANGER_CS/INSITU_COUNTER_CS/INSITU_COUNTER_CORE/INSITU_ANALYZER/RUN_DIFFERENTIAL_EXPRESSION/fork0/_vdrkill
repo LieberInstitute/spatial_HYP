@@ -1,0 +1,42 @@
+{
+    "timestamp": "2024-06-12T19:21:21.941258626-04:00",
+    "paths": [
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk00-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk01-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk02-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk03-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk04-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk05-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk06-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk07-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk08-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/chnk09-ucb306a2d5d/files/diffexp.bincode.lz4",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/join-ucb306a2d5d/files/diffexp_csv",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/join-ucb306a2d5d/files/diffexp_h5.h5"
+    ],
+    "errors": null,
+    "events": [
+        {
+            "Timestamp": "2024-06-12T19:21:01.167077019-04:00",
+            "DeltaBytes": 17720
+        },
+        {
+            "Timestamp": "2024-06-12T19:21:05.576490259-04:00",
+            "DeltaBytes": 745180
+        },
+        {
+            "Timestamp": "2024-06-12T19:21:17.135975189-04:00",
+            "DeltaBytes": 3833832
+        },
+        {
+            "Timestamp": "2024-06-12T19:21:17.810512612-04:00",
+            "DeltaBytes": -665934
+        },
+        {
+            "Timestamp": "2024-06-12T19:21:21.941258626-04:00",
+            "DeltaBytes": -3811032
+        }
+    ],
+    "count": 32,
+    "size": 4476966
+}

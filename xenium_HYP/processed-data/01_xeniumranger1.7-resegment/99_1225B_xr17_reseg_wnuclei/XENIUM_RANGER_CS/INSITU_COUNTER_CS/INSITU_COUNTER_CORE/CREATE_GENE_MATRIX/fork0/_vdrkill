@@ -1,0 +1,24 @@
+{
+    "timestamp": "2024-06-12T17:56:39.862081785-04:00",
+    "paths": [
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_1225B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-ufb4b6a1901/files/cell_feature_matrix_h5.h5",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_1225B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-ufb4b6a1901/files/transcript_assignments.zarr"
+    ],
+    "errors": null,
+    "events": [
+        {
+            "Timestamp": "2024-06-12T17:54:11.426106699-04:00",
+            "DeltaBytes": 9376
+        },
+        {
+            "Timestamp": "2024-06-12T17:54:19.063561572-04:00",
+            "DeltaBytes": 102710673
+        },
+        {
+            "Timestamp": "2024-06-12T17:56:39.862081785-04:00",
+            "DeltaBytes": -102700886
+        }
+    ],
+    "count": 262,
+    "size": 102700886
+}

@@ -1,0 +1,15 @@
+@include "insitu/insitu_analyzer.mro"
+
+call SUMMARIZE_ANALYSIS(
+    matrix_h5      = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/SETUP_ANALYZER/fork0/chnk0-uaae26a1f65/files/preprocessed_matrix_h5.h5",
+    pca_h5         = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_PCA/fork0/join-uaae26a1f69/files/pca_h5.h5",
+    clustering_h5  = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/COMBINE_CLUSTERING/fork0/chnk0-uaae26a1f82/files/clustering_h5.h5",
+    diffexp_h5     = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/join-uaae26a1f84/files/diffexp_h5.h5",
+    tsne_h5        = null,
+    umap_h5        = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_UMAP/fork0/join-uaae26a1f6f/files/umap_h5.h5",
+    pca_csv        = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_PCA/fork0/join-uaae26a1f69/files/pca_csv",
+    clustering_csv = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/COMBINE_CLUSTERING/fork0/chnk0-uaae26a1f82/files/clustering_csv",
+    diffexp_csv    = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_DIFFERENTIAL_EXPRESSION/fork0/join-uaae26a1f84/files/diffexp_csv",
+    tsne_csv       = null,
+    umap_csv       = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_UMAP/fork0/join-uaae26a1f6f/files/umap_csv",
+)

@@ -1,0 +1,165 @@
+{
+    "name": "ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk35",
+    "type": "local",
+    "cwd": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk35-uaae26a16da/files",
+    "python": {
+        "binpath": "/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/anaconda/bin/python3",
+        "version": "3.10.11 (main, Apr 20 2023, 19:02:41) [GCC 11.2.0]"
+    },
+    "rusage": {
+        "self": {
+            "ru_maxrss": 36524,
+            "ru_ixrss": 0,
+            "ru_idrss": 0,
+            "ru_minflt": 533,
+            "ru_majflt": 0,
+            "ru_nswap": 0,
+            "ru_utime": 0.091237,
+            "ru_stime": 0.028334,
+            "ru_inblock": 0,
+            "ru_oublock": 104,
+            "ru_msgsnd": 0,
+            "ru_msgrcv": 0,
+            "ru_nsignals": 0,
+            "ru_nivcsw": 5
+        },
+        "children": {
+            "ru_maxrss": 2158188,
+            "ru_ixrss": 0,
+            "ru_idrss": 0,
+            "ru_minflt": 1071532,
+            "ru_majflt": 1,
+            "ru_nswap": 0,
+            "ru_utime": 828.358682,
+            "ru_stime": 3.81197,
+            "ru_inblock": 0,
+            "ru_oublock": 1416,
+            "ru_msgsnd": 0,
+            "ru_msgrcv": 0,
+            "ru_nsignals": 0,
+            "ru_nivcsw": 4941
+        }
+    },
+    "used_bytes": {
+        "rss": 1816678400,
+        "shared": 260759552,
+        "vmem": 4903403520,
+        "text": 3239936,
+        "stack": 2279886848,
+        "proc_count": 4
+    },
+    "io": {
+        "total": {
+            "read": {
+                "sysc": 16210,
+                "bytes": 450560
+            },
+            "write": {
+                "sysc": 1443,
+                "bytes": 0
+            }
+        },
+        "max": {
+            "read": {
+                "sysc": 922.0602859216481,
+                "bytes": 64707.861980674046
+            },
+            "write": {
+                "sysc": 276.36182647254356,
+                "bytes": 0
+            }
+        },
+        "dev": {
+            "read": {
+                "sysc": 112.04834392499565,
+                "bytes": 5123.972696252787
+            },
+            "write": {
+                "sysc": 21.232594148857213,
+                "bytes": 0
+            }
+        }
+    },
+    "wallclock": {
+        "start": "2024-06-12T17:59:24.97044589-04:00",
+        "end": "2024-06-12T18:13:28.230711104-04:00",
+        "duration_seconds": 843.260265216
+    },
+    "profile_mode": "disable",
+    "stackvars_flag": "disable",
+    "monitor_flag": "disable",
+    "invocation": {
+        "call": "XENIUM_RANGER_CS",
+        "args": {
+            "command_line": "xeniumranger resegment --xenium-bundle=/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/raw-data/xenium/20240223__174743__022324_KMon120823/output-XETG00089__0011199__11199X_8741D_HYP__20240223__174831 --resegment-nuclei=true --id=99_8741D_xr17_reseg_wnuclei --localcores=36 --localmem=255 --disable-ui=true --jobmode=local",
+            "import_seg_params": null,
+            "output_bundle": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/raw-data/xenium/20240223__174743__022324_KMon120823/output-XETG00089__0011199__11199X_8741D_HYP__20240223__174831",
+            "relabel_params": null,
+            "resegment_params": {
+                "dapi_filter_pe": null,
+                "expansion_dist_um": null,
+                "max_diameter_um": null,
+                "max_vertices": null,
+                "min_diameter_um": null,
+                "resegment_nuclei": true,
+                "simplify_epsilon": null
+            },
+            "run_id": "99_8741D_xr17_reseg_wnuclei",
+            "run_timestamp": "2024-06-12 21:41:34 UTC",
+            "software_version": "xenium-1.7.1.1"
+        },
+        "mro_file": "insitu/xenium_ranger_cs.mro"
+    },
+    "version": {
+        "martian": "v4.0.11",
+        "pipelines": "xenium-1.7.1.1"
+    },
+    "sge": {
+        "SLURM_ARRAY_JOB_ID": "7543809",
+        "SLURM_ARRAY_TASK_COUNT": "7",
+        "SLURM_ARRAY_TASK_ID": "4",
+        "SLURM_ARRAY_TASK_MAX": "7",
+        "SLURM_ARRAY_TASK_MIN": "1",
+        "SLURM_ARRAY_TASK_STEP": "1",
+        "SLURM_CLUSTER_NAME": "jhpce3",
+        "SLURM_CONF": "/etc/slurm/slurm.conf",
+        "SLURM_CPUS_ON_NODE": "18",
+        "SLURM_GTIDS": "0",
+        "SLURM_JOBID": "7546130",
+        "SLURM_JOB_ACCOUNT": "jhpce",
+        "SLURM_JOB_CPUS_PER_NODE": "18",
+        "SLURM_JOB_GID": "100",
+        "SLURM_JOB_ID": "7546130",
+        "SLURM_JOB_NAME": "03-xeniumranger_1.9to1.7_reseg.sh",
+        "SLURM_JOB_NODELIST": "compute-146",
+        "SLURM_JOB_NUM_NODES": "1",
+        "SLURM_JOB_PARTITION": "shared",
+        "SLURM_JOB_QOS": "normal",
+        "SLURM_JOB_UID": "42807",
+        "SLURM_JOB_USER": "bmulvey",
+        "SLURM_LOCALID": "0",
+        "SLURM_MEM_PER_NODE": "291840",
+        "SLURM_NNODES": "1",
+        "SLURM_NODEID": "0",
+        "SLURM_NODELIST": "compute-146",
+        "SLURM_NODE_ALIASES": "(null)",
+        "SLURM_NPROCS": "18",
+        "SLURM_NTASKS": "18",
+        "SLURM_NTASKS_PER_NODE": "18",
+        "SLURM_PRIO_PROCESS": "0",
+        "SLURM_PROCID": "0",
+        "SLURM_SCRIPT_CONTEXT": "prolog_task",
+        "SLURM_SUBMIT_DIR": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment",
+        "SLURM_SUBMIT_HOST": "login31.cm.cluster",
+        "SLURM_TASKS_PER_NODE": "18",
+        "SLURM_TASK_PID": "3910340",
+        "SLURM_TOPOLOGY_ADDR": "compute-146",
+        "SLURM_TOPOLOGY_ADDR_PATTERN": "node",
+        "SLURM_WORKING_CLUSTER": "jhpce3:usher05:6817:9728:109"
+    },
+    "host": "compute-146.cm.cluster",
+    "pid": 3921559,
+    "threads": 1,
+    "memGB": 8,
+    "vmemGB": 16384
+}

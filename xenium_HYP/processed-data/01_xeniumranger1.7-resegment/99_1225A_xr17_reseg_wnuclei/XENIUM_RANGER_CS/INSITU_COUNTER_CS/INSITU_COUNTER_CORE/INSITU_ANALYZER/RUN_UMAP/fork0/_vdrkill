@@ -1,0 +1,30 @@
+{
+    "timestamp": "2024-06-12T18:04:08.154263535-04:00",
+    "paths": [
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_1225A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_UMAP/fork0/chnk0-u731f6a1acc/files/umap_csv",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_1225A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_UMAP/fork0/chnk0-u731f6a1acc/files/umap_h5.h5",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_1225A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_UMAP/fork0/join-u731f6a1acc/files/umap_csv",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_1225A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_UMAP/fork0/join-u731f6a1acc/files/umap_h5.h5"
+    ],
+    "errors": null,
+    "events": [
+        {
+            "Timestamp": "2024-06-12T18:01:48.4816371-04:00",
+            "DeltaBytes": 6331796
+        },
+        {
+            "Timestamp": "2024-06-12T18:03:31.164927309-04:00",
+            "DeltaBytes": 6323133
+        },
+        {
+            "Timestamp": "2024-06-12T18:03:31.965176749-04:00",
+            "DeltaBytes": -6315411
+        },
+        {
+            "Timestamp": "2024-06-12T18:04:08.154263535-04:00",
+            "DeltaBytes": -6315411
+        }
+    ],
+    "count": 8,
+    "size": 12630822
+}

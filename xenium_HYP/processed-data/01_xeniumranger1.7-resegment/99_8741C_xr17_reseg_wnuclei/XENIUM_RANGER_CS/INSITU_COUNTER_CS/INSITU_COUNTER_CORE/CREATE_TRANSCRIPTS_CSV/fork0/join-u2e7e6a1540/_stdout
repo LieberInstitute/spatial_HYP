@@ -1,0 +1,16 @@
+[stdout]
+2024-06-12 17:38:24.316702 [3430580; 0.183 GiB; 100%] Loading transcripts: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_RELABEL_TRANSCRIPTS/fork0/join-u2e7e6a0acb/files/transcripts.zarr.zip
+2024-06-12 17:38:28.922889 [3430580; 1.218 GiB; 99%] Loading transcript assignments: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-u2e7e6a1514/files/transcript_assignments.zarr
+2024-06-12 17:38:29.719223 [3430580; 1.437 GiB; 91%] Loading cells: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SELECT_CELLS_DATASET/fork0/chnk0-u2e7e6a1512/files/cells.zarr.zip
+2024-06-12 17:38:29.787369 [3430580; 1.446 GiB; 91%] Getting transcript mask
+2024-06-12 17:38:29.797021 [3430580; 1.469 GiB; 91%] Truncating RNA UUIDs.
+2024-06-12 17:38:31.315433 [3430580; 3.080 GiB; 94%] Writing per-transcript info
+2024-06-12 17:38:31.315737 [3430580; 3.081 GiB; 94%] Writing transcripts csv
+2024-06-12 17:38:31.316144 [3430580; 3.081 GiB; 94%] Writing transcripts parquet
+2024-06-12 17:39:11.344569 [3430580; 3.579 GiB; 156%] Done writing transcripts csv
+2024-06-12 17:39:24.599663 [3430580; 3.579 GiB; 141%] Done writing transcripts parquet
+2024-06-12 17:39:24.600162 [3430580; 3.579 GiB; 141%] Loading matrix: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-u2e7e6a1514/files/cell_feature_matrix_h5.h5
+2024-06-12 17:39:25.125871 [3430580; 3.579 GiB; 140%] Summarizing counts in cells.
+2024-06-12 17:39:25.234100 [3430580; 3.579 GiB; 140%] Writing cell summary CSV
+2024-06-12 17:39:25.351515 [3430580; 3.579 GiB; 140%] Writing cell summary parquet
+2024-06-12 17:39:25.415605 [3430580; 3.579 GiB; 140%] Done.

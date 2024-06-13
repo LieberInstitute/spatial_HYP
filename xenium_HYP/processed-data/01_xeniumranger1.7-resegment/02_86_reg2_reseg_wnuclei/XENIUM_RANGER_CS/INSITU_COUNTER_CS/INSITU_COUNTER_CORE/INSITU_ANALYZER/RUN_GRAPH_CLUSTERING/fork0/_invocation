@@ -1,0 +1,15 @@
+@include "rna/_cr_ana_stages.mro"
+
+call RUN_GRAPH_CLUSTERING_NG as RUN_GRAPH_CLUSTERING(
+    matrix_h5           = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg2_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/SETUP_ANALYZER/fork0/chnk0-u08fe676b03/files/preprocessed_matrix_h5.h5",
+    pca_h5              = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg2_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_PCA/fork0/join-u08fe676b07/files/pca_h5.h5",
+    num_neighbors       = null,
+    neighbor_a          = null,
+    neighbor_b          = null,
+    input_pcs           = null,
+    resolution          = null,
+    random_seed         = null,
+    is_antibody_only    = false,
+    threads             = 8,
+    parallel_clustering = true,
+)

@@ -1,0 +1,16 @@
+@include "insitu/xenium_ranger_cs.mro"
+
+call XR_SETUP_INPUTS(
+    output_bundle_path = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/raw-data/xenium/20240223__174743__022324_KMon120823/output-XETG00089__0011236__11236X_5459A_HYP__20240223__174831",
+    relabel_params     = null,
+    resegment_params   = {
+        dapi_filter_pe:    null,
+        expansion_dist_um: null,
+        max_diameter_um:   null,
+        max_vertices:      null,
+        min_diameter_um:   null,
+        resegment_nuclei:  true,
+        simplify_epsilon:  null,
+    },
+    import_seg_params  = null,
+)

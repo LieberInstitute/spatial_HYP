@@ -1,0 +1,10 @@
+[stdout]
+2024-06-07 22:06:44.377952 [162636; 0.464 GiB; 100%] Loading RnaDataset.
+2024-06-07 22:06:48.515320 [162636; 1.303 GiB; 99%] Loading cells
+2024-06-07 22:06:49.252732 [162636; 1.398 GiB; 98%] Calculating CS decoding metrics.
+2024-06-07 22:07:31.966418 [162636; 2.058 GiB; 1476%] Done calculating decoding metrics.
+2024-06-07 22:07:31.978090 [162636; 2.058 GiB; 1475%] Calculating gene-wise qscore plot
+2024-06-07 22:07:34.871731 [162636; 2.058 GiB; 1392%] Calculating q-score spatial map
+2024-06-07 22:07:34.871804 [162636; 2.058 GiB; 1392%] start
+2024-06-07 22:07:38.273153 [162636; 2.431 GiB; 1311%] end
+2024-06-07 22:07:41.247869 [162636; 2.431 GiB; 1243%] Dumping summary to JSON.

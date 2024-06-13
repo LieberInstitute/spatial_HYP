@@ -1,0 +1,14 @@
+@include "rna/_cr_ana_stages.mro"
+
+call RUN_UMAP(
+    matrix_h5        = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/SETUP_ANALYZER/fork0/chnk0-u2e7e6a1544/files/preprocessed_matrix_h5.h5",
+    pca_h5           = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/RUN_PCA/fork0/join-u2e7e6a1549/files/pca_h5.h5",
+    random_seed      = null,
+    n_neighbors      = null,
+    input_pcs        = null,
+    max_dims         = null,
+    min_dist         = null,
+    metric           = null,
+    is_antibody_only = false,
+    implementation   = "parallel",
+)

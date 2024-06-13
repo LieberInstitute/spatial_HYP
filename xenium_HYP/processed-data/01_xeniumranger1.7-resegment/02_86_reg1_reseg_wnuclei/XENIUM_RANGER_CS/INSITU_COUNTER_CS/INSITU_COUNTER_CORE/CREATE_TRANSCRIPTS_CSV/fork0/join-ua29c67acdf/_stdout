@@ -1,0 +1,16 @@
+[stdout]
+2024-06-10 21:48:32.573505 [3393114; 0.188 GiB; 100%] Loading transcripts: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg1_reseg_wnuclei/XENIUM_RANGER_CS/XR_RELABEL_TRANSCRIPTS/fork0/join-ua29c679d8c/files/transcripts.zarr.zip
+2024-06-10 21:48:40.120388 [3393114; 1.907 GiB; 95%] Loading transcript assignments: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg1_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-ua29c67aca1/files/transcript_assignments.zarr
+2024-06-10 21:48:41.403975 [3393114; 2.266 GiB; 89%] Loading cells: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg1_reseg_wnuclei/XENIUM_RANGER_CS/SELECT_CELLS_DATASET/fork0/chnk0-ua29c67ac9f/files/cells.zarr.zip
+2024-06-10 21:48:41.475811 [3393114; 2.280 GiB; 89%] Getting transcript mask
+2024-06-10 21:48:41.488191 [3393114; 2.321 GiB; 89%] Truncating RNA UUIDs.
+2024-06-10 21:48:43.808214 [3393114; 4.915 GiB; 93%] Writing per-transcript info
+2024-06-10 21:48:43.808661 [3393114; 4.915 GiB; 93%] Writing transcripts csv
+2024-06-10 21:48:43.809190 [3393114; 4.915 GiB; 93%] Writing transcripts parquet
+2024-06-10 21:49:40.071745 [3393114; 5.399 GiB; 163%] Done writing transcripts csv
+2024-06-10 21:49:58.136418 [3393114; 5.399 GiB; 157%] Done writing transcripts parquet
+2024-06-10 21:49:58.136994 [3393114; 5.399 GiB; 157%] Loading matrix: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg1_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-ua29c67aca1/files/cell_feature_matrix_h5.h5
+2024-06-10 21:49:59.147922 [3393114; 5.399 GiB; 156%] Summarizing counts in cells.
+2024-06-10 21:49:59.272167 [3393114; 5.399 GiB; 156%] Writing cell summary CSV
+2024-06-10 21:49:59.442314 [3393114; 5.399 GiB; 156%] Writing cell summary parquet
+2024-06-10 21:49:59.548845 [3393114; 5.399 GiB; 156%] Done.

@@ -1,0 +1,24 @@
+[stdout]
+2024-06-11 01:41:28.417822 [1987117; 0.463 GiB; 100%] Loading summary metrics JSON
+2024-06-11 01:41:28.499656 [1987117; 0.465 GiB; 98%] Loading cell segmentation
+2024-06-11 01:41:28.591521 [1987117; 0.496 GiB; 97%] Loading analysis.h5 ...
+Martian runtime detected. Try Num. = 1
+2024-06-11 01:41:28.959869 [1987117; 0.568 GiB; 85%] Loading feature barcode matrix ...
+2024-06-11 01:41:29.219466 [1987117; 0.621 GiB; 90%] Loading transcripts
+2024-06-11 01:41:34.270357 [1987117; 1.855 GiB; 93%] Loading file /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_86_reg3_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/METRIC_CALCULATOR_CS/MERGE_DETAILS/fork0/chnk0-u341267e35d/files/summary.json
+2024-06-11 01:41:34.270442 [1987117; 1.855 GiB; 93%] Warning: file None does not exist
+2024-06-11 01:41:34.296716 [1987117; 1.855 GiB; 92%] Unable to find key number_of_imported_cells_split in summary.json
+2024-06-11 01:41:34.297214 [1987117; 1.855 GiB; 92%] Unable to find key number_of_polygon_vertices in summary.json
+2024-06-11 01:41:34.297586 [1987117; 1.855 GiB; 92%] Unable to find key fraction_of_nucleus_polygons_removed in summary.json
+2024-06-11 01:41:34.297926 [1987117; 1.855 GiB; 92%] Unable to find key fraction_of_cell_polygons_removed in summary.json
+2024-06-11 01:41:34.298255 [1987117; 1.855 GiB; 92%] Unable to find key fraction_of_ambiguous_nucleus_mask_pixels in summary.json
+2024-06-11 01:41:34.298593 [1987117; 1.855 GiB; 92%] Unable to find key fraction_of_ambiguous_cell_mask_pixels in summary.json
+2024-06-11 01:41:34.298934 [1987117; 1.855 GiB; 92%] Unable to find key fraction_of_cells_without_nucleus in summary.json
+2024-06-11 01:41:34.299272 [1987117; 1.855 GiB; 92%] Unable to find key fraction_of_nuclei_without_cell in summary.json
+2024-06-11 01:41:36.565358 [1987117; 2.281 GiB; 92%] Unable to find key fraction_of_ambiguous_nucleus_mask_pixels in summary.json
+2024-06-11 01:41:36.565810 [1987117; 2.281 GiB; 92%] Unable to find key fraction_of_ambiguous_cell_mask_pixels in summary.json
+2024-06-11 01:41:36.566160 [1987117; 2.281 GiB; 92%] Unable to find key fraction_of_nucleus_polygons_removed in summary.json
+2024-06-11 01:41:36.566499 [1987117; 2.281 GiB; 92%] Unable to find key fraction_of_cell_polygons_removed in summary.json
+2024-06-11 01:41:36.566836 [1987117; 2.281 GiB; 92%] Unable to find key fraction_of_cells_without_nucleus in summary.json
+2024-06-11 01:41:36.567178 [1987117; 2.281 GiB; 92%] Unable to find key fraction_of_nuclei_without_cell in summary.json
+2024-06-11 01:41:36.923686 [1987117; 2.615 GiB; 92%] Unable to find key transcript_localization_error_rms_q20_nm_p50 in summary.json

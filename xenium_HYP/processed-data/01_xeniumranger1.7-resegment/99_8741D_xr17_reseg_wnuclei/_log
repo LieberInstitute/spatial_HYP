@@ -1,0 +1,694 @@
+Martian Runtime - v4.0.11
+2024-06-12 17:41:35 [build  ] Built with Go version go1.20.6 X:nocoverageredesign
+2024-06-12 17:41:35 [cmdline] mrp _invocation_99_8741d_xr17_reseg_wnuclei.mro RESEGMENT --jobmode=local --localcores=36 --localmem=255 --disable-ui --psdir=99_8741D_xr17_reseg_wnuclei
+2024-06-12 17:41:35 [pid    ] 3910370
+2024-06-12 17:41:35 [environ] SHELL=/bin/bash
+2024-06-12 17:41:35 [environ] SLURM_JOB_USER=bmulvey
+2024-06-12 17:41:35 [environ] SLURM_TASKS_PER_NODE=18
+2024-06-12 17:41:35 [environ] SLURM_JOB_UID=42807
+2024-06-12 17:41:35 [environ] SLURM_TASK_PID=3910340
+2024-06-12 17:41:35 [environ] SLURM_ARRAY_TASK_STEP=1
+2024-06-12 17:41:35 [environ] SLURM_LOCALID=0
+2024-06-12 17:41:35 [environ] SLURM_SUBMIT_DIR=/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment
+2024-06-12 17:41:35 [environ] HOSTNAME=compute-146
+2024-06-12 17:41:35 [environ] SLURM_NODE_ALIASES=(null)
+2024-06-12 17:41:35 [environ] SLURM_CLUSTER_NAME=jhpce3
+2024-06-12 17:41:35 [environ] SLURM_CPUS_ON_NODE=18
+2024-06-12 17:41:35 [environ] SLURM_JOB_CPUS_PER_NODE=18
+2024-06-12 17:41:35 [environ] PWD=/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment
+2024-06-12 17:41:35 [environ] SLURM_GTIDS=0
+2024-06-12 17:41:35 [environ] LOGNAME=bmulvey
+2024-06-12 17:41:35 [environ] XDG_SESSION_TYPE=tty
+2024-06-12 17:41:35 [environ] SLURM_JOB_PARTITION=shared
+2024-06-12 17:41:35 [environ] SLURM_JOB_NUM_NODES=1
+2024-06-12 17:41:35 [environ] SLURM_JOBID=7546130
+2024-06-12 17:41:35 [environ] SLURM_JOB_QOS=normal
+2024-06-12 17:41:35 [environ] HOME=/users/bmulvey
+2024-06-12 17:41:35 [environ] LANG=C
+2024-06-12 17:41:35 [environ] LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=01;36:*.au=01;36:*.flac=01;36:*.m4a=01;36:*.mid=01;36:*.midi=01;36:*.mka=01;36:*.mp3=01;36:*.mpc=01;36:*.ogg=01;36:*.ra=01;36:*.wav=01;36:*.oga=01;36:*.opus=01;36:*.spx=01;36:*.xspf=01;36:
+2024-06-12 17:41:35 [environ] SLURM_PROCID=0
+2024-06-12 17:41:35 [environ] SLURM_ARRAY_TASK_MAX=7
+2024-06-12 17:41:35 [environ] TMPDIR=/tmp
+2024-06-12 17:41:35 [environ] SLURM_NTASKS=18
+2024-06-12 17:41:35 [environ] SLURM_TOPOLOGY_ADDR=compute-146
+2024-06-12 17:41:35 [environ] SSH_CONNECTION=108.195.7.100 49374 162.129.223.103 22
+2024-06-12 17:41:35 [environ] SLURM_TOPOLOGY_ADDR_PATTERN=node
+2024-06-12 17:41:35 [environ] XDG_SESSION_CLASS=user
+2024-06-12 17:41:35 [environ] SLURM_SCRIPT_CONTEXT=prolog_task
+2024-06-12 17:41:35 [environ] SLURM_MEM_PER_NODE=291840
+2024-06-12 17:41:35 [environ] SLURM_WORKING_CLUSTER=jhpce3:usher05:6817:9728:109
+2024-06-12 17:41:35 [environ] TERM=xterm-256color
+2024-06-12 17:41:35 [environ] USER=bmulvey
+2024-06-12 17:41:35 [environ] SLURM_NODELIST=compute-146
+2024-06-12 17:41:35 [environ] ENVIRONMENT=BATCH
+2024-06-12 17:41:35 [environ] SLURM_ARRAY_TASK_ID=4
+2024-06-12 17:41:35 [environ] SLURM_JOB_ACCOUNT=jhpce
+2024-06-12 17:41:35 [environ] SLURM_PRIO_PROCESS=0
+2024-06-12 17:41:35 [environ] SLURM_NPROCS=18
+2024-06-12 17:41:35 [environ] SHLVL=2
+2024-06-12 17:41:35 [environ] SLURM_NNODES=1
+2024-06-12 17:41:35 [environ] BASH_ENV=/usr/share/lmod/lmod/init/bash
+2024-06-12 17:41:35 [environ] SLURM_ARRAY_TASK_MIN=1
+2024-06-12 17:41:35 [environ] XDG_SESSION_ID=4294967295
+2024-06-12 17:41:35 [environ] SLURM_SUBMIT_HOST=login31.cm.cluster
+2024-06-12 17:41:35 [environ] XDG_RUNTIME_DIR=/run/user/42807
+2024-06-12 17:41:35 [environ] SLURM_JOB_ID=7546130
+2024-06-12 17:41:35 [environ] SLURM_NODEID=0
+2024-06-12 17:41:35 [environ] SSH_CLIENT=108.195.7.100 49374 22
+2024-06-12 17:41:35 [environ] OMP_NUM_THREADS=1
+2024-06-12 17:41:35 [environ] XDG_DATA_DIRS=/users/bmulvey/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+2024-06-12 17:41:35 [environ] SLURM_CONF=/etc/slurm/slurm.conf
+2024-06-12 17:41:35 [environ] SLURM_ARRAY_TASK_COUNT=7
+2024-06-12 17:41:35 [environ] PATH=/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/lib/bin:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/cellranger/lib/bin:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/martian/bin:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/cellranger/bin/tenkit:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/anaconda/bin:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1:/jhpce/shared/jhpce/core/JHPCE_tools/3.0/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/users/bmulvey/bin
+2024-06-12 17:41:35 [environ] SLURM_ARRAY_JOB_ID=7543809
+2024-06-12 17:41:35 [environ] SLURM_JOB_NAME=03-xeniumranger_1.9to1.7_reseg.sh
+2024-06-12 17:41:35 [environ] SLURM_NTASKS_PER_NODE=18
+2024-06-12 17:41:35 [environ] SSH_TTY=/dev/pts/218
+2024-06-12 17:41:35 [environ] SLURM_JOB_GID=100
+2024-06-12 17:41:35 [environ] SLURM_JOB_NODELIST=compute-146
+2024-06-12 17:41:35 [environ] BASH_FUNC_ml%%=() {  eval "$($LMOD_DIR/ml_cmd "$@")"
+}
+2024-06-12 17:41:35 [environ] BASH_FUNC_which%%=() {  ( alias;
+ eval ${which_declare} ) | /usr/bin/which --tty-only --read-alias --read-functions --show-tilde --show-dot $@
+}
+2024-06-12 17:41:35 [environ] BASH_FUNC_module%%=() {  if [ -z "${LMOD_SH_DBG_ON+x}" ]; then
+ case "$-" in 
+ *v*x*)
+ __lmod_sh_dbg='vx'
+ ;;
+ *v*)
+ __lmod_sh_dbg='v'
+ ;;
+ *x*)
+ __lmod_sh_dbg='x'
+ ;;
+ esac;
+ fi;
+ if [ -n "${__lmod_sh_dbg:-}" ]; then
+ set +$__lmod_sh_dbg;
+ echo "Shell debugging temporarily silenced: export LMOD_SH_DBG_ON=1 for Lmod's output" 1>&2;
+ fi;
+ eval "$($LMOD_CMD shell "$@")" && eval "$(${LMOD_SETTARG_CMD:-:} -s sh)";
+ __lmod_my_status=$?;
+ if [ -n "${__lmod_sh_dbg:-}" ]; then
+ echo "Shell debugging restarted" 1>&2;
+ set -$__lmod_sh_dbg;
+ fi;
+ unset __lmod_sh_dbg;
+ return $__lmod_my_status
+}
+2024-06-12 17:41:35 [environ] BASH_FUNC_scl%%=() {  if [ "$1" = "load" -o "$1" = "unload" ]; then
+ eval "module $@";
+ else
+ /usr/bin/scl "$@";
+ fi
+}
+2024-06-12 17:41:35 [environ] _=/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/xeniumranger
+2024-06-12 17:41:35 [environ] HDF5_USE_FILE_LOCKING=FALSE
+2024-06-12 17:41:35 [environ] LC_CTYPE=en_US.UTF-8
+2024-06-12 17:41:35 [environ] PYTHONNOUSERSITE=1
+2024-06-12 17:41:35 [environ] PYTHONPATH=/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/com_github_10XDev_tenxnet:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/com_github_10XDev_turing:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/martian/adapters/python:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/cellranger/lib/python:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/lib/python
+2024-06-12 17:41:35 [environ] TENX_PRODUCT=xeniumranger
+2024-06-12 17:41:35 [environ] TENX_VERSION=xenium-1.7.1.1
+2024-06-12 17:41:35 [environ] TENX_COPYRIGHT=Copyright (c) 2023 10x Genomics, Inc.  All rights reserved.
+2024-06-12 17:41:35 [options] --localcores=36
+2024-06-12 17:41:35 [options] --localmem=255
+2024-06-12 17:41:35 [environ] MROPATH=/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/mro:/jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/cellranger/mro
+2024-06-12 17:41:35 [version] MRO Version=xenium-1.7.1.1
+2024-06-12 17:41:35 [options] --jobmode=local
+2024-06-12 17:41:35 [options] --vdrmode=rolling
+2024-06-12 17:41:35 [options] --profile=disable
+2024-06-12 17:41:35 [options] --disable-ui
+2024-06-12 17:41:35 [options] --stackvars=false
+2024-06-12 17:41:35 [options] --zip=false
+2024-06-12 17:41:35 [options] --limit-loadavg=false
+2024-06-12 17:41:35 [options] --noexit=false
+2024-06-12 17:41:35 [options] --nopreflight=false
+2024-06-12 17:41:35 [jobmngr] Job config = /jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/martian/jobmanagers/config.json
+2024-06-12 17:41:35 [jobmngr] Using 36 cores, per --localcores option.
+2024-06-12 17:41:35 [jobmngr] Using 255 GB, per --localmem option.
+2024-06-12 17:41:35 [sysinfo] linux amd64
+2024-06-12 17:41:35 [sysinfo] Linux kernel release version: 5.14.0-284.11.1.el9_2.x86_64
+2024-06-12 17:41:35 [sysinfo] glibc version: 2.34
+2024-06-12 17:41:35 [filesys] Pipestance path /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei
+2024-06-12 17:41:35 [filesys] Pipestance filesystem type nfs
+2024-06-12 17:41:35 [filesys] 12 TB and 22,656,594,768 inodes available.
+2024-06-12 17:41:35 [filesys] Pipestance filesystem nfs4 mount options: rw,noatime,rw,vers=4.2,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=192.168.11.146,local_lock=none,addr=192.168.11.209
+2024-06-12 17:41:35 [filesys] Pipestance directory permissions dgrwxrwx--- owned by uid 42807 gid 4218
+2024-06-12 17:41:35 [filesys] Bin path /jhpce/shared/libd/core/xeniumranger/1.7.1/xeniumranger-1.7.1/external/martian/bin
+2024-06-12 17:41:35 [filesys] Bin filesystem type nfs
+2024-06-12 17:41:35 [filesys] Bin filesystem nfs4 mount options: rw,noatime,nodiratime,rw,vers=4.0,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=192.168.11.146,local_lock=none,addr=192.168.11.205
+2024-06-12 17:41:35 [filesys] Executable file permissions -rwxrwxr-x owned by uid 42792 gid 4246
+2024-06-12 17:41:35 [user   ] User bmulvey uid 42807 / gid 100
+2024-06-12 17:41:35 [webserv] UI disabled.
+Running preflight checks (please wait)...
+2024-06-12 17:41:35 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_PREFLIGHT
+2024-06-12 17:41:35 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.XR_PREFLIGHT.fork0.split
+2024-06-12 17:42:05 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.XR_PREFLIGHT
+2024-06-12 17:42:05 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.XR_PREFLIGHT.fork0.join
+2024-06-12 17:43:34 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.XR_PREFLIGHT
+2024-06-12 17:43:37 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_SETUP_INPUTS
+2024-06-12 17:43:37 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.XR_SETUP_INPUTS.fork0.split
+2024-06-12 17:43:52 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.XR_SETUP_INPUTS
+2024-06-12 17:43:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.XR_SETUP_INPUTS.fork0.join
+2024-06-12 17:44:39 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.XR_SETUP_INPUTS
+2024-06-12 17:44:39 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS
+2024-06-12 17:44:39 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.split
+2024-06-12 17:44:39 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_RELABEL_TRANSCRIPTS
+2024-06-12 17:44:39 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.XR_RELABEL_TRANSCRIPTS.fork0.split
+2024-06-12 17:44:39 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.IMPORT_CELL_SEGMENTATION_DATASET
+2024-06-12 17:44:39 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.IMPORT_CELL_SEGMENTATION_DATASET
+2024-06-12 17:44:39 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_TRANSCRIPT_ASSIGNMENTS
+2024-06-12 17:44:39 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_TRANSCRIPT_ASSIGNMENTS
+2024-06-12 17:44:39 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_MORPHOLOGY_PLOTS
+2024-06-12 17:44:39 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_MORPHOLOGY_PLOTS.fork0.split
+2024-06-12 17:44:39 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.IMPORT_NUCLEAR_SEGMENTATION_DATASET
+2024-06-12 17:44:39 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.IMPORT_NUCLEAR_SEGMENTATION_DATASET
+2024-06-12 17:44:39 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.SETUP_COUNTER_CS
+2024-06-12 17:44:39 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.SETUP_COUNTER_CS.fork0.split
+2024-06-12 17:44:40 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.SELECT_NUCLEAR_SEGMENTATION_DATASET
+2024-06-12 17:44:40 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.SELECT_NUCLEAR_SEGMENTATION_DATASET
+2024-06-12 17:44:40 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.EXPAND_NUCLEI
+2024-06-12 17:44:40 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.EXPAND_NUCLEI
+2024-06-12 17:44:40 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.SELECT_CELL_SEGMENTATION_DATASET
+2024-06-12 17:44:40 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.SELECT_CELL_SEGMENTATION_DATASET
+2024-06-12 17:44:40 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.XR_MERGE_SEGMENTATIONS
+2024-06-12 17:44:40 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.XR_MERGE_SEGMENTATIONS
+2024-06-12 17:44:40 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.SIMPLE_MERGE_METRICS
+2024-06-12 17:44:40 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION.SIMPLE_MERGE_METRICS
+2024-06-12 17:44:40 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.MERGE_METRICS
+2024-06-12 17:44:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.MERGE_METRICS.fork0.chnk0.main
+2024-06-12 17:44:40 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.XR_IMPORT_SEGMENTATION
+2024-06-12 17:44:43 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.MERGE_METRICS
+2024-06-12 17:44:45 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.SETUP_COUNTER_CS
+2024-06-12 17:44:45 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.SETUP_COUNTER_CS.fork0.join
+2024-06-12 17:44:46 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_MORPHOLOGY_PLOTS
+2024-06-12 17:44:46 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_MORPHOLOGY_PLOTS.fork0.join
+2024-06-12 17:44:47 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.XR_RELABEL_TRANSCRIPTS
+2024-06-12 17:44:47 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.XR_RELABEL_TRANSCRIPTS.fork0.join
+2024-06-12 17:44:50 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.SETUP_COUNTER_CS
+2024-06-12 17:44:52 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_MORPHOLOGY_PLOTS
+2024-06-12 17:44:53 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.XR_RELABEL_TRANSCRIPTS
+2024-06-12 17:44:58 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk00.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk01.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk02.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk03.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk04.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk05.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk06.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk07.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk08.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk09.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk10.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk11.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk12.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk13.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk14.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk15.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk16.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk17.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk18.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk19.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk20.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk21.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk22.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk23.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk24.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk25.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk26.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk27.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk28.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk29.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk30.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk31.main
+2024-06-12 17:44:58 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available).  Waiting for jobs to complete.
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk32.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk33.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk34.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk35.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk36.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk37.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk38.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk39.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk40.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk41.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk42.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk43.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk44.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk45.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk46.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk47.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk48.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk49.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk50.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk51.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk52.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk53.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk54.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk55.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk56.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk57.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk58.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk59.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk60.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk61.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk62.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk63.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk64.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk65.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk66.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk67.main
+2024-06-12 17:44:58 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk68.main
+2024-06-12 17:44:59 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.chnk69.main
+2024-06-12 17:49:38 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 17:51:00 [runtime] (update)          ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0 chunks running (1/70 completed)
+2024-06-12 17:51:37 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 17:52:09 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 17:52:22 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 17:56:12 [runtime] (update)          ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0 chunks running (4/70 completed)
+2024-06-12 17:59:24 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:05 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:11 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:15 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:18 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:20 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:20 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:22 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:24 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:30 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:32 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:35 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:36 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:42 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:47 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:51 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:56 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:57 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:58 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:00:59 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:01:02 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:01:15 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:01:15 [runtime] (update)          ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0 chunks running (26/70 completed)
+2024-06-12 18:01:17 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:01:18 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:01:24 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:01:28 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:01:32 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:04:59 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:06:15 [runtime] (update)          ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0 chunks running (32/70 completed)
+2024-06-12 18:06:16 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:06:30 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:06:35 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:07:08 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:07:10 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:07:32 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:11:19 [runtime] (update)          ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0 chunks running (41/70 completed)
+2024-06-12 18:15:20 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS
+2024-06-12 18:15:20 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS.fork0.join
+2024-06-12 18:15:34 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.SEGMENT_CELLS
+2024-06-12 18:15:35 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.STITCH_SEGMENTATION
+2024-06-12 18:15:35 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.STITCH_SEGMENTATION.fork0.split
+2024-06-12 18:15:49 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.STITCH_SEGMENTATION
+2024-06-12 18:15:49 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.STITCH_SEGMENTATION.fork0.join
+2024-06-12 18:16:22 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.STITCH_SEGMENTATION
+2024-06-12 18:16:30 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.SELECT_NUCLEI_DATASET
+2024-06-12 18:16:30 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SELECT_NUCLEI_DATASET.fork0.chnk0.main
+2024-06-12 18:16:31 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.SELECT_NUCLEI_DATASET
+2024-06-12 18:16:31 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI
+2024-06-12 18:16:31 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.split
+2024-06-12 18:16:51 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk00.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk01.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk02.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk03.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk04.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk05.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk06.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk07.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk08.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk09.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk10.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk11.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk12.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk13.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk14.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk15.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk16.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk17.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk18.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk19.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk20.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk21.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk22.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk23.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk24.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk25.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk26.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk27.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk28.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk29.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk30.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk31.main
+2024-06-12 18:16:51 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available).  Waiting for jobs to complete.
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk32.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk33.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk34.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk35.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk36.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk37.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk38.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk39.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk40.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk41.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk42.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk43.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk44.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk45.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk46.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk47.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk48.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk49.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk50.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk51.main
+2024-06-12 18:16:51 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk52.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk53.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk54.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk55.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk56.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk57.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk58.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk59.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk60.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk61.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk62.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk63.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk64.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk65.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk66.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk67.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk68.main
+2024-06-12 18:16:52 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.chnk69.main
+2024-06-12 18:17:48 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:48 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:48 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:48 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:49 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:49 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:49 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:50 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:50 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:53 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:54 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:54 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:55 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:56 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:56 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:56 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:56 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:57 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:57 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:57 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:57 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:57 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:57 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:58 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:59 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:59 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:59 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:59 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:59 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:17:59 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:18:01 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:18:54 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:18:54 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:18:54 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:18:55 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:18:55 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:18:56 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:18:56 [jobmngr] Need 8 GB of memory to start the next job (7 GB of memory available). Waiting for jobs to complete.
+2024-06-12 18:19:25 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI
+2024-06-12 18:19:25 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI.fork0.join
+2024-06-12 18:20:35 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.EXPAND_NUCLEI
+2024-06-12 18:20:40 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.SELECT_CELLS_DATASET
+2024-06-12 18:20:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.SELECT_CELLS_DATASET.fork0.chnk0.main
+2024-06-12 18:20:42 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.SELECT_CELLS_DATASET
+2024-06-12 18:20:42 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.WRITE_CELL_NUCLEI_BOUNDARIES_FILES
+2024-06-12 18:20:42 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.WRITE_CELL_NUCLEI_BOUNDARIES_FILES.fork0.split
+2024-06-12 18:20:42 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.COMPUTE_NUCLEAR_DISTANCE
+2024-06-12 18:20:42 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.COMPUTE_NUCLEAR_DISTANCE.fork0.split
+2024-06-12 18:20:42 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_GENE_MATRIX
+2024-06-12 18:20:42 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_GENE_MATRIX.fork0.split
+2024-06-12 18:20:48 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.COMPUTE_NUCLEAR_DISTANCE
+2024-06-12 18:20:48 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.COMPUTE_NUCLEAR_DISTANCE.fork0.join
+2024-06-12 18:20:49 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_GENE_MATRIX
+2024-06-12 18:20:49 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_GENE_MATRIX.fork0.join
+2024-06-12 18:20:50 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.WRITE_CELL_NUCLEI_BOUNDARIES_FILES
+2024-06-12 18:20:50 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.WRITE_CELL_NUCLEI_BOUNDARIES_FILES.fork0.join
+2024-06-12 18:21:07 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.WRITE_CELL_NUCLEI_BOUNDARIES_FILES
+2024-06-12 18:21:14 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.COMPUTE_NUCLEAR_DISTANCE
+2024-06-12 18:21:21 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_GENE_MATRIX
+2024-06-12 18:21:21 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_TRANSCRIPTS_CSV
+2024-06-12 18:21:21 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_TRANSCRIPTS_CSV.fork0.split
+2024-06-12 18:21:21 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CONCATENATE_MATRIX
+2024-06-12 18:21:21 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CONCATENATE_MATRIX.fork0.chnk0.main
+2024-06-12 18:21:25 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CONCATENATE_MATRIX
+2024-06-12 18:21:25 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_ZARR
+2024-06-12 18:21:25 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_ZARR.fork0.split
+2024-06-12 18:21:25 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_MTX
+2024-06-12 18:21:25 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_MTX.fork0.split
+2024-06-12 18:21:25 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.SETUP_ANALYZER
+2024-06-12 18:21:25 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.SETUP_ANALYZER.fork0.chnk0.main
+2024-06-12 18:21:25 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_DECODING_METRICS_CS
+2024-06-12 18:21:25 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_DECODING_METRICS_CS.fork0.split
+2024-06-12 18:21:28 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_TRANSCRIPTS_CSV
+2024-06-12 18:21:28 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_TRANSCRIPTS_CSV.fork0.join
+2024-06-12 18:21:29 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.SETUP_ANALYZER
+2024-06-12 18:21:29 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_PCA
+2024-06-12 18:21:29 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_PCA.fork0.split
+2024-06-12 18:21:29 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_PCA
+2024-06-12 18:21:29 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_PCA.fork0.chnk0.main
+2024-06-12 18:21:31 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_MTX
+2024-06-12 18:21:31 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_MTX.fork0.join
+2024-06-12 18:21:31 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_ZARR
+2024-06-12 18:21:31 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_ZARR.fork0.join
+2024-06-12 18:21:34 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_PCA
+2024-06-12 18:21:34 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_PCA.fork0.join
+2024-06-12 18:21:35 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_PCA
+2024-06-12 18:21:35 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_TSNE
+2024-06-12 18:21:35 [runtime] (disabled)        ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_TSNE
+2024-06-12 18:21:35 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_GRAPH_CLUSTERING
+2024-06-12 18:21:35 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_GRAPH_CLUSTERING.fork0.split
+2024-06-12 18:21:35 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_UMAP
+2024-06-12 18:21:35 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_UMAP.fork0.split
+2024-06-12 18:21:35 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS
+2024-06-12 18:21:35 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.split
+2024-06-12 18:21:35 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_GRAPH_CLUSTERING
+2024-06-12 18:21:35 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_GRAPH_CLUSTERING.fork0.chnk0.main
+2024-06-12 18:21:35 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_UMAP
+2024-06-12 18:21:35 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_UMAP.fork0.chnk0.main
+2024-06-12 18:21:38 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_ZARR
+2024-06-12 18:21:39 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_MATRIX_MTX
+2024-06-12 18:21:40 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk0.main
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk1.main
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk2.main
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk3.main
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk4.main
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk5.main
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk6.main
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk7.main
+2024-06-12 18:21:40 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.chnk8.main
+2024-06-12 18:21:45 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_DECODING_METRICS_CS
+2024-06-12 18:21:45 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_DECODING_METRICS_CS.fork0.join
+2024-06-12 18:21:45 [jobmngr] Need 25 threads to start the next job (13 threads available).  Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (14 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (15 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (16 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (17 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (18 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (19 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (20 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (21 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:48 [jobmngr] Need 25 threads to start the next job (22 threads available). Waiting for jobs to complete.
+2024-06-12 18:21:49 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS
+2024-06-12 18:21:49 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS.fork0.join
+2024-06-12 18:21:50 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_GRAPH_CLUSTERING
+2024-06-12 18:21:50 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_GRAPH_CLUSTERING.fork0.join
+2024-06-12 18:21:50 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_GRAPH_CLUSTERING
+2024-06-12 18:21:54 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_KMEANS
+2024-06-12 18:21:54 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.COMBINE_CLUSTERING
+2024-06-12 18:21:54 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.COMBINE_CLUSTERING.fork0.chnk0.main
+2024-06-12 18:21:56 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.COMBINE_CLUSTERING
+2024-06-12 18:21:56 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION
+2024-06-12 18:21:56 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.split
+2024-06-12 18:21:57 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk00.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk01.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk02.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk03.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk04.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk05.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk06.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk07.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk08.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk09.main
+2024-06-12 18:21:57 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.chnk10.main
+2024-06-12 18:22:13 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION
+2024-06-12 18:22:13 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION.fork0.join
+2024-06-12 18:22:13 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_UMAP
+2024-06-12 18:22:13 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_UMAP.fork0.join
+2024-06-12 18:22:13 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_UMAP
+2024-06-12 18:22:14 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.RUN_DIFFERENTIAL_EXPRESSION
+2024-06-12 18:22:14 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.SUMMARIZE_ANALYSIS
+2024-06-12 18:22:14 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.SUMMARIZE_ANALYSIS.fork0.split
+2024-06-12 18:22:16 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.SUMMARIZE_ANALYSIS
+2024-06-12 18:22:16 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.SUMMARIZE_ANALYSIS.fork0.join
+2024-06-12 18:22:17 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.INSITU_ANALYZER.SUMMARIZE_ANALYSIS
+2024-06-12 18:22:19 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.SELECT_ANALYZER_OUTS
+2024-06-12 18:22:19 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.SELECT_ANALYZER_OUTS.fork0.chnk0.main
+2024-06-12 18:22:20 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.SELECT_ANALYZER_OUTS
+2024-06-12 18:22:32 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.INSITU_COUNTER_CORE.CREATE_TRANSCRIPTS_CSV
+2024-06-12 18:22:34 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_CELL_METRICS
+2024-06-12 18:22:34 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_CELL_METRICS.fork0.split
+2024-06-12 18:22:42 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_DECODING_METRICS_CS
+2024-06-12 18:22:42 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_SAMPLE_METRICS
+2024-06-12 18:22:42 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_SAMPLE_METRICS.fork0.split
+2024-06-12 18:22:47 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_SAMPLE_METRICS
+2024-06-12 18:22:47 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_SAMPLE_METRICS.fork0.join
+2024-06-12 18:22:49 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_CELL_METRICS
+2024-06-12 18:22:49 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_CELL_METRICS.fork0.join
+2024-06-12 18:22:53 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_SAMPLE_METRICS
+2024-06-12 18:23:06 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.GENERATE_CELL_METRICS
+2024-06-12 18:23:06 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.MERGE_METRICS
+2024-06-12 18:23:06 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.MERGE_METRICS.fork0.chnk0.main
+2024-06-12 18:23:06 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.MERGE_DETAILS
+2024-06-12 18:23:06 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.MERGE_DETAILS.fork0.chnk0.main
+2024-06-12 18:23:09 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.MERGE_METRICS
+2024-06-12 18:23:09 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.METRIC_CALCULATOR_CS.MERGE_DETAILS
+2024-06-12 18:23:09 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.MERGE_METRICS
+2024-06-12 18:23:09 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.MERGE_METRICS.fork0.chnk0.main
+2024-06-12 18:23:11 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.MERGE_METRICS
+2024-06-12 18:23:11 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.UPDATE_COUNT_METRICS
+2024-06-12 18:23:12 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.UPDATE_COUNT_METRICS.fork0.chnk0.main
+2024-06-12 18:23:14 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.UPDATE_COUNT_METRICS
+2024-06-12 18:23:14 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.CREATE_WEB_SUMMARY_CS
+2024-06-12 18:23:14 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.CREATE_WEB_SUMMARY_CS.fork0.split
+2024-06-12 18:23:14 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.CREATE_METRICS_SUMMARY_CSV_CS
+2024-06-12 18:23:14 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.CREATE_METRICS_SUMMARY_CSV_CS.fork0.chnk0.main
+2024-06-12 18:23:16 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.CREATE_METRICS_SUMMARY_CSV_CS
+2024-06-12 18:23:30 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.CREATE_WEB_SUMMARY_CS
+2024-06-12 18:23:30 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.CREATE_WEB_SUMMARY_CS.fork0.join
+2024-06-12 18:24:13 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.CREATE_WEB_SUMMARY_CS
+2024-06-12 18:24:13 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.FORMAT_OUTPUTS_CS
+2024-06-12 18:24:13 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.FORMAT_OUTPUTS_CS.fork0.split
+2024-06-12 18:24:19 [runtime] (split_complete)  ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.FORMAT_OUTPUTS_CS
+2024-06-12 18:24:19 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.FORMAT_OUTPUTS_CS.fork0.join
+2024-06-12 18:24:27 [runtime] (join_complete)   ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.FORMAT_OUTPUTS_CS
+2024-06-12 18:24:27 [runtime] (ready)           ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.MAKE_OUTPUT_MANIFEST
+2024-06-12 18:24:27 [runtime] (run:local)       ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.MAKE_OUTPUT_MANIFEST.fork0.chnk0.main
+2024-06-12 18:24:28 [runtime] (chunks_complete) ID.RESEGMENT.XENIUM_RANGER_CS.INSITU_COUNTER_CS.MAKE_OUTPUT_MANIFEST
+2024-06-12 18:24:28 [runtime] VDR killed 1447 files, 8.5 GB.
+
+Outputs:
+- metrics_summary:                            /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/metrics_summary.csv
+- transcripts:                                /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/transcripts.zarr.zip
+- Transcript info CSV:                        /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/transcripts.csv.gz
+- Transcript info parquet:                    /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/transcripts.parquet
+- Cell info CSV:                              /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/cells.csv.gz
+- Cell info parquet:                          /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/cells.parquet
+- Cell segmentation result:                   /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/cells.zarr.zip
+- Cell segmentation nucleus polygons CSV:     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/nucleus_boundaries.csv.gz
+- Cell segmentation cell polygons CSV:        /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/cell_boundaries.csv.gz
+- Cell segmentation nucleus polygons parquet: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/nucleus_boundaries.parquet
+- Cell segmentation cell polygons parquet:    /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/cell_boundaries.parquet
+- Clustering result in zarr.zip format:       /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/analysis.zarr.zip
+- Cell-feature matrix in zarr.zip format:     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/cell_feature_matrix.zarr.zip
+- Cell-feature matrix in h5 format:           /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/cell_feature_matrix.h5
+- morphology:                                 /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/morphology.ome.tif
+- morphology_mip:                             /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/morphology_mip.ome.tif
+- morphology_focus:                           /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/morphology_focus.ome.tif
+- Metadata for Xenium Explorer:               /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/experiment.xenium
+- Customer-facing web summary:                /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/analysis_summary.html
+- Cell-feature matrix in MEX format:          /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/cell_feature_matrix
+- Clustering result in csv format:            /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/analysis
+- Auxiliary output files:
+    morphology_fov_locations:    /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/morphology_fov_locations.json
+    overview_scan:               /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/overview_scan.png
+    overview_scan_fov_locations: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/overview_scan_fov_locations.json
+    per_cycle_channel_images:    {
+      cycle_01_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_01_blu.tiff
+      cycle_01_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_01_grn.tiff
+      cycle_01_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_01_red.tiff
+      cycle_01_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_01_yel.tiff
+      cycle_02_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_02_blu.tiff
+      cycle_02_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_02_grn.tiff
+      cycle_02_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_02_red.tiff
+      cycle_02_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_02_yel.tiff
+      cycle_03_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_03_blu.tiff
+      cycle_03_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_03_grn.tiff
+      cycle_03_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_03_red.tiff
+      cycle_03_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_03_yel.tiff
+      cycle_04_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_04_blu.tiff
+      cycle_04_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_04_grn.tiff
+      cycle_04_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_04_red.tiff
+      cycle_04_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_04_yel.tiff
+      cycle_05_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_05_blu.tiff
+      cycle_05_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_05_grn.tiff
+      cycle_05_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_05_red.tiff
+      cycle_05_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_05_yel.tiff
+      cycle_06_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_06_blu.tiff
+      cycle_06_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_06_grn.tiff
+      cycle_06_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_06_red.tiff
+      cycle_06_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_06_yel.tiff
+      cycle_07_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_07_blu.tiff
+      cycle_07_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_07_grn.tiff
+      cycle_07_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_07_red.tiff
+      cycle_07_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_07_yel.tiff
+      cycle_08_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_08_blu.tiff
+      cycle_08_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_08_grn.tiff
+      cycle_08_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_08_red.tiff
+      cycle_08_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_08_yel.tiff
+      cycle_09_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_09_blu.tiff
+      cycle_09_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_09_grn.tiff
+      cycle_09_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_09_red.tiff
+      cycle_09_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_09_yel.tiff
+      cycle_10_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_10_blu.tiff
+      cycle_10_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_10_grn.tiff
+      cycle_10_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_10_red.tiff
+      cycle_10_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_10_yel.tiff
+      cycle_11_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_11_blu.tiff
+      cycle_11_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_11_grn.tiff
+      cycle_11_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_11_red.tiff
+      cycle_11_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_11_yel.tiff
+      cycle_12_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_12_blu.tiff
+      cycle_12_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_12_grn.tiff
+      cycle_12_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_12_red.tiff
+      cycle_12_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_12_yel.tiff
+      cycle_13_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_13_blu.tiff
+      cycle_13_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_13_grn.tiff
+      cycle_13_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_13_red.tiff
+      cycle_13_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_13_yel.tiff
+      cycle_14_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_14_blu.tiff
+      cycle_14_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_14_grn.tiff
+      cycle_14_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_14_red.tiff
+      cycle_14_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_14_yel.tiff
+      cycle_15_blu: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_15_blu.tiff
+      cycle_15_grn: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_15_grn.tiff
+      cycle_15_red: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_15_red.tiff
+      cycle_15_yel: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/aux_outputs/per_cycle_channel_images/cycle_15_yel.tiff
+    }
+- Gene panel JSON:                            /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741D_xr17_reseg_wnuclei/outs/gene_panel.json
+
+2024-06-12 18:24:28 [perform] Serializing pipestance performance data.
+Pipestance completed successfully!
+
+2024-06-12 18:24:28 Shutting down.
+2024-06-12 18:24:28 [jobmngr] Highest memory usage observed: {
+  "rss": 55927918592,
+  "shared": 7998517248,
+  "vmem": 146161172480,
+  "text": 140591104,
+  "stack": 68681703424,
+  "proc_count": 439
+}

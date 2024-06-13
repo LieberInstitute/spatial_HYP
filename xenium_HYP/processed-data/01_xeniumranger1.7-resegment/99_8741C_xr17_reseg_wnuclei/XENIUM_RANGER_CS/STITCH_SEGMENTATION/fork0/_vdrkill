@@ -1,0 +1,28 @@
+{
+    "timestamp": "2024-06-12T17:31:32.43100587-04:00",
+    "paths": [
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/STITCH_SEGMENTATION/fork0/join-u2e7e6a1374/files/summary.json",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/STITCH_SEGMENTATION/fork0/join-u2e7e6a1374/files/nuclei_segmentation_dataset.zarr.zip"
+    ],
+    "errors": null,
+    "events": [
+        {
+            "Timestamp": "2024-06-12T17:30:28.455708761-04:00",
+            "DeltaBytes": 139624
+        },
+        {
+            "Timestamp": "2024-06-12T17:30:44.040892605-04:00",
+            "DeltaBytes": 28505418
+        },
+        {
+            "Timestamp": "2024-06-12T17:31:21.941654516-04:00",
+            "DeltaBytes": -121
+        },
+        {
+            "Timestamp": "2024-06-12T17:31:32.43100587-04:00",
+            "DeltaBytes": -28356767
+        }
+    ],
+    "count": 2,
+    "size": 28356888
+}

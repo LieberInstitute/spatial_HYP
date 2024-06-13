@@ -1,0 +1,22 @@
+{
+    "analysis_csv": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/SELECT_ANALYZER_OUTS/fork0/chnk0-u66f16a2cc8/files/analysis",
+    "calibration_uuid": "97a2fe91-b933-4101-a7d0-78900d11544f",
+    "cell_feature_matrix_zarr_zip": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_MATRIX_ZARR/fork0/join-u66f16a2c7c/files/cell_feature_matrix.zarr.zip",
+    "cell_segmentation": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SELECT_CELLS_DATASET/fork0/chnk0-u66f16a2c3c/files/cells.zarr.zip",
+    "final_summary_json": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/UPDATE_COUNT_METRICS/fork0/chnk0-u66f16a2d24/files/updated_summary.json",
+    "gene_panel": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_payload/gene_panel.json",
+    "mem_model_features": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_payload/mem_model_features.json",
+    "morphology": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_min_bundle/morphology.ome.tif",
+    "morphology_focus": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_min_bundle/morphology_focus.ome.tif",
+    "morphology_mip": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_min_bundle/morphology_mip.ome.tif",
+    "sample_sheet": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_payload/sample_sheet.json",
+    "transcripts": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_RELABEL_TRANSCRIPTS/fork0/join-u66f16a1b31/files/transcripts.zarr.zip",
+    "web_summary": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/CREATE_WEB_SUMMARY_CS/fork0/join-u66f16a2d26/files/analysis_summary.html",
+    "xr_run_data": {
+        "command_line": "xeniumranger resegment --xenium-bundle=/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/raw-data/xenium/20240223__174743__022324_KMon120823/output-XETG00089__0011236__11236X_5459A_HYP__20240223__174831 --resegment-nuclei=true --id=36_5459A_xr17_reseg_wnuclei --localcores=36 --localmem=255 --disable-ui=true --jobmode=local",
+        "original_software_version": "xenium-1.9.0.0",
+        "run_id": "36_5459A_xr17_reseg_wnuclei",
+        "run_timestamp": "2024-06-12 21:59:22 UTC",
+        "software_version": "xenium-1.7.1.1"
+    }
+}

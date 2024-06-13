@@ -1,0 +1,1012 @@
+{
+    "seg_parts_list": [
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk000-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk000-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk000-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk000-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk000-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk000-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk001-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk001-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk001-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk001-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk001-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk001-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk002-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk002-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk002-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk002-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk002-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk002-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk003-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk003-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk003-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk003-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk003-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk003-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk004-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk004-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk004-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk004-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk004-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk004-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk005-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk005-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk005-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk005-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk005-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk005-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk006-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk006-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk006-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk006-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk006-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk006-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk007-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk007-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk007-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk007-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk007-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk007-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk008-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk008-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk008-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk008-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk008-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk008-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk009-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk009-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk009-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk009-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk009-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk009-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk010-ucb306a1ce4/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk010-ucb306a1ce4/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk010-ucb306a1ce4/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk010-ucb306a1ce4/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk010-ucb306a1ce4/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk010-ucb306a1ce4/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk011-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk011-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk011-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk011-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk011-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk011-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk012-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk012-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk012-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk012-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk012-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk012-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk013-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk013-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk013-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk013-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk013-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk013-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk014-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk014-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk014-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk014-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk014-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk014-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk015-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk015-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk015-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk015-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk015-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk015-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk016-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk016-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk016-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk016-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk016-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk016-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk017-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk017-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk017-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk017-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk017-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk017-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk018-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk018-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk018-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk018-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk018-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk018-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk019-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk019-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk019-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk019-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk019-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk019-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk020-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk020-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk020-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk020-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk020-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk020-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk021-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk021-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk021-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk021-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk021-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk021-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk022-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk022-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk022-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk022-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk022-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk022-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk023-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk023-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk023-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk023-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk023-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk023-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk024-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk024-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk024-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk024-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk024-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk024-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk025-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk025-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk025-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk025-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk025-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk025-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk026-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk026-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk026-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk026-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk026-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk026-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk027-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk027-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk027-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk027-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk027-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk027-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk028-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk028-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk028-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk028-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk028-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk028-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk029-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk029-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk029-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk029-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk029-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk029-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk030-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk030-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk030-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk030-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk030-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk030-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk031-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk031-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk031-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk031-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk031-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk031-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk032-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk032-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk032-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk032-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk032-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk032-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk033-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk033-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk033-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk033-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk033-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk033-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk034-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk034-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk034-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk034-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk034-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk034-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk035-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk035-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk035-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk035-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk035-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk035-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk036-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk036-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk036-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk036-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk036-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk036-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk037-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk037-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk037-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk037-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk037-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk037-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk038-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk038-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk038-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk038-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk038-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk038-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk039-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk039-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk039-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk039-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk039-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk039-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk040-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk040-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk040-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk040-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk040-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk040-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk041-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk041-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk041-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk041-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk041-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk041-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk042-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk042-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk042-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk042-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk042-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk042-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk043-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk043-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk043-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk043-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk043-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk043-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk044-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk044-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk044-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk044-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk044-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk044-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk045-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk045-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk045-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk045-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk045-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk045-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk046-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk046-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk046-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk046-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk046-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk046-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk047-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk047-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk047-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk047-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk047-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk047-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk048-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk048-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk048-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk048-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk048-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk048-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk049-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk049-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk049-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk049-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk049-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk049-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk050-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk050-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk050-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk050-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk050-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk050-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk051-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk051-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk051-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk051-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk051-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk051-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk052-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk052-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk052-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk052-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk052-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk052-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk053-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk053-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk053-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk053-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk053-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk053-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk054-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk054-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk054-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk054-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk054-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk054-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk055-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk055-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk055-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk055-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk055-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk055-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk056-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk056-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk056-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk056-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk056-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk056-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk057-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk057-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk057-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk057-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk057-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk057-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk058-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk058-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk058-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk058-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk058-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk058-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk059-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk059-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk059-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk059-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk059-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk059-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk060-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk060-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk060-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk060-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk060-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk060-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk061-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk061-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk061-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk061-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk061-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk061-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk062-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk062-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk062-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk062-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk062-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk062-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk063-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk063-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk063-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk063-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk063-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk063-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk064-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk064-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk064-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk064-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk064-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk064-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk065-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk065-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk065-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk065-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk065-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk065-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk066-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk066-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk066-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk066-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk066-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk066-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk067-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk067-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk067-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk067-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk067-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk067-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk068-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk068-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk068-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk068-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk068-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk068-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk069-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk069-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk069-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk069-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk069-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk069-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk070-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk070-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk070-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk070-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk070-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk070-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk071-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk071-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk071-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk071-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk071-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk071-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk072-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk072-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk072-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk072-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk072-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk072-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk073-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk073-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk073-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk073-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk073-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk073-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk074-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk074-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk074-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk074-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk074-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk074-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk075-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk075-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk075-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk075-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk075-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk075-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk076-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk076-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk076-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk076-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk076-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk076-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk077-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk077-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk077-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk077-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk077-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk077-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk078-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk078-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk078-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk078-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk078-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk078-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk079-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk079-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk079-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk079-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk079-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk079-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk080-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk080-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk080-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk080-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk080-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk080-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk081-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk081-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk081-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk081-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk081-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk081-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk082-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk082-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk082-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk082-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk082-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk082-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk083-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk083-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk083-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk083-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk083-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk083-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk084-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk084-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk084-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk084-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk084-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk084-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk085-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk085-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk085-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk085-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk085-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk085-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk086-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk086-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk086-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk086-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk086-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk086-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk087-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk087-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk087-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk087-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk087-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk087-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk088-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk088-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk088-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk088-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk088-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk088-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk089-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk089-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk089-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk089-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk089-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk089-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk090-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk090-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk090-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk090-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk090-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk090-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk091-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk091-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk091-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk091-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk091-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk091-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk092-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk092-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk092-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk092-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk092-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk092-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk093-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk093-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk093-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk093-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk093-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk093-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk094-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk094-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk094-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk094-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk094-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk094-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk095-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk095-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk095-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk095-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk095-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk095-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk096-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk096-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk096-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk096-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk096-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk096-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk097-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk097-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk097-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk097-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk097-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk097-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk098-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk098-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk098-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk098-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk098-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk098-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk099-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk099-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk099-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk099-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk099-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk099-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk100-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk100-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk100-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk100-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk100-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk100-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk101-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk101-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk101-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk101-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk101-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk101-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk102-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk102-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk102-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk102-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk102-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk102-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk103-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk103-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk103-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk103-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk103-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk103-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk104-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk104-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk104-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk104-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk104-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk104-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk105-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk105-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk105-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk105-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk105-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk105-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk106-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk106-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk106-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk106-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk106-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk106-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk107-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk107-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk107-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk107-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk107-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk107-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk108-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk108-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk108-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk108-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk108-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk108-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk109-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk109-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk109-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk109-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk109-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk109-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk110-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk110-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk110-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk110-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk110-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk110-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk111-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk111-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk111-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk111-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk111-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk111-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk112-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk112-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk112-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk112-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk112-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk112-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk113-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk113-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk113-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk113-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk113-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk113-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk114-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk114-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk114-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk114-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk114-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk114-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk115-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk115-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk115-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk115-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk115-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk115-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk116-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk116-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk116-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk116-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk116-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk116-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk117-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk117-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk117-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk117-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk117-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk117-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk118-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk118-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk118-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk118-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk118-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk118-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk119-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk119-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk119-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk119-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk119-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk119-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk120-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk120-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk120-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk120-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk120-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk120-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk121-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk121-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk121-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk121-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk121-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk121-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk122-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk122-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk122-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk122-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk122-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk122-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk123-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk123-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk123-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk123-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk123-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk123-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk124-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk124-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk124-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk124-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk124-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk124-ucb306a1ce5/files/tile_parameters.json"
+        },
+        {
+            "rle_list": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk125-ucb306a1ce5/files/rle_list.npz",
+            "row_col_idx": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk125-ucb306a1ce5/files/row_col_idx.npz",
+            "vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk125-ucb306a1ce5/files/vertices.npz",
+            "num_vertices": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk125-ucb306a1ce5/files/num_vertices.npz",
+            "z_levels": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk125-ucb306a1ce5/files/z_levels.npz",
+            "tile_parameters": "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459B_xr17_reseg_wnuclei/XENIUM_RANGER_CS/SEGMENT_CELLS/fork0/chnk125-ucb306a1ce5/files/tile_parameters.json"
+        }
+    ]
+}

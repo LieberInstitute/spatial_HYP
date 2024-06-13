@@ -1,0 +1,17 @@
+@include "insitu/_segmentation_stages.mro"
+
+call SEGMENT_CELLS(
+    mem_model_features     = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_payload/mem_model_features.json",
+    seg_partition_cycle_ix = null,
+    segmentation_plan      = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/segmentation_plan.json",
+    segmentation_params    = {
+        dapi_filter_pe:    100,
+        expansion_dist_um: 15,
+        max_diameter_um:   50,
+        max_vertices:      13,
+        min_diameter_um:   1.5,
+        simplify_epsilon:  0.1,
+    },
+    morphology             = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_min_bundle/morphology.ome.tif",
+    pyramid_manifest       = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-u66f16a1aee/files/xr_payload/pyramid_manifest.tenx.json",
+)

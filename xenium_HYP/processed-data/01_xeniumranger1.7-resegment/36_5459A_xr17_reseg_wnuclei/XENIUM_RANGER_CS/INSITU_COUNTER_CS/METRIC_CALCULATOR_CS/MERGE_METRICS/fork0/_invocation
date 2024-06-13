@@ -1,0 +1,10 @@
+@include "insitu/_metrics_util_stage_defs.mro"
+
+call SIMPLE_MERGE_METRICS as MERGE_METRICS(
+    summaries = [
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/METRIC_CALCULATOR_CS/GENERATE_CELL_METRICS/fork0/join-u66f16a2cd5/files/summary.json",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/METRIC_CALCULATOR_CS/GENERATE_DECODING_METRICS_CS/fork0/join-u66f16a2c7c/files/summary.json",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/METRIC_CALCULATOR_CS/GENERATE_MORPHOLOGY_PLOTS/fork0/join-u66f16a1b31/files/summary.json",
+        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/METRIC_CALCULATOR_CS/GENERATE_SAMPLE_METRICS/fork0/join-u66f16a2d0b/files/summary.json",
+    ],
+)
