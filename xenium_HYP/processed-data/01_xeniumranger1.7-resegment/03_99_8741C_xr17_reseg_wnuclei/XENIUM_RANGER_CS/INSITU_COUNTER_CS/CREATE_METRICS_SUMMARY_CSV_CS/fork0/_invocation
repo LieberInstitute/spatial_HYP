@@ -1,5 +1,0 @@
-@include "insitu/_create_metrics_summary_csv_cs.mro"
-
-call CREATE_METRICS_SUMMARY_CSV_CS(
-    final_summary_json = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/99_8741C_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/UPDATE_COUNT_METRICS/fork0/chnk0-u2e7e6a15b7/files/updated_summary.json",
-)

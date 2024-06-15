@@ -1,6 +1,0 @@
-@include "insitu/insitu_counter_core.mro"
-
-call CONCATENATE_MATRIX(
-    cell_gene_matrix_h5    = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/02_97_reg3_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-u777f679b7c/files/cell_feature_matrix_h5.h5",
-    cell_protein_matrix_h5 = null,
-)

@@ -1,4 +1,0 @@
-[stdout]
-2024-06-07 22:11:47.944417 [1689818; 0.476 GiB; 100%] WARNING: xenium_ranger_table.json was missing from output bundle or xr-payload at /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_PREFLIGHT/fork0/join-uc86463bc4c/files/xenium_ranger_payload, but missing_ok is True. Proceeding with item set to null.
-2024-06-07 22:11:47.944505 [1689818; 0.476 GiB; 93%] Loading segmentation plan from: /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg3_reseg/XENIUM_RANGER_CS/XR_PREFLIGHT/fork0/join-uc86463bc4c/files/xenium_ranger_payload/segmentation_plan.json
-Warning: problem fetching io for 1689818: permission denied; final statistics may be incomplete

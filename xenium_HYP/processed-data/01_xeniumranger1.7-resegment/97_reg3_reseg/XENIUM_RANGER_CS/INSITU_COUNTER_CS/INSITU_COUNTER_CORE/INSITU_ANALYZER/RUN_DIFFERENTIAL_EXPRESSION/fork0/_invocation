@@ -1,7 +1,0 @@
-@include "rna/_cr_ana_stages.mro"
-
-call RUN_DIFFERENTIAL_EXPRESSION_NG as RUN_DIFFERENTIAL_EXPRESSION(
-    matrix_h5        = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/SETUP_ANALYZER/fork0/chnk0-ue26363d611/files/preprocessed_matrix_h5.h5",
-    clustering_h5    = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/97_reg3_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/INSITU_ANALYZER/COMBINE_CLUSTERING/fork0/chnk0-ue26363d65f/files/clustering_h5.h5",
-    is_antibody_only = false,
-)

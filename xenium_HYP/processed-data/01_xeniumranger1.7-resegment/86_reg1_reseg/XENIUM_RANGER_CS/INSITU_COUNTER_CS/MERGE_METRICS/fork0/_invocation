@@ -1,8 +1,0 @@
-@include "insitu/_metrics_util_stage_defs.mro"
-
-call SIMPLE_MERGE_METRICS as MERGE_METRICS(
-    summaries = [
-        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg1_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/METRIC_CALCULATOR_CS/MERGE_METRICS/fork0/chnk0-ue8d263bf15/files/summary.json",
-        "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg1_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CREATE_GENE_MATRIX/fork0/join-ue8d263bd4e/files/summary.json",
-    ],
-)

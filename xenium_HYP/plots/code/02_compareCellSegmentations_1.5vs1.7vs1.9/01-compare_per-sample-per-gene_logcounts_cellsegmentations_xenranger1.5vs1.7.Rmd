@@ -174,8 +174,8 @@ readXenium_manual <- function(dir_name){
 
 ### load resegmentations and original segmentations as separate SpatialFeatureExperiment objects to start with
 ```{r}
-resegs <- list.files("processed-data/01_xeniumranger-resegment1.7_20231019_slides",full.names = T)
-resegsampname <- gsub(resegs,pattern="^.*slides/(.*)$",replacement="\\1")
+resegs <- list.files("processed-data/01_xeniumranger1.7-resegment",pattern="reseg$",full.names = T)
+resegsampname <- gsub(resegs,pattern="^.*resegment/(.*$)",replacement="\\1")
 resegs <- paste0(resegs,"/outs")
 
 # outs directory files were previously placed directly inside the original samplewise directories

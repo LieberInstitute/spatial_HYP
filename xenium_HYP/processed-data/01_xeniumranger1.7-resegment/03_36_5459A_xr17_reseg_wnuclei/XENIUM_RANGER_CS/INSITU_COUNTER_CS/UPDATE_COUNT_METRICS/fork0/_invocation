@@ -1,6 +1,0 @@
-@include "insitu/_insitu_counter_cs.mro"
-
-call UPDATE_COUNT_METRICS(
-    original_summary    = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/MERGE_METRICS/fork0/chnk0-u66f16a1b32/files/summary.json",
-    new_metrics_summary = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger1.7-resegment/36_5459A_xr17_reseg_wnuclei/XENIUM_RANGER_CS/INSITU_COUNTER_CS/MERGE_METRICS/fork0/chnk0-u66f16a2d21/files/summary.json",
-)

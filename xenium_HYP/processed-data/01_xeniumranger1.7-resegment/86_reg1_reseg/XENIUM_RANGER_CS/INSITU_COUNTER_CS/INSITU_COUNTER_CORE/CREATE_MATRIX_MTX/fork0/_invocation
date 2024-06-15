@@ -1,6 +1,0 @@
-@include "insitu/insitu_counter_core.mro"
-
-call CREATE_MATRIX_MTX(
-    mem_model_features     = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg1_reseg/XENIUM_RANGER_CS/XR_SETUP_INPUTS/fork0/join-ue8d263b7fa/files/xr_payload/mem_model_features.json",
-    cell_feature_matrix_h5 = "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/01_xeniumranger-resegment1.7_20231019_slides/86_reg1_reseg/XENIUM_RANGER_CS/INSITU_COUNTER_CS/INSITU_COUNTER_CORE/CONCATENATE_MATRIX/fork0/chnk0-ue8d263bd97/files/cell_feature_matrix.h5",
-)

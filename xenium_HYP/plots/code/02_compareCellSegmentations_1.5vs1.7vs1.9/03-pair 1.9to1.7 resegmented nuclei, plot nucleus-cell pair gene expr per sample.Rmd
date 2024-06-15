@@ -247,7 +247,7 @@ conveniently, we make a lookup table between original and reseg nucleus (==cell)
 
 ```{r}
 bpp <- MulticoreParam(7)
-## get nuclear boundaries from v1.5 and calculate centroids
+## get nuclear boundaries from v1.9 and calculate centroids
 orignuccentroids <- bplapply(origsegs,FUN=function(x){
     nuc <- fread(paste0(x,"/nucleus_boundaries.csv.gz"))
     nuc[,centroidx:=mean(vertex_x),by="cell_id"]
