@@ -65,6 +65,39 @@ for (i in c(1:length(plotvars))){
 
 ```
 
+### load table of lognorm count UMAP embeddings w/ dataset metadata already added 
+```{r}
+lct.rastumap <- fread("processed-data/04_general_QC/01b-logcounts_umap_embeddings_and_xenium_metadata.txt.gz")
+
+## select columns to plot
+# names(lct.rastumap)
+plotvars <- names(lct.rastumap)[c(4,7,8,9,10,11,12,13,14,17,18,21,24,26,27,29,30,32,36,38,39,41,42,44,46,47,49,51,52,55,59,61,63,64,65,67)]
+
+## make slide number a nonnumeric
+lct.rastumap[,Slide_Number:=as.character(Slide_Number)]
+
+## collect into a list for grid layout
+i <- 1
+for (i in c(1:length(plotvars))){
+    plt <- ggplot(lct.rastumap, aes(x=UMAP1, y=UMAP2, color=.data[[plotvars[i]]]))+ 
+        rasterize(geom_point(size=0.02))+ 
+        ggtitle(paste0("UMAP of Gene Probe Raw Counts\nby ",gsub(plotvars[i],pattern="_",replacement=" ")))
+    
+    ## use a multicolor scale if numeric variable
+    if(is.numeric(lct.rastumap[,get(plotvars[i])])){
+        plt <- plt+scale_color_viridis_c()
+    }
+    
+    png(paste0("plots/04_general_QC/01b-logcount_UMAP_by_",plotvars[i],".png"),width=2000,height=2000)
+    print(plt)
+    dev.off()
+    
+    rm(plt)
+}
+
+
+```
+
 Reproducbility info
 ```{r}
 sessionInfo()
