@@ -1,0 +1,193 @@
+---
+title: "01a_plot_UMAPs_by_metadata_fields"
+output: html_document
+date: "2024-06-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(ggrastr)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+### load table of UMAP embeddings w/ dataset metadata already added 
+```{r}
+rastumap <- fread("processed-data/04_general_QC/01-umap_embeddings_and_xenium_metadata.txt.gz")
+
+## select columns to plot
+# names(rastumap)
+plotvars <- names(rastumap)[c(4,7,8,9,10,11,12,13,14,17,18,21,24,26,27,29,30,32,36,38,39,41,42,44,46,47,49,51,52,55,59,61,63,64,65,67)]
+
+## make slide number a nonnumeric
+rastumap[,Slide_Number:=as.character(Slide_Number)]
+
+## collect into a list for grid layout
+i <- 1
+for (i in c(1:length(plotvars))){
+    plt <- ggplot(rastumap, aes(x=UMAP1, y=UMAP2, color=.data[[plotvars[i]]]))+ 
+        rasterize(geom_point(size=0.02))+ 
+        ggtitle(paste0("UMAP of Gene Probe Raw Counts\nby ",gsub(plotvars[i],pattern="_",replacement=" ")))
+    
+    ## use a multicolor scale if numeric variable
+    if(is.numeric(rastumap[,get(plotvars[i])])){
+        plt <- plt+scale_color_viridis_c()
+    }
+    
+    png(paste0("plots/04_general_QC/01a-rawcount_UMAP_by_",plotvars[i],".png"),width=2000,height=2000)
+    print(plt)
+    dev.off()
+    
+    rm(plt)
+}
+
+
+```
+
+Reproducbility info
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] BiocParallel_1.38.0 parallelly_1.37.1   colorout_1.3-0.2   
+ [4] ggrastr_1.0.2       gridExtra_2.3       ggplot2_3.5.1      
+ [7] Biostrings_2.72.1   GenomeInfoDb_1.40.1 XVector_0.44.0     
+[10] IRanges_2.38.0      S4Vectors_0.42.0    BiocGenerics_0.50.0
+[13] data.table_1.15.4   rlang_1.1.4        
+
+loaded via a namespace (and not attached):
+ [1] utf8_1.2.4              generics_0.1.3          digest_0.6.35          
+ [4] magrittr_2.0.3          evaluate_0.24.0         grid_4.4.1             
+ [7] fastmap_1.2.0           rprojroot_2.0.4         jsonlite_1.8.8         
+[10] httr_1.4.7              fansi_1.0.6             UCSC.utils_1.0.0       
+[13] scales_1.3.0            codetools_0.2-20        cli_3.6.2              
+[16] crayon_1.5.2            munsell_0.5.1           withr_3.0.0            
+[19] yaml_2.3.8              ggbeeswarm_0.7.2        tools_4.4.1            
+[22] parallel_4.4.1          dplyr_1.1.4             colorspace_2.1-0       
+[25] GenomeInfoDbData_1.2.12 here_1.0.1              vctrs_0.6.5            
+[28] R6_2.5.1                lifecycle_1.0.4         zlibbioc_1.50.0        
+[31] vipor_0.4.7             pkgconfig_2.0.3         beeswarm_0.4.0         
+[34] pillar_1.9.0            gtable_0.3.5            glue_1.7.0             
+[37] xfun_0.44               tibble_3.2.1            tidyselect_1.2.1       
+[40] rstudioapi_0.16.0       knitr_1.47              htmltools_0.5.8.1      
+[43] rmarkdown_2.27          compiler_4.4.1         
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-06-17
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ───────────────────────────────────────────────────────────────
+ ! package          * version date (UTC) lib source
+   beeswarm           0.4.0   2021-06-01 [1] CRAN (R 4.4.0)
+   BiocGenerics     * 0.50.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocParallel     * 1.38.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
+   Biostrings       * 2.72.1  2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
+ P cli                3.6.2   2023-12-11 [2] CRAN (R 4.4.0)
+   codetools          0.2-20  2024-03-31 [1] CRAN (R 4.4.1)
+   colorout         * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace         2.1-0   2023-01-23 [1] CRAN (R 4.4.0)
+   crayon             1.5.2   2022-09-29 [1] CRAN (R 4.4.0)
+   data.table       * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   digest             0.6.35  2024-03-11 [1] CRAN (R 4.4.0)
+   dplyr              1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
+   evaluate           0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
+   fansi              1.0.6   2023-12-08 [1] CRAN (R 4.4.0)
+   fastmap            1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   generics           0.1.3   2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb     * 1.40.1  2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomeInfoDbData   1.2.12  2024-05-01 [1] Bioconductor
+   ggbeeswarm         0.7.2   2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2          * 3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
+   ggrastr          * 1.0.2   2023-06-01 [1] CRAN (R 4.4.0)
+   glue               1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
+   gridExtra        * 2.3     2017-09-09 [1] CRAN (R 4.4.0)
+   gtable             0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
+   here               1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools          0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   httr               1.4.7   2023-08-15 [1] CRAN (R 4.4.0)
+   IRanges          * 2.38.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   jsonlite           1.8.8   2023-12-04 [1] CRAN (R 4.4.0)
+   knitr              1.47    2024-05-29 [1] CRAN (R 4.4.0)
+   lifecycle          1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
+   magrittr           2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
+   munsell            0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
+   parallelly       * 1.37.1  2024-02-29 [1] CRAN (R 4.4.0)
+   pillar             1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig          2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
+   R6                 2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
+ P rlang            * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown          2.27    2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot          2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi         0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
+   S4Vectors        * 0.42.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scales             1.3.0   2023-11-28 [1] CRAN (R 4.4.0)
+   sessioninfo        1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   tibble             3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
+   tidyselect         1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
+   UCSC.utils         1.0.0   2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   utf8               1.2.4   2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs              0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
+   vipor              0.4.7   2023-12-18 [1] CRAN (R 4.4.0)
+   withr              3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
+   xfun               0.44    2024-05-15 [1] CRAN (R 4.4.0)
+   XVector          * 0.44.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   yaml               2.3.8   2023-12-11 [1] CRAN (R 4.4.0)
+   zlibbioc           1.50.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+──────────────────────────────────────────────────────────────────────────

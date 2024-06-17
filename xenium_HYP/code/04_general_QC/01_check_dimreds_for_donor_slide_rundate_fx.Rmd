@@ -1,0 +1,62 @@
+---
+title: "01_check_dimreds_for_donor_slide_rundate_fx"
+output: html_document
+date: "2024-06-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(SpatialFeatureExperiment)
+library(scater)
+library(scran)
+library(spatialLIBD)
+library(ggrastr)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+#theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+## read in raw SFE
+```{r}
+hypx <- readRDS("processed-data/03_make_SPE-SFE/01_sfe_raw.RDS")
+```
+
+## run PCA on raw counts using all (targeting) genes
+```{r}
+genetargeting <- grep(rownames(hypx),pattern="Unassigned|NegCon|Deprecated",value=T,invert=T)
+
+set.seed(42)
+hypx <- scater::runPCA(hypx,subset_row=genetargeting,assay.type="counts")
+
+set.seed(42)
+hypx <- scater::runUMAP(hypx,dimred="PCA")
+
+rastumap <- as.data.table(reducedDim(hypx,"UMAP"),keep.rownames=T)
+rastumap <- merge.data.table(rastumap,as.data.table(colData(hypx),keep.rownames=T),by="rn")
+
+# save the UMAP embeddings w/ metadata as a table to plot from without needing to load up the whole SFE
+fwrite(rastumap,"processed-data/04_general_QC/01-umap_embeddings_and_xenium_metadata.txt.gz",sep='\t',quote=F)
+```
+
