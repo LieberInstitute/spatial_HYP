@@ -34,7 +34,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 ### load table of UMAP embeddings w/ dataset metadata already added 
 ```{r}
-rastumap <- fread("processed-data/04_general_QC/01-umap_embeddings_and_xenium_metadata.txt.gz")
+rastumap <- fread("processed-data/04_general_QC_and_normalization/01-umap_embeddings_and_xenium_metadata.txt.gz")
 
 ## select columns to plot
 # names(rastumap)
@@ -55,7 +55,7 @@ for (i in c(1:length(plotvars))){
         plt <- plt+scale_color_viridis_c()
     }
     
-    png(paste0("plots/04_general_QC/01a-rawcount_UMAP_by_",plotvars[i],".png"),width=2000,height=2000)
+    png(paste0("plots/04_general_QC_and_normalization/01a-rawcount_UMAP_by_",plotvars[i],".png"),width=2000,height=2000)
     print(plt)
     dev.off()
     
@@ -67,7 +67,7 @@ for (i in c(1:length(plotvars))){
 
 ### load table of lognorm count UMAP embeddings w/ dataset metadata already added 
 ```{r}
-lct.rastumap <- fread("processed-data/04_general_QC/01b-logcounts_umap_embeddings_and_xenium_metadata.txt.gz")
+lct.rastumap <- fread("processed-data/04_general_QC_and_normalization/01b-logcounts_umap_embeddings_and_xenium_metadata.txt.gz")
 
 ## select columns to plot
 # names(lct.rastumap)
@@ -88,7 +88,7 @@ for (i in c(1:length(plotvars))){
         plt <- plt+scale_color_viridis_c()
     }
     
-    png(paste0("plots/04_general_QC/01b-logcount_UMAP_by_",plotvars[i],".png"),width=2000,height=2000)
+    png(paste0("plots/04_general_QC_and_normalization/01b-logcount_UMAP_by_",plotvars[i],".png"),width=2000,height=2000)
     print(plt)
     dev.off()
     

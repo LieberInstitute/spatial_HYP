@@ -57,7 +57,7 @@ rastumap <- as.data.table(reducedDim(hypx,"UMAP"),keep.rownames=T)
 rastumap <- merge.data.table(rastumap,as.data.table(colData(hypx),keep.rownames=T),by="rn")
 
 # save the UMAP embeddings w/ metadata as a table to plot from without needing to load up the whole SFE
-fwrite(rastumap,"processed-data/04_general_QC/01-umap_embeddings_and_xenium_metadata.txt.gz",sep='\t',quote=F)
+fwrite(rastumap,"processed-data/04_general_QC_and_normalization/01-umap_embeddings_and_xenium_metadata.txt.gz",sep='\t',quote=F)
 ```
 
 
@@ -85,5 +85,5 @@ logct.rastumap <- as.data.table(reducedDim(hyptarg,"UMAP"),keep.rownames=T)
 logct.rastumap <- merge.data.table(logct.rastumap,as.data.table(colData(hyptarg),keep.rownames=T),by="rn")
 
 # save the UMAP embeddings w/ metadata as a table to plot from without needing to load up the whole SFE
-fwrite(logct.rastumap,"processed-data/04_general_QC/01b-logcounts_umap_embeddings_and_xenium_metadata.txt.gz",sep='\t',quote=F)
+fwrite(logct.rastumap,"processed-data/04_general_QC_and_normalization/01b-logcounts_umap_embeddings_and_xenium_metadata.txt.gz",sep='\t',quote=F)
 ```
