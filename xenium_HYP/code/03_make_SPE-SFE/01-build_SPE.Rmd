@@ -330,8 +330,7 @@ rm(tmprd,basepan,genedat,mart)
 
 save core Xenium data as RDS
 ```{r}
-saveRDS(resegsamps,"~/Desktop/01_sfe_raw.rots.RDS")
-#saveRDS(resegsamps,"processed-data/03_make_SPE-SFE/01_sfe_raw.RDS")
+saveRDS(resegsamps,"processed-data/03_make_SPE-SFE/01_sfe_raw.RDS")
 ```
 
 ### Reproducibility info
