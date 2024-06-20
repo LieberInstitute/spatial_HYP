@@ -7,6 +7,10 @@ library(BiocParallel)
 ## faster UMAP in uwot 0.2 (used by banksy UMAP)
 library(RcppHNSW)
 
+## set wd using rel paths from code dir, where job is launched
+setwd("../../")
+stopifnot(length(grep(getwd(),pattern="xenium_HYP$",value=T))==1)
+
 ## load data
 hypx <- readRDS("processed-data/03_make_SPE-SFE/01_sfe_raw.RDS")
 
@@ -33,8 +37,13 @@ monocot <- 1000
 genetargeting <- grep(rownames(hypx),pattern="NegCon|Deprecated|Unassigned",value=T,invert=T)
 hypx <- hypx[genetargeting,]
 
+## there are 2 cells (of ~912k) that have no gene probe counts, so drop these
+## or we'll get errors when trying to normalize counts
+hypx <- hypx[,colSums(counts(hypx))>0]
+
+## NOW normalize
 hypx <- computeLibraryFactors(hypx)
-hypx <- normalizeCounts(hypx,log=FALSE)
+assay(hypx,"normcounts") <- normalizeCounts(hypx,log=FALSE)
 
 ## to run Banksy in multisample mode, adjust coordinates so that
 ## all samples have unique non-overlapping coords (i.e. to prevent
