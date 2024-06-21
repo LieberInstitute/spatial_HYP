@@ -62,7 +62,7 @@ spatialCoords(hypx) <- locs
 ##
 
 ## save SFE with normed counts and adjusted coords
-saveRDS(hypx,"processed-data/05_Banksy_M0lam0_res2_multisamp/01_sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+saveRDS(hypx,"processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
 
 # now specify which Assays() slot to use for banksy calls
 useassay <- "normcounts"
@@ -107,7 +107,7 @@ m0lam0res2 <- as.data.table(colData(hypx),keep.rownames=T)
 m0lam0res2 <- m0lam0res2[,.(rn,clust_M0_lam0_k50_res2)]
 setnames(m0lam0res2,c("rn","M0lam0_leiden_multisamp_res2"))
 fwrite(m0lam0res2,
-       "processed-data/05_Banksy_M0lam0_res2_multisamp/01_BanksyClusts_M0lam0_leiden_multisamp.txt",
+       "processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt",
        sep='\t',
        quote=F)
 
