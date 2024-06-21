@@ -79,7 +79,7 @@ hypx <- computeBanksy(hypx,
 ## sample's Banksy PCA will be computed separately, making this
 ## equivalent to running Banksy on a list of SFEs with each entry as
 ## one sample, the other approach their vignettes uses
-hypx <- computeBanksyPCA(hypx,
+hypx <- runBanksyPCA(hypx,
                          assay_name=useassay,
                          use_agf=gabor,
                          lambda=lam,
@@ -93,7 +93,7 @@ hypx <- clusterBanksy(hypx,
                       use_agf = gabor,
                       lambda = lam,
                       resolution = res,
-                      group="sample_id"
+                      group="sample_id",
                       seed = monocot)
 
 
