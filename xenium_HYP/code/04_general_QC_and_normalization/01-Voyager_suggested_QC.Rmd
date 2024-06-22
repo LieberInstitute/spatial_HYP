@@ -1,0 +1,716 @@
+---
+title: "01-Voyager_suggested_QC"
+output: html_document
+date: "2024-06-21"
+---
+
+# based on this tutorial: https://pachterlab.github.io/voyager/articles/vig5_xenium.html
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Voyager)
+library(SpatialExperiment)
+library(SpatialFeatureExperiment)
+library(ggplot2)
+library(ggrastr)
+library(scater) 
+library(scuttle)
+library(BiocParallel)
+library(scran)
+library(gridExtra)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+# load SFE
+```{r}
+hypx <- readRDS("processed-data/03_make_SPE-SFE/01_sfe_raw.RDS")
+
+# get a data.table together containing the metadata (colData) and spatialCoords() for plotting.
+pltdat <- as.data.table(colData(hypx),keep.rownames=T)
+coords <- as.data.table(cbind(colnames(hypx),spatialCoords(hypx)))
+pltdat <- merge.data.table(pltdat,coords,by.x="rn",by.y="V1")
+
+# set a ggrastr DPI high enough to be able to read large rasterized pngs
+options("ggrastr.default.dpi"=72)
+
+```
+
+## plot previously requested by S.Hicks: cell area vs. conuts
+```{r}
+png("plots/04_general_QC_and_normalization/01a-cellArea_vs_ncounts.png",height=1000,width=1250)
+ggplot(pltdat,aes(x=cell_area,y=nCounts,color=sample_id)) + rasterize(geom_point(size=0.01)) + theme_bw()
+dev.off()
+```
+
+## check for grid artifacts 
+## if seeing grid artifacts, change device to pdf and double-check using ≥ 2 PDF viewers. Cindy Fang and I found a wonkiness wherein things appearing to be grid artifacts are actually just lazy rendering at either the plot to png level or the PDF display level.
+
+```{r}
+# keep this vector for making samplwise grids as we go
+samps <- unique(pltdat$sample_id)
+#
+
+plts <- list()
+plts <- lapply(samps,FUN=function(x){
+    rasterize(plotSpatialFeature(hypx[,hypx$sample_id==x],features="nGenes",colGeometryName="cellSeg",color=NA))+ggtitle(paste0(samps," nGenes per Cell"))+
+        geom_point(size=0.55)
+})
+png("plots/04_general_QC_and_normalization/01b-nGenes_by_cell_in_space.png",width=8250,height=8250)
+do.call(grid.arrange,c(plts,nrow=4,ncol=4))
+dev.off()
+```
+
+## distributions of unique genes vs total counts per cell
+```{r}
+plts<-list()
+
+## determine numbwer of bins based on max nGenes
+max(hypx$nGenes)
+
+png("plots/04_general_QC_and_normalization/01c-NuniqueGenes_vs_totCounts.png",height=500,width=600)
+rasterize(scater::plotColData(hypx,y="nGenes",x="nCounts",bins=267))
+dev.off()
+```
+
+## plot relationship between cell area and nucleus area
+## this one is a little odd -- there's this like cap that's pretty well represented -- possibly some sort of internal Xeniumranger cap on max-cell-area-allowable-for-given-nuclear-area? 
+```{r}
+png("plots/04_general_QC_and_normalization/01d-nucleusArea_vs_cellArea.png",height=1000,width=1250)
+rasterize(plotColData(hypx,y="cell_area",x="nucleus_area",bins=1000))
+dev.off()
+```
+
+## look at cell area over spatial dimensions. (presumably, the neuron-rich VMH/ARC will have larger cells/nuclei compared to e.g., WM)
+```{r}
+options("ggrastr.default.dpi"=72)
+plts <- lapply(samps,FUN=function(x){
+    rasterize(ggplot(pltdat[sample_id==x],aes(x=x_centroid,y=y_centroid,color=cell_area)))+
+                  geom_point(aes(size=cell_area*.00033))+
+                  ggtitle(paste0(x," cell area"))
+})
+png("plots/04_general_QC_and_normalization/01e-cellArea_by_cell_in_space.png",width=8250,height=8250)
+do.call(grid.arrange,c(plts,nrow=4,ncol=4))
+dev.off()
+
+rm(plts)
+```
+
+## calculate a variable for nuclear area as fraction of cell area.
+## note that the biologically true distribution for this could range from ~0 (e.g., densely projecting cells or cells with very condensed nuclei) to ~1 (e.g., lymphoblasts, adipose, LC neurons) depending on the tissue. for HYP we don't have a particularly good idea one way or another.
+```{r}
+colData(hypx)$nuc_frac <- colData(hypx)$nucleus_area/colData(hypx)$cell_area
+## update our colData+spatialCoords plotting data table source
+pltdat <- as.data.table(colData(hypx),keep.rownames=T)
+coords <- as.data.table(cbind(colnames(hypx),spatialCoords(hypx)))
+pltdat <- merge.data.table(pltdat,coords,by.x="rn",by.y="V1")
+rm(coords)
+## plot these by sample as density plots, and dataset-wide
+plt1 <- ggplot(pltdat,aes(x=nuc_frac,fill="#aaaaaa"))+geom_density(alpha=0.6)+xlim(0,1)+ggtitle("HYP Nuc:Cell Area Ratio Full Dataset")+scale_fill_manual(values="#aaaaaa")+guides(fill="none")
+
+bysamp <- ggplot(pltdat,aes(x=nuc_frac,fill=sample_id))+geom_density(alpha=0.45)+xlim(0,1)+ggtitle("HYP Nuc:Cell Area Ratio by Sample")
+
+pltlist <- list(plt1,bysamp)
+png("plots/04_general_QC_and_normalization/01f-nuc_frac_fulldata_and_bysample.png",height=1000,width=2250)
+do.call(grid.arrange,c(pltlist,nrow=1,ncol=2))
+dev.off()
+```
+
+## ^ so really, all of these are in the like 2-25% range.
+
+## double check for a couple other segmentation oddities that shouldn't happen but could: no nucleus or nucleus area exceeding cell area
+```{r}
+sum(hypx$nucleus_area<1)
+#0
+sum(hypx$nucleus_area>hypx$cell_area)
+#0
+
+# what about cells with a nuclear and cell area near or exactly equal?
+sum(hypx$nucleus_area==hypx$cell_area)
+# 0
+sum(hypx$nucleus_area>0.99*hypx$cell_area)
+# 0
+sum(hypx$nucleus_area>0.95*hypx$cell_area)
+# 0
+```
+
+# ^ No nuclei that occupy even 95% of cell volume.
+
+# plot relationship between nuclear area and nuclear proportion
+```{r}
+plt <- plotColData(hypx,x = "nucleus_area",y="prop_nuc")
+
+png("plots/04_general_QC_and_normalization/01g-nucleusArea_vs_propNuc.png",height=1000,width=1250)
+plt
+dev.off()
+```
+
+## ^ this is a pretty clean relationship for this data.
+
+
+## let's also look at how cell area and its relationship to the proportion of area occupied by nucleus
+```{r}
+# make a global dataset plot 
+plts <- lapply(samps,FUN=function(x){
+    rasterize(plotColData(hypx[,hypx$sample_id==x],x="cell_area",y="prop_nuc"))+
+        ggtitle(paste0(x," Cell Area vs. Prop Nuc. Area"))
+})
+
+
+plts[[14]] <- rasterize(plotColData(hypx,x="cell_area",y="prop_nuc"))+ggtitle("Full Dataset Cell Area vs. Prop Nuc Area")
+
+plts <- plts[c(14,1:13)]
+
+png("plots/04_general_QC_and_normalization/01h-cellArea_vs_propNuc.png",height=8250,width=8250)
+do.call(grid.arrange,c(plts,nrow=4,ncol=4))
+dev.off()
+
+```
+
+Voyager describes the control probesets (while noting that the purpose of BLANK (aka Unassigned) probes is not described, but we can assume them to be a negative control) as described in the original Xenium publication (Janesick 2022) as follows:
+"
+•probe controls to assess non-specific binding to RNA,
+•decoding controls to assess misassigned genes, and
+•genomic DNA (gDNA) controls to ensure the signal is from RNA.
+"
+
+## the next several parts of the Voyager vignette on Xenium are included in Cindy Fang's readXenium wrapper and our extension of it used in code/03
+## so we already have the count proportions attributable to different negative/control probe groups in colData.
+
+### check that all control element QC columns of interest here weere accounted for previously with Cindy's modified loader function (i.e., are already in colData()), namely negative control codewords, negative control probes, antisense probes (none in this panel), deprecated ("depr"), unassigned (previously known called BLANK); as well as their %age columns and a joint any_neg column (both kinds of negative controls, blank/unassigned, antisense, deprecated)
+```{r}
+contprob_preexistingcols <- grep(colnames(colData(hypx)),pattern="blank|neg|neg2|anti|unass|depr",value=T)
+contprob_preexistingcols
+
+#  [1] "unassigned_codeword_counts"   "deprecated_codeword_counts"   "subsets_blank_sum"           
+#  [4] "subsets_blank_detected"       "subsets_blank_percent"        "subsets_negProbe_sum"        
+#  [7] "subsets_negProbe_detected"    "subsets_negProbe_percent"     "subsets_negCodeword_sum"     
+# [10] "subsets_negCodeword_detected" "subsets_negCodeword_percent"  "subsets_anti_sum"            
+# [13] "subsets_anti_detected"        "subsets_anti_percent"         "subsets_depr_sum"            
+# [16] "subsets_depr_detected"        "subsets_depr_percent"         "subsets_unassigned_sum"      
+# [19] "subsets_unassigned_detected"  "subsets_unassigned_percent"   "subsets_any_neg_sum"         
+# [22] "subsets_any_neg_detected"     "subsets_any_neg_percent"
+
+## note that "BLANK"s are actually called as of Xeniumranger 1.7 (Unassigned), so the subsets_blank columns are all zero and the subsets Unassigned columns represent the blanks as they are currently named.
+## delete the unneeeded columns (which are all 0 because there are no "BLANK"s in the SFE). (otherwise the next commands won't overwrite them, but won't give a warning to such effect either). we'll keep the existing subset name of "blank" though.
+hypx$subsets_blank_sum <- NULL
+hypx$subsets_blank_detected <- NULL
+hypx$subsets_blank_percent <- NULL
+
+## get an updated vector to pull percentage plotting colnames from
+contprob_preexistingcols <- grep(colnames(colData(hypx)),pattern="blank|neg|neg2|anti|unass|depr",value=T)
+
+## get an updated plot data.table
+pltdat <- as.data.table(colData(hypx),keep.rownames=T)
+coords <- as.data.table(cbind(colnames(hypx),spatialCoords(hypx)))
+pltdat <- merge.data.table(pltdat,coords,by.x="rn",by.y="V1")
+stopifnot(nrow(pltdat)==ncol(hypx))
+
+rm(coords)
+```
+
+
+## anyhow, get colData names for percentages for each type of negative and all negatives combined 
+```{r}
+pltcols <- grep(contprob_preexistingcols,pattern="^subsets.*percent$",value=T)
+
+## clean up
+rm(plt1,plt,pltlist,plts,bysamp,contprob_preexistingcols)
+gc(full=T)
+
+
+samppal <- as.data.table(unique(pltdat$sample_id))
+samppal[,colr:=Polychrome::createPalette(N=13,seedcolors="#ff00ff")]
+setnames(samppal,1,"sampid")
+
+
+## for plotting, note that these are ACTUAL percentages, not decimals. (e.g., a value of 33 is 33%, a value of 0.1 is 0.1%)
+plts <- lapply(pltcols,FUN=function(x){
+    retlist <- lapply(samps,FUN=function(s){
+        ggplot(pltdat[sample_id==s&!is.na(get(x))],aes(x=.data[[x]],fill=sample_id))+
+            geom_density(alpha=0.6)+
+            ggtitle(paste0(s,"\n",x," Dist"))+
+            scale_fill_manual(values=samppal[samppal$sampid==s]$colr)+
+            scale_x_log10()+
+            xlab(x)
+    })
+
+    retlist[[length(samps)+1]] <- ggplot(pltdat,aes(x=.data[[x]],fill="#aaaaaa"))+
+        geom_density(alpha=0.6)+
+        ggtitle(paste0(x,"\nFull-Dataset Distribution"))+
+        scale_x_log10()+
+        xlab(x)
+    
+    # reorder to have full-data plot first
+    retlist <- retlist[c((length(samps)+1),1:length(samps))]
+    return(retlist)
+})
+names(plts) <- pltcols
+
+## save these as PDFs so we don't lose any fine-level or bin-specific lines etc
+i<-1
+for (i in c(1:length(plts))){
+    pdf(paste0("plots/04_general_QC_and_normalization/01i-",names(plts)[i],".pdf"),height=24,width=24)
+    do.call(grid.arrange,c(plts[[i]],nrow=4,ncol=4))
+    dev.off()
+}
+
+rm(plts,i,pltcols)
+gc(full=T)
+```
+
+## ^ so, the vast majority of cells have few control probes detected, and the distribution of %age of negative control probes detected is pretty similar across samples. there are bigtime outliers, though: in some samples  there's a tail of 10-100% counts being controls
+let's see what that looks like in terms of total counts considering all control sets jointly. this is in the _detected colData entries 
+```{r}
+negcountsplt <- lapply(samps,FUN=function(s){
+    ## get max value for this variable data-wide --> uniform x axes
+    maxx <- pltdat[,max(subsets_any_neg_detected)]
+    ggplot(pltdat[sample_id==s&!is.na(subsets_any_neg_detected)],aes(x=subsets_any_neg_detected,fill=sample_id))+
+        geom_histogram(alpha=0.6,bins=maxx)+
+        ggtitle(paste0(s,"\nsubsets_any_neg_detected"," Dist"))+
+        scale_fill_manual(values=samppal[samppal$sampid==s]$colr)+
+        xlim(0,maxx)+
+        xlab("subsets_any_neg_detected")
+})
+
+# get global max x value, put global data into first slot
+maxx <- pltdat[,max(subsets_any_neg_detected)]
+negcountsplt[[length(samps)+1]] <- ggplot(pltdat,aes(x=subsets_any_neg_detected,fill="#aaaaaa"))+
+    geom_histogram(alpha=0.6,bins=maxx)+
+    ggtitle("subsets_any_neg_detected\nFull-Dataset Distribution")+
+    xlim(0,maxx)+
+    xlab("subsets_any_neg_detected")
+
+# reorder to have full-data plot first
+negcountsplt <- negcountsplt[c((length(samps)+1),1:length(samps))]
+
+pdf("plots/04_general_QC_and_normalization/01j-subsets_any_neg_detected.pdf",height=24,width=24)
+do.call(grid.arrange,c(negcountsplt,nrow=4,ncol=4))
+dev.off()
+```
+
+# this next bit is code straight from the Voyager tutorial, that explains how to filter for outliers without filtering everything with even one control probe detected.
+Quoth:
+# The scuttle package can detect outliers, but by default it assigns anything above zero as an outlier, 
+# since that is over 3 median absolute deviations (MADs) away from the median, which is 0, and the MAD is 0 
+# since the vast majority of cells don’t have any negative control count. But it makes sense to allow a small proportion of negative controls. Here we use the distribution just for cells with at least 1 negative control count to find outliers. This distribution has a very long tail and some definite outliers.
+# 
+# The function defined below extracts the outliers, based only on cells with at least one negative control count
+```{r}
+# get_neg_ctrl_outliers <- function(col, sfe) {
+#   inds <- colData(sfe)$nCounts > 0 & colData(sfe)[[col]] > 0
+#   df <- colData(sfe)[inds,]
+#   outlier_inds <- isOutlier(df[[col]], type = "higher")
+#   outliers <- rownames(df)[outlier_inds]
+#   col2 <- stringr::str_remove(col, "^subsets_")
+#   col2 <- stringr::str_remove(col2, "_percent$")
+#   new_colname <- paste("is", col2, "outlier", sep = "_")
+#   colData(sfe)[[new_colname]] <- colnames(sfe) %in% outliers
+#   sfe
+# }
+```
+
+End quote.
+
+-Quoth the Raven: "Nevermore."
+(Edgar Allen Poe, "The Raven")
+(Thanks for the citation there, Github copilot. Just in case anyone was wondering.)
+
+As we were, then. I'm actually going to tweak this function in order to use data.table's [,lapply(.SD),by=] functionality to do this in extracted colData by sample. Get updated colData first though.
+```{r}
+rm(pltdat)
+gc(full=T)
+
+# coldata fetch
+tmpcd <- as.data.table(colData(hypx),keep.rownames=T)
+
+# get the control subsets to iterate over
+cntcol <- grep(colnames(tmpcd),pattern="^subsets.*percent$",value=T)
+
+# apply the outlier function to a given control subset in each sample, with the result returned in a new column
+# then rename the column accordingly. Yi also applied these outlier calcs to each sample individually (see lines ~485-495 in old code "step3_voyager_QC")
+# 3 lines. boom.
+
+i<-1
+for (i in c(1:length(cntcol))){
+    tmpcd <- tmpcd[nCounts>0 & get(cntcol[i])>0, newcol:=lapply(.SD,function(x){ isOutlier(x,type="higher")}),by=sample_id,.SDcols=cntcol[i]]
+    ## if there are 0 counts globally or of the control we'lre examining, then NA is returned (since that row is not passed to the isOutlier function.) fix this so that NA --> FALSE
+    tmpcd[is.na(newcol),newcol:=FALSE]
+    setnames(tmpcd,"newcol",paste0("outlier_",gsub(cntcol[i],pattern="^subsets_(.*)_percent$",replacement="\\1")))
+}
+rm(i,cntcol)
+
+## the vignette only used blanks ("unassigned") at this point, but now we have columns for all of them. in case we want them.
+
+tmpcd <- DataFrame(tmpcd,row.names = tmpcd$rn)
+tmpcd$rn <- NULL
+tmpcd <- tmpcd[colnames(hypx),]
+colData(hypx) <- tmpcd
+#
+rm(tmpcd,pltdat)
+gc(full=T)
+```
+
+## before starting to actually filter, save the updated SFE (to which we added a couple metrics and removed a couple unnecessary ones, e.g. QC subsets "BLANK")
+```{r}
+## save the updated raw SFE
+saveRDS(hypx,"processed-data/04_general_QC_and_normalization/01a-sfe_raw_controlOutliers_marked.RDS")
+
+## make an updated data.table to plot from
+pltdat <- as.data.table(colData(hypx),keep.rownames=T)
+coords <- as.data.table(cbind(colnames(hypx),spatialCoords(hypx)))
+pltdat <- merge.data.table(pltdat,coords,by.x="rn",by.y="V1")
+rm(coords)
+```
+
+## plot outlier positions spatially
+```{r}
+outliervars <- grep(names(pltdat),pattern="outlier",value=T)
+## we don't need the antisense ones in here since there's no antisense probes
+outliervars <- grep(outliervars,pattern="_anti",invert=T,value=T)
+
+## change the outlier vars to be factors for plotting
+pltdat[,c(outliervars):=lapply(.SD,function(x){ as.factor(x)}),.SDcols=outliervars]
+pltdat[,c(outliervars):=lapply(.SD,function(x){ifelse(x=="TRUE",yes = "Outlier",no="Non-Outlier")}),.SDcols=outliervars]
+pltdat[,c(outliervars):=lapply(.SD,function(x){factor(x,levels=c("Non-Outlier","Outlier"))}),.SDcols=outliervars]
+## make a gray (nonoutlier) / red (outlier) palette for this
+outlierpal <- c("#aaaaaa","#ff0000")
+names(outlierpal) <- c("Non-Outlier","Outlier")
+
+## increase rasterization DPI temporarily for these plots
+options("ggrastr.default.dpi"=200)
+
+## split the pltdat table into a list of subtables by sample for memory efficiency in bplapply
+keepvars <- c(outliervars,"x_centroid","y_centroid","sample_id")
+pltdatlist <- lapply(samps,FUN=function(s){pltdat[sample_id==s,..keepvars]})
+names(pltdatlist) <- samps
+
+## remove the full table for now for effish, rebuild later
+rm(pltdat,keepvars)
+gc(full=T)
+
+## plot each outlier type on each sample
+lapply(outliervars,FUN=function(v){
+    plts <- bpmapply(X=pltdatlist,Y=names(pltdatlist),
+                     BPPARAM=MulticoreParam(8),
+                     SIMPLIFY=FALSE,
+                     FUN=function(X,Y){
+                         ggplot(X,aes(x=x_centroid,y=y_centroid,color=.data[[v]]))+
+                             rasterize(geom_point(size=0.55))+
+                             scale_color_manual(values=outlierpal)+
+                             ggtitle(paste0(Y,"\n",v))+
+                             theme(axis.text.x = element_blank(),axis.text.y = element_blank(),title = element_text(size=18,hjust=0.5))
+    })
+    png(paste0("plots/04_general_QC_and_normalization/01k-",v,"_spatial.png"),height=8250,width=8250)
+    do.call("grid.arrange",c(plts,nrow=4,ncol=4))
+    dev.off()
+})
+
+## cleanup, remake full-data plotting d.t.
+rm(pltdatlist,outlierpal)
+gc(full=T)
+
+pltdat <- as.data.table(colData(hypx),keep.rownames=T)
+coords <- as.data.table(cbind(colnames(hypx),spatialCoords(hypx)))
+pltdat <- merge.data.table(pltdat,coords,by.x="rn",by.y="V1")
+
+## again, change the outlier vars to be factors for plotting
+pltdat[,c(outliervars):=lapply(.SD,function(x){as.character(x)}),.SDcols=outliervars]
+pltdat[,c(outliervars):=lapply(.SD,function(x){ifelse(x=="TRUE",yes = "Outlier",no="Non-Outlier")}),.SDcols=outliervars]
+pltdat[,c(outliervars):=lapply(.SD,function(x){factor(x,levels=c("Non-Outlier","Outlier"))}),.SDcols=outliervars]
+```
+
+## ^ outliers of each individual subset and across all control/negative subsets combined are sparse and pretty evenly dispersed across the tissue section, with some tendency to appear more often in more cell-dense areas. (Hard to say whether it's a difference in actual control read density per unit of cell density by eye.)
+
+## see if there's a relationshhip between cell size and outliers for each
+```{r}
+
+## make a gray (nonoutlier) / red (outlier) palette for this
+outlierpal <- c("#aaaaaa","#ff0000")
+names(outlierpal) <- c("Non-Outlier","Outlier")
+plts <- lapply(outliervars,FUN=function(v){
+    plt <- ggplot(pltdat,aes(x=.data[[v]],y=cell_area,fill=.data[[v]]))+
+        rasterize(geom_violin())+
+        scale_fill_manual(values=outlierpal)+
+        ggtitle(paste0(v," vs. Cell Area"))+
+        theme(title = element_text(size=16,hjust=0.5))
+    return(plt)
+})
+
+png("plots/04_general_QC_and_normalization/01l-outlier_cellAreas.png",height=2500,width=1750)
+do.call("grid.arrange",c(plts,nrow=5))
+dev.off()
+
+rm(plts)
+```
+
+## outlier cells are smaller by varying degrees (depending on the subset) relative to others.
+
+## Voyager's xenium tutorial and Yi then remove empty cells (which we already did in the original construction of the SFE), and then remove cells of any outlier subset category (blank/unassigned, negprobe, negcodeword). deprecated codewords are not explained either in the xenium manuscript nor the voyager vignette, so for a total lack of knowledge as to what those are, we won't consider them.
+
+## an additional QC metric used here is a nucleus area < 400 sq pixels.
+```{r}
+### we can get the cell ids to keep from the data.table of coldata (where the cell ids are rownames)
+hypx.filt <- pltdat[hypx$nCounts>0 & nucleus_area<400 & outlier_negProbe=="Non-Outlier" & outlier_negCodeword=="Non-Outlier" & outlier_unassigned=="Non-Outlier",rn]
+
+
+length(hypx.filt)
+## ^ 870870
+## yi had 879k after filtering -- but that was with the original segmentations (1.5 for half, 1.9 for half, vs now 1.7 for all)
+
+hypx.qc <- hypx[,hypx.filt]
+
+# sanity check
+# dim(hypx.qc)
+# 541 870870
+```
+
+### Save the filtered SFE for analysis.
+```{r}
+saveRDS(hypx.qc,"processed-data/04_general_QC_and_normalization/01b-sfe_controlOutliers_and_giantNuclei_filtered.RDS")
+```
+
+### reproducibility info
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] parallelly_1.37.1              colorout_1.3-0.2               gridExtra_2.3                 
+ [4] scran_1.32.0                   BiocParallel_1.38.0            scater_1.32.0                 
+ [7] scuttle_1.14.0                 ggrastr_1.0.2                  ggplot2_3.5.1                 
+[10] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
+[13] Biobase_2.64.0                 GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
+[16] IRanges_2.38.0                 S4Vectors_0.42.0               BiocGenerics_0.50.0           
+[19] MatrixGenerics_1.16.0          matrixStats_1.3.0              Voyager_1.6.0                 
+[22] SpatialFeatureExperiment_1.6.1 data.table_1.15.4              rlang_1.1.4                   
+
+loaded via a namespace (and not attached):
+  [1] rstudioapi_0.16.0         jsonlite_1.8.8            wk_0.9.1                  magrittr_2.0.3           
+  [5] ggbeeswarm_0.7.2          magick_2.8.3              farver_2.1.2              rmarkdown_2.27           
+  [9] zlibbioc_1.50.0           vctrs_0.6.5               spdep_1.3-5               Cairo_1.6-2              
+ [13] DelayedMatrixStats_1.26.0 RCurl_1.98-1.14           terra_1.7-78              htmltools_0.5.8.1        
+ [17] S4Arrays_1.4.1            BiocNeighbors_1.22.0      Rhdf5lib_1.26.0           s2_1.1.6                 
+ [21] SparseArray_1.4.8         rhdf5_2.48.0              spData_2.3.1              KernSmooth_2.23-24       
+ [25] htmlwidgets_1.6.4         igraph_2.0.3              lifecycle_1.0.4           pkgconfig_2.0.3          
+ [29] rsvd_1.0.5                Matrix_1.7-0              R6_2.5.1                  fastmap_1.2.0            
+ [33] GenomeInfoDbData_1.2.12   digest_0.6.35             colorspace_2.1-0          ggnewscale_0.4.10        
+ [37] patchwork_1.2.0           rprojroot_2.0.4           dqrng_0.4.1               RSpectra_0.16-1          
+ [41] irlba_2.3.5.1             beachmat_2.20.0           labeling_0.4.3            fansi_1.0.6              
+ [45] httr_1.4.7                abind_1.4-5               compiler_4.4.1            here_1.0.1               
+ [49] proxy_0.4-27              withr_3.0.0               tiff_0.1-12               viridis_0.6.5            
+ [53] DBI_1.2.3                 HDF5Array_1.32.0          R.utils_2.12.3            sessioninfo_1.2.2        
+ [57] DelayedArray_0.30.1       rjson_0.2.21              classInt_0.4-10           bluster_1.14.0           
+ [61] tools_4.4.1               units_0.8-5               vipor_0.4.7               beeswarm_0.4.0           
+ [65] R.oo_1.26.0               glue_1.7.0                EBImage_4.46.0            rhdf5filters_1.16.0      
+ [69] grid_4.4.1                sf_1.0-16                 cluster_2.1.6             generics_0.1.3           
+ [73] memuse_4.2-3              gtable_0.3.5              R.methodsS3_1.8.2         class_7.3-22             
+ [77] BiocSingular_1.20.0       ScaledMatrix_1.12.0       metapod_1.12.0            sp_2.1-4                 
+ [81] utf8_1.2.4                XVector_0.44.0            ggrepel_0.9.5             pillar_1.9.0             
+ [85] limma_3.60.2              dplyr_1.1.4               lattice_0.22-6            deldir_2.0-4             
+ [89] tidyselect_1.2.1          locfit_1.5-9.9            sfheaders_0.4.4           knitr_1.47               
+ [93] edgeR_4.2.0               xfun_0.45                 statmod_1.5.0             DropletUtils_1.24.0      
+ [97] UCSC.utils_1.0.0          fftwtools_0.9-11          yaml_2.3.8                boot_1.3-30              
+[101] evaluate_0.24.0           codetools_0.2-20          tibble_3.2.1              cli_3.6.2                
+[105] munsell_0.5.1             Rcpp_1.0.12               zeallot_0.1.0             png_0.1-8                
+[109] parallel_4.4.1            jpeg_0.1-10               sparseMatrixStats_1.16.0  bitops_1.0-7             
+[113] viridisLite_0.4.2         scales_1.3.0              e1071_1.7-14              crayon_1.5.2             
+[117] scico_1.5.0               cowplot_1.1.3            
+> sessioninfo::session_info()
+─ Session info ────────────────────────────────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-06-22
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ────────────────────────────────────────────────────────────────────────────────────────────────────
+ ! package                  * version   date (UTC) lib source
+   abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
+   beachmat                   2.20.0    2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   beeswarm                   0.4.0     2021-06-01 [1] CRAN (R 4.4.0)
+   Biobase                  * 2.64.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocGenerics             * 0.50.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocNeighbors              1.22.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocParallel             * 1.38.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
+   BiocSingular               1.20.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   bitops                     1.0-7     2021-04-24 [1] CRAN (R 4.4.0)
+   bluster                    1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   boot                       1.3-30    2024-02-26 [1] CRAN (R 4.4.1)
+   Cairo                      1.6-2     2023-11-28 [1] CRAN (R 4.4.0)
+   class                      7.3-22    2023-05-03 [1] CRAN (R 4.4.1)
+   classInt                   0.4-10    2023-09-05 [1] CRAN (R 4.4.0)
+ P cli                        3.6.2     2023-12-11 [2] CRAN (R 4.4.0)
+   cluster                    2.1.6     2023-12-01 [1] CRAN (R 4.4.1)
+   codetools                  0.2-20    2024-03-31 [1] CRAN (R 4.4.1)
+   colorout                 * 1.3-0.2   2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace                 2.1-0     2023-01-23 [1] CRAN (R 4.4.0)
+   cowplot                    1.1.3     2024-01-22 [1] CRAN (R 4.4.0)
+   crayon                     1.5.2     2022-09-29 [1] CRAN (R 4.4.0)
+   data.table               * 1.15.4    2024-03-30 [2] CRAN (R 4.4.0)
+   DBI                        1.2.3     2024-06-02 [1] CRAN (R 4.4.0)
+   DelayedArray               0.30.1    2024-05-07 [1] Bioconductor 3.19 (R 4.4.0)
+   DelayedMatrixStats         1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   deldir                     2.0-4     2024-02-28 [1] CRAN (R 4.4.0)
+   digest                     0.6.35    2024-03-11 [1] CRAN (R 4.4.0)
+   dplyr                      1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
+   dqrng                      0.4.1     2024-05-28 [1] CRAN (R 4.4.0)
+   DropletUtils               1.24.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   e1071                      1.7-14    2023-12-06 [1] CRAN (R 4.4.0)
+   EBImage                    4.46.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   edgeR                      4.2.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   evaluate                   0.24.0    2024-06-10 [1] CRAN (R 4.4.0)
+   fansi                      1.0.6     2023-12-08 [1] CRAN (R 4.4.0)
+   farver                     2.1.2     2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap                    1.2.0     2024-05-15 [1] CRAN (R 4.4.0)
+   fftwtools                  0.9-11    2021-03-01 [1] CRAN (R 4.4.0)
+   generics                   0.1.3     2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb             * 1.40.1    2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomeInfoDbData           1.2.12    2024-05-01 [1] Bioconductor
+   GenomicRanges            * 1.56.1    2024-06-12 [1] Bioconductor 3.19 (R 4.4.1)
+   ggbeeswarm                 0.7.2     2023-04-29 [1] CRAN (R 4.4.0)
+   ggnewscale                 0.4.10    2024-02-08 [1] CRAN (R 4.4.0)
+   ggplot2                  * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
+   ggrastr                  * 1.0.2     2023-06-01 [1] CRAN (R 4.4.0)
+   ggrepel                    0.9.5     2024-01-10 [1] CRAN (R 4.4.0)
+   glue                       1.7.0     2024-01-09 [1] CRAN (R 4.4.0)
+   gridExtra                * 2.3       2017-09-09 [1] CRAN (R 4.4.0)
+   gtable                     0.3.5     2024-04-22 [1] CRAN (R 4.4.0)
+   HDF5Array                  1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   here                       1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools                  0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets                1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
+   httr                       1.4.7     2023-08-15 [1] CRAN (R 4.4.0)
+   igraph                     2.0.3     2024-03-13 [1] CRAN (R 4.4.0)
+   IRanges                  * 2.38.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   irlba                      2.3.5.1   2022-10-03 [1] CRAN (R 4.4.0)
+   jpeg                       0.1-10    2022-11-29 [1] CRAN (R 4.4.0)
+   jsonlite                   1.8.8     2023-12-04 [1] CRAN (R 4.4.0)
+   KernSmooth                 2.23-24   2024-05-17 [1] CRAN (R 4.4.1)
+   knitr                      1.47      2024-05-29 [1] CRAN (R 4.4.0)
+   labeling                   0.4.3     2023-08-29 [1] CRAN (R 4.4.0)
+   lattice                    0.22-6    2024-03-20 [1] CRAN (R 4.4.1)
+   lifecycle                  1.0.4     2023-11-07 [1] CRAN (R 4.4.0)
+   limma                      3.60.2    2024-05-19 [1] Bioconductor 3.19 (R 4.4.0)
+   locfit                     1.5-9.9   2024-03-01 [1] CRAN (R 4.4.0)
+   magick                     2.8.3     2024-02-18 [1] CRAN (R 4.4.0)
+   magrittr                   2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
+   Matrix                     1.7-0     2024-04-26 [1] CRAN (R 4.4.1)
+   MatrixGenerics           * 1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   matrixStats              * 1.3.0     2024-04-11 [1] CRAN (R 4.4.0)
+   memuse                     4.2-3     2023-01-24 [1] CRAN (R 4.4.0)
+   metapod                    1.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   munsell                    0.5.1     2024-04-01 [1] CRAN (R 4.4.0)
+   parallelly               * 1.37.1    2024-02-29 [1] CRAN (R 4.4.0)
+   patchwork                  1.2.0     2024-01-08 [1] CRAN (R 4.4.0)
+   pillar                     1.9.0     2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig                  2.0.3     2019-09-22 [1] CRAN (R 4.4.0)
+   png                        0.1-8     2022-11-29 [1] CRAN (R 4.4.0)
+   proxy                      0.4-27    2022-06-09 [1] CRAN (R 4.4.0)
+   R.methodsS3                1.8.2     2022-06-13 [1] CRAN (R 4.4.0)
+   R.oo                       1.26.0    2024-01-24 [1] CRAN (R 4.4.0)
+   R.utils                    2.12.3    2023-11-18 [1] CRAN (R 4.4.0)
+   R6                         2.5.1     2021-08-19 [1] CRAN (R 4.4.0)
+   Rcpp                       1.0.12    2024-01-09 [1] CRAN (R 4.4.0)
+   RCurl                      1.98-1.14 2024-01-09 [1] CRAN (R 4.4.0)
+   rhdf5                      2.48.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   rhdf5filters               1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   Rhdf5lib                   1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   rjson                      0.2.21    2022-01-09 [1] CRAN (R 4.4.0)
+ P rlang                    * 1.1.4     2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown                  2.27      2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot                  2.0.4     2023-11-05 [1] CRAN (R 4.4.0)
+   RSpectra                   0.16-1    2022-04-24 [1] CRAN (R 4.4.0)
+   rstudioapi                 0.16.0    2024-03-24 [1] CRAN (R 4.4.0)
+   rsvd                       1.0.5     2021-04-16 [1] CRAN (R 4.4.0)
+   s2                         1.1.6     2023-12-19 [1] CRAN (R 4.4.0)
+   S4Arrays                   1.4.1     2024-05-20 [1] Bioconductor 3.19 (R 4.4.0)
+   S4Vectors                * 0.42.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   ScaledMatrix               1.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scales                     1.3.0     2023-11-28 [1] CRAN (R 4.4.0)
+   scater                   * 1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scico                      1.5.0     2023-08-14 [1] CRAN (R 4.4.0)
+   scran                    * 1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scuttle                  * 1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sessioninfo                1.2.2     2021-12-06 [1] CRAN (R 4.4.0)
+   sf                         1.0-16    2024-03-24 [1] CRAN (R 4.4.0)
+   sfheaders                  0.4.4     2024-01-17 [1] CRAN (R 4.4.0)
+   SingleCellExperiment     * 1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sp                         2.1-4     2024-04-30 [1] CRAN (R 4.4.0)
+   SparseArray                1.4.8     2024-05-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sparseMatrixStats          1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   SpatialExperiment        * 1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   SpatialFeatureExperiment * 1.6.1     2024-05-15 [1] Bioconductor 3.19 (R 4.4.0)
+   spData                     2.3.1     2024-05-31 [1] CRAN (R 4.4.0)
+   spdep                      1.3-5     2024-06-10 [1] CRAN (R 4.4.0)
+   statmod                    1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
+   SummarizedExperiment     * 1.34.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   terra                      1.7-78    2024-05-22 [1] CRAN (R 4.4.0)
+   tibble                     3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
+   tidyselect                 1.2.1     2024-03-11 [1] CRAN (R 4.4.0)
+   tiff                       0.1-12    2023-11-28 [1] CRAN (R 4.4.0)
+   UCSC.utils                 1.0.0     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   units                      0.8-5     2023-11-28 [1] CRAN (R 4.4.0)
+   utf8                       1.2.4     2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs                      0.6.5     2023-12-01 [1] CRAN (R 4.4.0)
+   vipor                      0.4.7     2023-12-18 [1] CRAN (R 4.4.0)
+   viridis                    0.6.5     2024-01-29 [1] CRAN (R 4.4.0)
+   viridisLite                0.4.2     2023-05-02 [1] CRAN (R 4.4.0)
+   Voyager                  * 1.6.0     2024-05-30 [2] Bioconductor 3.19 (R 4.4.0)
+   withr                      3.0.0     2024-01-16 [1] CRAN (R 4.4.0)
+   wk                         0.9.1     2023-11-29 [1] CRAN (R 4.4.0)
+   xfun                       0.45      2024-06-16 [1] CRAN (R 4.4.0)
+   XVector                    0.44.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   yaml                       2.3.8     2023-12-11 [1] CRAN (R 4.4.0)
+   zeallot                    0.1.0     2018-01-28 [1] CRAN (R 4.4.0)
+   zlibbioc                   1.50.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────

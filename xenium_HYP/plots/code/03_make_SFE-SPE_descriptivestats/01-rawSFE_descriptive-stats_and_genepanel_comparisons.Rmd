@@ -113,20 +113,20 @@ sampwise <- ggplot(ctpersamp,aes(x=`Gene Counts`))+
     labs(x="Gene Counts",y="Number of Cells")
 
 ### save as pdf
-pdf("plots/03_make_SFE-SPE_descriptivestats/03a-gene_counts_per_cell_datasetwide.pdf",width=5,height=4)
+pdf("plots/03_make_SFE-SPE_descriptivestats/01a-gene_counts_per_cell_datasetwide.pdf",width=5,height=4)
 fulldat
 dev.off()
 
-pdf("plots/03_make_SFE-SPE_descriptivestats/03b-gene_counts_per_cell_samplewise.pdf",width=7,height=6)
+pdf("plots/03_make_SFE-SPE_descriptivestats/01b-gene_counts_per_cell_samplewise.pdf",width=7,height=6)
 sampwise
 dev.off()
 
 ### save as png too
-png("plots/03_make_SFE-SPE_descriptivestats/03a-gene_counts_per_cell_datasetwide.png",width=5,height=4,units="in",res=150)
+png("plots/03_make_SFE-SPE_descriptivestats/01a-gene_counts_per_cell_datasetwide.png",width=5,height=4,units="in",res=150)
 fulldat
 dev.off()
 
-png("plots/03_make_SFE-SPE_descriptivestats/03b-gene_counts_per_cell_samplewise.png",width=7,height=6,units = "in",res=150)
+png("plots/03_make_SFE-SPE_descriptivestats/01b-gene_counts_per_cell_samplewise.png",width=7,height=6,units = "in",res=150)
 sampwise
 dev.off()
 
@@ -159,7 +159,7 @@ panelct.plt <- ggplot(panelcts,aes(x=totalcounts,fill=`Gene Panel`))+
   ggtitle("Density of Gene Counts\nper Cell, by Panel")+
   labs(x="Sum (Gene Counts)",y="Number of Cells")
 
-png("plots/03_make_SFE-SPE_descriptivestats/03c-gene_counts_by_panel_distribs.png",width=7,height=6,units = "in",res=150)
+png("plots/03_make_SFE-SPE_descriptivestats/01c-gene_counts_by_panel_distribs.png",width=7,height=6,units = "in",res=150)
 panelct.plt
 dev.off()
 
