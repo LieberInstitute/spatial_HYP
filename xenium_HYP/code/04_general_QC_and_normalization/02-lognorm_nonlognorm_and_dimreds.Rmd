@@ -97,11 +97,19 @@ hypx.ca <- runUMAP(hypx.ca,dimred="corral",name="UMAP_CA",n_threads=6)
 # save the CA and both UMAP matrices bound to cell-level metadata as a table to plot from without needing to load up the whole SFE
 rastumap <- as.data.table(reducedDim(hypx.ca,"UMAP"),keep.rownames=T)
 rastumap <- merge.data.table(rastumap,as.data.table(colData(hypx.ca),keep.rownames=T),by="rn")
+setnames(rastumap,c("UMAP1","UMAP2"),paste0(c("UMAP1","UMAP2"),"_logct"))
+
 caumap <- as.data.table(reducedDim(hypx.ca,"UMAP_CA"),keep.rownames=T)
+setnames(caumap,c("UMAP1","UMAP2"),paste0(c("UMAP1","UMAP2"),"_CA")
 rastumap <- merge.data.table(rastumap,caumap,by="rn")
+
 camat <- as.data.table(reducedDim(hypx.ca,"corral"),keep.rownames=T)
+## ^ this doesnt have colnames so add
+setnames(camat,c(2:ncol(camat))) <- paste("CA_dim",c(1:ncol(caumap)-1))
+
 rastumap <- merge.data.table(rastumap,camat,by="rn")
 
+## save for plotting
 fwrite(rastumap,"processed-data/04_general_QC_and_normalization/02a-genetarg-lctUMAP_rawctCAandUMAP_w_metadata.txt.gz",sep='\t',quote=F)
 
 # clean up enviro
