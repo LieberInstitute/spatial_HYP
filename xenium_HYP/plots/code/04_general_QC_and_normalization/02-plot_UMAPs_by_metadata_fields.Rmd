@@ -105,6 +105,15 @@ bplapply(plotvars,BPPARAM=SnowParam(8,type="SOCK"),BPOPTIONS=bpoptions(exports =
 
 ```
 
+### exploratory: 3D dotplots to examine whether there's any separation among top CA factors (no, not in the first 5)
+### but CA dimensions 4 and 5 colored by sex basically show female and male cells forming the same 3D shapes, with female cells extending further in CA space along its arms 
+```{r}
+# library(plotly)
+# pltl <- plot_ly(rastumap,type="scatter3d",x=~CA_dim8,y=~CA_dim5,z=~CA_dim4,color=~Sex,size=0.02)
+# pltl
+# dev.off()
+```
+
 
 Reproducbility info
 ```{r}
