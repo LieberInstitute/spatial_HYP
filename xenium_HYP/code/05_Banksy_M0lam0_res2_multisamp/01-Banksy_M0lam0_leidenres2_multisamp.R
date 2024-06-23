@@ -11,8 +11,8 @@ library(RcppHNSW)
 setwd("../../")
 stopifnot(length(grep(getwd(),pattern="xenium_HYP$",value=T))==1)
 
-## load data
-hypx <- readRDS("processed-data/03_make_SPE-SFE/01_sfe_raw.RDS")
+## load QCed, genes only, normalized data
+hypx <- readRDS("processed-data/04_general_QC_and_normalization/02b-sfe_filtered_genetargonly_log-and-nonlog-norms.RDS")
 
 ## set arguments, identical to Yi's arguments used for Banksy cell typing
 lam <- 0
@@ -26,24 +26,11 @@ kgeom <- 6
 monocot <- 1000
 
 
-## calculate NON-log normcounts (per banksy documentation, though no
+## re normalization: Banksy uses  NON-log normcounts (per its documentation, though no
 ## explanation as to whether log vs nonlog makes an appreciable difference)
-## Yi's code for the 13-sample runs are not clear on whether this was what was
-## used, either. can't access her DCS04 directory at the moment, so using
-## Banksy recommended non-log norm here for now. (Also not sure whether
-## control probes were excluded for banksy or not, and can't determine
-## for same reason).
+## Yi's code used only gene-targeting probes and nonlog norm
 ## SO: we'll use non-log norm, gene-targeted probes only
-genetargeting <- grep(rownames(hypx),pattern="NegCon|Deprecated|Unassigned",value=T,invert=T)
-hypx <- hypx[genetargeting,]
-
-## there are 2 cells (of ~912k) that have no gene probe counts, so drop these
-## or we'll get errors when trying to normalize counts
-hypx <- hypx[,colSums(counts(hypx))>0]
-
-## NOW normalize
-hypx <- computeLibraryFactors(hypx)
-assay(hypx,"normcounts") <- normalizeCounts(hypx,log=FALSE)
+## the loaded SFE already contains the normaliezd counts and is subsetted to gene-targeting probes, so nothing to do on these fronts.
 
 ## to run Banksy in multisample mode, adjust coordinates so that
 ## all samples have unique non-overlapping coords (i.e. to prevent

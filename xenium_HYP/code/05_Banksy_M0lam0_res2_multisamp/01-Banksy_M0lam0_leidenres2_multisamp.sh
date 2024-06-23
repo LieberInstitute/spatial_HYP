@@ -2,7 +2,7 @@
 #SBATCH --job-name=BNKS_HYP_mult
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=12
-#SBATCH --mem=200G
+#SBATCH --mem=250G
 #SBATCH --constraint="znver2|znver3|intel"
 #SBATCH -o ./logs/01-BanksyM0lam0_leidenRes2_multi.out
 #SBATCH -e ./logs/01-BanksyM0lam0_leidenRes2_multi.err
