@@ -51,79 +51,104 @@ colLabels(hypb) <- bcl$M0lam0_leiden_multisamp_res2
 
 ### plot clusters
 ```{r}
-tmp <- merge.data.table(as.data.table(colData(hypb),keep.rownames=T),as.data.table(spatialCoords(hypb),keep.rownames = T),by="rn")
+tmp <- merge.data.table(
+   as.data.table(colData(hypb), keep.rownames = T),
+   as.data.table(spatialCoords(hypb), keep.rownames = T),
+   by = "rn"
+)
 
-tmp <- tmp[,.(sample_id,sdimx,sdimy,label)]
+tmp <- tmp[, .(sample_id, sdimx, sdimy, label)]
 samps <- unique(tmp$sample_id)
 
-i<-1
+i <- 1
 
-## 1-9 nonspecific, 10 VMH, 11 nonspec, 12 WM, 13 ARC, 14 nonspec, 15 WM, 16 nonspec, 17 VMH, 18 ARC, 19 nonspec, 20 nonspec, 21 nonspec, 22 AVPOXT, 23 samplespec, 24 other, 25 ARC, 26 nonspec, 27 nonspec, 28 sample spec, 29 sample spec, 30 sample spec, 31 sample spec, 32 AVPOXT? other?, 33 non-DMH supra-VMH, 34 ARC, 35 nonspec, 36 VMH, 37 samplespec, 38 sample/nonspec, 39 other, 40 other
+## putative idents: 1 blah 2 blah 3 blah etc
 
 
-## 1-9, 11, 16, 19:21, 23, 24, 26:31, 35, 37:40 noninteresting
-## 10, 12-15, 18, 22, 25, 32-34, 36 interesting 
+## X1-3 X5 etc noninteresting
+## X4 etc interesting
 
 # Q: number of unique pairs between a vector of 7 items and a vector of 4 items?
 
 
 
-interest <- Polychrome::light.colors(12)
-nonint <- Polychrome::dark.colors(28)
+# interest <- Polychrome::light.colors(12)
+# nonint <- Polychrome::dark.colors(28)
 pal <- as.data.table(unique(tmp$label))
 ## this is where copilot comes in SUPER handy. would've taken 10 minutes to enumerate this by hand
-pal[V1 %in% c("X10",paste0("X",12:15),"X18","X22","X25","X32","X33","X34","X36"),colr:=interest]
-pal[is.na(colr),colr:=c(nonint,nonint[1:4])]
 
-for (i in c(1:nrow(pal))){
-    curtype <- paste0("X",i)
-    plts <- list()
-    j<-1
-    for (j in c(1:length(samps))){
-        xl <- min(tmp[sample_id==samps[j],sdimx])
-        xh <- max(tmp[sample_id==samps[j],sdimx])
-        yl <- min(tmp[sample_id==samps[j],sdimy])
-        yh <- max(tmp[sample_id==samps[j],sdimy])
-        plts[[j]] <- ggplot(tmp[sample_id==samps[j]&label==curtype],aes(x=sdimx,y=sdimy,color=label)) +
-            rasterize(geom_point(size=2.8)) + 
-            scale_color_manual(values = unique(pal[V1==curtype,colr])) +
-            ggtitle(paste0(samps[j]," at\nM0l0 Kgeom6 Leiden Res2: ",curtype))+
-            theme_minimal()+
-            theme(title = element_text(size=18,hjust = 0.5))+
-            xlim(xl,xh)+
-            ylim(yl,yh)
-    }
-    png(paste0("plots/05_Banksy_M0lam0_res2_multisamp/01-byclust_allsamps/",curtype,".png"),width=10000,height=10000)
-    do.call("grid.arrange",c(plts,nrow=4,ncol=4))
-    dev.off()
-    rm(plts,curtype,j)
+# pal[V1 %in% c("X10",paste0("X",12:15),"X18","X22","X25","X32","X33","X34","X36"),colr:=interest]
+# pal[is.na(colr),colr:=c(nonint,nonint[1:4])]
+
+pal[, colr := c(Polychrome::dark.colors(21), Polychrome::light.colors(20))]
+
+for (i in c(1:nrow(pal))) {
+   curtype <- paste0("X", i)
+   plts <- list()
+   j <- 1
+   for (j in c(1:length(samps))) {
+      xl <- min(tmp[sample_id == samps[j], sdimx])
+      xh <- max(tmp[sample_id == samps[j], sdimx])
+      yl <- min(tmp[sample_id == samps[j], sdimy])
+      yh <- max(tmp[sample_id == samps[j], sdimy])
+      plts[[j]] <- ggplot(tmp[sample_id == samps[j] &
+                                 label == curtype], aes(x = sdimx, y = sdimy, color = label)) +
+         rasterize(geom_point(size = 2.8)) +
+         scale_color_manual(values = unique(pal[V1 == curtype, colr])) +
+         ggtitle(paste0(samps[j], " at\nM0l0 Kgeom6 Leiden Res2: ", curtype)) +
+         theme_minimal() +
+         theme(title = element_text(size = 18, hjust = 0.5)) +
+         xlim(xl, xh) +
+         ylim(yl, yh)
+   }
+   png(
+      paste0(
+         "plots/05_Banksy_M0lam0_res2_multisamp/01-byclust_allsamps/",
+         curtype,
+         ".png"
+      ),
+      width = 10000,
+      height = 10000
+   )
+   do.call("grid.arrange", c(plts, nrow = 4, ncol = 4))
+   dev.off()
+   rm(plts, curtype, j)
 }
 rm(i)
 
 
 # plot all clusters per sample
-i <-1
+i <- 1
 altpal <- pal$colr
 names(altpal) <- pal$V1
 
-for (i in c(1:length(samps))){
-    xl <- min(tmp[sample_id==samps[i],sdimx])
-    xh <- max(tmp[sample_id==samps[i],sdimx])
-    yl <- min(tmp[sample_id==samps[i],sdimy])
-    yh <- max(tmp[sample_id==samps[i],sdimy])
-    plt <- ggplot(tmp[sample_id==samps[i]],aes(x=sdimx,y=sdimy,color=label)) +
-            rasterize(geom_point(size=2.75)) + 
-            scale_color_manual(values = altpal) +
-            ggtitle(paste0(samps[i]," at\nM0l0 Kgeom6 Leiden Res2"))+
-            theme_minimal()+
-            theme(title = element_text(size=20,hjust=0.5))+
-            xlim(xl,xh)+
-            ylim(yl,yh)
-    
-    png(paste0("plots/05_Banksy_M0lam0_res2_multisamp/01-bysamps_allclust/",samps[i],".png"),width=4000,height=4000)
-    print(plt)
-    dev.off()
-    rm(plt)
+for (i in c(1:length(samps))) {
+   xl <- min(tmp[sample_id == samps[i], sdimx])
+   xh <- max(tmp[sample_id == samps[i], sdimx])
+   yl <- min(tmp[sample_id == samps[i], sdimy])
+   yh <- max(tmp[sample_id == samps[i], sdimy])
+   plt <- ggplot(tmp[sample_id == samps[i]], aes(x = sdimx, y = sdimy, color =
+                                                    label)) +
+      rasterize(geom_point(size = 2.75)) +
+      scale_color_manual(values = altpal) +
+      ggtitle(paste0(samps[i], " at\nM0l0 Kgeom6 Leiden Res2")) +
+      theme_minimal() +
+      theme(title = element_text(size = 20, hjust = 0.5)) +
+      xlim(xl, xh) +
+      ylim(yl, yh)
+   
+   png(
+      paste0(
+         "plots/05_Banksy_M0lam0_res2_multisamp/01-bysamps_allclust/",
+         samps[i],
+         ".png"
+      ),
+      width = 4000,
+      height = 4000
+   )
+   print(plt)
+   dev.off()
+   rm(plt)
 }
 
 ```
@@ -174,7 +199,7 @@ loaded via a namespace (and not attached):
  [11] edgeR_4.2.0               doParallel_1.0.17        
  [13] rprojroot_2.0.4           lattice_0.22-6           
  [15] magrittr_2.0.3            sass_0.4.9               
- [17] limma_3.60.2              plotly_4.10.4            
+ [17] limma_3.60.3              plotly_4.10.4            
  [19] rmarkdown_2.27            jquerylib_0.1.4          
  [21] yaml_2.3.8                httpuv_1.6.15            
  [23] spam_2.10-0               sessioninfo_1.2.2        
@@ -236,7 +261,7 @@ loaded via a namespace (and not attached):
 [135] evaluate_0.24.0           zeallot_0.1.0            
 [137] magick_2.8.3              Rsamtools_2.20.0         
 [139] cli_3.6.2                 locfit_1.5-9.9           
-[141] compiler_4.4.1            crayon_1.5.2             
+[141] compiler_4.4.1            crayon_1.5.3             
 [143] labeling_0.4.3            classInt_0.4-10          
 [145] rematch2_2.1.2            ggbeeswarm_0.7.2         
 [147] viridisLite_0.4.2         deldir_2.0-4             
@@ -244,13 +269,13 @@ loaded via a namespace (and not attached):
 [151] tiff_0.1-12               Matrix_1.7-0             
 [153] ExperimentHub_2.12.0      benchmarkme_1.0.8        
 [155] sparseMatrixStats_1.16.0  bit64_4.0.5              
-[157] Rhdf5lib_1.26.0           KEGGREST_1.44.0          
+[157] Rhdf5lib_1.26.0           KEGGREST_1.44.1          
 [159] statmod_1.5.0             shiny_1.8.1.1            
 [161] AnnotationHub_3.12.0      memoise_2.0.1            
 [163] bslib_0.7.0               benchmarkmeData_1.0.4    
 [165] bit_4.0.5                
 > sessioninfo::session_info()
-─ Session info ──────────────────────────────────────────────────────────
+─ Session info ────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -260,11 +285,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-06-21
+ date     2024-06-23
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ──────────────────────────────────────────────────────────────
+─ Packages ────────────────────────────────────────────────────────────────────
  ! package                  * version     date (UTC) lib source
    abind                      1.4-5       2016-07-21 [1] CRAN (R 4.4.0)
    AnnotationDbi              1.66.0      2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
@@ -300,7 +325,7 @@ loaded via a namespace (and not attached):
    colorspace                 2.1-0       2023-01-23 [1] CRAN (R 4.4.0)
    config                     0.3.2       2023-08-30 [1] CRAN (R 4.4.0)
    cowplot                    1.1.3       2024-01-22 [1] CRAN (R 4.4.0)
-   crayon                     1.5.2       2022-09-29 [1] CRAN (R 4.4.0)
+   crayon                     1.5.3       2024-06-20 [1] CRAN (R 4.4.0)
    curl                       5.2.1       2024-03-01 [1] CRAN (R 4.4.0)
    data.table               * 1.15.4      2024-03-30 [2] CRAN (R 4.4.0)
    DBI                        1.2.3       2024-06-02 [1] CRAN (R 4.4.0)
@@ -352,7 +377,7 @@ loaded via a namespace (and not attached):
    jpeg                       0.1-10      2022-11-29 [1] CRAN (R 4.4.0)
    jquerylib                  0.1.4       2021-04-26 [1] CRAN (R 4.4.0)
    jsonlite                   1.8.8       2023-12-04 [1] CRAN (R 4.4.0)
-   KEGGREST                   1.44.0      2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   KEGGREST                   1.44.1      2024-06-19 [1] Bioconductor 3.19 (R 4.4.0)
    KernSmooth                 2.23-24     2024-05-17 [1] CRAN (R 4.4.1)
    knitr                      1.47        2024-05-29 [1] CRAN (R 4.4.0)
    labeling                   0.4.3       2023-08-29 [1] CRAN (R 4.4.0)
@@ -360,7 +385,7 @@ loaded via a namespace (and not attached):
    lattice                    0.22-6      2024-03-20 [1] CRAN (R 4.4.1)
    lazyeval                   0.2.2       2019-03-15 [1] CRAN (R 4.4.0)
    lifecycle                  1.0.4       2023-11-07 [1] CRAN (R 4.4.0)
-   limma                      3.60.2      2024-05-19 [1] Bioconductor 3.19 (R 4.4.0)
+   limma                      3.60.3      2024-06-16 [1] Bioconductor 3.19 (R 4.4.0)
    locfit                     1.5-9.9     2024-03-01 [1] CRAN (R 4.4.0)
    magick                     2.8.3       2024-02-18 [1] CRAN (R 4.4.0)
    magrittr                   2.0.3       2022-03-30 [1] CRAN (R 4.4.0)
@@ -456,4 +481,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-─────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────
