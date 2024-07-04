@@ -60,27 +60,14 @@ tmp <- merge.data.table(
 tmp <- tmp[, .(sample_id, sdimx, sdimy, label)]
 samps <- unique(tmp$sample_id)
 
-i <- 1
+rm(hypb,bcl)
+gc(full=T)
 
-## putative idents: 1 blah 2 blah 3 blah etc
-
-
-## X1-3 X5 etc noninteresting
-## X4 etc interesting
-
-# Q: number of unique pairs between a vector of 7 items and a vector of 4 items?
-
-
-
-# interest <- Polychrome::light.colors(12)
-# nonint <- Polychrome::dark.colors(28)
 pal <- as.data.table(unique(tmp$label))
-## this is where copilot comes in SUPER handy. would've taken 10 minutes to enumerate this by hand
-
-# pal[V1 %in% c("X10",paste0("X",12:15),"X18","X22","X25","X32","X33","X34","X36"),colr:=interest]
-# pal[is.na(colr),colr:=c(nonint,nonint[1:4])]
-
 pal[, colr := c(Polychrome::dark.colors(21), Polychrome::light.colors(20))]
+
+
+i <- 1
 
 for (i in c(1:nrow(pal))) {
    curtype <- paste0("X", i)
