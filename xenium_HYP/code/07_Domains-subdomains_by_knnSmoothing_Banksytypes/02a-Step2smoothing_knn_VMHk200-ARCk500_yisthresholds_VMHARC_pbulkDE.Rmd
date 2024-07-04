@@ -217,6 +217,9 @@ vmharc.yi[isVMHsmooth2=="other"&isARCsmooth2=="other",dualassignedSmooth2:="othe
 ## also note here that of 11990 passing both final domain definition thresholds, 4562 were assigned to VMH and 7158 were assigned to ARC using the greater knn score.
 
 ## clean up
+### save these cell-domain assignments should we decide to use them after all
+fwrite(vmharc.yi,"processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/02a-VMHARC_domains_yi-thresholds.txt",sep='\t',quote=F)
+
 rm(arc.yi,vmh.yi,vmharc_dualthreshtestres)
 ```
 #### other 599851 -- same as before. ok.
@@ -244,8 +247,9 @@ yivmharc.de[gene %in% c("NRGN","ADCYAP1","SLC17A6","NR5A1","LAMP5","FEZF1","ANKR
 yivmharc.de <- yivmharc.de[knownmarkerof %in% c("ARC","VMH")]
 ## notably, POMC (which is definitely pan-ARC specific, confirmed by RNAscope as well as visium) is rel. weakly enriched (logFC = 2.9) compared to some other ARC subtype markers e.g. GHRH.
 
-## save these DE stats for comparison to other results depending on the plots.
+## save these cell type assignments and DE stats for comparison to other results depending on the plots.
 fwrite(yivmharc.de,"processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/02a-VMHARC_domains_yi-thresholds_pseudobulkDE.txt",sep='\t',quote=F)
+
 
 ## clean up
 rm(yivmharc.de)

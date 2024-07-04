@@ -1,0 +1,608 @@
+---
+title: "03a-2 step smoothing of ARC, no periventricular types included"
+output: html_document
+date: "2024-06-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(FastKNN)
+library(caTools)
+library(FNN)
+library(SpatialExperiment)
+library(SpatialFeatureExperiment)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+```
+
+the following code stems from the following two R scripts: 
+• ../../code/0_untidied_Xenium_code_preJune2024/xenium_2runs_together/withQC/cellLevel/lambda0_updatedDomain_May14_2024/step3_post_smooth_vmh_arc/step2_knn/postSmooth_ARC_knn_k500.R
+• ../../code/0_untidied_Xenium_code_preJune2024/xenium_2runs_together/withQC/cellLevel/lambda0_updatedDomain_May14_2024/step3_post_smooth_vmh_arc/step2_knn/postSmooth_VMH_knn_k200.R
+
+
+### here we will re run both steps of the ARC domain smoothing, but without the primary cell type that extends far into the periventricular region (X23)
+```{r}
+hypx <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bcl,2,"banksy_m0l0kg6_res2")
+bcl <- DataFrame(bcl,row.names=bcl$rn)
+bcl <- bcl[colnames(hypx),]
+
+colData(hypx)$banksy_m0l0kg6_res2 <- bcl$banksy_m0l0kg6_res2
+
+rm(bcl)
+```
+
+make a table of x-y coordinates and ARC (yes/no) assignment. only use the FOUR clusters that are predominantly in ARC and are found across the donors (X15, X19, X31, X33); X23 is dense throughout periV across samples (X19 has a little bit of presence there but not nearly as much; we'll drop that one too if this still doesn't work for us). in order to perform smoothing on each sample individually, split the resulting table into a list of tables, one table per sample.
+
+```{r}
+# sanity check: which column is which coordinate in spatialcoords, since we can't call them directly as spatialCoords(hypx)$columnname
+# colnames(spatialCoords(hypx))
+# [1] "sdimx" "sdimy"
+hypx$xcoord <- spatialCoords(hypx)[,1]
+hypx$ycoord <- spatialCoords(hypx)[,2]
+
+## make a data table of only the essential columns for smoothing and later return of these results to the SPE: namely, the x y coords, ARC status (one of the ARC clusters or not), and unique cell id (==colnames(hypx)) 
+xyARC <- as.data.table(colData(hypx),keep.rownames=T)
+xyARC[,isARC:=0]
+xyARC[banksy_m0l0kg6_res2 %in% c("X15","X19","X31","X33"),isARC:=1]
+sum(xyARC$isARC==1)
+# 60601 cells total
+
+## subset to a frame with rownames (cell id), sample id (for making samplewise subtables and later for samplewise plotting), x-y coords, and ARC y/n
+xyARC <- xyARC[,.(rn,sample_id,xcoord,ycoord,isARC)]
+
+## make samplewise table list
+xyARC_list <- split(xyARC,xyARC$sample_id)
+
+## clean up to maximize RAM avail. for bplapply below
+rm(xyARC, hypx)
+gc(full=T)
+```
+
+### apply Yi's threshold and params for round 1 ARC smoothing (k=50, thresh >0.1) 
+```{r}
+knnreslist <- bplapply(xyARC_list,BPPARAM=MulticoreParam(10),FUN=function(v){
+    # get nearest neighbors for each cell in the sample
+    knnout <- FNN::get.knn(v[,c("xcoord","ycoord")],k = 50)
+    
+    # get the row indices of those k cells
+    neighborslist <- apply(knnout$nn.index,MARGIN=1,FUN=list)
+    # goofily, this ^ returns each entry as a list within a list (e.g., [[1]][[1]], [[2]][[1]], etc.). so fix that:
+    neighborslist <- lapply(neighborslist,FUN=unlist)
+     # make the list names the cell identifiers as a failsafe against reordering; we will use the list entry names to retrieve the neighbor indices when calculating means below
+    names(neighborslist) <- v$rn
+    
+    # now, get the mean of ARC y/n for the k nearest neighbors indexed for each cell
+    # (in knnout, the first list item, nn.index, has v's row indices corresponding to those neighbors) 
+    # this value is thus a probability 0-1 that, a given cell is a ARC type given the ARC/nonARC identity of its 50 spatial neighbors
+    v[,ARCpred.smooth1.k50:=
+          apply(.SD, MARGIN = 1, FUN=function(x){
+              mean(v[neighborslist[[x]],isARC])}
+              )
+      ,.SDcols = "rn"]
+    return(v)
+})
+
+## concatenate back into a single full-dataset table of KNN smoothing predictions based on k=50 nearest cells
+xyARCout <- rbindlist(knnreslist)
+
+## label cells meeting the ARC smoothing round 1 threshold (0.1) from this
+xyARCout[,isARCsmooth1:=ifelse(ARCpred.smooth1.k50>0.1,yes=1,no=0)]
+```
+
+## now we want to smooth the above result using k=500 neighbors and a threshold of 0.3
+```{r}
+xyARC_list <- split(xyARCout,xyARCout$sample_id)
+
+knnreslist2 <- bplapply(xyARC_list,BPPARAM=MulticoreParam(10),FUN=function(v){
+    # get nearest neighbors for each cell in the sample
+    knnout <- FNN::get.knn(v[,c("xcoord","ycoord")],k = 500)
+    
+    # get the row indices of those k cells
+    neighborslist <- apply(knnout$nn.index,MARGIN=1,FUN=list)
+    # goofily, this ^ returns each entry as a list within a list (e.g., [[1]][[1]], [[2]][[1]], etc.). so fix that:
+    neighborslist <- lapply(neighborslist,FUN=unlist)
+     # make the list names the cell identifiers as a failsafe against reordering; we will use the list entry names to retrieve the neighbor indices when calculating means below
+    names(neighborslist) <- v$rn
+    
+    # now, get the mean of ARC y/n for the k nearest neighbors indexed for each cell
+    # (in knnout, the first list item, nn.index, has v's row indices corresponding to those neighbors) 
+    # this value is thus a probability 0-1 that a given cell is a smoothed step 1 ARC cell, given the ARC/nonARC identity of its 500 spatial neighbors
+    v[,ARCpred.smooth2.k500:=
+          apply(.SD, MARGIN = 1, FUN=function(x){
+              mean(v[neighborslist[[x]],isARCsmooth1])}
+              )
+      ,.SDcols = "rn"]
+    return(v)
+})
+
+## concatenate back into a single full-dataset table of KNN smoothing predictions based on k=50 nearest cells
+xyARCout <- rbindlist(knnreslist2)
+
+## label cells meeting the ARC smoothing round 2 threshold (0.3) from this
+xyARCout[,isARCsmooth2:=ifelse(ARCpred.smooth2.k500>0.3,yes=1,no=0)]
+
+## save these assignments
+fwrite(xyARCout,"processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03a-Alt_smoothedARC_no-clus-X23.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```
+
+#### eh... let's try this without X19 as well, since the ARC still is going way up along the VMH in several samples with this ^ ####
+
+### here we will re run both steps of the ARC domain smoothing, but without the primary cell type that extends far into the periventricular region (X23) AND without the second most common cell type in the periventricular region (X19)
+```{r}```{r}
+hypx <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bcl,2,"banksy_m0l0kg6_res2")
+bcl <- DataFrame(bcl,row.names=bcl$rn)
+bcl <- bcl[colnames(hypx),]
+
+colData(hypx)$banksy_m0l0kg6_res2 <- bcl$banksy_m0l0kg6_res2
+
+rm(bcl)
+```
+
+make a table of x-y coordinates and ARC (yes/no) assignment. only use the FOUR clusters that are predominantly in ARC and are found across the donors (X15, X31, X33); X23 is dense throughout periV across samples. here we'll also try without X19, which isn't as dense but still seems to be extending the ARC domain further than it ought to go.
+
+```{r}
+# sanity check: which column is which coordinate in spatialcoords, since we can't call them directly as spatialCoords(hypx)$columnname
+# colnames(spatialCoords(hypx))
+# [1] "sdimx" "sdimy"
+hypx$xcoord <- spatialCoords(hypx)[,1]
+hypx$ycoord <- spatialCoords(hypx)[,2]
+
+## make a data table of only the essential columns for smoothing and later return of these results to the SPE: namely, the x y coords, ARC status (one of the ARC clusters or not), and unique cell id (==colnames(hypx)) 
+xyARC <- as.data.table(colData(hypx),keep.rownames=T)
+xyARC[,isARC:=0]
+xyARC[banksy_m0l0kg6_res2 %in% c("X15","X31","X33"),isARC:=1]
+sum(xyARC$isARC==1)
+# 38673 cells total
+
+## subset to a frame with rownames (cell id), sample id (for making samplewise subtables and later for samplewise plotting), x-y coords, and ARC y/n
+xyARC <- xyARC[,.(rn,sample_id,xcoord,ycoord,isARC)]
+
+## make samplewise table list
+xyARC_list <- split(xyARC,xyARC$sample_id)
+
+## clean up to maximize RAM avail. for bplapply below
+rm(xyARC, hypx)
+gc(full=T)
+```
+
+### apply Yi's threshold and params for round 1 ARC smoothing (k=50, thresh >0.1) 
+```{r}
+knnreslist <- bplapply(xyARC_list,BPPARAM=MulticoreParam(10),FUN=function(v){
+    # get nearest neighbors for each cell in the sample
+    knnout <- FNN::get.knn(v[,c("xcoord","ycoord")],k = 50)
+    
+    # get the row indices of those k cells
+    neighborslist <- apply(knnout$nn.index,MARGIN=1,FUN=list)
+    # goofily, this ^ returns each entry as a list within a list (e.g., [[1]][[1]], [[2]][[1]], etc.). so fix that:
+    neighborslist <- lapply(neighborslist,FUN=unlist)
+     # make the list names the cell identifiers as a failsafe against reordering; we will use the list entry names to retrieve the neighbor indices when calculating means below
+    names(neighborslist) <- v$rn
+    
+    # now, get the mean of ARC y/n for the k nearest neighbors indexed for each cell
+    # (in knnout, the first list item, nn.index, has v's row indices corresponding to those neighbors) 
+    # this value is thus a probability 0-1 that, a given cell is a ARC type given the ARC/nonARC identity of its 50 spatial neighbors
+    v[,ARCpred.smooth1.k50:=
+          apply(.SD, MARGIN = 1, FUN=function(x){
+              mean(v[neighborslist[[x]],isARC])}
+              )
+      ,.SDcols = "rn"]
+    return(v)
+})
+
+## concatenate back into a single full-dataset table of KNN smoothing predictions based on k=50 nearest cells
+xyARCout <- rbindlist(knnreslist)
+
+## label cells meeting the ARC smoothing round 1 threshold (0.1) from this
+xyARCout[,isARCsmooth1:=ifelse(ARCpred.smooth1.k50>0.1,yes=1,no=0)]
+```
+
+## now we want to smooth the above result using k=500 neighbors and a threshold of 0.3
+```{r}
+xyARC_list <- split(xyARCout,xyARCout$sample_id)
+
+knnreslist2 <- bplapply(xyARC_list,BPPARAM=MulticoreParam(10),FUN=function(v){
+    # get nearest neighbors for each cell in the sample
+    knnout <- FNN::get.knn(v[,c("xcoord","ycoord")],k = 500)
+    
+    # get the row indices of those k cells
+    neighborslist <- apply(knnout$nn.index,MARGIN=1,FUN=list)
+    # goofily, this ^ returns each entry as a list within a list (e.g., [[1]][[1]], [[2]][[1]], etc.). so fix that:
+    neighborslist <- lapply(neighborslist,FUN=unlist)
+     # make the list names the cell identifiers as a failsafe against reordering; we will use the list entry names to retrieve the neighbor indices when calculating means below
+    names(neighborslist) <- v$rn
+    
+    # now, get the mean of ARC y/n for the k nearest neighbors indexed for each cell
+    # (in knnout, the first list item, nn.index, has v's row indices corresponding to those neighbors) 
+    # this value is thus a probability 0-1 that a given cell is a smoothed step 1 ARC cell, given the ARC/nonARC identity of its 500 spatial neighbors
+    v[,ARCpred.smooth2.k500:=
+          apply(.SD, MARGIN = 1, FUN=function(x){
+              mean(v[neighborslist[[x]],isARCsmooth1])}
+              )
+      ,.SDcols = "rn"]
+    return(v)
+})
+
+## concatenate back into a single full-dataset table of KNN smoothing predictions based on k=50 nearest cells
+xyARCout <- rbindlist(knnreslist2)
+
+## label cells meeting the ARC smoothing round 2 threshold (0.3) from this
+xyARCout[,isARCsmooth2:=ifelse(ARCpred.smooth2.k500>0.3,yes=1,no=0)]
+```
+
+### finally, deconflict dual ARC-VMH cells getting both assignments using Yi's parameters (as we did for the other ARC definition)
+```{r}
+vmhsmooth <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/02a-VMHARC_domains_yi-thresholds.txt")
+
+vmhsmooth <- vmhsmooth[,.(rn,isVMHsmooth2,vmhsmooth2_k200_thresh0.2)]
+xyARCout <- merge.data.table(xyARCout,vmhsmooth,by="rn")
+
+# initialize
+xyARCout[,dualassignedSmooth2_ARC3:="other"]
+
+## assign unambiguous ARC
+xyARCout[isARCsmooth2==1&isVMHsmooth2=="other",dualassignedSmooth2_ARC3:="ARCsmooth2_3celltype"]
+
+## assign unambiguous VMH
+xyARCout[isARCsmooth2==0&isVMHsmooth2=="VMH_yi_2stage",dualassignedSmooth2_ARC3:="VMH_yi_2stage"]
+
+## assign ambiguous to higher knn value
+xyARCout[isARCsmooth2==1&isVMHsmooth2=="VMH_yi_2stage",dualassignedSmooth2_ARC3:=ifelse(vmhsmooth2_k200_thresh0.2>ARCpred.smooth2.k500,yes="VMH_yi_2stage",no="ARCsmooth2_3celltype")]
+
+xyARCout[,.N,by=dualassignedSmooth2_ARC3]
+```
+
+## save these assignments
+```{r}
+fwrite(xyARCout,"processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03a-Alt_smoothedARC_no-clus-X23_no-X19.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```
+
+### reproducibility info
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] SpatialFeatureExperiment_1.6.1 spatialLIBD_1.16.2            
+ [3] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
+ [5] SummarizedExperiment_1.34.0    Biobase_2.64.0                
+ [7] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
+ [9] IRanges_2.38.0                 S4Vectors_0.42.0              
+[11] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
+[13] matrixStats_1.3.0              BiocParallel_1.38.0           
+[15] parallelly_1.37.1              colorout_1.3-0.2              
+[17] FNN_1.1.4                      caTools_1.18.2                
+[19] FastKNN_0.0.1                  data.table_1.15.4             
+[21] rlang_1.1.4                   
+
+loaded via a namespace (and not attached):
+  [1] later_1.3.2               BiocIO_1.14.0            
+  [3] bitops_1.0-7              filelock_1.0.3           
+  [5] fields_15.2               R.oo_1.26.0              
+  [7] tibble_3.2.1              XML_3.99-0.17            
+  [9] lifecycle_1.0.4           sf_1.0-16                
+ [11] edgeR_4.2.0               doParallel_1.0.17        
+ [13] rprojroot_2.0.4           lattice_0.22-6           
+ [15] magrittr_2.0.3            sass_0.4.9               
+ [17] limma_3.60.3              plotly_4.10.4            
+ [19] rmarkdown_2.27            jquerylib_0.1.4          
+ [21] yaml_2.3.8                httpuv_1.6.15            
+ [23] spam_2.10-0               sp_2.1-4                 
+ [25] sessioninfo_1.2.2         cowplot_1.1.3            
+ [27] DBI_1.2.3                 RColorBrewer_1.1-3       
+ [29] golem_0.4.1               maps_3.4.2               
+ [31] abind_1.4-5               zlibbioc_1.50.0          
+ [33] R.utils_2.12.3            purrr_1.0.2              
+ [35] RCurl_1.98-1.14           rappdirs_0.3.3           
+ [37] GenomeInfoDbData_1.2.12   ggrepel_0.9.5            
+ [39] irlba_2.3.5.1             terra_1.7-78             
+ [41] units_0.8-5               dqrng_0.4.1              
+ [43] DelayedMatrixStats_1.26.0 DropletUtils_1.24.0      
+ [45] codetools_0.2-20          DelayedArray_0.30.1      
+ [47] DT_0.33                   scuttle_1.14.0           
+ [49] tidyselect_1.2.1          UCSC.utils_1.0.0         
+ [51] ScaledMatrix_1.12.0       viridis_0.6.5            
+ [53] shinyWidgets_0.8.6        BiocFileCache_2.12.0     
+ [55] GenomicAlignments_1.40.0  jsonlite_1.8.8           
+ [57] BiocNeighbors_1.22.0      e1071_1.7-14             
+ [59] scater_1.32.0             iterators_1.0.14         
+ [61] foreach_1.5.2             tools_4.4.1              
+ [63] Rcpp_1.0.12               glue_1.7.0               
+ [65] gridExtra_2.3             SparseArray_1.4.8        
+ [67] xfun_0.45                 here_1.0.1               
+ [69] EBImage_4.46.0            HDF5Array_1.32.0         
+ [71] dplyr_1.1.4               BiocManager_1.30.23      
+ [73] fastmap_1.2.0             boot_1.3-30              
+ [75] rhdf5filters_1.16.0       fansi_1.0.6              
+ [77] pdist_1.2.1               spData_2.3.1             
+ [79] digest_0.6.36             rsvd_1.0.5               
+ [81] R6_2.5.1                  mime_0.12                
+ [83] wk_0.9.1                  colorspace_2.1-0         
+ [85] jpeg_0.1-10               RSQLite_2.3.7            
+ [87] R.methodsS3_1.8.2         config_0.3.2             
+ [89] utf8_1.2.4                tidyr_1.3.1              
+ [91] generics_0.1.3            class_7.3-22             
+ [93] rtracklayer_1.64.0        httr_1.4.7               
+ [95] htmlwidgets_1.6.4         S4Arrays_1.4.1           
+ [97] spdep_1.3-5               pkgconfig_2.0.3          
+ [99] gtable_0.3.5              blob_1.2.4               
+[101] XVector_0.44.0            htmltools_0.5.8.1        
+[103] dotCall64_1.1-1           fftwtools_0.9-11         
+[105] scales_1.3.0              png_0.1-8                
+[107] attempt_0.3.1             knitr_1.47               
+[109] rstudioapi_0.16.0         rjson_0.2.21             
+[111] curl_5.2.1                proxy_0.4-27             
+[113] rhdf5_2.48.0              cachem_1.1.0             
+[115] KernSmooth_2.23-24        BiocVersion_3.19.1       
+[117] parallel_4.4.1            vipor_0.4.7              
+[119] AnnotationDbi_1.66.0      s2_1.1.6                 
+[121] restfulr_0.0.15           pillar_1.9.0             
+[123] grid_4.4.1                vctrs_0.6.5              
+[125] promises_1.3.0            BiocSingular_1.20.0      
+[127] dbplyr_2.5.0              beachmat_2.20.0          
+[129] sfheaders_0.4.4           xtable_1.8-4             
+[131] beeswarm_0.4.0            paletteer_1.6.0          
+[133] evaluate_0.24.0           zeallot_0.1.0            
+[135] magick_2.8.3              cli_3.6.3                
+[137] locfit_1.5-9.10           compiler_4.4.1           
+[139] Rsamtools_2.20.0          crayon_1.5.3             
+[141] classInt_0.4-10           rematch2_2.1.2           
+[143] ggbeeswarm_0.7.2          deldir_2.0-4             
+[145] viridisLite_0.4.2         assertthat_0.2.1         
+[147] munsell_0.5.1             Biostrings_2.72.1        
+[149] tiff_0.1-12               lazyeval_0.2.2           
+[151] Matrix_1.7-0              ExperimentHub_2.12.0     
+[153] benchmarkme_1.0.8         sparseMatrixStats_1.16.0 
+[155] bit64_4.0.5               Rhdf5lib_1.26.0          
+[157] ggplot2_3.5.1             KEGGREST_1.44.1          
+[159] statmod_1.5.0             shiny_1.8.1.1            
+[161] AnnotationHub_3.12.0      memoise_2.0.1            
+[163] bslib_0.7.0               benchmarkmeData_1.0.4    
+[165] bit_4.0.5                
+> sessioninfo()
+Error in sessioninfo() : could not find function "sessioninfo"
+> sessioninfo::session_info()
+─ Session info ────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-06-27
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ────────────────────────────────────────────────────────────────────
+ ! package                  * version   date (UTC) lib source
+   abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
+   AnnotationDbi              1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
+   AnnotationHub              3.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   assertthat                 0.2.1     2019-03-21 [1] CRAN (R 4.4.0)
+   attempt                    0.3.1     2020-05-03 [1] CRAN (R 4.4.0)
+   beachmat                   2.20.0    2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   beeswarm                   0.4.0     2021-06-01 [1] CRAN (R 4.4.0)
+   benchmarkme                1.0.8     2022-06-12 [1] CRAN (R 4.4.0)
+   benchmarkmeData            1.0.4     2020-04-23 [1] CRAN (R 4.4.0)
+   Biobase                  * 2.64.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocFileCache              2.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocGenerics             * 0.50.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocIO                     1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocManager                1.30.23   2024-05-04 [1] CRAN (R 4.4.0)
+   BiocNeighbors              1.22.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocParallel             * 1.38.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
+   BiocSingular               1.20.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocVersion                3.19.1    2024-04-22 [1] Bioconductor 3.19 (R 4.4.0)
+   Biostrings                 2.72.1    2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
+   bit                        4.0.5     2022-11-15 [1] CRAN (R 4.4.0)
+   bit64                      4.0.5     2020-08-30 [1] CRAN (R 4.4.0)
+   bitops                     1.0-7     2021-04-24 [1] CRAN (R 4.4.0)
+   blob                       1.2.4     2023-03-17 [1] CRAN (R 4.4.0)
+   boot                       1.3-30    2024-02-26 [1] CRAN (R 4.4.1)
+   bslib                      0.7.0     2024-03-29 [1] CRAN (R 4.4.0)
+   cachem                     1.1.0     2024-05-16 [1] CRAN (R 4.4.0)
+   caTools                  * 1.18.2    2021-03-28 [1] CRAN (R 4.4.0)
+   class                      7.3-22    2023-05-03 [1] CRAN (R 4.4.1)
+   classInt                   0.4-10    2023-09-05 [1] CRAN (R 4.4.0)
+ P cli                        3.6.3     2024-06-21 [2] CRAN (R 4.4.0)
+   codetools                  0.2-20    2024-03-31 [1] CRAN (R 4.4.1)
+   colorout                 * 1.3-0.2   2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace                 2.1-0     2023-01-23 [1] CRAN (R 4.4.0)
+   config                     0.3.2     2023-08-30 [1] CRAN (R 4.4.0)
+   cowplot                    1.1.3     2024-01-22 [1] CRAN (R 4.4.0)
+   crayon                     1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
+   curl                       5.2.1     2024-03-01 [1] CRAN (R 4.4.0)
+   data.table               * 1.15.4    2024-03-30 [2] CRAN (R 4.4.0)
+   DBI                        1.2.3     2024-06-02 [1] CRAN (R 4.4.0)
+   dbplyr                     2.5.0     2024-03-19 [1] CRAN (R 4.4.0)
+   DelayedArray               0.30.1    2024-05-07 [1] Bioconductor 3.19 (R 4.4.0)
+   DelayedMatrixStats         1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   deldir                     2.0-4     2024-02-28 [1] CRAN (R 4.4.0)
+   digest                     0.6.36    2024-06-23 [1] CRAN (R 4.4.0)
+   doParallel                 1.0.17    2022-02-07 [1] CRAN (R 4.4.0)
+   dotCall64                  1.1-1     2023-11-28 [1] CRAN (R 4.4.0)
+   dplyr                      1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
+   dqrng                      0.4.1     2024-05-28 [1] CRAN (R 4.4.0)
+   DropletUtils               1.24.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   DT                         0.33      2024-04-04 [1] CRAN (R 4.4.0)
+   e1071                      1.7-14    2023-12-06 [1] CRAN (R 4.4.0)
+   EBImage                    4.46.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   edgeR                      4.2.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   evaluate                   0.24.0    2024-06-10 [1] CRAN (R 4.4.0)
+   ExperimentHub              2.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   fansi                      1.0.6     2023-12-08 [1] CRAN (R 4.4.0)
+   FastKNN                  * 0.0.1     2015-02-12 [1] CRAN (R 4.4.0)
+   fastmap                    1.2.0     2024-05-15 [1] CRAN (R 4.4.0)
+   fftwtools                  0.9-11    2021-03-01 [1] CRAN (R 4.4.0)
+   fields                     15.2      2023-08-17 [1] CRAN (R 4.4.0)
+   filelock                   1.0.3     2023-12-11 [1] CRAN (R 4.4.0)
+   FNN                      * 1.1.4     2024-01-12 [1] CRAN (R 4.4.0)
+   foreach                    1.5.2     2022-02-02 [1] CRAN (R 4.4.0)
+   generics                   0.1.3     2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb             * 1.40.1    2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomeInfoDbData           1.2.12    2024-05-01 [1] Bioconductor
+   GenomicAlignments          1.40.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomicRanges            * 1.56.1    2024-06-12 [1] Bioconductor 3.19 (R 4.4.1)
+   ggbeeswarm                 0.7.2     2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2                    3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
+   ggrepel                    0.9.5     2024-01-10 [1] CRAN (R 4.4.0)
+   glue                       1.7.0     2024-01-09 [1] CRAN (R 4.4.0)
+   golem                      0.4.1     2023-06-05 [1] CRAN (R 4.4.0)
+   gridExtra                  2.3       2017-09-09 [1] CRAN (R 4.4.0)
+   gtable                     0.3.5     2024-04-22 [1] CRAN (R 4.4.0)
+   HDF5Array                  1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   here                       1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools                  0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets                1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
+   httpuv                     1.6.15    2024-03-26 [1] CRAN (R 4.4.0)
+   httr                       1.4.7     2023-08-15 [1] CRAN (R 4.4.0)
+   IRanges                  * 2.38.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   irlba                      2.3.5.1   2022-10-03 [1] CRAN (R 4.4.0)
+   iterators                  1.0.14    2022-02-05 [1] CRAN (R 4.4.0)
+   jpeg                       0.1-10    2022-11-29 [1] CRAN (R 4.4.0)
+   jquerylib                  0.1.4     2021-04-26 [1] CRAN (R 4.4.0)
+   jsonlite                   1.8.8     2023-12-04 [1] CRAN (R 4.4.0)
+   KEGGREST                   1.44.1    2024-06-19 [1] Bioconductor 3.19 (R 4.4.0)
+   KernSmooth                 2.23-24   2024-05-17 [1] CRAN (R 4.4.1)
+   knitr                      1.47      2024-05-29 [1] CRAN (R 4.4.0)
+   later                      1.3.2     2023-12-06 [1] CRAN (R 4.4.0)
+   lattice                    0.22-6    2024-03-20 [1] CRAN (R 4.4.1)
+   lazyeval                   0.2.2     2019-03-15 [1] CRAN (R 4.4.0)
+   lifecycle                  1.0.4     2023-11-07 [1] CRAN (R 4.4.0)
+   limma                      3.60.3    2024-06-16 [1] Bioconductor 3.19 (R 4.4.0)
+   locfit                     1.5-9.10  2024-06-24 [1] CRAN (R 4.4.0)
+   magick                     2.8.3     2024-02-18 [1] CRAN (R 4.4.0)
+   magrittr                   2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
+   maps                       3.4.2     2023-12-15 [1] CRAN (R 4.4.0)
+   Matrix                     1.7-0     2024-04-26 [1] CRAN (R 4.4.1)
+   MatrixGenerics           * 1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   matrixStats              * 1.3.0     2024-04-11 [1] CRAN (R 4.4.0)
+   memoise                    2.0.1     2021-11-26 [1] CRAN (R 4.4.0)
+   mime                       0.12      2021-09-28 [1] CRAN (R 4.4.0)
+   munsell                    0.5.1     2024-04-01 [1] CRAN (R 4.4.0)
+   paletteer                  1.6.0     2024-01-21 [1] CRAN (R 4.4.0)
+   parallelly               * 1.37.1    2024-02-29 [1] CRAN (R 4.4.0)
+   pdist                      1.2.1     2022-05-02 [1] CRAN (R 4.4.0)
+   pillar                     1.9.0     2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig                  2.0.3     2019-09-22 [1] CRAN (R 4.4.0)
+   plotly                     4.10.4    2024-01-13 [1] CRAN (R 4.4.0)
+   png                        0.1-8     2022-11-29 [1] CRAN (R 4.4.0)
+   promises                   1.3.0     2024-04-05 [1] CRAN (R 4.4.0)
+   proxy                      0.4-27    2022-06-09 [1] CRAN (R 4.4.0)
+   purrr                      1.0.2     2023-08-10 [1] CRAN (R 4.4.0)
+   R.methodsS3                1.8.2     2022-06-13 [1] CRAN (R 4.4.0)
+   R.oo                       1.26.0    2024-01-24 [1] CRAN (R 4.4.0)
+   R.utils                    2.12.3    2023-11-18 [1] CRAN (R 4.4.0)
+   R6                         2.5.1     2021-08-19 [1] CRAN (R 4.4.0)
+   rappdirs                   0.3.3     2021-01-31 [1] CRAN (R 4.4.0)
+   RColorBrewer               1.1-3     2022-04-03 [1] CRAN (R 4.4.0)
+   Rcpp                       1.0.12    2024-01-09 [1] CRAN (R 4.4.0)
+   RCurl                      1.98-1.14 2024-01-09 [1] CRAN (R 4.4.0)
+   rematch2                   2.1.2     2020-05-01 [1] CRAN (R 4.4.0)
+   restfulr                   0.0.15    2022-06-16 [1] CRAN (R 4.4.0)
+   rhdf5                      2.48.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   rhdf5filters               1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   Rhdf5lib                   1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   rjson                      0.2.21    2022-01-09 [1] CRAN (R 4.4.0)
+ P rlang                    * 1.1.4     2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown                  2.27      2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot                  2.0.4     2023-11-05 [1] CRAN (R 4.4.0)
+   Rsamtools                  2.20.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   RSQLite                    2.3.7     2024-05-27 [1] CRAN (R 4.4.0)
+   rstudioapi                 0.16.0    2024-03-24 [1] CRAN (R 4.4.0)
+   rsvd                       1.0.5     2021-04-16 [1] CRAN (R 4.4.0)
+   rtracklayer                1.64.0    2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   s2                         1.1.6     2023-12-19 [1] CRAN (R 4.4.0)
+   S4Arrays                   1.4.1     2024-05-20 [1] Bioconductor 3.19 (R 4.4.0)
+   S4Vectors                * 0.42.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sass                       0.4.9     2024-03-15 [1] CRAN (R 4.4.0)
+   ScaledMatrix               1.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scales                     1.3.0     2023-11-28 [1] CRAN (R 4.4.0)
+   scater                     1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scuttle                    1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sessioninfo                1.2.2     2021-12-06 [1] CRAN (R 4.4.0)
+   sf                         1.0-16    2024-03-24 [1] CRAN (R 4.4.0)
+   sfheaders                  0.4.4     2024-01-17 [1] CRAN (R 4.4.0)
+   shiny                      1.8.1.1   2024-04-02 [1] CRAN (R 4.4.0)
+   shinyWidgets               0.8.6     2024-04-24 [1] CRAN (R 4.4.0)
+   SingleCellExperiment     * 1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sp                         2.1-4     2024-04-30 [1] CRAN (R 4.4.0)
+   spam                       2.10-0    2023-10-23 [1] CRAN (R 4.4.0)
+   SparseArray                1.4.8     2024-05-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sparseMatrixStats          1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   SpatialExperiment        * 1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   SpatialFeatureExperiment * 1.6.1     2024-05-15 [1] Bioconductor 3.19 (R 4.4.0)
+   spatialLIBD              * 1.16.2    2024-05-28 [1] Bioconductor 3.19 (R 4.4.0)
+   spData                     2.3.1     2024-05-31 [1] CRAN (R 4.4.0)
+   spdep                      1.3-5     2024-06-10 [1] CRAN (R 4.4.0)
+   statmod                    1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
+   SummarizedExperiment     * 1.34.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   terra                      1.7-78    2024-05-22 [1] CRAN (R 4.4.0)
+   tibble                     3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr                      1.3.1     2024-01-24 [1] CRAN (R 4.4.0)
+   tidyselect                 1.2.1     2024-03-11 [1] CRAN (R 4.4.0)
+   tiff                       0.1-12    2023-11-28 [1] CRAN (R 4.4.0)
+   UCSC.utils                 1.0.0     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   units                      0.8-5     2023-11-28 [1] CRAN (R 4.4.0)
+   utf8                       1.2.4     2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs                      0.6.5     2023-12-01 [1] CRAN (R 4.4.0)
+   vipor                      0.4.7     2023-12-18 [1] CRAN (R 4.4.0)
+   viridis                    0.6.5     2024-01-29 [1] CRAN (R 4.4.0)
+   viridisLite                0.4.2     2023-05-02 [1] CRAN (R 4.4.0)
+   wk                         0.9.1     2023-11-29 [1] CRAN (R 4.4.0)
+   xfun                       0.45      2024-06-16 [1] CRAN (R 4.4.0)
+   XML                        3.99-0.17 2024-06-25 [1] CRAN (R 4.4.0)
+   xtable                     1.8-4     2019-04-21 [1] CRAN (R 4.4.0)
+   XVector                    0.44.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   yaml                       2.3.8     2023-12-11 [1] CRAN (R 4.4.0)
+   zeallot                    0.1.0     2018-01-28 [1] CRAN (R 4.4.0)
+   zlibbioc                   1.50.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+───────────────────────────────────────────────────────────────────────────────
