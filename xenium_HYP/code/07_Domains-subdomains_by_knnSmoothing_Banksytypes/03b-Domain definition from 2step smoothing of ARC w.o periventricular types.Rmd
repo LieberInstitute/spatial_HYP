@@ -1,0 +1,249 @@
+---
+title: "03b-Domain definition from 2step smoothing of ARC w.o periventricular types"
+output: html_document
+date: "2024-07-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(sf)
+library(ggplot2)
+library(ggrastr)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+```
+
+### based on visual inspection of plots 07/03a, smoothing using only the four ventrally-restricted/preferentially located ARC cell types for domain definition, the ideal parameters VISUALLY are for MOST samples (after round 1 smoothing at 0.2 (VMH) or 0.1 (ARC)):
+VMH threshold 0.2, ARC threshold 0.5
+
+### there are two donors for which this does not apply in the case of VMH: 
+##### Br8741 has holes with VMH thresholds of 0.2, use 0.15 to get a fuller one and then extract convex hull of that --> make the VMH domain for Br8741 samps
+
+##### Br8667 has additional little spots of VMH at 0.2, so remove those.
+
+to make these domain assignments, load in the table of KNN calculations and apply labels based on the above thresholds/exceptions
+```{r}
+arcvmh4 <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03a-Alt_2stepKNN-ARCVMH_ARC-no-X23.txt")
+
+arcvmh4.list <- split(arcvmh4,arcvmh4$sample_id)
+
+## make VMH and ARC assignments to samples suited to the selected thresholds 
+arcvmh4ready <- arcvmh4.list[c("X36_5459A","X36_5459B","X86_reg1","X86_reg2","X86_reg3","X97_reg1","X97_reg2","X97_reg3","X99_1225A","X99_1225B")]
+arcvmh4ready <- rbindlist(arcvmh4ready)
+
+arcvmh4ready[VMHpred_thresh1_0.2_smooth2.k200>0.2&ARCpred_thresh1_0.1_smooth2.k500<=0.5,dualVMHARC4:="VMH"]
+arcvmh4ready[VMHpred_thresh1_0.2_smooth2.k200<=0.2&ARCpred_thresh1_0.1_smooth2.k500>0.5,dualVMHARC4:="ARC"]
+arcvmh4ready[VMHpred_thresh1_0.2_smooth2.k200>0.2&ARCpred_thresh1_0.1_smooth2.k500>0.5,dualVMHARC4:=ifelse(VMHpred_thresh1_0.2_smooth2.k200>ARCpred_thresh1_0.1_smooth2.k500,yes="VMH",no="ARC")]
+arcvmh4ready[is.na(dualVMHARC4),dualVMHARC4:="other"]
+```
+
+### handling for 8667, the easier one to deal with
+```{r}
+br8667 <- arcvmh4.list[["X36_8667C"]]
+br8667[VMHpred_thresh1_0.2_smooth2.k200>0.2&ARCpred_thresh1_0.1_smooth2.k500<=0.5,dualVMHARC4:="VMH"]
+br8667[VMHpred_thresh1_0.2_smooth2.k200<=0.2&ARCpred_thresh1_0.1_smooth2.k500>0.5,dualVMHARC4:="ARC"]
+br8667[VMHpred_thresh1_0.2_smooth2.k200>0.2&ARCpred_thresh1_0.1_smooth2.k500>0.5,dualVMHARC4:=ifelse(VMHpred_thresh1_0.2_smooth2.k200>ARCpred_thresh1_0.1_smooth2.k500,yes="VMH",no="ARC")]
+br8667[is.na(dualVMHARC4),dualVMHARC4:="other"]
+
+### find the little extra guys, should be easy enough with a ggplot by coordinates
+ggplot(br8667[dualVMHARC4=="VMH"],aes(x=xcoord,y=ycoord))+geom_point(size=0.1)
+### 5 bits to remove: x > 51500 & y > 2500 (2 small areas), x > 54000 (one small area), x < 51000 (literally one cell), x<50000 max(y) (literally one cell)
+
+br8667[dualVMHARC4=="VMH"&xcoord>51500&ycoord>2500,dualVMHARC4:="other"]
+br8667[dualVMHARC4=="VMH"&xcoord>54000,dualVMHARC4:="other"]
+### replot:
+ggplot(br8667[dualVMHARC4=="VMH"],aes(x=xcoord,y=ycoord))+geom_point(size=0.1)
+### get the singletons
+br8667[dualVMHARC4=="VMH"&xcoord<49000,dualVMHARC4:="other"]
+br8667[dualVMHARC4=="VMH"&xcoord<50000&ycoord==max(br8667[xcoord<50000&dualVMHARC4=="VMH",ycoord]),dualVMHARC4:="other"]
+### replot:
+ggplot(br8667[dualVMHARC4=="VMH"],aes(x=xcoord,y=ycoord))+geom_point(size=0.1)
+
+### k excellent
+dev.off()
+
+
+### we can add this to the table of sampels with finished labels now
+
+arcvmh4ready <- rbind(arcvmh4ready,br8667)
+
+rm(br8667)
+```
+
+### now for the gnarlier ones, br8741
+```{r}
+arcvmh4.list <- arcvmh4.list[c("X99_8741C","X99_8741D")]
+
+## first, apply the general labels
+arcvmh4.list <- lapply(arcvmh4.list,FUN=function(x){
+   x[VMHpred_thresh1_0.2_smooth2.k200>0.15&ARCpred_thresh1_0.1_smooth2.k500<=0.5,dualVMHARC4:="VMH"]
+   x[VMHpred_thresh1_0.2_smooth2.k200<=0.15&ARCpred_thresh1_0.1_smooth2.k500>0.5,dualVMHARC4:="ARC"]
+   x[VMHpred_thresh1_0.2_smooth2.k200>0.15&ARCpred_thresh1_0.1_smooth2.k500>0.5,dualVMHARC4:=ifelse(VMHpred_thresh1_0.2_smooth2.k200>ARCpred_thresh1_0.1_smooth2.k500,yes="VMH",no="ARC")]
+   x[is.na(dualVMHARC4),dualVMHARC4:="other"]
+   return(x)
+})
+
+### now get the convex hulls for VMH in each sample, and assign cells falling within that hull to VMH
+### we can test this and see how the convex hull closes the shape
+### test <- st_as_sf(arcvmh4.list[[1]][dualVMHARC4=="VMH],coords=c("xcoord","ycoord"))
+### test2 <- st_convex_hull(st_union(test2))
+### plot(test) -- compare that to:
+### plot(test2)
+
+arcvmh4.list <- lapply(arcvmh4.list,FUN=function(x){
+   ### get the convex hull
+   vmh <- st_as_sf(x[dualVMHARC4=="VMH"],coords=c("xcoord","ycoord"))
+   vmh <- st_convex_hull(st_union(vmh))
+   
+   ### get cells within the convex hull, label as vmh 
+   fetchnames <- st_within(st_as_sf(x,coords=c("xcoord","ycoord")),vmh)
+   names(fetchnames) <- x$rn
+   
+   x[rn %in% names(unlist(fetchnames)==1),dualVMHARC4:="VMH"]
+   
+   ### now deconflict labels with ARC without explicitly requiring a VMH threshold (which is what the convex hull is bypassing), i.e. replace anything labeled VMH by the hull but passing the ARC threshold back to ARC
+   x[dualVMHARC4=="VMH"&ARCpred_thresh1_0.1_smooth2.k500>0.5,dualVMHARC4:="ARC"]
+   ### 
+   
+   return(x)
+})
+
+arcvmh4ready <- rbind(arcvmh4ready,rbindlist(arcvmh4.list))
+
+## final cell totals:
+arcvmh4ready[,.N,by="dualVMHARC4"]
+# other 624k
+# VMH 132k
+# ARC 115k
+
+## get rid of some excess columns
+arcvmh4ready <- arcvmh4ready[,.(rn,sample_id,xcoord,ycoord,dualVMHARC4)]
+```
+
+### save
+```{r}
+fwrite(arcvmh4ready,"processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt",sep='\t',quote=F)
+
+```
+
+### reproducibility info
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] ggrastr_1.0.2     ggplot2_3.5.1     colorout_1.3-0.2  data.table_1.15.4
+[5] sf_1.0-16         rlang_1.1.4      
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.5       dplyr_1.1.4        compiler_4.4.1     tidyselect_1.2.1  
+ [5] Rcpp_1.0.12        ggbeeswarm_0.7.2   scales_1.3.0       yaml_2.3.8        
+ [9] fastmap_1.2.0      here_1.0.1         R6_2.5.1           labeling_0.4.3    
+[13] generics_0.1.3     classInt_0.4-10    knitr_1.47         tibble_3.2.1      
+[17] units_0.8-5        munsell_0.5.1      rprojroot_2.0.4    DBI_1.2.3         
+[21] pillar_1.9.0       utf8_1.2.4         xfun_0.45          cli_3.6.3         
+[25] withr_3.0.0        magrittr_2.0.3     class_7.3-22       digest_0.6.36     
+[29] grid_4.4.1         rstudioapi_0.16.0  beeswarm_0.4.0     lifecycle_1.0.4   
+[33] vipor_0.4.7        vctrs_0.6.5        KernSmooth_2.23-24 proxy_0.4-27      
+[37] evaluate_0.24.0    glue_1.7.0         farver_2.1.2       fansi_1.0.6       
+[41] e1071_1.7-14       colorspace_2.1-0   rmarkdown_2.27     tools_4.4.1       
+[45] pkgconfig_2.0.3    htmltools_0.5.8.1 
+> sessioninfo::session_info()
+─ Session info ────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-07-05
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ────────────────────────────────────────────────────────────────────
+ ! package     * version date (UTC) lib source
+   beeswarm      0.4.0   2021-06-01 [1] CRAN (R 4.4.0)
+   class         7.3-22  2023-05-03 [1] CRAN (R 4.4.1)
+   classInt      0.4-10  2023-09-05 [1] CRAN (R 4.4.0)
+ P cli           3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
+   colorout    * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace    2.1-0   2023-01-23 [1] CRAN (R 4.4.0)
+   data.table  * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   DBI           1.2.3   2024-06-02 [1] CRAN (R 4.4.0)
+   digest        0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
+   dplyr         1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
+   e1071         1.7-14  2023-12-06 [1] CRAN (R 4.4.0)
+   evaluate      0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
+   fansi         1.0.6   2023-12-08 [1] CRAN (R 4.4.0)
+   farver        2.1.2   2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap       1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   generics      0.1.3   2022-07-05 [1] CRAN (R 4.4.0)
+   ggbeeswarm    0.7.2   2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2     * 3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
+   ggrastr     * 1.0.2   2023-06-01 [1] CRAN (R 4.4.0)
+   glue          1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
+   gtable        0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
+   here          1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools     0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   KernSmooth    2.23-24 2024-05-17 [1] CRAN (R 4.4.1)
+   knitr         1.47    2024-05-29 [1] CRAN (R 4.4.0)
+   labeling      0.4.3   2023-08-29 [1] CRAN (R 4.4.0)
+   lifecycle     1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
+   magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
+   munsell       0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
+   pillar        1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
+   proxy         0.4-27  2022-06-09 [1] CRAN (R 4.4.0)
+   R6            2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
+   Rcpp          1.0.12  2024-01-09 [1] CRAN (R 4.4.0)
+ P rlang       * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown     2.27    2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot     2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi    0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
+   scales        1.3.0   2023-11-28 [1] CRAN (R 4.4.0)
+   sessioninfo   1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   sf          * 1.0-16  2024-03-24 [1] CRAN (R 4.4.0)
+   tibble        3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
+   tidyselect    1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
+   units         0.8-5   2023-11-28 [1] CRAN (R 4.4.0)
+   utf8          1.2.4   2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs         0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
+   vipor         0.4.7   2023-12-18 [1] CRAN (R 4.4.0)
+   withr         3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
+   xfun          0.45    2024-06-16 [1] CRAN (R 4.4.0)
+   yaml          2.3.8   2023-12-11 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+───────────────────────────────────────────────────────────────────────────────
