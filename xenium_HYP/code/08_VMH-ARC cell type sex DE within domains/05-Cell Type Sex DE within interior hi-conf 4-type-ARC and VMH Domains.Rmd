@@ -1,5 +1,5 @@
 ---
-title: "02-Cell Type Sex DE within 4-type-ARC and VMH Domains"
+title: "05-Cell Type Sex DE within interior hi-conf 4-type-ARC and VMH Domains"
 output: html_document
 date: "2024-07-04"
 ---
@@ -15,6 +15,7 @@ library(ggplot2)
 library(gridExtra)
 library(SpatialExperiment)
 library(SpatialFeatureExperiment)
+library(sf)
 library(dreamlet)
 
 ## rstudio GUI tweaks
@@ -34,7 +35,9 @@ options(bphost="localhost")
 theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
 
-### Here, we will use the more constrained ARC definition that only considered cell types 15/19/31/33 in the smoothing, and VMH as defined in this scheme. (Since we deconflict dual-labeled cells based on comparative KNN scores, the VMH as defined here vs. as defined using additional cell types to define ARC does not necessarily yield identical domains).
+### As one of two confirmatory analyses, we will restrict the analyses to the ~96% interior boundary of the ARC and VMH domains to avoid potentially overlapping cell types in their boundary areas. We can get this by using the buffer function of sf, which with a negative setting, will decrease the size of the polygonal domain.
+
+### From here forward, we will only perform sex DE analyses using the more constrained ARC definition that only considered cell types 15/19/31/33 in the smoothing, and VMH as defined in this scheme.
 
 ```{r}
 ## read SFE and domain labels
@@ -42,7 +45,8 @@ hypb <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_stagge
 
 
 finesmoove <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
-finesmoove <- finesmoove[,.(rn,dualVMHARC4)]
+
+## since there are clusters wwe are discarding, we should drop those before proceeding lest hull boundary determinations are affected by such cells
 
 ## load banksy cell typing results
 bkcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
@@ -54,20 +58,79 @@ bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 
 bkcl <- merge(bkcl,bkanno,by.x="M0lam0_leiden_multisamp_res2",by.y="clus",all.x=TRUE)
 
-## drop the DISCARDs from the cell types and the SFE
+## drop the DISCARDs from the cell types and the SFE, as well as the cell-coord-domain table (so that we smooth only the non-discarded cells). we'll finish setup, including appending the domain labels and cell types, after we calculate the interior domain polygons.
 bkcl <- bkcl[bjm_annot!="DISCARD",]
 hypb <- hypb[,hypb$key %in% bkcl$rn]
 stopifnot(ncol(hypb)==nrow(bkcl))
 
+finesmoove <- finesmoove[rn %in% bkcl$rn]
+```
+
+### now, split the smoothing results by sample to define the "high-confidence" domain areas. the VMH is shaped such that convex hull determination works fine, but the ARC has concave portions in many samples, so use the concave hull function with ratio (lower --> concavity favoring) set to 0.1. (We used this previously in determining boundary domains from domain hulls in code / 07 / 02b, 02c, and 03c)
+```{r}
+samplist <- split(finesmoove,finesmoove$sample_id)
+
+samplist <- bplapply(samplist,BPPARAM=MulticoreParam(10),FUN=function(s){
+   vmh <- st_as_sf(s[dualVMHARC4=="VMH"],coords=c("xcoord","ycoord"))
+   arc <- st_as_sf(s[dualVMHARC4=="ARC"],coords=c("xcoord","ycoord"))
+   
+   ## get the points defining the convex hull using sf by running st_union to make a single geometry of all component points, then st_convex_hull to get the hull
+    vmh.sf <- st_as_sf(vmh,coords=c("xcoord","ycoord"))
+    vmh.hull <- st_convex_hull(st_union(vmh.sf))
+    
+    ## arc is not necessarily a CONVEX hull, however. e.g, it's concave where it meets the VMH (in some cases). again, using X86_reg1, calling st_concave_hull with ratio 0.1 (concavity vs convexity parameter, lower = more concavity; 0 just gives a polygon tracing all points sequentially and is not useful) works beautifully, and this is probably the scoop-iest shaped ARC in the dataset. so let's try that for all samples
+    arc.sf <- st_as_sf(arc,coords=c("xcoord","ycoord"))
+    arc.hull <- st_concave_hull(st_union(arc.sf),ratio=0.1)
+    
+    ## add a NEGATIVE buffer zone the domain hull polygons, ie shrinking them inward. we previously benchmarked using a positive buffer for boundary detection by adding about 4% to the hull approximated by calculating the median of the pairwise distances between points defining the domain hull. so here, we will use the negative of that to shrink inwards by such a value.
+    
+    vmh.buffdist <- median(dist(st_coordinates(vmh.hull)))
+    vmh.buffhull <- st_buffer(vmh.hull,dist=-0.04*vmh.buffdist)
+
+    arc.buffdist <- median(dist(st_coordinates(arc.hull)))
+    arc.buffhull <- st_buffer(arc.hull,dist=-0.04*arc.buffdist)
+    
+    # get the polygon defining where these negative-buffer hull overlaps the original, and the cell ids within it. these are what we want to subset to for "high-confidence domain" sex DE. 
+    vmh.buffintsec <- st_intersection(vmh.buffhull,vmh.hull)
+    arc.buffintsec <- st_intersection(arc.buffhull,arc.hull)
+
+    ## really, truly finally, get the cells that (still) fall within the shrunken domain. st_within returns a list of 0/1 for within/not within per row, which is easier to use/spot check with sparse=F as all rows are accounted for in its output
+    vmh.inboundary <- st_within(vmh.sf,vmh.buffintsec,sparse = F)
+    vmh.innercells <- as.data.frame(vmh)[vmh.inboundary,"rn"]
+    
+    arc.inboundary <- st_within(arc.sf,arc.buffintsec,sparse=F)
+    arc.innercells <- as.data.frame(arc)[arc.inboundary,"rn"]
+    return(list(vmhinnercells=vmh.innercells,arcinnercells=arc.innercells))
+})
+
+### concatenate back to single vectors of VMH/ARC inner cells
+vmhin <- unlist(lapply(samplist,function(x){x$vmhinnercells}))
+arcin <- unlist(lapply(samplist,function(x){x$arcinnercells}))
+
+### make sure there aren't conflicting cells after this (there shouldn't be--but if we're getting back erroneously convex hulls for ARC from the code above, then its boundary is going to cut at a weird diagonal straight across VMH, and cells would overlap then)
+stopifnot(length(intersect(vmhin,arcin))==0)
+
+### annotate which cells are in the hiconf domains in a new column of the smoothing result table, which we will use to subset the SFE into solely the cells of each domain
+finesmoove[rn %in% vmhin,hiconfdom:="VMH"]
+finesmoove[rn %in% arcin,hiconfdom:="ARC"]
+finesmoove[is.na(hiconfdom),hiconfdom:="other"]
+```
+
+
+### finish sex DE setup by appending the cell type and domain labels to the SFE, and then subset to the high-confidence domains
+```{r}
 ## create separate SFEs for 3-core-cell-type ARC domain and the VMH domain
 finesmoove <- DataFrame(finesmoove,row.names=finesmoove$rn)
 finesmoove <- finesmoove[colnames(hypb),]
-hypb$isARCsmoove4cell <- finesmoove$dualVMHARC4
+hypb$hiconfdom <- finesmoove$hiconfdom
 
-hyp.fineadom <- hypb[,hypb$isARCsmoove4cell=="ARC"]
-hyp.finevdom <- hypb[,hypb$isARCsmoove4cell=="VMH"]
+hyp.fineadom <- hypb[,hypb$hiconfdom=="ARC"]
+stopifnot(ncol(hyp.fineadom)==sum(finesmoove$hiconfdom=="ARC"))
 
-## label cell clusters from banksy for both
+hyp.finevdom <- hypb[,hypb$hiconfdom=="VMH"]
+stopifnot(ncol(hyp.finevdom)==sum(finesmoove$hiconfdom=="VMH"))
+
+## label cell clusters from banksy for both, order levels 1-41, then drop nonapplicable cell types. (so the cell types are in numerical order)
 bkcl <- DataFrame(bkcl,row.names=bkcl$rn)
 bkcl.fineadom <- bkcl[bkcl$rn %in% colnames(hyp.fineadom),]
 bkcl.fineadom <- bkcl.fineadom[colnames(hyp.fineadom),]
@@ -80,7 +143,7 @@ hyp.finevdom$banksy_clus <- factor(bkcl.finevdom$M0lam0_leiden_multisamp_res2,le
 hyp.finevdom$banksy_clus <- droplevels(hyp.finevdom$banksy_clus)
 
 ## remove misc.
-rm(bkcl,hypb,bkcl.fineadom,bkcl.finevdom,finesmoove)
+rm(bkcl,hypb,bkcl.fineadom,bkcl.finevdom,finesmoove,samplist,vmhin,arcin)
 gc()
 ```
 
@@ -88,11 +151,10 @@ gc()
 ```{r}
 hyp.fineadom.ag <- dreamlet::aggregateToPseudoBulk(hyp.fineadom,assay="counts",sample_id="sample_id",cluster_id = "banksy_clus",BPPARAM = MulticoreParam(8))
 
-
 ## min samples 5 -- size of the smaller sex group in total samps (females)-- one female sample has ~no ARC with this smoothing unfortunately
 dl.rf <- dreamlet::processAssays(hyp.fineadom.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+(1|BrNum))
 
-### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X28, X30, X34, X36, X37, X40
+### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X21, X28, X29, X30, X34, X35, X36, X37, X40
 
 dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+(1|BrNum),BPPARAM = MulticoreParam(8))
 
@@ -100,10 +162,11 @@ dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexMale",number=Inf,adjust.method ="
 dl.rf.res <- as.data.table(dl.rf.res)
 
 ## append rowData, domain, cell type annots to result table
-dl.rf.res[,domain:="ARC_X15X19X31X33_smoothed"]
+dl.rf.res[,domain:="ARC_4type_hiconf"]
 
 rddt <- as.data.table(rowData(hyp.fineadom))
-dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ID,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
+setnames(rddt,"ID","ensembl")
+dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ensembl,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
 
 dl.rf.res <- merge.data.table(dl.rf.res,bkanno,by.x="assay",by.y="clus",all.x=T)
 setnames(dl.rf.res,"logFC","logFC_MvF")
@@ -127,10 +190,11 @@ dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexMale",number=Inf,adjust.method ="
 dl.rf.res <- as.data.table(dl.rf.res)
 
 ## append rowData, domain, cell type annots to result table
-dl.rf.res[,domain:="VMH_dual.w.ARC4type"]
+dl.rf.res[,domain:="VMH_hiconf"]
 
 rddt <- as.data.table(rowData(hyp.finevdom))
-dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ID,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
+setnames(rddt,"ID","ensembl")
+dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ensembl,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
 
 dl.rf.res <- merge.data.table(dl.rf.res,bkanno,by.x="assay",by.y="clus",all.x=T)
 setnames(dl.rf.res,"logFC","logFC_MvF")
@@ -151,7 +215,7 @@ setnames(dl.rf.res.finevdom,c("logFC_MvF","adj.P.Val","t","P.Value"),c("logFC_Mv
 sexDE_indom <- merge.data.table(dl.rf.res.fineadom,dl.rf.res.finevdom,by=c("assay","bjm_annot","ID"),all.x=T,all.y=T)
 
 ## save
-fwrite(sexDE_indom,"processed-data/08_VMH-ARC cell type sex DE within domains/02-4celltypeARC-and-VMH-dualassignedDomains_celltypeSexDE.txt")
+fwrite(sexDE_indom,"processed-data/08_VMH-ARC cell type sex DE within domains/05-4celltypeARC-and-VMH-hiconf-interior96pctOfDomain_celltypeSexDE.txt")
 ```
 
 
