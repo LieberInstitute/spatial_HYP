@@ -84,17 +84,17 @@ rm(bkcl,hypb,bkcl.fineadom,bkcl.finevdom,finesmoove)
 gc()
 ```
 
-### use dreamlet to run random-donor-effects sex DE (mirroring the procedures used for visium) for the 4-cluster ARC definition
+### use dreamlet to run random-donor-effects sex DE (mirroring the procedures used for visium) for the 4-cluster ARC definition. include slide run as a covar
 ```{r}
 hyp.fineadom.ag <- dreamlet::aggregateToPseudoBulk(hyp.fineadom,assay="counts",sample_id="sample_id",cluster_id = "banksy_clus",BPPARAM = MulticoreParam(8))
 
 
 ## min samples 5 -- size of the smaller sex group in total samps (females)-- one female sample has ~no ARC with this smoothing unfortunately
-dl.rf <- dreamlet::processAssays(hyp.fineadom.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+(1|BrNum))
+dl.rf <- dreamlet::processAssays(hyp.fineadom.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
 
 ### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X28, X30, X34, X36, X37, X40
 
-dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+(1|BrNum),BPPARAM = MulticoreParam(8))
+dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum),BPPARAM = MulticoreParam(8))
 
 dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexMale",number=Inf,adjust.method ="BH")
 dl.rf.res <- as.data.table(dl.rf.res)
@@ -103,7 +103,8 @@ dl.rf.res <- as.data.table(dl.rf.res)
 dl.rf.res[,domain:="ARC_X15X19X31X33_smoothed"]
 
 rddt <- as.data.table(rowData(hyp.fineadom))
-dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ID,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
+setnames(rddt,"ID","ensembl")
+dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ensembl,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
 
 dl.rf.res <- merge.data.table(dl.rf.res,bkanno,by.x="assay",by.y="clus",all.x=T)
 setnames(dl.rf.res,"logFC","logFC_MvF")
@@ -117,11 +118,11 @@ hyp.finevdom.ag <- dreamlet::aggregateToPseudoBulk(hyp.finevdom,assay="counts",s
 
 
 ## min samples 6 -- size of the smaller sex group in total samps (females)
-dl.rf <- dreamlet::processAssays(hyp.finevdom.ag,min.cells = 10,min.count = 10,min.samples = 6,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+(1|BrNum))
+dl.rf <- dreamlet::processAssays(hyp.finevdom.ag,min.cells = 10,min.count = 10,min.samples = 6,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
 
 ### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X10, X17, X21, X28, X31, X32, X33, X34, X36, X37, X40
 
-dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+(1|BrNum),BPPARAM = MulticoreParam(8))
+dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum),BPPARAM = MulticoreParam(8))
 
 dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexMale",number=Inf,adjust.method ="BH")
 dl.rf.res <- as.data.table(dl.rf.res)
@@ -130,7 +131,8 @@ dl.rf.res <- as.data.table(dl.rf.res)
 dl.rf.res[,domain:="VMH_dual.w.ARC4type"]
 
 rddt <- as.data.table(rowData(hyp.finevdom))
-dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ID,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
+setnames(rddt,"ID","ensembl")
+dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ensembl,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
 
 dl.rf.res <- merge.data.table(dl.rf.res,bkanno,by.x="assay",by.y="clus",all.x=T)
 setnames(dl.rf.res,"logFC","logFC_MvF")
@@ -287,7 +289,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-07-05
+ date     2024-07-09
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 

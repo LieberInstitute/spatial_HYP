@@ -73,16 +73,16 @@ rm(smoovedom)
 gc()
 ```
 
-### use dreamlet to run random-donor-effects sex DE (mirroring the procedures used for visium)
+### use dreamlet to run random-donor-effects sex DE (mirroring the procedures used for visium), with covar for slide run
 ```{r}
 hyp.domwise.ag <- dreamlet::aggregateToPseudoBulk(hypav,assay="counts",sample_id="sample_id",cluster_id = "dualdom",BPPARAM = MulticoreParam(2))
 
 
 ## min samples 5 -- size of the smaller sex group in total samps (females, one of whom lacks ARC); set min.prop to 0.1 since this is now mixed cell types in reality (vs min prop 0.4 for cell type-wise sex DE in scripts 08/01 and 02)
 
-dl.rf <- dreamlet::processAssays(hyp.domwise.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.1,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+(1|BrNum))
+dl.rf <- dreamlet::processAssays(hyp.domwise.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.1,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
 
-dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+(1|BrNum),BPPARAM = MulticoreParam(8))
+dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum),BPPARAM = MulticoreParam(8))
 
 dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexMale",number=Inf,adjust.method ="BH")
 dl.rf.res <- as.data.table(dl.rf.res)
@@ -260,7 +260,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-07-04
+ date     2024-07-09
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
