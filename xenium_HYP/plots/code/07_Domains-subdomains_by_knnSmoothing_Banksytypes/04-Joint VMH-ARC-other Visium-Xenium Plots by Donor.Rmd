@@ -1,0 +1,127 @@
+---
+title: "04-Joint VMH-ARC-other Visium-Xenium Plots by Donor"
+output: html_document
+date: "2024-07-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(SpatialFeatureExperiment)
+library(ggrastr)
+library(spatialLIBD)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+## ggplot defaults
+theme_update(theme_bw()+theme(axis.text.x = element_text(size = 5), axis.title.x = element_text(size = 5), axis.text.y = element_text(size = 4), axis.title.y = element_text(size =4), plot.title = element_text(size = 10,hjust=0.5), strip.text = element_text(size=4), legend.text = element_text(size=11), legend.title = element_text(size=10,hjust=0.5)))
+```
+
+
+```{r}
+xensmoove <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
+
+## add demos to this ^ so we have brain numbers as well
+xdem <- fread("raw-data/demos_and_xeniumrun_metadata.tsv")
+stopifnot(all(xdem$sample_name_SFEonly %in% xensmoove$sample_id))
+xensmoove <- merge.data.table(xensmoove,unique(xdem[,.(sample_name_SFEonly,BrNum)]),by.x="sample_id",by.y="sample_name_SFEonly",all.x=T)
+
+## there's one sample for which rotating still doesn't work.
+hypv <- readRDS("../spatial_HYP/data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+
+## add bayesspace domains, drop non vmh non ARC and collapse VMH/ARC into single domain per.
+bscl <- fread("../spatial_HYP/data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+
+setnames(bscl,2,"bscl")
+bscl[,bscl:=paste0("X",bscl)]
+bscl[bscl %in% c("X3","X5"),bscl:="ARC"]
+bscl[bscl %in% c("X12","X11"),bscl:="VMH"]
+bscl[!(bscl %in% c("ARC","VMH")),bscl:="other"]
+bscl <- DataFrame(bscl,row.names=bscl$rn)
+bscl <- bscl[colnames(hypv),]
+colLabels(hypv) <- bscl$bscl
+
+## also eextract coldata into a standalone frame for ease of use
+hypv.cd <- as.data.table(colData(hypv),keep.rownames=T)
+```
+
+
+iterate over donors
+```{r}
+xendons <- unique(xensmoove$BrNum)
+visdons <- unique(hypv$brnum)
+
+### one xenium donor isn't in the visium data.
+dualdons <- intersect(xendons,visdons)
+
+### make a three-color palette
+pal <- c("green","purple","gray")
+names(pal) <- c("ARC","VMH","other")
+
+pltmetalist <- list()
+i<-1
+for (i in c(1:length(dualdons))){
+  pltssub <- list()
+  j <- 1
+  for (j in c(1:length(unique(xensmoove[BrNum==dualdons[i],sample_id])))){
+      xensamp <- unique(xensmoove[BrNum==dualdons[i],sample_id])[j]
+      pltssub[[j]] <- ggplot(xensmoove[sample_id==xensamp],aes(x=xcoord,y=ycoord,color=dualVMHARC4)) +
+          rasterize(geom_point(size=0.1)) + 
+          ggtitle(paste0("Xenium ",dualdons[i]," rep ",j))+
+          scale_color_manual(values=pal)+
+          theme(axis.text.x = element_text(size = 5), axis.title.x = element_text(size = 5), axis.text.y = element_text(size = 4), axis.title.y = element_text(size =4), plot.title = element_text(size = 10,hjust=0.5), strip.text = element_text(size=4), legend.text = element_text(size=11), legend.title = element_text(size=10,hjust=0.5))
+  }
+  
+  k <- length(unique(hypv.cd[brnum==dualdons[i],sample_id]))
+  j<-1
+  for (j in c(1:k)){
+      vissamp <- unique(hypv.cd[brnum==dualdons[i],sample_id])[j]
+      pltssub[[length(pltssub)+1]] <- vis_clus(hypv,sampleid = vissamp,colors=pal,clustervar = "label",spatial = T,image_id = "lowres",alpha=0.8,auto_crop = T,na_color = NA,point_size = 1.65)
+          pltssub[[length(pltssub)]] <- pltssub[[length(pltssub)]] + theme(axis.text.x = element_text(size = 5), axis.title.x = element_text(size = 5), axis.text.y = element_text(size = 4), axis.title.y = element_text(size =4), plot.title = element_text(size = 10,hjust=0.5), strip.text = element_text(size=4), legend.text = element_text(size=11), legend.title = element_text(size=10,hjust=0.5))
+  }
+  pltmetalist[[i]] <- pltssub
+}
+
+### get the xenium donor not in visium
+xendons <- xendons[!(xendons %in% visdons)]
+
+### finish out the loop manually with an eigth page (sublist) for this donor
+i<-i+1
+pltssub <- list()
+j <- 1
+for (j in c(1:length(unique(xensmoove[BrNum==xendons,sample_id])))){
+    xensamp <- unique(xensmoove[BrNum==xendons,sample_id])[j]
+    pltssub[[j]] <- ggplot(xensmoove[sample_id==xensamp],aes(x=xcoord,y=ycoord,color=dualVMHARC4)) +
+        rasterize(geom_point(size=0.1)) +
+        ggtitle(paste0("Xenium ",xendons," rep ",j))+
+        scale_color_manual(values=pal)+
+        theme(axis.text.x = element_text(size = 5), axis.title.x = element_text(size = 5), axis.text.y = element_text(size = 4), axis.title.y = element_text(size =4), plot.title = element_text(size = 10,hjust=0.5), strip.text = element_text(size=4), legend.text = element_text(size=11), legend.title = element_text(size=10,hjust=0.5))
+}
+
+pltmetalist[[i]] <- pltssub
+
+pdf("plots/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04-Xenium-Visium side by side per donor.pdf",height=11,width=11)
+i<-1
+for (i in c(1:length(pltmetalist))){
+    do.call("grid.arrange",c(pltmetalist[[i]],nrow=2,ncol=2))
+}
+dev.off()
+```
