@@ -22,10 +22,7 @@ library(SpotSweeper)
 
 ## load pre-assembled SPE object of mostly unfiltered data (has already been cut down to tissue-overlapping spots and genes with at least one count in at least one spot dataset-wide)
 ```{r}
-load("processed-data/02_build_spe/spe_w_v13y24-346_Jul24.RData")
-hyp <- spe_raw2
-rm(spe_raw2)
-gc(full=T)
+hyp <- readRDS("processed-data/02_build_spe/spe_n10.RDS")
 ### for reference: initial dataset dimensions
 dim(hyp)
 head(colData(hyp))
@@ -115,89 +112,91 @@ sum(hyp2$sum_gene_outliers)
 ## total number of spots to be dropped due to outlier status: 162+139+28 = 329
 ```
 
-### spotsweeper for tissue edge/hangnail cleanup. this uses raw mito counts AND mito %age
+### DO NOT USE the next two blocks -- this is only intended for plain-to-the-naked-eye, large tissue artifacts, to be used on a case-by-case basis (per SpotSweeper dev Michael Totty) 
 
-### however, there's a minor bug in SpotSweeper 1.0.2 that prevents this function that prevents return of results, letting Mike know but editing the function here to make it work--striking the reducedDims(spe) <- reudcedDims(spe.temp line)
+## spotsweeper for tissue edge/hangnail cleanup. this uses raw mito counts AND mito %age
+
+### however, there's a minor bug in SpotSweeper 1.0.2 that prevents this function that prevents return of results--editing the function here to make it work--striking the reducedDims(spe) <- reudcedDims(spe.temp line)
 ```{r}
-findArtifactsFix <- function (spe, mito_percent = "expr_chrM_ratio", mito_sum = "expr_chrM", 
-    samples = "sample_id", n_rings = 5, log = TRUE, name = "artifact", 
-    var_output = TRUE,BPPARAM=SerialParam()) 
-{
-    if (!("SpatialExperiment" %in% class(spe))) {
-        stop("Input data must be a SpatialExperiment object.")
-    }
-    if (!all(mito_percent %in% colnames(colData(spe)))) {
-        stop("mito_percent must be present in colData.")
-    }
-    if (!mito_sum %in% colnames(colData(spe))) {
-        stop("mito_sum must be present in colData.")
-    }
-    if (!samples %in% colnames(colData(spe))) {
-        stop("Samples column must be present in colData.")
-    }
-    if (!is.numeric(n_rings) || n_rings <= 0 || n_rings != round(n_rings)) {
-        stop("'n_rings' must be a positive integer.")
-    }
-    unique_sample_ids <- unique(colData(spe)[[samples]])
-    
-    ## split spe into a list of SPEs by sample id for memory efficiency (esp if parallelizing)
-    spelist <- lapply(unique_sample_ids, FUN=function(s){spe[,colData(spe)[[samples]]==s]})
-    names(spelist) <- unique_sample_ids
-    
-    columnData_list <- bplapply(spelist,BPPARAM=BPPARAM,FUN=function(sampspe) {
-        var_matrix <- vapply(seq_len(n_rings), function(i) {
-            n_neighbors <- 3 * i * (i + 1)
-            tmp.name <- paste0("k", n_neighbors)
-            sampspe <<- localVariance(sampspe, metric = mito_percent, 
-                n_neighbors = n_neighbors, name = tmp.name, 
-                log = log)
-            colData(sampspe)[[tmp.name]]
-        }, numeric(length(sampspe[[1]])))
-        var_matrix <- cbind(var_matrix, colData(sampspe)[[mito_percent]], 
-            colData(sampspe)[[mito_sum]])
-        var_df <- data.frame(var_matrix)
-        pc <- prcomp(var_df, center = TRUE, scale = TRUE)
-        rownames(pc$x) <- colnames(sampspe)
-        reducedDim(sampspe, "PCA_artifacts") <- pc$x
-        clus <- kmeans(pc$x, centers = 2, nstart = 25)
-        sampspe$Kmeans <- clus$cluster
-        
-        retrievek <- 3*n_rings*(n_rings+1)
-        clus1_mean <- mean(colData(sampspe)[[paste0("k", retrievek)]][sampspe$Kmeans == 
-            1])
-        clus2_mean <- mean(colData(sampspe)[[paste0("k", retrievek)]][sampspe$Kmeans == 
-            2])
-        artifact_clus <- which.min(c(clus1_mean, clus2_mean))
-        sampspe$artifact <- FALSE
-        sampspe$artifact[sampspe$Kmeans == artifact_clus] <- TRUE
-        sampspe$Kmeans <- NULL
-        return(colData(sampspe))
-    })
-    columnData_aggregated <- do.call(rbind, columnData_list)
-    columnData_aggregated <- DataFrame(columnData_aggregated)
-    columnData_aggregated <- columnData_aggregated[colnames(spe),]
-    colData(spe) <- columnData_aggregated
-    # reducedDims(spe) <- reducedDims(spe.temp)
-    return(spe)
-}
+# findArtifactsFix <- function (spe, mito_percent = "expr_chrM_ratio", mito_sum = "expr_chrM", 
+#     samples = "sample_id", n_rings = 5, log = TRUE, name = "artifact", 
+#     var_output = TRUE,BPPARAM=SerialParam()) 
+# {
+#     if (!("SpatialExperiment" %in% class(spe))) {
+#         stop("Input data must be a SpatialExperiment object.")
+#     }
+#     if (!all(mito_percent %in% colnames(colData(spe)))) {
+#         stop("mito_percent must be present in colData.")
+#     }
+#     if (!mito_sum %in% colnames(colData(spe))) {
+#         stop("mito_sum must be present in colData.")
+#     }
+#     if (!samples %in% colnames(colData(spe))) {
+#         stop("Samples column must be present in colData.")
+#     }
+#     if (!is.numeric(n_rings) || n_rings <= 0 || n_rings != round(n_rings)) {
+#         stop("'n_rings' must be a positive integer.")
+#     }
+#     unique_sample_ids <- unique(colData(spe)[[samples]])
+#     
+#     ## split spe into a list of SPEs by sample id for memory efficiency (esp if parallelizing)
+#     spelist <- lapply(unique_sample_ids, FUN=function(s){spe[,colData(spe)[[samples]]==s]})
+#     names(spelist) <- unique_sample_ids
+#     
+#     columnData_list <- bplapply(spelist,BPPARAM=BPPARAM,FUN=function(sampspe) {
+#         var_matrix <- vapply(seq_len(n_rings), function(i) {
+#             n_neighbors <- 3 * i * (i + 1)
+#             tmp.name <- paste0("k", n_neighbors)
+#             sampspe <<- localVariance(sampspe, metric = mito_percent, 
+#                 n_neighbors = n_neighbors, name = tmp.name, 
+#                 log = log)
+#             colData(sampspe)[[tmp.name]]
+#         }, numeric(length(sampspe[[1]])))
+#         var_matrix <- cbind(var_matrix, colData(sampspe)[[mito_percent]], 
+#             colData(sampspe)[[mito_sum]])
+#         var_df <- data.frame(var_matrix)
+#         pc <- prcomp(var_df, center = TRUE, scale = TRUE)
+#         rownames(pc$x) <- colnames(sampspe)
+#         reducedDim(sampspe, "PCA_artifacts") <- pc$x
+#         clus <- kmeans(pc$x, centers = 2, nstart = 25)
+#         sampspe$Kmeans <- clus$cluster
+#         
+#         retrievek <- 3*n_rings*(n_rings+1)
+#         clus1_mean <- mean(colData(sampspe)[[paste0("k", retrievek)]][sampspe$Kmeans == 
+#             1])
+#         clus2_mean <- mean(colData(sampspe)[[paste0("k", retrievek)]][sampspe$Kmeans == 
+#             2])
+#         artifact_clus <- which.min(c(clus1_mean, clus2_mean))
+#         sampspe$artifact <- FALSE
+#         sampspe$artifact[sampspe$Kmeans == artifact_clus] <- TRUE
+#         sampspe$Kmeans <- NULL
+#         return(colData(sampspe))
+#     })
+#     columnData_aggregated <- do.call(rbind, columnData_list)
+#     columnData_aggregated <- DataFrame(columnData_aggregated)
+#     columnData_aggregated <- columnData_aggregated[colnames(spe),]
+#     colData(spe) <- columnData_aggregated
+#     # reducedDims(spe) <- reducedDims(spe.temp)
+#     return(spe)
+# }
 ```
 
 
-## run the modified findArtifacts to pick up artifacts (which should just be tissue edges and tears/etc)
+# ## run the modified findArtifacts to pick up artifacts (which should just be tissue edges and tears/etc)
 ```{r}
-hyp2 <- findArtifactsFix(hyp2,mito_percent = "expr_chrM_ratio",mito_sum = "expr_chrM",samples = "sample_id",BPPARAM=MulticoreParam(5))
-
-sum(hyp2$artifact)
-# 26364 spots (like 60% of the data -- and since this uses k=2 kmeans clustering, and picks one of the two clusters as the artifact cluster, this is impractical even if it were picking the wrong cluster as the outlier set. so we won't use the findArtifacts filtering for now.
-
-# so, remove the columns that it added in colData()
-hyp2$artifact <- NULL
-hyp2$k18 <- NULL
-hyp2$k36 <- NULL
-hyp2$k60 <- NULL
-hyp2$k90 <- NULL
-hyp2$k6 <- NULL
-hyp2$expr_chrM_ratio_log <- NULL
+# hyp2 <- findArtifactsFix(hyp2,mito_percent = "expr_chrM_ratio",mito_sum = "expr_chrM",samples = "sample_id",BPPARAM=MulticoreParam(5))
+# 
+# sum(hyp2$artifact)
+# # 26364 spots (like 60% of the data -- and since this uses k=2 kmeans clustering, and picks one of the two clusters as the artifact cluster, this is impractical even if it were picking the wrong cluster as the outlier set. so we won't use the findArtifacts filtering for now.
+# 
+# # so, remove the columns that it added in colData()
+# hyp2$artifact <- NULL
+# hyp2$k18 <- NULL
+# hyp2$k36 <- NULL
+# hyp2$k60 <- NULL
+# hyp2$k90 <- NULL
+# hyp2$k6 <- NULL
+# hyp2$expr_chrM_ratio_log <- NULL
 ```
 
 
@@ -295,7 +294,7 @@ dev.off()
 
 ### clear out the temporary columns used for labeling
 hyp2$under210 <- NULL
-hyp2$gene166 <- NULL
+hyp2$gene126 <- NULL
 ```
 
 ### apply mitochondria, UMI, unique gene cutoffs per above (<50%, >= 210 umis, > >= 126 unique genes)

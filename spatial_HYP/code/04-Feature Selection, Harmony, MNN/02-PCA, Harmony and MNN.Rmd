@@ -1,7 +1,7 @@
 ---
 title: "02-Harmony and MNN"
 author: "Bernard Mulvey"
-date: "2024-07-20"
+date: "2024-07-23"
 output: html_document
 ---
 
@@ -115,7 +115,7 @@ stopifnot(length(reducedDimNames(hyp2))==8*length(feats))
 
 ```
 
-### save RDS with all the dimreds ####
+### save RDS of all the dimreds ####
 ```{r}
 dimredout <- reducedDims(hyp2)
 
@@ -215,7 +215,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-07-20
+ date     2024-07-23
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 

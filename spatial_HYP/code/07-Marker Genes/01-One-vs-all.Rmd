@@ -31,10 +31,10 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 load required files
 ```{r}
-hyp2 <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_071924.RDS")
 
 ## this retrieves clustering results from both the 10k-iteration-pass bayesspace runs AND the subset that were run at 60k iterations
-bscl <- list.files("data/06-BayesSpace",pattern=".txt",recursive = T,full.names = T)
+bscl <- list.files("processed-data/06-BayesSpace",pattern=".txt",recursive = T,full.names = T)
 
 bscls <- lapply(bscl,FUN=fread)
 names(bscls) <- bscl
