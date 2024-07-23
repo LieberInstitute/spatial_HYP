@@ -1,0 +1,148 @@
+---
+title: "Prepare a spatialLIBD browser SPE for Submission 1"
+author: "Bernard Mulvey"
+date: "2024-02-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(SpatialExperiment)
+library(spatialLIBD)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+```
+
+# load processed SPE and cluster assignments we want to attach
+```{r}
+spe <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+
+bscls <- list.files("data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out/",full.names=T)
+
+bscls <- grep(bscls,pattern="nnsvg10",value=T)
+
+bscl <- lapply(bscls,fread)
+
+# change filepaths to be what we'll name the cluster assignments
+bscls <- gsub(bscls,pattern="data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out//(.*)$",replacement="\\1")
+bscls <- gsub(bscls,pattern="^BSpace_(k.*)_(.*_nnsvg10).*$",replacement=paste0("\\2","_","\\1"))
+
+names(bscl) <- bscls
+
+bscls <- mapply(X=bscl,Y=names(bscl),FUN=function(X,Y){
+    X <- X[rn %in% colnames(spe)]
+    setnames(X,2,"cl")
+    X[,cl:=paste0("X",cl)]
+    if(length(grep(Y,pattern="HARMONY",value=T))>0){
+        if(length(grep(Y,pattern="k15",value=T))>0){
+            X[cl=="X3",cl:="ARC.1"]
+            X[cl=="X5",cl:="ARC.2"]
+            X[cl=="X11",cl:="VMH.1"]
+            X[cl=="X12",cl:="VMH.2"]
+        }
+        else if (length(grep(Y, pattern="k20",value=T))>0){
+            X[cl=="X7",cl:="VMH20.1"]
+            X[cl=="X9",cl:="VMH20.2"]
+            X[cl=="X13",cl:="VMH20.3"]
+            X[cl=="X14",cl:="ARC20.1"]
+            X[cl=="X18",cl:="ARC20.2"]
+        }
+        else if (length(grep(Y,pattern="k31",value=T))>0){
+            X[cl=="X3",cl:="VMH31.1"]
+            X[cl=="X4",cl:="VMH31.2"]
+            X[cl=="X6",cl:="VMH31.3"]
+            X[cl=="X19",cl:="VMH31.4"]
+            X[cl=="X20",cl:="VMH31.5"]
+            X[cl=="X29",cl:="VMH31.6"]
+            X[cl=="X1",cl:="ARC31.1"]
+            X[cl=="X7",cl:="ARC31.2"]
+            X[cl=="X8",cl:="ARC31.3"]
+            X[cl=="X21",cl:="ARC31.4"]
+        }
+    }
+    X <- DataFrame(X)
+    rownames(X) <- X$rn
+    X$rn <- NULL
+    return(X)
+})
+
+i<-1
+for (i in c(1:length(bscls))){
+    orignc <- ncol(colData(spe))
+    colData(spe)$bscl <- bscls[[i]]$cl
+    colnames(colData(spe))[orignc+1] <- names(bscls)[i]
+}
+```
+
+##### add demographics
+```{r}
+demos <- fread("raw-data/demos.txt")
+setnames(demos,c("brnum","age","race","sex","dx","PMI","PFC_best_RIN","BMI"))
+demos[,dx:=NULL]
+
+
+demos <- demos[brnum %in% unique(spe$brnum)]
+tmpcd <- as.data.table(colData(spe),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,demos,by="brnum")
+keepcols <- c(colnames(tmpcd)[!(colnames(tmpcd) %in% colnames(colData(spe)))])
+tmpcd <- tmpcd[,..keepcols]
+
+tmpcd <- as.data.frame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd$rn <- NULL
+tmpcd <- tmpcd[colnames(spe),]
+stopifnot(sum(rownames(tmpcd)==colnames(spe))==ncol(spe))
+colData(spe) <- cbind(colData(spe),tmpcd)
+```
+
+### remove excess img data
+```{r}
+imgData(spe) <-
+    imgData(spe)[!imgData(spe)$image_id %in% c("lowres", "detected", "aligned"), ]
+```
+
+#### concatenate and append sex DE results for the HARMONY clusters and reformat to the "significant genes" table spatialLIBD expects per section 6.3 here https://bioconductor.org/packages/release/data/experiment/vignettes/spatialLIBD/inst/doc/spatialLIBD.html#extract-significant-genes
+```{r}
+sexderes <- readRDS("data/09-Sex DE/01-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-20-31-15VMHARCclpsd.RDS")
+
+sexderes <- sexderes[c(1:3)]
+
+i<-1
+kvals <- c("k15","k20","k31")
+for (i in c(2:3)){
+    sexderes[[i]][,assay:=paste0(kvals[i],"_",assay)]
+    setnames(sexderes[[i]],"assay","test")
+    setnames(sexderes[[i]],"gene_name","gene")
+    setnames(sexderes[[i]],"t","stat")
+    setnames(sexderes[[i]],"P.Value","pval")
+    setnames(sexderes[[i]],"adj.P.Val","fdr")
+    setnames(sexderes[[i]],"ID","ensembl")
+    
+    rowinds <- as.data.table(cbind(c(1:nrow(spe)),rownames(spe)))
+    setnames(rowinds,c("gene_index","ensembl"))
+    sexderes[[i]] <- merge.data.table(sexderes[[i]],rowinds,by="ensembl")
+    sexderes[[i]] <- sexderes[[i]][,.(test,gene,stat,pval,fdr,gene_index,ensembl)]
+    
+    if(i==1){concatres <- copy(sexderes[[i]])}
+    else{concatres <- rbind(concatres,sexderes[[i]])}
+    rm(rowinds)
+}
+
+### test app
+spatialLIBD::run_app(spe=spe,
+                sce_layer=NULL,modeling_results=NULL,sig_genes=NULL,title="Sphyp test",
+                spe_discrete_vars = c("HARMONYlmbna_nnsvg10_k15","HARMONYlmbna_nnsvg10_k20","HARMONYlmbna_nnsvg10_k31","mnn30_nnsvg10_k15","mnn30_nnsvg10_k20","mnn30_nnsvg10_k31","sex"),
+                spe_continuous_vars = c("sum_umi","sum_gene","expr_chrM_ratio","age","PMI","BMI"),
+                default_cluster="HARMONYlmbna_nnsvg10_k15")
+
+# k cool. put this file on the neural plasticity server for Ryan to use.
+saveRDS(spe,"~/Desktop/submission01_spatiallibd_spe.RDS")
+```

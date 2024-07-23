@@ -1,0 +1,416 @@
+
+R version 4.3.2 Patched (2023-11-13 r85524) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-conda-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(data.table)
+> library(Biostrings)
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
+    table, tapply, union, unique, unsplit, which.max, which.min
+
+Loading required package: S4Vectors
+Loading required package: stats4
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:data.table’:
+
+    first, second
+
+The following object is masked from ‘package:utils’:
+
+    findMatches
+
+The following objects are masked from ‘package:base’:
+
+    expand.grid, I, unname
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:data.table’:
+
+    shift
+
+Loading required package: XVector
+Loading required package: GenomeInfoDb
+
+Attaching package: ‘Biostrings’
+
+The following object is masked from ‘package:base’:
+
+    strsplit
+
+> library(SpatialExperiment)
+Loading required package: SingleCellExperiment
+Loading required package: SummarizedExperiment
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: ‘MatrixGenerics’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+Loading required package: GenomicRanges
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: ‘Biobase’
+
+The following object is masked from ‘package:MatrixGenerics’:
+
+    rowMedians
+
+The following objects are masked from ‘package:matrixStats’:
+
+    anyMissing, rowMedians
+
+> library(scater) # addPerCellQC
+Loading required package: scuttle
+Loading required package: ggplot2
+> library(scran)
+> library(BayesSpace)
+> 
+> #### Load SPE containing Harmony dimensionality reductions for 10%ile and 20%ile HVGs, 10%ile and 20%ile mean-rank nnSVGs, each with bayesspace k=2.
+> setwd("/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/")
+> hyp <- readRDS("data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
+> ## make certain colnames are the same as $key or we won't have unique spot IDs to pair the assignments back to!
+> if(sum(colnames(hyp)==hyp$key)!=ncol(hyp)){colnames(hyp) <- hyp$key}
+> 
+> ### build table with job-wise variables (names of dimensionality reductions to use in bayesspace and value to pass to q in BayesSpace from among values of 9/15/20/31)
+> 
+> p <- c(rep(c("HARMONYdflt_hvg10","HARMONYdflt_hvg20","HARMONYdflt_nnsvg10","HARMONYdflt_nnsvg20","HARMONYlmbna_hvg10","HARMONYlmbna_hvg20","HARMONYlmbna_nnsvg10","HARMONYlmbna_nnsvg20","mnn30_hvg10","mnn30_hvg20","mnn30_nnsvg10","mnn30_nnsvg20"),4))
+> q <- c(rep(9,12),rep(15,12),rep(20,12),rep(31,12))
+> pq <- cbind(p,q)
+> # so that rownames still end up == to row index after unique'ing:
+> pq <- as.data.table(unique(pq))
+> ### ^ 48 runs (4 q values per feature-reduction x 4 feature sets x 3 reductions (harmony defaults, harmony lambda=null, mnn30))
+> pq[,q:=as.numeric(q)]
+> pq <- as.data.frame(pq)
+> stopifnot(nrow(unique(pq))==nrow(pq))
+> rm(p,q)
+> 
+> ### pull params for task number
+> i <- as.numeric(Sys.getenv("SLURM_ARRAY_TASK_ID"))
+> curdimred <- pq[i,1]
+> curq <- pq[i,2]
+> 
+> ## important from slack: need to run the next two lines or will get "subscript contains invalid names"
+> 
+> colData(hyp)$row <- colData(hyp)$array_row
+> colData(hyp)$col <- colData(hyp)$array_col
+> 
+> 
+> ### according to https://github.com/LieberInstitute/spatialDLPFC/blob/main/code/analysis/03_BayesSpace/01_BayesSpace.R , don't use spatial preprocess. in order to do this you have to reset metadata.
+> ### HOWEVER, BayesSpace now throws an error if you don't actually run spatialpreproc. also, the documentation says that it ADDS metadata, which shouldn't be equiv to overwriting it. The "metadata" object in the HYP SPE is an empty list, so nothing will be modified. (Maybe LIBD used to place something in the metadata entry for something but evidently not now).
+> 
+> spatialPreprocess(hyp,platform="Visium",skip.PCA=T)
+class: SpatialExperiment 
+dim: 30477 41021 
+metadata(1): BayesSpace.data
+assays(2): counts logcounts
+rownames(30477): ENSG00000243485 ENSG00000238009 ... ENSG00000278817
+  ENSG00000277196
+rowData names(7): source type ... gene_type gene_search
+colnames(41021): AAACAAGTATCTCCCA-1_V12D05-348_C1
+  AAACACCAATAACTGC-1_V12D05-348_C1 ... TTGTTTGTATTACACG-1_V13M13-362_D1
+  TTGTTTGTGTAAATTC-1_V13M13-362_D1
+colData names(19): sample_id in_tissue ... row col
+reducedDimNames(35): 10x_pca 10x_tsne ... HARMONYlmbna_nnsvg20_UMAP
+  mnn30_nnsvg20_UMAP
+mainExpName: NULL
+altExpNames(0):
+spatialCoords names(2) : pxl_col_in_fullres pxl_row_in_fullres
+imgData names(4): sample_id image_id data scaleFactor
+> 
+> 
+> # Main call
+> # defaults to 50k reps, LIBD uses 10k
+> 
+> tmp <- spatialCluster(sce = hyp,init.method = "mclust",use.dimred = curdimred,q = curq,platform = "Visium",nrep=10000)
+Neighbors were identified for 41021 out of 41021 spots.
+Fitting model...
+Calculating labels using iterations 1000 through 10000.
+> 
+> # pull out clusters to save in much tinier file than an SPE
+> tmp2 <- as.data.table(colData(tmp)[,c("key","spatial.cluster")])
+> setnames(tmp2,c("rn",paste0("BShar_",curdimred,"_k",curq)))
+> 
+> fwrite(tmp2,paste0("data/06-BayesSpace/01-bayesspace_k9-15-20-31_out/BSpace_k",curq,"_",curdimred,".txt"),sep='\t',quote=F)
+> rm(list=ls())
+> gc(full=T)
+           used  (Mb) gc trigger    (Mb) limit (Mb)   max used    (Mb)
+Ncells  8789746 469.5   16155691   862.9         NA   16155691   862.9
+Vcells 19548511 149.2 2493975200 19027.6     204800 2825910917 21560.0
+> 
+> library(sessioninfo)
+> sessionInfo()
+R version 4.3.2 Patched (2023-11-13 r85524)
+Platform: x86_64-conda-linux-gnu (64-bit)
+Running under: Rocky Linux 9.2 (Blue Onyx)
+
+Matrix products: default
+BLAS:   /jhpce/shared/community/core/conda_R/4.3.x/R/lib64/R/lib/libRblas.so 
+LAPACK: /jhpce/shared/community/core/conda_R/4.3.x/R/lib64/R/lib/libRlapack.so;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: US/Eastern
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] sessioninfo_1.2.2           BayesSpace_1.12.0          
+ [3] scran_1.30.0                scater_1.30.0              
+ [5] ggplot2_3.4.4               scuttle_1.12.0             
+ [7] SpatialExperiment_1.12.0    SingleCellExperiment_1.24.0
+ [9] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+[11] GenomicRanges_1.54.1        MatrixGenerics_1.14.0      
+[13] matrixStats_1.1.0           Biostrings_2.70.1          
+[15] GenomeInfoDb_1.38.1         XVector_0.42.0             
+[17] IRanges_2.36.0              S4Vectors_0.40.1           
+[19] BiocGenerics_0.48.1         data.table_1.14.8          
+
+loaded via a namespace (and not attached):
+ [1] DBI_1.1.3                 bitops_1.0-7             
+ [3] gridExtra_2.3             sandwich_3.0-2           
+ [5] rlang_1.1.2               DirichletReg_0.7-1       
+ [7] magrittr_2.0.3            compiler_4.3.2           
+ [9] RSQLite_2.3.3             DelayedMatrixStats_1.24.0
+[11] vctrs_0.6.4               pkgconfig_2.0.3          
+[13] crayon_1.5.2              fastmap_1.1.1            
+[15] dbplyr_2.4.0              magick_2.8.1             
+[17] utf8_1.2.4                ggbeeswarm_0.7.2         
+[19] miscTools_0.6-28          purrr_1.0.2              
+[21] bit_4.0.5                 bluster_1.12.0           
+[23] zlibbioc_1.48.0           cachem_1.0.8             
+[25] beachmat_2.18.0           jsonlite_1.8.7           
+[27] blob_1.2.4                rhdf5filters_1.14.1      
+[29] DelayedArray_0.28.0       Rhdf5lib_1.24.0          
+[31] BiocParallel_1.36.0       irlba_2.3.5.1            
+[33] parallel_4.3.2            cluster_2.1.4            
+[35] R6_2.5.1                  limma_3.58.1             
+[37] xgboost_1.7.5.1           assertthat_0.2.1         
+[39] Rcpp_1.0.11               zoo_1.8-12               
+[41] Matrix_1.6-3              igraph_1.5.1             
+[43] tidyselect_1.2.0          abind_1.4-5              
+[45] viridis_0.6.4             maxLik_1.5-2             
+[47] codetools_0.2-19          curl_5.1.0               
+[49] lattice_0.22-5            tibble_3.2.1             
+[51] withr_2.5.2               coda_0.19-4              
+[53] BiocFileCache_2.10.1      mclust_6.0.1             
+[55] pillar_1.9.0              filelock_1.0.2           
+[57] generics_0.1.3            RCurl_1.98-1.13          
+[59] sparseMatrixStats_1.14.0  munsell_0.5.0            
+[61] scales_1.2.1              glue_1.6.2               
+[63] metapod_1.10.0            tools_4.3.2              
+[65] BiocNeighbors_1.20.0      ScaledMatrix_1.10.0      
+[67] locfit_1.5-9.8            rhdf5_2.46.0             
+[69] grid_4.3.2                edgeR_4.0.1              
+[71] colorspace_2.1-0          GenomeInfoDbData_1.2.11  
+[73] beeswarm_0.4.0            BiocSingular_1.18.0      
+[75] vipor_0.4.5               Formula_1.2-5            
+[77] cli_3.6.1                 rsvd_1.0.5               
+[79] fansi_1.0.5               S4Arrays_1.2.0           
+[81] viridisLite_0.4.2         dplyr_1.1.3              
+[83] gtable_0.3.4              digest_0.6.33            
+[85] SparseArray_1.2.2         ggrepel_0.9.4            
+[87] dqrng_0.3.1               rjson_0.2.21             
+[89] memoise_2.0.1             lifecycle_1.0.4          
+[91] httr_1.4.7                statmod_1.5.0            
+[93] bit64_4.0.5              
+> session_info()
+─ Session info ───────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.3.2 Patched (2023-11-13 r85524)
+ os       Rocky Linux 9.2 (Blue Onyx)
+ system   x86_64, linux-gnu
+ ui       X11
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       US/Eastern
+ date     2023-11-23
+ pandoc   3.1.3 @ /jhpce/shared/community/core/conda_R/4.3.x/bin/pandoc
+
+─ Packages ───────────────────────────────────────────────────────────────────
+ package              * version   date (UTC) lib source
+ abind                  1.4-5     2016-07-21 [2] CRAN (R 4.3.2)
+ assertthat             0.2.1     2019-03-21 [2] CRAN (R 4.3.2)
+ BayesSpace           * 1.12.0    2023-10-24 [2] Bioconductor
+ beachmat               2.18.0    2023-10-24 [2] Bioconductor
+ beeswarm               0.4.0     2021-06-01 [2] CRAN (R 4.3.2)
+ Biobase              * 2.62.0    2023-10-24 [2] Bioconductor
+ BiocFileCache          2.10.1    2023-10-26 [2] Bioconductor
+ BiocGenerics         * 0.48.1    2023-11-01 [2] Bioconductor
+ BiocNeighbors          1.20.0    2023-10-24 [2] Bioconductor
+ BiocParallel           1.36.0    2023-10-24 [2] Bioconductor
+ BiocSingular           1.18.0    2023-10-24 [2] Bioconductor
+ Biostrings           * 2.70.1    2023-10-25 [2] Bioconductor
+ bit                    4.0.5     2022-11-15 [2] CRAN (R 4.3.2)
+ bit64                  4.0.5     2020-08-30 [2] CRAN (R 4.3.2)
+ bitops                 1.0-7     2021-04-24 [2] CRAN (R 4.3.2)
+ blob                   1.2.4     2023-03-17 [2] CRAN (R 4.3.2)
+ bluster                1.12.0    2023-10-24 [2] Bioconductor
+ cachem                 1.0.8     2023-05-01 [2] CRAN (R 4.3.2)
+ cli                    3.6.1     2023-03-23 [2] CRAN (R 4.3.2)
+ cluster                2.1.4     2022-08-22 [3] CRAN (R 4.3.2)
+ coda                   0.19-4    2020-09-30 [2] CRAN (R 4.3.2)
+ codetools              0.2-19    2023-02-01 [3] CRAN (R 4.3.2)
+ colorspace             2.1-0     2023-01-23 [2] CRAN (R 4.3.2)
+ crayon                 1.5.2     2022-09-29 [2] CRAN (R 4.3.2)
+ curl                   5.1.0     2023-10-02 [2] CRAN (R 4.3.2)
+ data.table           * 1.14.8    2023-02-17 [2] CRAN (R 4.3.2)
+ DBI                    1.1.3     2022-06-18 [2] CRAN (R 4.3.2)
+ dbplyr                 2.4.0     2023-10-26 [2] CRAN (R 4.3.2)
+ DelayedArray           0.28.0    2023-10-24 [2] Bioconductor
+ DelayedMatrixStats     1.24.0    2023-10-24 [2] Bioconductor
+ digest                 0.6.33    2023-07-07 [2] CRAN (R 4.3.2)
+ DirichletReg           0.7-1     2021-05-18 [2] CRAN (R 4.3.2)
+ dplyr                  1.1.3     2023-09-03 [2] CRAN (R 4.3.2)
+ dqrng                  0.3.1     2023-08-30 [2] CRAN (R 4.3.2)
+ edgeR                  4.0.1     2023-10-29 [2] Bioconductor
+ fansi                  1.0.5     2023-10-08 [2] CRAN (R 4.3.2)
+ fastmap                1.1.1     2023-02-24 [2] CRAN (R 4.3.2)
+ filelock               1.0.2     2018-10-05 [2] CRAN (R 4.3.2)
+ Formula                1.2-5     2023-02-24 [2] CRAN (R 4.3.2)
+ generics               0.1.3     2022-07-05 [2] CRAN (R 4.3.2)
+ GenomeInfoDb         * 1.38.1    2023-11-08 [2] Bioconductor
+ GenomeInfoDbData       1.2.11    2023-11-15 [2] Bioconductor
+ GenomicRanges        * 1.54.1    2023-10-29 [2] Bioconductor
+ ggbeeswarm             0.7.2     2023-04-29 [2] CRAN (R 4.3.2)
+ ggplot2              * 3.4.4     2023-10-12 [2] CRAN (R 4.3.2)
+ ggrepel                0.9.4     2023-10-13 [2] CRAN (R 4.3.2)
+ glue                   1.6.2     2022-02-24 [2] CRAN (R 4.3.2)
+ gridExtra              2.3       2017-09-09 [2] CRAN (R 4.3.2)
+ gtable                 0.3.4     2023-08-21 [2] CRAN (R 4.3.2)
+ httr                   1.4.7     2023-08-15 [2] CRAN (R 4.3.2)
+ igraph                 1.5.1     2023-08-10 [2] CRAN (R 4.3.2)
+ IRanges              * 2.36.0    2023-10-24 [2] Bioconductor
+ irlba                  2.3.5.1   2022-10-03 [2] CRAN (R 4.3.2)
+ jsonlite               1.8.7     2023-06-29 [2] CRAN (R 4.3.2)
+ lattice                0.22-5    2023-10-24 [3] CRAN (R 4.3.2)
+ lifecycle              1.0.4     2023-11-07 [2] CRAN (R 4.3.2)
+ limma                  3.58.1    2023-10-31 [2] Bioconductor
+ locfit                 1.5-9.8   2023-06-11 [2] CRAN (R 4.3.2)
+ magick                 2.8.1     2023-10-22 [2] CRAN (R 4.3.2)
+ magrittr               2.0.3     2022-03-30 [2] CRAN (R 4.3.2)
+ Matrix                 1.6-3     2023-11-14 [3] CRAN (R 4.3.2)
+ MatrixGenerics       * 1.14.0    2023-10-24 [2] Bioconductor
+ matrixStats          * 1.1.0     2023-11-07 [2] CRAN (R 4.3.2)
+ maxLik                 1.5-2     2021-07-26 [2] CRAN (R 4.3.2)
+ mclust                 6.0.1     2023-11-15 [2] CRAN (R 4.3.2)
+ memoise                2.0.1     2021-11-26 [2] CRAN (R 4.3.2)
+ metapod                1.10.0    2023-10-24 [2] Bioconductor
+ miscTools              0.6-28    2023-05-03 [2] CRAN (R 4.3.2)
+ munsell                0.5.0     2018-06-12 [2] CRAN (R 4.3.2)
+ pillar                 1.9.0     2023-03-22 [2] CRAN (R 4.3.2)
+ pkgconfig              2.0.3     2019-09-22 [2] CRAN (R 4.3.2)
+ purrr                  1.0.2     2023-08-10 [2] CRAN (R 4.3.2)
+ R6                     2.5.1     2021-08-19 [2] CRAN (R 4.3.2)
+ Rcpp                   1.0.11    2023-07-06 [2] CRAN (R 4.3.2)
+ RCurl                  1.98-1.13 2023-11-02 [2] CRAN (R 4.3.2)
+ rhdf5                  2.46.0    2023-10-24 [2] Bioconductor
+ rhdf5filters           1.14.1    2023-11-06 [2] Bioconductor
+ Rhdf5lib               1.24.0    2023-10-24 [2] Bioconductor
+ rjson                  0.2.21    2022-01-09 [2] CRAN (R 4.3.2)
+ rlang                  1.1.2     2023-11-04 [2] CRAN (R 4.3.2)
+ RSQLite                2.3.3     2023-11-04 [2] CRAN (R 4.3.2)
+ rsvd                   1.0.5     2021-04-16 [2] CRAN (R 4.3.2)
+ S4Arrays               1.2.0     2023-10-24 [2] Bioconductor
+ S4Vectors            * 0.40.1    2023-10-26 [2] Bioconductor
+ sandwich               3.0-2     2022-06-15 [2] CRAN (R 4.3.2)
+ ScaledMatrix           1.10.0    2023-10-24 [2] Bioconductor
+ scales                 1.2.1     2022-08-20 [2] CRAN (R 4.3.2)
+ scater               * 1.30.0    2023-10-24 [2] Bioconductor
+ scran                * 1.30.0    2023-10-24 [2] Bioconductor
+ scuttle              * 1.12.0    2023-10-24 [2] Bioconductor
+ sessioninfo          * 1.2.2     2021-12-06 [2] CRAN (R 4.3.2)
+ SingleCellExperiment * 1.24.0    2023-10-24 [2] Bioconductor
+ SparseArray            1.2.2     2023-11-07 [2] Bioconductor
+ sparseMatrixStats      1.14.0    2023-10-24 [2] Bioconductor
+ SpatialExperiment    * 1.12.0    2023-10-24 [2] Bioconductor
+ statmod                1.5.0     2023-01-06 [2] CRAN (R 4.3.2)
+ SummarizedExperiment * 1.32.0    2023-10-24 [2] Bioconductor
+ tibble                 3.2.1     2023-03-20 [2] CRAN (R 4.3.2)
+ tidyselect             1.2.0     2022-10-10 [2] CRAN (R 4.3.2)
+ utf8                   1.2.4     2023-10-22 [2] CRAN (R 4.3.2)
+ vctrs                  0.6.4     2023-10-12 [2] CRAN (R 4.3.2)
+ vipor                  0.4.5     2017-03-22 [2] CRAN (R 4.3.2)
+ viridis                0.6.4     2023-07-22 [2] CRAN (R 4.3.2)
+ viridisLite            0.4.2     2023-05-02 [2] CRAN (R 4.3.2)
+ withr                  2.5.2     2023-10-30 [2] CRAN (R 4.3.2)
+ xgboost                1.7.5.1   2023-03-30 [2] CRAN (R 4.3.2)
+ XVector              * 0.42.0    2023-10-24 [2] Bioconductor
+ zlibbioc               1.48.0    2023-10-24 [2] Bioconductor
+ zoo                    1.8-12    2023-04-13 [2] CRAN (R 4.3.2)
+
+ [1] /users/bmulvey/R/4.3.x
+ [2] /jhpce/shared/community/core/conda_R/4.3.x/R/lib64/R/site-library
+ [3] /jhpce/shared/community/core/conda_R/4.3.x/R/lib64/R/library
+ [4] /users/bmulvey/R/4.3
+
+──────────────────────────────────────────────────────────────────────────────
+> 
+> proc.time()
+     user    system   elapsed 
+10764.303    22.873 10843.890 

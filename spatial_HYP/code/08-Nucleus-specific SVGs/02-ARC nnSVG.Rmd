@@ -1,0 +1,123 @@
+---
+title: "02-ARC nnSVG"
+author: "Bernard Mulvey"
+date: "2023-12-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(SpatialExperiment)
+library(nnSVG)
+library(scater)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+```
+
+### Setup: load data, cluster assignments, and rename from generic to appropriate region (VMH/ARC/WM)
+```{r}
+hyp2 <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+
+bscl <- fread("data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+
+setnames(bscl,c("rn","cl"))
+bscl[,cl:=paste0("X",cl)]
+bscl <- DataFrame(bscl)
+rownames(bscl) <- bscl$rn
+bscl <- bscl[colnames(hyp2),]
+
+colLabels(hyp2) <- factor(bscl$cl,levels=paste0("X",c(1:15)))
+
+### relabel as VMH/ARC/WM for spotplottings
+tmpcd <- as.data.table(colData(hyp2),keep.rownames=T)
+tmpcd[label %in% c("X11","X12"),label:="VMH"]
+tmpcd[label %in% c("X3","X5"),label:="ARC"]
+tmpcd[label %in% c("X1","X9"),label:="WM"]
+
+tmpcd <- DataFrame(tmpcd)
+rownames(tmpcd) <- tmpcd$rn
+tmpcd <- tmpcd[colnames(hyp2),]
+colData(hyp2) <- tmpcd
+hyp2$label <- factor(hyp2$label,levels=c("VMH","ARC","WM",paste0("X",c(2,4,6:8,10,13:15))))
+
+# clean up
+rm(tmpcd,bscl)
+gc(full=T)
+```
+
+### make subsetted SPE that only includes ARC
+```{r}
+arc <- hyp2[,hyp2$label=="ARC"]
+### 
+# encountering error in parallelized batching, so run iteratively to get results for working samples. 
+# get rid of the label column as well in case missing levels are sopmehow messing with this (though that would've happened with the vmh too, id think)
+### 
+arc$label <- NULL
+rm(hyp2)
+gc(full=T)
+### iterate nnSVG over each sample, 1 sample at a time x 10 threads
+### at least 1 counts in at least 5% of spots
+caps <- as.list(unique(arc$sample_id))
+res_list2 <- list()
+i <- 1
+for (i in c(1:length(caps))){
+    arc.samp <- arc[,colData(arc)$sample_id==caps[[i]]]
+    arc.samp <- filter_genes(arc.samp,filter_genes_ncounts = 1,filter_genes_pcspots = 5,filter_mito = F)
+    arc.samp <- computeLibraryFactors(arc.samp)
+    arc.samp <- logNormCounts(arc.samp)
+    out <- nnSVG(arc.samp,assay_name = "logcounts",n_threads = 10)
+    res_list2[[i]] <- out
+    names(res_list2)[i] <- caps[[i]]
+    rm(arc.samp,out)
+    gc(full=T)
+}
+
+# names(res_list2) <- caps
+
+res_list <- lapply(res_list2,FUN=function(x){as.data.table(rowData(x))})
+res_list <- lapply(res_list,FUN=function(x){setnames(x,c(8:ncol(x)),paste0("nnsvg_",names(x)[8:ncol(x)]))})
+
+saveRDS(res_list,"data/08-Nucleus-specific SVGs/02a-ARC_1count-5pctspot_fulloutput.RDS")
+```
+
+### tabulate significant genes per sample
+```{r}
+i <- 1
+for (i in c(1:length(res_list))){
+    tmp <- copy(res_list[[i]])
+    tmp <- tmp[nnsvg_pval<0.05,.(gene_id,gene_name,nnsvg_rank)]
+    setnames(tmp,"nnsvg_rank",names(res_list)[i])
+    if(i==1){arcsvgranks <- copy(tmp)}
+    else{arcsvgranks <- merge.data.table(arcsvgranks,tmp,by=c("gene_id","gene_name"),all.x=T,all.y=T)}
+    rm(tmp)
+}
+
+arcsvgranks[,nasamps:=rowSums(is.na(arcsvgranks[,c(3:11)]))]
+#
+arcsvgranks[,nsigsamps:=9-nasamps]
+arcsvgranks[,meanrank:=rowMeans(arcsvgranks[,c(3:11)],na.rm=T)]
+arcsvgranks[,nasamps:=NULL]
+
+fwrite(arcsvgranks,"data/08-Nucleus-specific SVGs/02b-ARC nnSVG nomsig genes and ranks per sample.txt",sep='\t',quote=F)
+```
+
+

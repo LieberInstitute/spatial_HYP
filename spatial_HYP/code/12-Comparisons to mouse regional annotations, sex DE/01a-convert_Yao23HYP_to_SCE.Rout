@@ -1,0 +1,232 @@
+
+R version 4.3.2 Patched (2023-11-13 r85524) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-conda-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> setwd("/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/")
+> library(data.table)
+> library(zellkonverter)
+Registered S3 methods overwritten by 'zellkonverter':
+  method                                             from      
+  py_to_r.numpy.ndarray                              reticulate
+  py_to_r.pandas.core.arrays.categorical.Categorical reticulate
+> library(SingleCellExperiment)
+Loading required package: SummarizedExperiment
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: ‘MatrixGenerics’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+Loading required package: GenomicRanges
+Loading required package: stats4
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
+    table, tapply, union, unique, unsplit, which.max, which.min
+
+Loading required package: S4Vectors
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:data.table’:
+
+    first, second
+
+The following object is masked from ‘package:utils’:
+
+    findMatches
+
+The following objects are masked from ‘package:base’:
+
+    expand.grid, I, unname
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:data.table’:
+
+    shift
+
+Loading required package: GenomeInfoDb
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: ‘Biobase’
+
+The following object is masked from ‘package:MatrixGenerics’:
+
+    rowMedians
+
+The following objects are masked from ‘package:matrixStats’:
+
+    anyMissing, rowMedians
+
+> 
+> cellmeta <- fread("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/cell_metadata_with_cluster_annotation.csv")
+> hypv2 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv2-HY-raw.h5ad")
+> hypv3 <- zellkonverter::readH5AD("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/WMB-10Xv3-HY-raw.h5ad")
+> 
+> tmpcdv2 <- as.data.table(colData(hypv2),keep.rownames=T)
+Warning message:
+In .local(x, row.names, optional, ...) : Arguments in '...' ignored
+> cellmeta2 <- cellmeta[cell_label %in% colnames(hypv2)]
+> tmpcdv2 <- merge.data.table(tmpcdv2,cellmeta2,by.x="rn",by.y="cell_label")
+> tmpcdv2 <- DataFrame(tmpcdv2)
+> rownames(tmpcdv2) <- tmpcdv2$rn
+> tmpcdv2 <- tmpcdv2[colnames(hypv2),]
+> colData(hypv2) <- tmpcdv2
+> 
+> tmpcdv3 <- as.data.table(colData(hypv3),keep.rownames=T)
+Warning message:
+In .local(x, row.names, optional, ...) : Arguments in '...' ignored
+> cellmeta3 <- cellmeta[cell_label %in% colnames(hypv3)]
+> tmpcdv3 <- merge.data.table(tmpcdv3,cellmeta3,by.x="rn",by.y="cell_label")
+> tmpcdv3 <- DataFrame(tmpcdv3)
+> rownames(tmpcdv3) <- tmpcdv3$rn
+> tmpcdv3 <- tmpcdv3[colnames(hypv3),]
+> colData(hypv3) <- tmpcdv3
+> 
+> ## since these are all uniformly processed for allen atlas, should be able to join them up...
+> bothhyp <- cbind(hypv2,hypv3)
+> assayNames(bothhyp) <- "counts"
+> rm(tmpcdv2,tmpcdv3,cellmeta2,cellmeta3,cellmeta,hypv2,hypv3)
+> gc(full=T)
+             used    (Mb) gc trigger    (Mb) limit (Mb)   max used    (Mb)
+Ncells    7039453   376.0   20855162  1113.8         NA   12915697   689.8
+Vcells 1921699108 14661.5 5107572566 38967.7     204800 4825779689 36817.8
+> 
+> colData(bothhyp) <- colData(bothhyp)[,c(1:3,8,10,12,15,16,20,21)]
+> colnames(colData(bothhyp))
+ [1] "rn"              "cell_barcode"    "library_label.x" "library_method" 
+ [5] "donor_label"     "donor_sex"       "x"               "y"              
+ [9] "subclass"        "supertype"      
+> bothhyp$donor_sex <- as.factor(bothhyp$donor_sex)
+> rownames(bothhyp) <- rowData(bothhyp)$gene_symbol
+> 
+> # drop genes with two or more rows
+> drops <- as.data.table(rownames(bothhyp))[,.N,by="V1"]
+> keeprows <- drops[N==1,V1]
+> 
+> bothhyp <- bothhyp[keeprows,]
+> stopifnot(identical(rownames(bothhyp),rowData(bothhyp)$gene_symbol)&nrow(bothhyp)==length(unique(rownames(bothhyp))))
+> 
+> rm(keeprows,drops)
+> gc(full=T)
+             used    (Mb) gc trigger    (Mb) limit (Mb)   max used    (Mb)
+Ncells    7039796   376.0   20855162  1113.8         NA   12915697   689.8
+Vcells 1914493991 14606.5 5107572566 38967.7     204800 4825779689 36817.8
+> 
+> ### fix supercluster/subclass labels to match those from registration
+> # Fix variable names for compatibility
+> bothhyp$subclass <- gsub(bothhyp$subclass,pattern=" ",replacement="_")
+> bothhyp$subclass <- gsub(bothhyp$subclass,pattern="-",replacement="_")
+> bothhyp$subclass <- gsub(bothhyp$subclass,pattern="/",replacement="_")
+> bothhyp$subclass <- paste0("x",bothhyp$subclass)
+> bothhyp$subclass <- as.factor(bothhyp$subclass)
+> 
+> bothhyp$supertype <- gsub(bothhyp$supertype,pattern=" ",replacement="_")
+> bothhyp$supertype <- gsub(bothhyp$supertype,pattern="-",replacement="_")
+> bothhyp$supertype <- gsub(bothhyp$supertype,pattern="/",replacement="_")
+> bothhyp$supertype <- paste0("x",bothhyp$supertype)
+> bothhyp$supertype <- as.factor(bothhyp$supertype)
+> 
+> ## save object (now a Singlecellexperiment by way of zellkonverter) for processing on local machine, where dreamlet works but zellkonverter doesn't.
+> 
+> saveRDS(bothhyp,file="raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/bothdatasets_raw_asSCE.RDS")
+> 
+> sessionInfo()
+R version 4.3.2 Patched (2023-11-13 r85524)
+Platform: x86_64-conda-linux-gnu (64-bit)
+Running under: Rocky Linux 9.2 (Blue Onyx)
+
+Matrix products: default
+BLAS:   /jhpce/shared/community/core/conda_R/4.3.x/R/lib64/R/lib/libRblas.so 
+LAPACK: /jhpce/shared/community/core/conda_R/4.3.x/R/lib64/R/lib/libRlapack.so;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: US/Eastern
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] SingleCellExperiment_1.24.0 SummarizedExperiment_1.32.0
+ [3] Biobase_2.62.0              GenomicRanges_1.54.1       
+ [5] GenomeInfoDb_1.38.1         IRanges_2.36.0             
+ [7] S4Vectors_0.40.1            BiocGenerics_0.48.1        
+ [9] MatrixGenerics_1.14.0       matrixStats_1.1.0          
+[11] zellkonverter_1.10.1        data.table_1.14.8          
+
+loaded via a namespace (and not attached):
+ [1] crayon_1.5.2            cli_3.6.1               rlang_1.1.2            
+ [4] png_0.1-8               jsonlite_1.8.7          DelayedArray_0.28.0    
+ [7] dir.expiry_1.10.0       RCurl_1.98-1.13         grid_4.3.2             
+[10] filelock_1.0.2          abind_1.4-5             bitops_1.0-7           
+[13] basilisk_1.14.0         compiler_4.3.2          Rcpp_1.0.11            
+[16] XVector_0.42.0          lattice_0.22-5          reticulate_1.34.0      
+[19] SparseArray_1.2.2       parallel_4.3.2          GenomeInfoDbData_1.2.11
+[22] Matrix_1.6-3            withr_2.5.2             tools_4.3.2            
+[25] zlibbioc_1.48.0         S4Arrays_1.2.0          basilisk.utils_1.14.0  
+> 
+> proc.time()
+    user   system  elapsed 
+1759.003   60.120 1856.758 
