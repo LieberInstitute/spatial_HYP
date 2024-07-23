@@ -10,7 +10,7 @@ library(here)
 #### which contains Harmony reductions (lambda=1 (default) and =NULL, estimated based on data)
 #### for 10%ile and 20%ile HVGs 10%ile and 20%ile mean-rank nnSVGs
 setwd(here())
-hyp <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_071924.RDS")
+hyp <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
 ## make certain colnames are the same as $key or we won't have unique spot IDs to pair the assignments back to!
 if(sum(colnames(hyp)==hyp$key)!=ncol(hyp)){colnames(hyp) <- hyp$key}
 
