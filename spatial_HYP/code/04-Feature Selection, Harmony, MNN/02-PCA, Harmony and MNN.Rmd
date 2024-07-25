@@ -35,7 +35,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 ### spe loadup. we alreaady calculated the log-normalized counts after QC and rotating/mirroring the samples for consistent anatomic orientation
 ```{r}
 spesessionloader <- function(){
-  hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_071924.RDS")
+  hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
   
   # make sure colnames of the spe are unique (i.e., colData(hyp2)$key)
   colnames(hyp2) <- hyp2$key

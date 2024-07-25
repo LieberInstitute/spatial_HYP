@@ -24,7 +24,7 @@ library(SpotSweeper)
 ```{r}
 hyp <- readRDS("processed-data/02_build_spe/spe_n10.RDS")
 ### for reference: initial dataset dimensions
-dim(hyp)
+dim(hyp) # 30363, 45641
 head(colData(hyp))
 tail(colData(hyp))
 ```
@@ -110,6 +110,17 @@ sum(hyp2$sum_gene_outliers)
 # 162
 
 ## total number of spots to be dropped due to outlier status: 162+139+28 = 329
+
+
+### save plots for the three of these
+SpotSweeper::plotQCpdf(hyp2,metric = "expr_chrM_ratio",outliers="expr_chrM_ratio_outliers",fname= "plots/03-Initial QC and filtering/01a-Spotsweeper_expr_chrM_ratio_outliers.pdf",height=7,width=7)
+dev.off()
+
+SpotSweeper::plotQCpdf(hyp2,metric = "sum_umi",outliers = "sum_umi_outliers",fname = "plots/03-Initial QC and filtering/01b-Spotsweeper_sum_umi_outliers.pdf",height=7,width=7)
+dev.off()
+
+SpotSweeper::plotQCpdf(hyp2,metric = "sum_gene",outliers = "sum_gene_outliers",fname = "plots/03-Initial QC and filtering/01c-Spotsweeper_sum_gene_outliers.pdf",height=7,width=7)
+
 ```
 
 ### DO NOT USE the next two blocks -- this is only intended for plain-to-the-naked-eye, large tissue artifacts, to be used on a case-by-case basis (per SpotSweeper dev Michael Totty) 

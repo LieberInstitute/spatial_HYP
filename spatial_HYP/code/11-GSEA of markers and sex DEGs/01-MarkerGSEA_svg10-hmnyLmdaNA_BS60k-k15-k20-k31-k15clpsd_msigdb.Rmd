@@ -1,7 +1,7 @@
 ---
 title: "01-Marker msigdb-GSEA"
 author: "Bernard Mulvey"
-date: "2023-12-18"
+date: "2024-07-25"
 output: html_document
 ---
 
@@ -37,7 +37,7 @@ options(bphost="localhost")
 
 load SpatialLIBD marker enrichment stats and subset to clusterings of interest
 ```{r}
-mks <- readRDS("data/07-Marker_genes/01b-BSpace_allruns_spatialLIBD-regwrap-enrichment_full.RDS")
+mks <- readRDS("processed-data/07-Marker_genes/01b-BSpace_allruns_spatialLIBD-regwrap-enrichment_full.RDS")
 
 mks <- mks[grep(names(mks),pattern="HARMONYlmbna_nnsvg10_60kiter")]
 # check:
@@ -109,7 +109,7 @@ mkres <- mapply(X=mklist,Y=names(mklist),SIMPLIFY=FALSE,FUN=function(X,Y){
 })
 names(mkres) <- names(mklist)
 
-saveRDS(mkres,"data/11-GSEA/01a-Marker msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+saveRDS(mkres,"processed-data/11-GSEA/01a-Marker msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
 
 ### collapse pathways-this part is WAY WAY slower than the GSEA itself
@@ -121,7 +121,7 @@ mkres2 <- bpmapply(X=mkres,Y=mklist,SIMPLIFY = FALSE, BPPARAM=sbp,FUN=function(X
     return(tmpres)
 })
 names(mkres2) <- names(mkres)
-saveRDS(mkres2,"data/11-GSEA/01b-Marker mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
+saveRDS(mkres2,"processed-data/11-GSEA/01b-Marker mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
 
 
 rm(mklist,mks)
