@@ -63,8 +63,7 @@ tmprd <- as.data.table(tmprd)
 rm(genchr)
 ```
 
-## run sex DE using dreamlet. only on bayesspace 60kiter clusterings at k15,20,31 using HARMONY w/ lambda = NA dim reduction on nnsvg 10%ile features
-## note that in the k15 assignments, X1 and X9 are WM clusters which we will use as qualitative comparators in the fgsea analyses downstream.
+## run sex DE using voomLmFit. only on bayesspace 60kiter clusterings at k15,20,31
 ```{r}
 # get cluster assignment files
 bscl <- list.files("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out",pattern = ".txt",recursive=F,full.names = T)
@@ -205,6 +204,12 @@ bsHna60sOut <- lapply(X=bsHna60s,FUN=function(X){
   })
 })
 
+### concatenate into one data table per clustering with a column, assay, indicating the cluster a result corresponds to.
+bsHna60sOut <- lapply(X=bsHna60sOut,FUN=function(X){
+   Y <- rbindlist(X,idcol="assay")
+   return(Y)
+})
+
 ```
 
 
@@ -213,8 +218,8 @@ bsHna60sOut <- lapply(X=bsHna60s,FUN=function(X){
 saveRDS(bsHna60sOut,"processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
 
 # save table with the single-cluster and collapsed cluster DE as plaintext since those are the primary results going forward
-fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_nnsvg10"]],"processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt",sep="\t",quote=F)
-fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_hvg20_clpsdARC_clpsdVMH"]],"processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+fwrite(bsHna60sOut[["BSpace_k15_HARMONYlmbna_nnsvg10"]],"processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt",sep="\t",quote=F)
+fwrite(bsHna60sOut[["BSpace_k15_HARMONYlmbna_hvg20_clpsdARC_clpsdVMH"]],"processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 ```
 
 ```{r}

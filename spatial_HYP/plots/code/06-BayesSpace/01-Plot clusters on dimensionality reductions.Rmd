@@ -1,7 +1,7 @@
 ---
 title: "01-Plot clusters on dimensionality reductions"
 author: "Bernard Mulvey"
-date: "2023-11-22"
+date: "2024-07-26"
 output: html_document
 ---
 
@@ -18,7 +18,6 @@ library(gridExtra)
 library(SpatialExperiment)
 library(spatialLIBD)
 require(colorout)
-source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 
@@ -36,32 +35,40 @@ options(bphost="localhost")
 theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
 
-### load object with the PCA, UMAP, harmony dimreds, and mnn dimreds for the feature sets. load bayesspace cluster assignments.
+### load reduced dim slot with the PCA, UMAP, harmony dimreds, and mnn dimreds for the feature sets. load bayesspace cluster assignments.
 ```{r}
-hyp2 <- readRDS("data/04-feature_selection/02-hypfiltered_nnsvg10-pca-umap-harmonydefault-harmonylambdanull-mnn30.RDS")
+hyp2dimreds <- readRDS("processed-data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30_reducedDim_slot.RDS")
 
-### set colnames(hyp2.tmp) to key for unique rownames etc; these are the rownames used with the bayesspace cluster results
-stopifnot(colnames(hyp2)==hyp2$key)
-
-bs_clusts <- list.files("data/06-BayesSpace/01-bayesspace_k9-15-20-31_out",pattern=".txt",full.names=T)
+bs_clusts <- list.files("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out",pattern=".txt",full.names=T,recursive = F)
 ```
 
 Plot on feature-set-matched dimreds
 
-the BS_clusts file list conveniently is sorted in the same order as the PCA table (hvg10, hvg20, svg10, svg20)
 ```{r}
 i <- 1
 for (i in c(1:length(bs_clusts))) {
+    # get feature set (hvg20, svg10, svg20)
+    curfeats <- gsub(bs_clusts[i],pattern="^.*k15-20-31_out/BSpace_.*_([[:alnum:]]{5,8})\\.txt$",replacement="\\1")
+    
+    # get batch correction method short name
+    curbatcor <- gsub(bs_clusts[i],pattern="^.*k15-20-31_out/BSpace_k.._(.*)_[[:alnum:]]{5,8}\\.txt$",replacement="\\1")
+    
+    # get corresponding dimred slots (and some that don't correspond)
+    curdimrs <- hyp2dimreds[grep(curfeats,names(hyp2dimreds))]
+    # subset to do those that do correspond (PCA, plain UMAP, and the batch method)
+    keepdimrs <- c(paste0(c("PCA_","UMAP_"),curfeats),paste0(curbatcor,"_",curfeats))
+    keepdimrs <- unlist(lapply(keepdimrs,FUN=function(x){grep(names(curdimrs),pattern=x,value=T)}))
+    
+    curdimrs <- curdimrs[keepdimrs]
+    
+    ## read in cluster assignments
     curclusts <- fread(bs_clusts[i])
-    curclusts <- as.data.frame(curclusts)
-    curclusts[,2] <- paste0("X",curclusts[,2])
-    rownames(curclusts) <- curclusts$rn
+    setnames(curclusts,2,"cl")
+    curclusts[,cl:=paste0("X",cl)]
     
-    if (sum(rownames(curclusts) == colnames(hyp2)) != nrow(colData(hyp2))) {
-        curclusts <- curclusts[colnames(hyp2), ]
-    }
-    
-    colLabels(hyp2) <- factor(curclusts[,2],levels=paste0("X",c(1:length(unique(curclusts[,2])))))
+    ####################
+    ## LEFT OFF HERE ###
+    ####################
     
     ### since clustering result files were saved with their parent dimred in the output file name, we can use the cluster file name to match/recreate the dimreds to plot onto. also grab the specified k value from filename for reference.
     

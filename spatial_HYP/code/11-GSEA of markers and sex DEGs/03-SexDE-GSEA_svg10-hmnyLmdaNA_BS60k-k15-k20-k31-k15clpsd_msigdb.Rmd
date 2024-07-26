@@ -80,7 +80,7 @@ sets <- split(allsigs$ensembl_gene,allsigs$gs_name)
 sexde <- lapply(sexde,FUN=function(x){
     x[!(chromosome_name %in% grep(chromosome_name,pattern="MT|X|Y",value=T))]})
 
-### get named vectors of marker t-stats for each cluster in each result set (15+20+31+13)=79
+### get named vectors of marker t-stats for each cluster in each result set (15+20+31+13)=79 (if no clusters dropped out of sex de analysis)
 sexdelist <- list()
 i<-1
 for (i in c(1:length(sexde))){
@@ -88,13 +88,13 @@ for (i in c(1:length(sexde))){
     setnames(sexde[[i]],"t","tstat")
     j<-1
     for (j in c(1:length(sdoms))){
-        tmp <- copy(sexde[[i]][assay==sdoms[j]])[,.(ID,tstat)]
+        tmp <- copy(sexde[[i]][assay==sdoms[j]])[,.(gene_id,tstat)]
         setorderv(tmp,"tstat",-1)
         ## get the stat column as a vector and give it the gene ids as names for fgsea
         ## note that since data.table (invisibly) uses list() for column data, its cleaner to just make the working table a data frame for this last bit
         tmp <- as.data.frame(tmp)
         v <- tmp$tstat
-        names(v) <- tmp$ID
+        names(v) <- tmp$gene_id
         sexdelist[[length(sexdelist)+1]] <- v
         names(sexdelist)[length(sexdelist)] <- paste0(names(sexde)[i],"_",sdoms[j])
         rm(v,tmp)
@@ -121,10 +121,8 @@ saveRDS(sexderes,"processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg1
 rm(allsigs)
 gc(full=T)
 ### collapse pathways-this part is WAY WAY slower than the GSEA itself
-sbp <- MulticoreParam(4)
-register(sbp)
 
-sexderes2 <- mcmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, mc.cores=10,FUN=function(X,Y){
+sexderes2 <- mcmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, mc.cores=7,FUN=function(X,Y){
     tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = sets)
     return(tmpres)
 })
