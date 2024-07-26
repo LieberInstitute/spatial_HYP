@@ -54,7 +54,7 @@ bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkcl <- merge(bkcl,bkanno,by.x="M0lam0_leiden_multisamp_res2",by.y="clus",all.x=TRUE)
 
 ## drop the DISCARDs from the cell types and the SFE
-bkcl <- bkcl[bjm_annot!="DISCARD",]
+bkcl <- bkcl[bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T,invert=T)]
 hypb <- hypb[,hypb$key %in% bkcl$rn]
 stopifnot(ncol(hypb)==nrow(bkcl))
 

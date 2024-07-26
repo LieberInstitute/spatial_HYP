@@ -81,7 +81,7 @@ collapsed <- copy(bscls[["BSpace_k15_HARMONYlmbna_nnsvg10"]])
 collapsed[cl %in% c("X7","X12"),cl:="VMH"]
 collapsed[cl %in% c("X4","X6"),cl:="ARC"]
 bscls[[length(bscls)+1]] <- copy(collapsed)
-names(bscls)[length(bscls)] <- paste0(names(bscls)[1],"_clpsdARC_clpsdVMH")
+names(bscls)[length(bscls)] <- "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH")
 
 # clean up
 rm(bscl,collapsed)
@@ -197,15 +197,13 @@ bsHna60s <- lapply(bscls,function(b){
 ### add gene symbols
 ```{r}
 bsHna60sOut <- lapply(X=bsHna60s,FUN=function(X){
-  lapply(X,FUN=function(Y){
-    Z <- merge.data.table(as.data.table(Y,keep.rownames=T),tmprd[,.(gene_id,gene_name)],by.x="rn",by.y="gene_id")
-    setnames(Z,"rn","gene_id")
-    reordnames <- c("gene_name","logFC","P.Value","adj.P.Val","t","B","AveExpr","gene_id")
-    return(Z[,..reordnames])
+   lapply(X,FUN=function(Y){
+      Z <- merge.data.table(as.data.table(Y,keep.rownames=T),tmprd[,.(gene_id,gene_name,chromosome_name)],by.x="rn",by.y="gene_id")
+       setnames(Z,"rn","gene_id")
+       reordnames <- c("gene_name","logFC","P.Value","adj.P.Val","t","B","chromosome_name","AveExpr","gene_id")
+       return(Z[,..reordnames])
   })
 })
-
-
 
 ```
 
@@ -215,8 +213,8 @@ bsHna60sOut <- lapply(X=bsHna60s,FUN=function(X){
 saveRDS(bsHna60sOut,"processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
 
 # save table with the single-cluster and collapsed cluster DE as plaintext since those are the primary results going forward
-fwrite(rbindlist(bsHna60sOut[["BSpace_k15_HARMONYlmbna_nnsvg10"]],idcol="assay"),"processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt",sep="\t",quote=F)
-fwrite(rbindlist(bsHna60sOut[["BSpace_k15_HARMONYlmbna_hvg20_clpsdARC_clpsdVMH"]],idcol="assay"),"processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_nnsvg10"]],"processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt",sep="\t",quote=F)
+fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_hvg20_clpsdARC_clpsdVMH"]],"processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 ```
 
 ```{r}

@@ -1,0 +1,1100 @@
+---
+title: "QC plots-Compare vis and xen gene pbulk levels fitted by dreamlet"
+output: html_document
+date: "2024-07-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(Biostrings)
+library(ggplot2)
+library(gridExtra)
+library(ggrastr)
+library(SpatialExperiment)
+library(SpatialFeatureExperiment)
+library(dreamlet)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
+library(parallel)
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+```
+
+
+### load visium and xenium datasets, and append main result banksy/bayesspace clusters (for visium, the collapsed VMH and ARC domains) 
+```{r}
+hypv <- readRDS("../spatial_HYP/data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+
+bscl <- fread("../spatial_HYP/data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("X",cl)]
+bscl[cl %in% c("X11","X12"),cl:="VMH"]
+bscl[cl %in% c("X3","X5"),cl:="ARC"]
+bscl <- DataFrame(bscl,row.names=bscl$rn)
+bscl <- bscl[colnames(hypv),]
+colLabels(hypv) <- bscl$cl
+
+rm(bscl)
+
+## for visium, append metadaata with sex, brnum
+vdem <- fread("../spatial_HYP/raw-data/demos.txt")
+stopifnot(all(unique(hypv$brnum) %in% vdem$BrNum))
+
+tmpcd <- as.data.table(colData(hypv),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,vdem,by.x="brnum",by.y="BrNum",all.x=T)
+stopifnot(nrow(tmpcd)==ncol(hypv))
+
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)
+tmpcd$rn <- NULL
+tmpcd <- tmpcd[colnames(hypv),]
+colData(hypv) <- tmpcd
+#### for xenium, also append the cell nomenclature
+hypx <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bkcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bkcl,2,"cl")
+bkcl <- DataFrame(bkcl,row.names=bkcl$rn)
+bkcl <- bkcl[colnames(hypx),]
+colLabels(hypx) <- bkcl$cl
+
+bkanno <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno[,clus:=paste0("X",clus)]
+
+tmpcd <- as.data.table(colData(hypx),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,bkanno,by.x="label",by.y="clus",all.x=T)
+## to recapitulate how the dreamlet analyses were performed, remove the clusters labeled "DISCARD" from the xenium obj
+tmpcd <- tmpcd[!(bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T))]
+hypx <- hypx[,tmpcd$rn]
+
+## nnow append the modified coldata (which also lacks the DISCARDables, per above two lines) back to SFE as colData
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)
+tmpcd$rn <- NULL
+tmpcd <- tmpcd[colnames(hypx),]
+colData(hypx) <- tmpcd
+rm(tmpcd)
+
+### andddd append the domains themselves to the xenium to isolate cell types within those domains
+xendoms <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
+
+# get rid of the DISCARDed cells from domain assignments
+xendoms <- xendoms[rn %in% colnames(hypx)]
+xendoms <- DataFrame(xendoms,row.names=xendoms$rn)
+xendoms <- xendoms[colnames(hypx),]
+hypx$xendom <- xendoms$dualVMHARC4
+```
+
+
+### generate respective pseudobulk objects and dreamlet expression values for visium and xenium (cell type level)
+```{r}
+## xenium cell types
+hypxvmh <- hypx[,hypx$xendom=="VMH"]
+hypxarc <- hypx[,hypx$xendom=="ARC"]
+
+## double check that gene counts are the first slot of the assays on these, since dreamlet defaults to aggregating the first assay
+stopifnot(assayNames(hypxvmh)[1]=="counts"&assayNames(hypxarc)[1]=="counts")
+
+# kgo
+hypxvmh.ag <- dreamlet::aggregateToPseudoBulk(hypxvmh,assay="counts",sample_id="sample_id",cluster_id="bjm_annot",BPPARAM=MulticoreParam(8))
+hypxarc.ag <- dreamlet::aggregateToPseudoBulk(hypxarc,assay="counts",sample_id="sample_id",cluster_id="bjm_annot",BPPARAM=MulticoreParam(8))
+
+# min.samples = smaller sex-group size for VMH (female, 6)
+dl.xvmh <- dreamlet::processAssays(hypxvmh.ag,min.cells = 10,min.count = 10,min.samples = 6,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
+
+# min.samples = smaller sex-group size for ARC (female, 5; one sample has virtually no ARC)
+dl.xarc <- dreamlet::processAssays(hypxarc.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
+```
+
+### pseudobulk and process visium domains
+```{r}
+ag <- dreamlet::aggregateToPseudoBulk(hypv,sample_id="sample_id",cluster_id = "label",BPPARAM = MulticoreParam(8))
+## min samples 3 -- size of the smaller donor sex group (male)
+dl.hypv <- dreamlet::processAssays(ag,min.cells = 10,min.count = 10,min.samples = 3,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+(1|brnum))
+```
+
+### clear out intermediate clutter
+```{r}
+rm(ag,hypxarc,hypxarc.ag,hypxvmh,hypxvmh.ag,tmpcd,xendoms,bkcl,bscl,bkanno)
+gc()
+```
+
+############# 
+
+### now do this for the xenium domain-level-regardless-of-cell-type analyses. since we unloaded the SFE for memory's sake, reload it and re-process to get it ready. we can extract the previous visium domain level values from the existing allmats table and append the xenium ones.
+
+```{r}
+hypx <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+## we still need the clustering results, specifically in order to drop the DISCARDed cells
+bkcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bkcl,2,"cl")
+
+## load the cell type annotations to get the DISCARDables
+bkanno <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno[,clus:=paste0("X",clus)]
+
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+## remove the clusters labeled "DISCARD" from the xenium obj
+bkcl <- bkcl[!(bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T))]
+hypx <- hypx[,bkcl$rn]
+
+### andddd append the domains themselves to the xenium to isolate cell types within those domains
+xendoms <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
+
+# get rid of the DISCARDed cells from domain assignments
+xendoms <- xendoms[rn %in% colnames(hypx)]
+xendoms <- DataFrame(xendoms,row.names=xendoms$rn)
+xendoms <- xendoms[colnames(hypx),]
+hypx$xendom <- xendoms$dualVMHARC4
+
+## SFE with only the ARC and VMH domain cells for sex DE analysis
+hypav <- hypx[,hypx$xendom %in% c("ARC","VMH")]
+
+rm(hypx,bkcl,bkanno)
+```
+
+### dreamlet for domain-level xenium data
+```{r}
+hypav.ag <- dreamlet::aggregateToPseudoBulk(hypav,assay="counts",sample_id="sample_id",cluster_id="xendom",BPPARAM=MulticoreParam(8))
+
+# min.samples = smaller sex-group size for smallest domain group (ARC, female, 6)
+dl.xav <- dreamlet::processAssays(hypav.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
+
+# remove intermediate
+rm(hypav.ag)
+```
+
+
+### extract each expression matrix from the dreamletProcessedData objects for xenium cell type level analyses; melt; add brnum info
+```{r}
+xdem <- fread("raw-data/demos_and_xeniumrun_metadata.tsv")
+xdem <- xdem[,.(sample_name_SFEonly,BrNum,Sex)]
+
+vdem <- fread("../spatial_HYP/raw-data/demos_by_sampleid.txt")
+vdem <- vdem[sample_id %in% unique(hypv$sample_id),.(sample_id,brnum,Sex)]
+
+### xenium arc domain cell type de
+xarc.emats <- lapply(X=dl.xarc,FUN=function(X){
+    e <- as.data.table(X$E,keep.rownames=T)
+    em <- melt(e,id.vars="rn")
+    em <- merge.data.table(em,xdem,by.x="variable",by.y="sample_name_SFEonly",all.x=T)
+    setnames(em,c("rn","variable"),c("gene","sample_id"))
+    return(em)
+})
+names(xarc.emats) <- paste0(names(dl.xarc),"_xenARCdom")
+
+### xenium vmh domain cell type de
+xvmh.emats <- lapply(dl.xvmh,FUN=function(x){
+    e <- as.data.table(x$E,keep.rownames=T)
+    em <- melt(e,id.vars="rn")
+    em <- merge.data.table(em,xdem,by.x="variable",by.y="sample_name_SFEonly",all.x=T)
+    setnames(em,c("rn","variable"),c("gene","sample_id"))
+    return(em)
+})
+names(xvmh.emats) <- paste0(names(dl.xvmh),"_xenVMHdom")
+
+
+### for visium domains, we need the ensembl id - symbol pairs
+visrd <- as.data.table(rowData(hypv))
+### visium arc domain de
+hypv.arc.emat <- as.data.table(dl.hypv[["ARC"]]$E,keep.rownames=T)
+hypv.arc.emat <- melt(hypv.arc.emat,id.vars="rn")
+hypv.arc.emat <- merge.data.table(hypv.arc.emat,vdem,by.x="variable",by.y="sample_id",all.x=T)
+hypv.arc.emat <- merge.data.table(hypv.arc.emat,visrd[,.(gene_id,gene_name)],by.x="rn",by.y="gene_id",all.x=T)
+hypv.arc.emat[,rn:=NULL]
+setnames(hypv.arc.emat,c("gene_name","variable"),c("gene","sample_id"))
+
+### visium VMH domain de
+hypv.vmh.emat <- as.data.table(dl.hypv[["VMH"]]$E,keep.rownames=T)
+hypv.vmh.emat <- melt(hypv.vmh.emat,id.vars="rn")
+hypv.vmh.emat <- merge.data.table(hypv.vmh.emat,vdem,by.x="variable",by.y="sample_id",all.x=T)
+hypv.vmh.emat <- merge.data.table(hypv.vmh.emat,visrd[,.(gene_id,gene_name)],by.x="rn",by.y="gene_id",all.x=T)
+hypv.vmh.emat[,rn:=NULL]
+setnames(hypv.vmh.emat,c("gene_name","variable"),c("gene","sample_id"))
+
+vismats <- list(visARC=hypv.arc.emat,visVMH=hypv.vmh.emat)
+
+### concatenate all of these together into one giant ubermelt
+xarc.emats2 <- rbindlist(xarc.emats,use.names = T,idcol="cond")
+xvmh.emats2 <- rbindlist(xvmh.emats,use.names=T,idcol="cond")
+vismats2 <- rbindlist(vismats,use.names=T,idcol="cond")
+setnames(vismats2,"brnum","BrNum")
+allmats <- rbind(xarc.emats2,xvmh.emats2,vismats2)
+
+# note which samples are and aren't shared to label them accordingly
+sharedbrnum <- intersect(unique(hypv$brnum),unique(xdem$BrNum))
+xenonlybrnum <- unique(xdem$BrNum)[!(unique(xdem$BrNum) %in% sharedbrnum)]
+
+allmats[,shared:=ifelse(BrNum %in% sharedbrnum,"shared","xenium-only")]
+
+### order sample_id by sex (across platforms is fine, since we'll facet these two later)
+msamps <- unique(allmats[Sex=="Male",sample_id])
+fsamps <- unique(allmats[Sex=="Female",sample_id])
+allmats[,sample_id:=factor(sample_id,levels=c(msamps,fsamps))]
+
+### subset to only include xenium genes
+keepg <- unique(allmats[cond %in% grep(cond,pattern="xenVMHdom|xenARCdom",value=T),gene])
+allmats <- allmats[gene %in% keepg]
+```
+
+### do the same thing as above for the xenium domain level lresults
+```{r}
+xdem <- fread("raw-data/demos_and_xeniumrun_metadata.tsv")
+xdem <- xdem[,.(sample_name_SFEonly,BrNum,Sex)]
+
+### xenium arc domain cell type de
+xav.emats <- mapply(X=dl.xav,Y=names(dl.xav),SIMPLIFY=FALSE,FUN=function(X,Y){
+    e <- as.data.table(X$E,keep.rownames=T)
+    em <- melt(e,id.vars="rn")
+    em <- merge.data.table(em,xdem,by.x="variable",by.y="sample_name_SFEonly",all.x=T)
+    setnames(em,c("rn","variable"),c("gene","sample_id"))
+    return(em)
+})
+names(xav.emats) <- paste0(names(dl.xav),"_xenDomain")
+
+### concatenate to one table, then append allmats 
+xav.emats2 <- rbindlist(xav.emats,use.names = T,idcol="cond")
+xav.emats2[,shared:=ifelse(BrNum %in% allmats[cond %in% c("visVMH","visARC"),BrNum],yes="shared",no="xenium-only")]
+
+allmats <- rbind(allmats,xav.emats2)
+```
+
+
+## remove  intermediates
+```{r}
+rm(vismats,vismats2,hypv.vmh.emat,hypv.arc.emat,xarc.emats,xarc.emats2,xvmh.emats,xvmh.emats2,visrd,msamps,fsamps,dl.hypv,dl.xarc,dl.xvmh,hypv,keepg,sharedbrnum,xenonlybrnum,xav.emats,xav.emats2,xdem,hypav,dl.xav)
+
+## saved allmats in a local directory to save some time coming back to this
+```
+
+
+read in de stat tables to mark DEGs accordingly
+```{r}
+xende <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/02-4celltypeARC-and-VMH-dualassignedDomains_celltypeSexDE.txt")
+
+head(xende)
+
+visde <- fread("../spatial_HYP/data/09-Sex DE/01c-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+
+head(visde)
+
+xendomde <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
+
+head(xendomde)
+```
+
+### edit 071124: pre-label everything as FDR, nom sig in respective assays, subset to those, assemble one PDF per Visium domain - Xenium cell-in-domain pair AND same domain's visium w xenium all-domain-cells
+```{r}
+visde <- visde[gene_name %in% allmats$gene&assay %in% c("ARC","VMH")]
+
+## genes to get because of signif in visium vmh or visium arc
+visvmhg <- visde[P.Value<0.05&assay=="VMH",gene_name]
+visarcg <- visde[P.Value<0.05&assay=="ARC",gene_name]
+
+### VMH xenium
+vmhmats <- mclapply(unique(allmats[cond %in% grep(cond,pattern="xenVMHdom",value=T),cond]),mc.cores=10,FUN=function(xvct){
+   xenassay <- gsub(
+        unique(allmats[cond==xvct,cond]),
+        pattern="^(.*)_xenVMHdom$",
+        replacement="\\1")
+   # get xen significant genes and vis significant genes for this condition
+   tmpmat <- allmats[cond==xvct&gene %in% c(xende[bjm_annot==xenassay&P.Value_inVMH<0.05,ID],visvmhg)]
+   
+   # label xenium nomsig genes
+   tmpmat[gene %in% xende[bjm_annot==xenassay&P.Value_inVMH<0.05,ID],cond2:=paste0(cond,"*")]
+   # second asterisk for FDR sig
+   tmpmat[gene %in% xende[bjm_annot==xenassay&FDR_inVMH<0.05,ID],cond2:=paste0(cond2,"*")]
+   return(tmpmat)
+})
+vmhmats <- rbindlist(vmhmats)
+
+# add Visium VMH
+   
+tmpmat <- allmats[cond=="visVMH"&
+                     gene %in% c(
+                        visde[assay=="VMH" & P.Value<0.05,gene_name],
+                        unique(vmhmats$gene))
+                  ]
+
+tmpmat[gene %in% visde[assay=="VMH"&P.Value<0.05,gene_name],cond2:=paste0(cond,"*")]
+tmpmat[gene %in% visde[assay=="VMH"&adj.P.Val<0.05,gene_name],cond2:=paste0(cond2,"*")]
+   
+vmhmats <- rbind(tmpmat,vmhmats)
+rm(tmpmat)
+
+### ARC
+arcmats <- mclapply(unique(allmats[cond %in% grep(cond,pattern="xenARCdom",value=T),cond]),mc.cores=10,FUN=function(xact){
+   xenassay <- gsub(
+        unique(allmats[cond==xact,cond]),
+        pattern="^(.*)_xenARCdom$",
+        replacement="\\1")
+   tmpmat <- allmats[cond==xact&gene %in% c(xende[bjm_annot==xenassay&P.Value_inARC<0.05,ID],visarcg)]
+   tmpmat[gene %in% xende[bjm_annot==xenassay&P.Value_inARC<0.05,ID],cond2:=paste0(cond,"*")]
+   # second asterisk for FDR sig
+   tmpmat[gene %in% xende[bjm_annot==xenassay&FDR_inARC<0.05,ID],cond2:=paste0(cond2,"*")]
+   return(tmpmat)
+})
+arcmats <- rbindlist(arcmats)
+
+tmpmat <- allmats[cond=="visARC"&gene %in% c(visde[assay=="ARC"&P.Value<0.05,gene_name],arcmats$gene)]
+tmpmat[gene %in% visde[assay=="ARC"&P.Value<0.05,gene_name],cond2:=paste0(cond,"*")]
+tmpmat[gene %in% visde[assay=="ARC"&adj.P.Val<0.05,gene_name],cond2:=paste0(cond2,"*")]
+   
+arcmats <- rbind(arcmats,tmpmat)
+rm(tmpmat)
+
+### add domain-domain
+arcxdmat <- allmats[cond=="ARC_xenDomain"&gene %in% c(xendomde[assay=="ARC"&P.Value<0.05,ID],visarcg)]
+
+arcxdmat[cond=="ARC_xenDomain"&gene %in% xendomde[assay=="ARC"&P.Value<0.05,ID],cond2:=paste0(cond,"*")]
+
+arcxdmat[cond=="ARC_xenDomain*"&gene %in% xendomde[assay=="ARC"&adj.P.Val<0.05,ID],cond2:=paste0(cond2,"*")]
+
+vmhxdmat <- allmats[cond=="VMH_xenDomain"&gene %in% c(xendomde[assay=="VMH"&P.Value<0.05,ID],visvmhg)]
+
+vmhxdmat[cond=="VMH_xenDomain"&gene %in% xendomde[assay=="VMH"&P.Value<0.05,ID],cond2:=paste0(cond,"*")]
+
+vmhxdmat[cond=="VMH_xenDomain*"&gene %in% xendomde[assay=="VMH"&adj.P.Val<0.05,ID],cond2:=paste0(cond,"*")]
+
+### smash it all together
+vmhmats <- rbind(vmhmats,vmhxdmat)
+arcmats <- rbind(arcmats,arcxdmat)
+
+rm(arcxdmat,vmhxdmat,visarcg,visvmhg)
+```
+
+Dotplot serieses, by visium domain / paired xenium domain (cell type and domainwide levels), by gene, nom or FDR sig in one or both assays only
+
+```{r}
+### VMH
+mclapply(unique(allmats[cond %in% grep(cond,pattern="xenVMHdom|xenDomain",value=T),cond]),mc.cores=8,FUN=function(xvct){
+    
+    pltdat <- vmhmats[cond %in% c(xvct,"visVMH")]
+    # for genes not significant in a condition, carry over the condition without asterisks into the cond2 column which well use to label
+    pltdat[is.na(cond2),cond2:=cond]
+    
+    ## only get genes represented in both assays
+    pltdat <- pltdat[gene %in% pltdat[cond==xvct,gene] & gene %in% pltdat[cond=="visVMH",gene]]
+    
+    ## get the annotated cell type id (without the appended xenium domain analyses bit) to retrieve DE results for that cell type (which have their own columns  by domain in the DE table)
+    if (length(grep(unique(pltdat[cond==xvct,cond]),pattern="xenVMHdom"))>0){
+       xenassay <- gsub(
+        unique(pltdat[cond==xvct,cond]),
+        pattern="^(.*)_xenVMHdom$",
+        replacement="\\1")
+    }
+    else{
+        xenassay <- gsub(
+        unique(pltdat[cond==xvct,cond]),
+        pattern="^(.*)_xenDomain$",
+        replacement="\\1")
+    }
+    
+    # get each gene to be plotted (each gene its own page)
+    gns <- unique(pltdat$gene)
+
+    ## iterate through genes for this vis-xen assay combo
+    pltsublist <- lapply(X = gns,FUN=function(y){
+       ## get the asterisked or unasterisked condition name to feed as factor into facet_wrap (so we can have visium always on bottom)
+       nuvis <- unique(pltdat[gene==y&cond=="visVMH",cond2])
+       nuxvct <- unique(pltdat[gene==y&cond==xvct,cond2])
+       
+       ggplot(pltdat[gene==y],aes(x=sample_id,y=value,color=BrNum,shape=shared))+
+            ylab("dreamlet input expression value")+
+            geom_point(size=3)+
+            ggtitle(paste0(y," Vis. VMH and Xen in-VMH-domain\ncell type"))+
+            ### put conditions (xenium/visium) as factor so that visium is always plotted second in outputs below
+            facet_wrap(~factor(cond2,levels=c(nuxvct,nuvis)),nrow=2)+
+            theme(axis.text.x = element_text(size=4),title = element_text(size=11),strip.text = element_text(size=9),axis.text.y=element_text(size=8))
+    })
+
+    pdf(paste0("plots/QC plots-Compare vis and xen gene pbulk levels from sex de models/sigornomsigonly/",xvct,".pdf"),height=11,width=8)
+    i<-1
+    for (i in c(1:length(pltsublist))){
+        print(pltsublist[[i]])
+    }
+    dev.off()
+    rm(pltsublist,i,pltdat)
+    return(paste0(xvct," done"))
+})
+
+## ARC
+mclapply(unique(allmats[cond %in% grep(cond,pattern="xenARCdom|xenDomain",value=T),cond]),mc.cores=8,FUN=function(xact){
+    
+    pltdat <- arcmats[cond %in% c(xact,"visARC")]
+    # for genes not significant in a condition, carry over the condition without asterisks into the cond2 column which well use to label
+    pltdat[is.na(cond2),cond2:=cond]
+    
+    ## only get genes represented in both assays
+    pltdat <- pltdat[gene %in% pltdat[cond==xact,gene] & gene %in% pltdat[cond=="visARC",gene]]
+    
+    ## get the annotated cell type id (without the appended xenium domain analyses bit) to retrieve DE results for that cell type (which have their own columns  by domain in the DE table)
+    if (length(grep(unique(pltdat[cond==xact,cond]),pattern="xenARCdom"))>0){
+       xenassay <- gsub(
+        unique(pltdat[cond==xact,cond]),
+        pattern="^(.*)_xenARCdom$",
+        replacement="\\1")
+    }
+    else{
+        xenassay <- gsub(
+        unique(pltdat[cond==xact,cond]),
+        pattern="^(.*)_xenDomain$",
+        replacement="\\1")
+    }
+    
+    # get each gene to be plotted (each gene its own page)
+    gns <- unique(pltdat$gene)
+
+    ## iterate through genes for this vis-xen assay combo
+    pltsublist <- lapply(X = gns,FUN=function(y){
+       ## get the asterisked or unasterisked condition name to feed as factor into facet_wrap (so we can have visium always on bottom)
+       nuvis <- unique(pltdat[gene==y&cond=="visARC",cond2])
+       nuxact <- unique(pltdat[gene==y&cond==xact,cond2])
+       
+       ggplot(pltdat[gene==y],aes(x=sample_id,y=value,color=BrNum,shape=shared))+
+            ylab("dreamlet input expression value")+
+            geom_point(size=3)+
+            ggtitle(paste0(y," Vis. ARC and Xen in-ARC-domain\ncell type"))+
+            ### put conditions (xenium/visium) as factor so that visium is always plotted second in outputs below
+            facet_wrap(~factor(cond2,levels=c(nuxact,nuvis)),nrow=2)+
+            theme(axis.text.x = element_text(size=4),title = element_text(size=11),strip.text = element_text(size=9),axis.text.y=element_text(size=8))
+    })
+    
+    pdf(paste0("plots/QC plots-Compare vis and xen gene pbulk levels from sex de models/sigornomsigonly/",xact,".pdf"),width=8,height=11)
+    i<-1
+    for(i in c(1:length(pltsublist))){
+        print(pltsublist[[i]])
+    }
+    dev.off()
+})
+
+```
+
+
+Dotplot serieses, by visium domain / paired xenium domain, by gene, celltype in VMH xenium vs. vis xenium domain
+```{r}
+### VMH
+mclapply(unique(allmats[cond %in% grep(cond,pattern="xenVMHdom",value=T),cond]),mc.cores=8,FUN=function(xvct){
+    
+    pltdat <- allmats[cond %in% c(xvct,"visVMH")]
+    ## only get genes represented in both
+    pltdat <- pltdat[gene %in% pltdat[cond==xvct,gene] & gene %in% pltdat[cond=="visVMH",gene]]
+    
+   
+    # get each gene to be plotted (each gene its own page)
+    gns <- unique(pltdat$gene)
+    
+    ## get the annotated cell type id (without the appended xenium domain analyses bit) to retrieve DE results for that cell type (which have their own columns  by domain in the DE table)
+    xenassay <- gsub(
+        unique(pltdat[cond==xvct,cond]),
+        pattern="^(.*)_xenVMHdom$",
+        replacement="\\1")
+    
+    ## iterate through genes for this vis-xen assay combo
+    pltsublist <- lapply(X = gns,FUN=function(y){
+        
+        ### append the DEG status to the facet title
+        # for visium
+        assaytag <- ""
+        if(visde[gene_name==y&assay=="VMH" , adj.P.Val] < 0.05){
+            assaytag <- "**"
+        }
+        if (visde[gene_name==y&assay=="VMH" , P.Value] < 0.05 &
+            visde[gene_name==y&assay=="VMH" , adj.P.Val] > 0.05){
+            assaytag <-"*"
+        }
+
+        # for xenium
+        xentag <- ""
+        if(xende[ID==y&bjm_annot==xenassay , FDR_inVMH] < 0.05){
+            xentag <- "**"
+        }
+        if (xende[ID==y&bjm_annot==xenassay , FDR_inVMH] > 0.05 &
+            xende[ID==y&bjm_annot==xenassay , P.Value_inVMH] < 0.05){
+            xentag <- "*"
+        }
+
+        # actually append these ^ and get their values for arranging in the facet_wrap call
+        pltdat[gene==y&cond=="visVMH",cond:=paste0(cond,assaytag)]
+        pltdat[gene==y&cond==xvct,cond:=paste0(cond,xentag)]
+        
+        nuvis <- unique(pltdat[gene==y&cond %in% grep(
+            cond,pattern="visVMH",value=T),cond])
+        nuxvct <- unique(pltdat[gene==y&cond %in% grep(cond,pattern=xvct,value=T),cond])
+        
+        # make the plot for this gene in this visium domain-by-xenium cell type combo
+        ggplot(pltdat[gene==y],aes(x=sample_id,y=value,color=BrNum,shape=shared))+
+            ylab("dreamlet input expression value")+
+            geom_point(size=3)+
+            ggtitle(paste0(y," Vis. VMH and Xen in-VMH-domain\ncell type"))+
+             ### put conditions (xenium/visium) as factor so that visium is always plotted second in outputs below
+            facet_wrap(~factor(cond,levels=c(nuxvct,nuvis)),nrow=2)+
+            theme(axis.text.x = element_text(size=4),title = element_text(size=11),strip.text = element_text(size=9),axis.text.y=element_text(size=8))
+    })
+    
+    pdf(paste0("plots/QC plots-Compare vis and xen gene pbulk levels from sex de models/visium VMH collapsed vs ",xvct," sex DE dreamlet analyzed vals.pdf"),height=11,width=8)
+    i<-1
+    for (i in c(1:length(pltsublist))){
+        print(pltsublist[[i]])
+    }
+    dev.off()
+    rm(pltsublist,i,pltdat)
+    return(paste0(xvct," done"))
+})
+```
+
+
+### ARC
+```{r}
+mclapply(unique(allmats[cond %in% grep(cond,pattern="xenARCdom",value=T),cond]),mc.cores = 8,FUN=function(xact){
+    
+    pltdat <- allmats[cond %in% c(xact,"visARC")]
+    ## only get genes represented in both
+    pltdat <- pltdat[gene %in% pltdat[cond==xact,gene] & gene %in% pltdat[cond=="visARC",gene]]
+   
+    # get each gene to be plotted (each gene its own page)
+    gns <- unique(pltdat$gene)
+    
+    ## get the annotated cell type id (without the appended xenium domain analyses bit) to retrieve DE results for that cell type (which have their own columns  by domain in the DE table)
+    xenassay <- gsub(
+        unique(pltdat[cond==xact,cond]),
+        pattern="^(.*)_xenARCdom$",
+        replacement="\\1")
+    
+    ## iterate through genes for this vis-xen assay combo
+    pltsublist <- lapply(X = gns,FUN=function(y){
+        
+        ### append the DEG status to the facet title
+        # for visium
+        assaytag <- ""
+        if(visde[gene_name==y&assay=="ARC" , adj.P.Val] < 0.05){
+            assaytag <- "**"
+        }
+        if (visde[gene_name==y&assay=="ARC" , P.Value] < 0.05 &
+            visde[gene_name==y&assay=="ARC" , adj.P.Val] > 0.05){
+            assaytag <-"*"
+        }
+
+        # for xenium
+        xentag <- ""
+        if(xende[ID==y&bjm_annot==xenassay , FDR_inARC] < 0.05){
+            xentag <- "**"
+        }
+        if (xende[ID==y&bjm_annot==xenassay , FDR_inARC] > 0.05 &
+            xende[ID==y&bjm_annot==xenassay , P.Value_inARC] < 0.05){
+            xentag <- "*"
+        }
+
+        # actually append these ^
+        pltdat[gene==y&cond=="visARC",cond:=paste0(cond,assaytag)]
+        pltdat[gene==y&cond==xact,cond:=paste0(cond,xentag)]
+        
+        nuvis <- unique(pltdat[gene==y&cond %in% grep(
+            cond,pattern="visARC",value=T),cond])
+        nuxact <- unique(pltdat[gene==y&cond %in% grep(cond,pattern=xact,value=T),cond])
+
+        # make the plot for this gene in this visium domain-by-xenium cell type combo
+        ggplot(pltdat[gene==y],aes(x=sample_id,y=value,color=BrNum,shape=shared))+
+            ylab("dreamlet input expression value")+
+            geom_point(size=3)+
+            ggtitle(paste0(y," Vis. ARC and Xen in-ARC-domain\ncell type"))+
+             ### put conditions (xenium/visium) as factor so that visium is always plotted second in outputs below
+            facet_wrap(~factor(cond,levels=c(nuxact,nuvis)),nrow=2)+
+            theme(axis.text.x = element_text(size=4),title = element_text(size=11),strip.text = element_text(size=9),axis.text.y=element_text(size=8))
+    })
+    
+    pdf(paste0("plots/QC plots-Compare vis and xen gene pbulk levels from sex de models/visium ARC collapsed vs ",xact," sex DE dreamlet analyzed vals.pdf"),height=11,width=8)
+    i<-1
+    for (i in c(1:length(pltsublist))){
+        print(pltsublist[[i]])
+    }
+    dev.off()
+    rm(pltsublist,i,pltdat)
+    return(paste0(xact," done"))
+})
+
+```
+
+### load xenium domain-wide DE results for labeling in plots
+```{r}
+xende <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
+```
+
+Dotplot pdf packet, by visium domain / paired entire xenium domain, by gene
+```{r}
+### VMH
+pltdat <- allmats[cond %in% c("VMH_xenDomain","visVMH")]
+## only get genes represented in both
+pltdat <- pltdat[gene %in% pltdat[cond=="VMH_xenDomain",gene] & gene %in% pltdat[cond=="visVMH",gene]]
+
+
+# get each gene to be plotted (each gene its own page)
+gns <- unique(pltdat$gene)
+
+## iterate through genes for this vis-xen assay combo
+pltsublist <- lapply(X = gns,FUN=function(y){
+    
+    ### append the DEG status to the facet title
+    # for visium
+    assaytag <- ""
+    if(visde[gene_name==y&assay=="VMH" , adj.P.Val] < 0.05){
+        assaytag <- "**"
+    }
+    if (visde[gene_name==y&assay=="VMH" , P.Value] < 0.05 &
+        visde[gene_name==y&assay=="VMH" , adj.P.Val] > 0.05){
+        assaytag <-"*"
+    }
+
+    # for xenium
+    xentag <- ""
+    if(xende[ID==y&assay=="VMH" , adj.P.Val] < 0.05){
+        xentag <- "**"
+    }
+    if (xende[ID==y&assay=="VMH" , adj.P.Val] > 0.05 &
+        xende[ID==y&assay=="VMH" , P.Value] < 0.05){
+        xentag <- "*"
+    }
+
+    # actually append these ^ and get their values for arranging in the facet_wrap call
+    pltdat[gene==y&cond=="visVMH",cond:=paste0(cond,assaytag)]
+    pltdat[gene==y&cond=="VMH_xenDomain",cond:=paste0(cond,xentag)]
+    
+    nuvis <- unique(pltdat[gene==y&cond %in% grep(
+        cond,pattern="visVMH",value=T),cond])
+    nuxvct <- unique(pltdat[gene==y&cond %in% grep(cond,pattern="VMH_xenDomain",value=T),cond])
+    
+    # make the plot for this gene in this visium domain-by-xenium cell type combo
+    ggplot(pltdat[gene==y],aes(x=sample_id,y=value,color=BrNum,shape=shared))+
+        ylab("dreamlet input expression value")+
+        geom_point(size=3)+
+        ggtitle(paste0(y," Vis. VMH and Xen VMH Domain (All Cells)"))+
+         ### put conditions (xenium/visium) as factor so that visium is always plotted second in outputs below
+        facet_wrap(~factor(cond,levels=c(nuxvct,nuvis)),nrow=2)+
+        theme(axis.text.x = element_text(size=4),title = element_text(size=11),strip.text = element_text(size=9),axis.text.y=element_text(size=8))
+})
+
+pdf(paste0("plots/QC plots-Compare vis and xen gene pbulk levels from sex de models/visium VMH collapsed vs xenium VMH domain sex DE dreamlet analyzed vals.pdf"),height=11,width=8)
+i<-1
+for (i in c(1:length(pltsublist))){
+    print(pltsublist[[i]])
+}
+dev.off()
+rm(pltsublist,i,pltdat,gns)
+```
+
+```{r}
+### ARC
+pltdat <- allmats[cond %in% c("ARC_xenDomain","visARC")]
+## only get genes represented in both
+pltdat <- pltdat[gene %in% pltdat[cond=="ARC_xenDomain",gene] & gene %in% pltdat[cond=="visARC",gene]]
+
+
+# get each gene to be plotted (each gene its own page)
+gns <- unique(pltdat$gene)
+
+## iterate through genes for this vis-xen assay combo
+pltsublist <- lapply(X = gns,FUN=function(y){
+    
+    ### append the DEG status to the facet title
+    # for visium
+    assaytag <- ""
+    if(visde[gene_name==y&assay=="ARC" , adj.P.Val] < 0.05){
+        assaytag <- "**"
+    }
+    if (visde[gene_name==y&assay=="ARC" , P.Value] < 0.05 &
+        visde[gene_name==y&assay=="ARC" , adj.P.Val] > 0.05){
+        assaytag <-"*"
+    }
+
+    # for xenium
+    xentag <- ""
+    if(xende[ID==y&assay=="ARC" , adj.P.Val] < 0.05){
+        xentag <- "**"
+    }
+    if (xende[ID==y&assay=="ARC" , adj.P.Val] > 0.05 &
+        xende[ID==y&assay=="ARC" , P.Value] < 0.05){
+        xentag <- "*"
+    }
+
+    # actually append these ^ and get their values for arranging in the facet_wrap call
+    pltdat[gene==y&cond=="visARC",cond:=paste0(cond,assaytag)]
+    pltdat[gene==y&cond=="ARC_xenDomain",cond:=paste0(cond,xentag)]
+    
+    nuvis <- unique(pltdat[gene==y&cond %in% grep(
+        cond,pattern="visARC",value=T),cond])
+    nuxvct <- unique(pltdat[gene==y&cond %in% grep(cond,pattern="ARC_xenDomain",value=T),cond])
+    
+    # make the plot for this gene in this visium domain-by-xenium cell type combo
+    ggplot(pltdat[gene==y],aes(x=sample_id,y=value,color=BrNum,shape=shared))+
+        ylab("dreamlet input expression value")+
+        geom_point(size=3)+
+        ggtitle(paste0(y," Vis. ARC and Xen ARC Domain (All Cells)"))+
+         ### put conditions (xenium/visium) as factor so that visium is always plotted second in outputs below
+        facet_wrap(~factor(cond,levels=c(nuxvct,nuvis)),nrow=2)+
+        theme(axis.text.x = element_text(size=4),title = element_text(size=11),strip.text = element_text(size=9),axis.text.y=element_text(size=8))
+})
+
+pdf(paste0("plots/QC plots-Compare vis and xen gene pbulk levels from sex de models/visium ARC collapsed vs xenium ARC domain sex DE dreamlet analyzed vals.pdf"),height=11,width=8)
+i<-1
+for (i in c(1:length(pltsublist))){
+    print(pltsublist[[i]])
+}
+dev.off()
+rm(pltsublist,i,pltdat,gns)
+```
+
+
+### reproducibility info
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] SpatialFeatureExperiment_1.6.1 ggrastr_1.0.2                 
+ [3] gridExtra_2.3                  parallelly_1.37.1             
+ [5] default_1.0.0                  dreamlet_1.2.1                
+ [7] variancePartition_1.34.0       BiocParallel_1.38.0           
+ [9] limma_3.60.3                   ggplot2_3.5.1                 
+[11] colorout_1.3-0.2               SpatialExperiment_1.14.0      
+[13] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
+[15] Biobase_2.64.0                 GenomicRanges_1.56.1          
+[17] MatrixGenerics_1.16.0          matrixStats_1.3.0             
+[19] Biostrings_2.72.1              GenomeInfoDb_1.40.1           
+[21] XVector_0.44.0                 IRanges_2.38.1                
+[23] S4Vectors_0.42.1               BiocGenerics_0.50.0           
+[25] data.table_1.15.4              rlang_1.1.4                   
+
+loaded via a namespace (and not attached):
+  [1] bitops_1.0-7              sf_1.0-16                
+  [3] EBImage_4.46.0            httr_1.4.7               
+  [5] Rgraphviz_2.48.0          numDeriv_2016.8-1.1      
+  [7] tools_4.4.1               backports_1.5.0          
+  [9] utf8_1.2.4                R6_2.5.1                 
+ [11] metafor_4.6-0             HDF5Array_1.32.0         
+ [13] rhdf5filters_1.16.0       withr_3.0.0              
+ [15] sp_2.1-4                  prettyunits_1.2.0        
+ [17] cli_3.6.3                 labeling_0.4.3           
+ [19] KEGGgraph_1.64.0          SQUAREM_2021.1           
+ [21] mvtnorm_1.2-5             proxy_0.4-27             
+ [23] mixsqp_0.3-54             R.utils_2.12.3           
+ [25] zenith_1.6.0              sessioninfo_1.2.2        
+ [27] invgamma_1.1              rstudioapi_0.16.0        
+ [29] RSQLite_2.3.7             generics_0.1.3           
+ [31] gtools_3.9.5              spdep_1.3-5              
+ [33] dplyr_1.1.4               Matrix_1.7-0             
+ [35] metadat_1.2-0             ggbeeswarm_0.7.2         
+ [37] fansi_1.0.6               abind_1.4-5              
+ [39] terra_1.7-78              R.methodsS3_1.8.2        
+ [41] lifecycle_1.0.4           yaml_2.3.9               
+ [43] edgeR_4.2.0               mathjaxr_1.6-0           
+ [45] gplots_3.1.3.1            rhdf5_2.48.0             
+ [47] SparseArray_1.4.8         grid_4.4.1               
+ [49] blob_1.2.4                dqrng_0.4.1              
+ [51] crayon_1.5.3              lattice_0.22-6           
+ [53] beachmat_2.20.0           msigdbr_7.5.1            
+ [55] annotate_1.82.0           KEGGREST_1.44.1          
+ [57] magick_2.8.3              zeallot_0.1.0            
+ [59] pillar_1.9.0              knitr_1.48               
+ [61] rjson_0.2.21              boot_1.3-30              
+ [63] corpcor_1.6.10            codetools_0.2-20         
+ [65] wk_0.9.2                  glue_1.7.0               
+ [67] vctrs_0.6.5               png_0.1-8                
+ [69] Rdpack_2.6                gtable_0.3.5             
+ [71] assertthat_0.2.1          cachem_1.1.0             
+ [73] xfun_0.45                 rbibutils_2.2.16         
+ [75] S4Arrays_1.4.1            DropletUtils_1.24.0      
+ [77] Rfast_2.1.0               sfheaders_0.4.4          
+ [79] iterators_1.0.14          units_0.8-5              
+ [81] statmod_1.5.0             nlme_3.1-165             
+ [83] pbkrtest_0.5.3            bit64_4.0.5              
+ [85] progress_1.2.3            EnvStats_2.8.1           
+ [87] rprojroot_2.0.4           irlba_2.3.5.1            
+ [89] vipor_0.4.7               KernSmooth_2.23-24       
+ [91] colorspace_2.1-0          spData_2.3.1             
+ [93] rmeta_3.0                 DBI_1.2.3                
+ [95] tidyselect_1.2.1          bit_4.0.5                
+ [97] compiler_4.4.1            graph_1.82.0             
+ [99] BiocNeighbors_1.22.0      DelayedArray_0.30.1      
+[101] scales_1.3.0              caTools_1.18.2           
+[103] classInt_0.4-10           remaCor_0.0.18           
+[105] tiff_0.1-12               stringr_1.5.1            
+[107] digest_0.6.36             fftwtools_0.9-11         
+[109] minqa_1.2.7               rmarkdown_2.27           
+[111] aod_1.3.3                 RhpcBLASctl_0.23-42      
+[113] htmltools_0.5.8.1         pkgconfig_2.0.3          
+[115] jpeg_0.1-10               lme4_1.1-35.5            
+[117] sparseMatrixStats_1.16.0  mashr_0.2.79             
+[119] fastmap_1.2.0             htmlwidgets_1.6.4        
+[121] UCSC.utils_1.0.0          DelayedMatrixStats_1.26.0
+[123] farver_2.1.2              jsonlite_1.8.8           
+[125] R.oo_1.26.0               RCurl_1.98-1.14          
+[127] magrittr_2.0.3            scuttle_1.14.0           
+[129] GenomeInfoDbData_1.2.12   s2_1.1.6                 
+[131] Rhdf5lib_1.26.0           munsell_0.5.1            
+[133] Rcpp_1.0.12               babelgene_22.9           
+[135] EnrichmentBrowser_2.34.1  RcppZiggurat_0.1.6       
+[137] stringi_1.8.4             zlibbioc_1.50.0          
+[139] MASS_7.3-61               plyr_1.8.9               
+[141] ggrepel_0.9.5             deldir_2.0-4             
+[143] splines_4.4.1             hms_1.1.3                
+[145] locfit_1.5-9.10           reshape2_1.4.4           
+[147] XML_3.99-0.17             evaluate_0.24.0          
+[149] RcppParallel_5.1.8        nloptr_2.1.1             
+[151] tidyr_1.3.1               purrr_1.0.2              
+[153] scattermore_1.2           ashr_2.2-63              
+[155] broom_1.0.6               xtable_1.8-4             
+[157] fANCOVA_0.6-1             e1071_1.7-14             
+[159] class_7.3-22              truncnorm_1.0-9          
+[161] tibble_3.2.1              lmerTest_3.1-3           
+[163] memoise_2.0.1             beeswarm_0.4.0           
+[165] AnnotationDbi_1.66.0      GSEABase_1.66.0          
+[167] here_1.0.1               
+> sessioninfo::session_info()
+─ Session info ─────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-07-11
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ─────────────────────────────────────────────────────────────────────
+ ! package                  * version    date (UTC) lib source
+   abind                      1.4-5      2016-07-21 [1] CRAN (R 4.4.0)
+   annotate                   1.82.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   AnnotationDbi              1.66.0     2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
+   aod                        1.3.3      2023-12-13 [1] CRAN (R 4.4.0)
+   ashr                       2.2-63     2023-08-21 [1] CRAN (R 4.4.0)
+   assertthat                 0.2.1      2019-03-21 [1] CRAN (R 4.4.0)
+   babelgene                  22.9       2022-09-29 [1] CRAN (R 4.4.0)
+   backports                  1.5.0      2024-05-23 [1] CRAN (R 4.4.0)
+   beachmat                   2.20.0     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   beeswarm                   0.4.0      2021-06-01 [1] CRAN (R 4.4.0)
+   Biobase                  * 2.64.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocGenerics             * 0.50.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocNeighbors              1.22.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocParallel             * 1.38.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
+   Biostrings               * 2.72.1     2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
+   bit                        4.0.5      2022-11-15 [1] CRAN (R 4.4.0)
+   bit64                      4.0.5      2020-08-30 [1] CRAN (R 4.4.0)
+   bitops                     1.0-7      2021-04-24 [1] CRAN (R 4.4.0)
+   blob                       1.2.4      2023-03-17 [1] CRAN (R 4.4.0)
+   boot                       1.3-30     2024-02-26 [1] CRAN (R 4.4.1)
+   broom                      1.0.6      2024-05-17 [1] CRAN (R 4.4.0)
+   cachem                     1.1.0      2024-05-16 [1] CRAN (R 4.4.0)
+   caTools                    1.18.2     2021-03-28 [1] CRAN (R 4.4.0)
+   class                      7.3-22     2023-05-03 [1] CRAN (R 4.4.1)
+   classInt                   0.4-10     2023-09-05 [1] CRAN (R 4.4.0)
+ P cli                        3.6.3      2024-06-21 [2] CRAN (R 4.4.0)
+   codetools                  0.2-20     2024-03-31 [1] CRAN (R 4.4.1)
+   colorout                 * 1.3-0.2    2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace                 2.1-0      2023-01-23 [1] CRAN (R 4.4.0)
+   corpcor                    1.6.10     2021-09-16 [1] CRAN (R 4.4.0)
+   crayon                     1.5.3      2024-06-20 [1] CRAN (R 4.4.0)
+   data.table               * 1.15.4     2024-03-30 [2] CRAN (R 4.4.0)
+   DBI                        1.2.3      2024-06-02 [1] CRAN (R 4.4.0)
+   default                  * 1.0.0      2017-08-07 [1] CRAN (R 4.4.0)
+   DelayedArray               0.30.1     2024-05-07 [1] Bioconductor 3.19 (R 4.4.0)
+   DelayedMatrixStats         1.26.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   deldir                     2.0-4      2024-02-28 [1] CRAN (R 4.4.0)
+   digest                     0.6.36     2024-06-23 [1] CRAN (R 4.4.0)
+   dplyr                      1.1.4      2023-11-17 [1] CRAN (R 4.4.0)
+   dqrng                      0.4.1      2024-05-28 [1] CRAN (R 4.4.0)
+   dreamlet                 * 1.2.1      2024-06-09 [1] Bioconductor 3.19 (R 4.4.0)
+   DropletUtils               1.24.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   e1071                      1.7-14     2023-12-06 [1] CRAN (R 4.4.0)
+   EBImage                    4.46.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   edgeR                      4.2.0      2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   EnrichmentBrowser          2.34.1     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   EnvStats                   2.8.1      2023-08-22 [1] CRAN (R 4.4.0)
+   evaluate                   0.24.0     2024-06-10 [1] CRAN (R 4.4.0)
+   fANCOVA                    0.6-1      2020-11-13 [1] CRAN (R 4.4.0)
+   fansi                      1.0.6      2023-12-08 [1] CRAN (R 4.4.0)
+   farver                     2.1.2      2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap                    1.2.0      2024-05-15 [1] CRAN (R 4.4.0)
+   fftwtools                  0.9-11     2021-03-01 [1] CRAN (R 4.4.0)
+   generics                   0.1.3      2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb             * 1.40.1     2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomeInfoDbData           1.2.12     2024-05-01 [1] Bioconductor
+   GenomicRanges            * 1.56.1     2024-06-12 [1] Bioconductor 3.19 (R 4.4.1)
+   ggbeeswarm                 0.7.2      2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2                  * 3.5.1      2024-04-23 [1] CRAN (R 4.4.0)
+   ggrastr                  * 1.0.2      2023-06-01 [1] CRAN (R 4.4.0)
+   ggrepel                    0.9.5      2024-01-10 [1] CRAN (R 4.4.0)
+   glue                       1.7.0      2024-01-09 [1] CRAN (R 4.4.0)
+   gplots                     3.1.3.1    2024-02-02 [1] CRAN (R 4.4.0)
+   graph                      1.82.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   gridExtra                * 2.3        2017-09-09 [1] CRAN (R 4.4.0)
+   GSEABase                   1.66.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   gtable                     0.3.5      2024-04-22 [1] CRAN (R 4.4.0)
+   gtools                     3.9.5      2023-11-20 [1] CRAN (R 4.4.0)
+   HDF5Array                  1.32.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   here                       1.0.1      2020-12-13 [1] CRAN (R 4.4.0)
+   hms                        1.1.3      2023-03-21 [1] CRAN (R 4.4.0)
+   htmltools                  0.5.8.1    2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets                1.6.4      2023-12-06 [1] CRAN (R 4.4.0)
+   httr                       1.4.7      2023-08-15 [1] CRAN (R 4.4.0)
+   invgamma                   1.1        2017-05-07 [1] CRAN (R 4.4.0)
+   IRanges                  * 2.38.1     2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
+   irlba                      2.3.5.1    2022-10-03 [1] CRAN (R 4.4.0)
+   iterators                  1.0.14     2022-02-05 [1] CRAN (R 4.4.0)
+   jpeg                       0.1-10     2022-11-29 [1] CRAN (R 4.4.0)
+   jsonlite                   1.8.8      2023-12-04 [1] CRAN (R 4.4.0)
+   KEGGgraph                  1.64.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   KEGGREST                   1.44.1     2024-06-19 [1] Bioconductor 3.19 (R 4.4.0)
+   KernSmooth                 2.23-24    2024-05-17 [1] CRAN (R 4.4.1)
+   knitr                      1.48       2024-07-07 [1] CRAN (R 4.4.1)
+   labeling                   0.4.3      2023-08-29 [1] CRAN (R 4.4.0)
+   lattice                    0.22-6     2024-03-20 [1] CRAN (R 4.4.1)
+   lifecycle                  1.0.4      2023-11-07 [1] CRAN (R 4.4.0)
+   limma                    * 3.60.3     2024-06-16 [1] Bioconductor 3.19 (R 4.4.0)
+   lme4                       1.1-35.5   2024-07-03 [1] CRAN (R 4.4.1)
+   lmerTest                   3.1-3      2020-10-23 [1] CRAN (R 4.4.0)
+   locfit                     1.5-9.10   2024-06-24 [1] CRAN (R 4.4.0)
+   magick                     2.8.3      2024-02-18 [1] CRAN (R 4.4.0)
+   magrittr                   2.0.3      2022-03-30 [1] CRAN (R 4.4.0)
+   mashr                      0.2.79     2023-10-18 [1] CRAN (R 4.4.0)
+   MASS                       7.3-61     2024-06-13 [1] CRAN (R 4.4.0)
+   mathjaxr                   1.6-0      2022-02-28 [1] CRAN (R 4.4.0)
+   Matrix                     1.7-0      2024-04-26 [1] CRAN (R 4.4.1)
+   MatrixGenerics           * 1.16.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   matrixStats              * 1.3.0      2024-04-11 [1] CRAN (R 4.4.0)
+   memoise                    2.0.1      2021-11-26 [1] CRAN (R 4.4.0)
+   metadat                    1.2-0      2022-04-06 [1] CRAN (R 4.4.0)
+   metafor                    4.6-0      2024-03-28 [1] CRAN (R 4.4.0)
+   minqa                      1.2.7      2024-05-20 [1] CRAN (R 4.4.0)
+   mixsqp                     0.3-54     2023-12-20 [1] CRAN (R 4.4.0)
+   msigdbr                    7.5.1      2022-03-30 [1] CRAN (R 4.4.0)
+   munsell                    0.5.1      2024-04-01 [1] CRAN (R 4.4.0)
+   mvtnorm                    1.2-5      2024-05-21 [1] CRAN (R 4.4.0)
+   nlme                       3.1-165    2024-06-06 [1] CRAN (R 4.4.0)
+   nloptr                     2.1.1      2024-06-25 [1] CRAN (R 4.4.0)
+   numDeriv                   2016.8-1.1 2019-06-06 [1] CRAN (R 4.4.0)
+   parallelly               * 1.37.1     2024-02-29 [1] CRAN (R 4.4.0)
+   pbkrtest                   0.5.3      2024-06-26 [1] CRAN (R 4.4.0)
+   pillar                     1.9.0      2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig                  2.0.3      2019-09-22 [1] CRAN (R 4.4.0)
+   plyr                       1.8.9      2023-10-02 [1] CRAN (R 4.4.0)
+   png                        0.1-8      2022-11-29 [1] CRAN (R 4.4.0)
+   prettyunits                1.2.0      2023-09-24 [1] CRAN (R 4.4.0)
+   progress                   1.2.3      2023-12-06 [1] CRAN (R 4.4.0)
+   proxy                      0.4-27     2022-06-09 [1] CRAN (R 4.4.0)
+   purrr                      1.0.2      2023-08-10 [1] CRAN (R 4.4.0)
+   R.methodsS3                1.8.2      2022-06-13 [1] CRAN (R 4.4.0)
+   R.oo                       1.26.0     2024-01-24 [1] CRAN (R 4.4.0)
+   R.utils                    2.12.3     2023-11-18 [1] CRAN (R 4.4.0)
+   R6                         2.5.1      2021-08-19 [1] CRAN (R 4.4.0)
+   rbibutils                  2.2.16     2023-10-25 [1] CRAN (R 4.4.0)
+   Rcpp                       1.0.12     2024-01-09 [1] CRAN (R 4.4.0)
+   RcppParallel               5.1.8      2024-07-06 [1] CRAN (R 4.4.1)
+   RcppZiggurat               0.1.6      2020-10-20 [1] CRAN (R 4.4.0)
+   RCurl                      1.98-1.14  2024-01-09 [1] CRAN (R 4.4.0)
+   Rdpack                     2.6        2023-11-08 [1] CRAN (R 4.4.0)
+   remaCor                    0.0.18     2024-02-08 [1] CRAN (R 4.4.0)
+   reshape2                   1.4.4      2020-04-09 [1] CRAN (R 4.4.0)
+   Rfast                      2.1.0      2023-11-09 [1] CRAN (R 4.4.0)
+   Rgraphviz                  2.48.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   rhdf5                      2.48.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   rhdf5filters               1.16.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   Rhdf5lib                   1.26.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   RhpcBLASctl                0.23-42    2023-02-11 [1] CRAN (R 4.4.0)
+   rjson                      0.2.21     2022-01-09 [1] CRAN (R 4.4.0)
+ P rlang                    * 1.1.4      2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown                  2.27       2024-05-17 [1] CRAN (R 4.4.0)
+   rmeta                      3.0        2018-03-20 [1] CRAN (R 4.4.0)
+   rprojroot                  2.0.4      2023-11-05 [1] CRAN (R 4.4.0)
+   RSQLite                    2.3.7      2024-05-27 [1] CRAN (R 4.4.0)
+   rstudioapi                 0.16.0     2024-03-24 [1] CRAN (R 4.4.0)
+   s2                         1.1.6      2023-12-19 [1] CRAN (R 4.4.0)
+   S4Arrays                   1.4.1      2024-05-20 [1] Bioconductor 3.19 (R 4.4.0)
+   S4Vectors                * 0.42.1     2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
+   scales                     1.3.0      2023-11-28 [1] CRAN (R 4.4.0)
+   scattermore                1.2        2023-06-12 [1] CRAN (R 4.4.0)
+   scuttle                    1.14.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sessioninfo                1.2.2      2021-12-06 [1] CRAN (R 4.4.0)
+   sf                         1.0-16     2024-03-24 [1] CRAN (R 4.4.0)
+   sfheaders                  0.4.4      2024-01-17 [1] CRAN (R 4.4.0)
+   SingleCellExperiment     * 1.26.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sp                         2.1-4      2024-04-30 [1] CRAN (R 4.4.0)
+   SparseArray                1.4.8      2024-05-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sparseMatrixStats          1.16.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   SpatialExperiment        * 1.14.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   SpatialFeatureExperiment * 1.6.1      2024-05-15 [1] Bioconductor 3.19 (R 4.4.0)
+   spData                     2.3.1      2024-05-31 [1] CRAN (R 4.4.0)
+   spdep                      1.3-5      2024-06-10 [1] CRAN (R 4.4.0)
+   SQUAREM                    2021.1     2021-01-13 [1] CRAN (R 4.4.0)
+   statmod                    1.5.0      2023-01-06 [1] CRAN (R 4.4.0)
+   stringi                    1.8.4      2024-05-06 [1] CRAN (R 4.4.0)
+   stringr                    1.5.1      2023-11-14 [1] CRAN (R 4.4.0)
+   SummarizedExperiment     * 1.34.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   terra                      1.7-78     2024-05-22 [1] CRAN (R 4.4.0)
+   tibble                     3.2.1      2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr                      1.3.1      2024-01-24 [1] CRAN (R 4.4.0)
+   tidyselect                 1.2.1      2024-03-11 [1] CRAN (R 4.4.0)
+   tiff                       0.1-12     2023-11-28 [1] CRAN (R 4.4.0)
+   truncnorm                  1.0-9      2023-03-20 [1] CRAN (R 4.4.0)
+   UCSC.utils                 1.0.0      2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   units                      0.8-5      2023-11-28 [1] CRAN (R 4.4.0)
+   utf8                       1.2.4      2023-10-22 [1] CRAN (R 4.4.0)
+   variancePartition        * 1.34.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   vctrs                      0.6.5      2023-12-01 [1] CRAN (R 4.4.0)
+   vipor                      0.4.7      2023-12-18 [1] CRAN (R 4.4.0)
+   withr                      3.0.0      2024-01-16 [1] CRAN (R 4.4.0)
+   wk                         0.9.2      2024-07-09 [1] CRAN (R 4.4.0)
+   xfun                       0.45       2024-06-16 [1] CRAN (R 4.4.0)
+   XML                        3.99-0.17  2024-06-25 [1] CRAN (R 4.4.0)
+   xtable                     1.8-4      2019-04-21 [1] CRAN (R 4.4.0)
+   XVector                  * 0.44.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   yaml                       2.3.9      2024-07-05 [1] CRAN (R 4.4.0)
+   zeallot                    0.1.0      2018-01-28 [1] CRAN (R 4.4.0)
+   zenith                     1.6.0      2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   zlibbioc                   1.50.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+────────────────────────────────────────────────────────────────────────────────

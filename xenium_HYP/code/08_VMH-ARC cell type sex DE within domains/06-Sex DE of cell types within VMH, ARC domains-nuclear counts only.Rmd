@@ -39,7 +39,7 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x =
 
 the key xenium output files being used behind the scenes here are in processed-data/01/[resegmented sample]/outs/transcripts.csv.gz and nucleus_boundaries.csv.gz .
 
-### performance notes: request 2 more cores than specified in countMolecules below; peak RAM usage with 10 cores approx 80GB
+### performance notes: request 2 more cores than specified in countMolecules below; peak combined RAM usage with 10 cores approx 80GB
 ```{r}
 xenouts <- list.files(pattern="wnuclei",path="processed-data/01_xeniumranger1.7-resegment",full.names=T)
 xenouts <- paste0(xenouts,"/outs")
@@ -53,7 +53,7 @@ xens <- lapply(xenouts,FUN=function(x){
     
     ## tabulate to nuclear counts using countMolecules, which will return a spatialExperiment object
     ## note that inexplicably the countMolecules function uses two more cores than whatever the user specifies.
-    xendat <- countMolecules(xendat,moleculesAssay="detected",boundariesAssay="nucleus",nCores = 8)
+    xendat <- countMolecules(xendat,moleculesAssay="detected",boundariesAssay="nucleus",nCores = 6)
     
     ## assign sample name matched to the sample names we've been using; assign cell_ids as unique identifiers (sampleid_cellid) and then as colnames of the SPE
     sampn <- gsub(x,pattern=".*02_(.*)",replacement="\\1")
@@ -89,19 +89,16 @@ dim(fullnuc)
 ###
 # 366 912692
 
-##  since there's more than the SFE's number of nuclei, this SPE includes ones that we previously discarded by e.g. filtering for erratic nuclear/cell segmentations, nucleus area:cell area ratios, etc. quick read in the working cell-level SFE to get the identifiers to keep
-hypb <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+##  since there's more than the SFE's number of nuclei, this SPE includes ones that we previously discarded by e.g. filtering for erratic nuclear/cell segmentations, nucleus area:cell area ratios, etc. quick read in some cell-wise results that were generated from the filtered SFE to get those colnames (they happen to be in the cell type clustering results, which we need anyhow, so use that)
 
-retaincells <- colnames(hypb)
-rm(hypb)
-gc(full=T)
-##
+## read in the clustering results, plain-english annotations of them, and the domain-cell assignments made using the 4 non-periventricular ARC cell types
+bkcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+retaincells <- bkcl$rn
+## removing filtered-out nuclei/cells
 stopifnot(all(retaincells %in% colnames(fullnuc)))
 fullnuc <- fullnuc[,retaincells]
 
-## now read in the clustering results, plain-english annotations of them, and the domain-cell assignments made using the 4 non-periventricular ARC cell types
-bkcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
-
+## cell type annots
 bkanno <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkanno[,clus:=paste0("X",clus)]
@@ -109,7 +106,7 @@ bkanno[,clus:=paste0("X",clus)]
 ## append cell type annots to the labels
 bkcl <- merge.data.table(bkcl,bkanno,by.x="M0lam0_leiden_multisamp_res2",by.y="clus",all.x=T)
 ## drop rows corresponding to cells from the clusters to be discarded (sample specific clusters etc)
-bkcl <- bkcl[bjm_annot!="DISCARD"]
+bkcl <- bkcl[bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T,invert=T)]
 
 ## subset the SPE to the remaining cells
 fullnuc <- fullnuc[,bkcl$rn]
@@ -145,7 +142,9 @@ fullnuc$domain <- doms$dualVMHARC4
 hypnuc.vdom <- fullnuc[,fullnuc$domain=="VMH"]
 hypnuc.adom <- fullnuc[,fullnuc$domain=="ARC"]
 
-
+## cleanup
+rm(xens)
+gc(full=T)
 ```
 
 ```{r}

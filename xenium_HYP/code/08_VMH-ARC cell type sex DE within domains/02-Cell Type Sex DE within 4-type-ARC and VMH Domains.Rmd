@@ -55,7 +55,7 @@ bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkcl <- merge(bkcl,bkanno,by.x="M0lam0_leiden_multisamp_res2",by.y="clus",all.x=TRUE)
 
 ## drop the DISCARDs from the cell types and the SFE
-bkcl <- bkcl[bjm_annot!="DISCARD",]
+bkcl <- bkcl[bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T,invert=T)]
 hypb <- hypb[,hypb$key %in% bkcl$rn]
 stopifnot(ncol(hypb)==nrow(bkcl))
 
@@ -92,7 +92,7 @@ hyp.fineadom.ag <- dreamlet::aggregateToPseudoBulk(hyp.fineadom,assay="counts",s
 ## min samples 5 -- size of the smaller sex group in total samps (females)-- one female sample has ~no ARC with this smoothing unfortunately
 dl.rf <- dreamlet::processAssays(hyp.fineadom.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
 
-### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X28, X30, X34, X36, X37, X40
+### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X28, X30, X34, X37, X40
 
 dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum),BPPARAM = MulticoreParam(8))
 
@@ -120,7 +120,7 @@ hyp.finevdom.ag <- dreamlet::aggregateToPseudoBulk(hyp.finevdom,assay="counts",s
 ## min samples 6 -- size of the smaller sex group in total samps (females)
 dl.rf <- dreamlet::processAssays(hyp.finevdom.ag,min.cells = 10,min.count = 10,min.samples = 6,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
 
-### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X10, X17, X21, X28, X31, X32, X33, X34, X36, X37, X40
+### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X10, X17, X21, X28, X31, X32, X33, X34, X37, X40
 
 dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum),BPPARAM = MulticoreParam(8))
 

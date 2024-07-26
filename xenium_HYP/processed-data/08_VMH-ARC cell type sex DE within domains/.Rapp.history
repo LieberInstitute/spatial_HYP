@@ -1,0 +1,869 @@
+use_condaenv(condaenv="r-reticulate")
+conda_list(conda="~/miniconda/bin/conda")
+use_condaenv(condaenv="~/miniconda/envs/r-reticulate")
+Sys.getenv("RETICULATE_PYTHON")
+Sys.setenv("RETICULATE_PYTHON"="/Users/bmulvey/miniconda/envs/r-reticulate/")
+remove.packages(c("reticulate","basilisk","basilisk.utils","zellkonverter"))
+BiocManager::install("zellkonverter")
+library(reticulate)
+reticulate::virtualenv_create()
+reticulate::install_python(version="3.11.5")
+reticulate::install_miniconda()
+reticulate::install_miniconda(force=T)
+reticulate::py_available()
+reticulate::virtualenv_list()
+reticulate::virtualenv_install()
+write.table(as.data.table(installed.packages()),"~/Desktop/pkgs.txt",sep='\t',quote=F,row.names=F,col.names=T)
+pkgs <- read.tsv("~/Desktop/pkgs.txt")
+pkgs <- read.table("~/Desktop/pkgs.txt")
+pkgs[1]
+pkgs[1,1]
+pkgs[1,2]
+pkgs[2,1]
+for (i in c(2:nrow(pkgs))){install.packages(pkgs[i,1],type="source")}
+remove.packages(installed.packages())
+warninsg()
+for (i in c(2:nrow(pkgs))){install.packages(pkgs[i,1],type="source",force=T)}
+library(rlang)
+install.packages("rlang")
+pkgs[1,]
+pkgs[2,]
+install.packages(pkgs[c(2:nrow(pkgs)),1])
+pkgs <- fread("~/Desktop/pkgs.txt",sep='\t')
+install.packages(pkgs[c(2:nrow(pkgs)),1],type="source")
+install.packages("BiocManager")#
+BiocManager::install(version = "3.18")
+BiocManager::install(pkgs[c(2:nrow(pkgs)),1])
+BiocManager::install(pkgs[c(2:nrow(pkgs)),1],type="source")
+warnings()
+nowinst <- as.data.table(installed.packages())
+install.packages("data.table",type="source",force=T)
+load(".RData")
+library(rlagn)
+library(ggplot2)
+lib.paths()
+.lib.paths()
+.libpaths()
+pkgs <- read.table("~/Desktop/pkgs.txt",sep='\t')
+pkglist <- pkgs[c(2:nrow(pkgs)),1]
+pkglist
+install.packages(pkglist)
+BiocManager::install(pkglist)
+BiocManager::install("AnnotationDbi")
+BiocManager::install("GenomeInfoDb")
+library(Annotationdbi)
+library(AnnotationDbi)
+library(GenomeInfoDb)
+library(GenomeInfoDbData)
+setDTthreads(6)
+getDTthreads()
+library(BayesSpace)
+BiocManager::install("Matrix")
+BiocManager::install("Matrix",checkBuilt=T)
+remove.packages("SNPlocs.Hsapiens.dbSNP155.GRCh37")
+remove.packages("SNPlocs.Hsapiens.dbSNP155.GRCh38")
+Sys.getenv("Path")
+ple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin")>
+Sys.setenv("PATH"="/opt/gfortran/bin:/opt/homebrew/bin:/Library/Frameworks/R.framework/Resources:/opt/local/bin:/opt/local/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/homebrew/bin:/usr/local/bin:/Users/bmulvey/Library/r-miniconda-arm64/condabin:/Users/bmulvey/Library/r-miniconda-arm64/envs/r-reticulate/bin:/Users/bmulvey/anaconda3/condabin:/opt/gfortran/bin:/Library/Frameworks/R.framework/Resources:/opt/local/bin:/opt/local/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/var/run/com.ap
+ple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin")
+BiocManager::install(c("Rcpp", "BiocParallel", "cowplot", "grid", "fastmatch", "Matrix", "scales", "testthat", "parallel", "aggregation", "Seurat", "parallelly", "dreamlet", "BH", "RcppAnnoy", "RcppCCTZ", "RcppDate", "RcppDist", "RcppNumerical", "RcppParallel", "RcppProgress", "RcppArmadillo", "RcppEigen", "RcppGSL", "RcppHNSW", "RcppML", "RcppTOML", "RcppZiggurat", "RcppRoll"),force=T,type="source")
+BiocManager::install("RcppML",type="source",force=T)
+BiocManager::install("BiocParallel",type="source",force=T)
+sbp <- MulticoreParam(8)
+b <- sample(c("X",""))
+ab <- rbind(a,b)
+return(ab[,mean(a),by="b"])}
+test <- bplapply(c(1:100),BPPARAM=sbp,FUN=function(x){
+a <- sample(c(1:8243824),size=100000,replace=F)
+b <- sample(c("X","Z","Q"),size=100000,replace=T)
+ab <- cbind(a,b)
+ab <- as.data.table(ab)
+setnames(ab,c("a","b"))
+return(ab[,mean(a),by="b"])})
+return(ab[,base::mean(a),by="b"])})
+> test <- bplapply(c(1:100),BPPARAM=sbp,FUN=function(x){#
+ a <- sample(c(1:8243824),size=100000,replace=F)#
+ b <- sample(c("X","Z","Q"),size=100000,replace=T)#
+ ab <- cbind(a,b)#
+ ab <- as.data.table(ab)#
+ setnames(ab,c("a","b"))#
+ return(ab[,base::mean(a),by="b"])})
+> test <- bplapply(c(1:100),BPPARAM=sbp,FUN=function(x){#
+a <- sample(c(1:8243824),size=100000,replace=F)#
+b <- sample(c("X","Z","Q"),size=100000,replace=T)#
+ab <- cbind(a,b)#
+ab <- as.data.table(ab)#
+setnames(ab,c("a","b"))#
+return(ab[,base::mean(a),by="b"])})
+test <- bplapply(c(1:100),BPPARAM=sbp,FUN=function(x){#
+a <- sample(c(1:8243824),size=100000,replace=F)#
+b <- sample(c("X","Z","Q"),size=100000,replace=T)#
+ab <- cbind(a,b)#
+ab <- as.data.table(ab)#
+setnames(ab,c("a","b"))#
+return(ab[,base::mean(a),by="b"])})
+test <- readRDS("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/data/11-GSEA/05-Common variant disease gene enrichment in markers.RDS")
+mkdis <- mkdis[spdom %in% grep(spdom,pattern="VMH|ARC",value=T)&genesets_from=="union"]
+mkdis <- readRDS("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/data/11-GSEA/05-Common variant disease gene enrichment in markers.RDS")
+names(mkdis)
+mkdis[1:10]
+BiocManager::install(c("Rcpp","RcppArmadillo","RcppML","RcppEigen"),type="source",force=T)
+?fgsea
+Sys.setenv("PATH"=/opt/gfortran/bin:/usr/local/bin:/Library/Frameworks/R.framework/Resources:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/bmulvey/anaconda3/condabin"")
+Sys.setenv("PATH"=/opt/gfortran/bin:/usr/local/bin:/Library/Frameworks/R.framework/Resources:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/bmulvey/anaconda3/condabin")
+Sys.setenv("PATH"=""/opt/gfortran/bin:/usr/local/bin:/Library/Frameworks/R.framework/Resources:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/bmulvey/anaconda3/condabin")
+Sys.setenv("PATH"="/opt/gfortran/bin:/usr/local/bin:/Library/Frameworks/R.framework/Resources:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/bmulvey/anaconda3/condabin")
+system("which clang++ -v")
+system("which clang++ -vl")
+sys.setenv("PATH"="/opt/gfortran/bin:/usr/bin:/Library/Frameworks/R.framework/Resources:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/bmulvey/anaconda3/condabin:/usr/local/bin:")
+Sys.setenv("PATH"="/opt/gfortran/bin:/usr/bin:/Library/Frameworks/R.framework/Resources:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/bmulvey/anaconda3/condabin:/usr/local/bin")
+BiocManager::install("Rcpp",type="source",force=T)
+BiocManager::install("fgsea",force=T)
+BiocManager::install("fgsea",force=T,type="source")
+library(fgsea)
+?fgsea()
+BiocManager::install("Matrix",force=T,type="source")
+library(BiocParallel)
+BiocManager::install()
+install.packages("parallel",dependencies=T)
+install.packages("parallelly",dependencies=T)
+install.packages("parallelly",dependencies="all")
+available[]
+install.packages()$available
+install.packages()$available["parallelly",dependencies]
+list.files(".",pattern="^sex",full.names=F)
+list.files(".",pattern="^sex.*RDS",full.names=F)
+remove.packages("fgsea")
+BiocManager::install("fgsea",type="source")
+list.files()
+mkres <- clist.files()[c(16,18,20,2)]
+mkres <- list.files()[c(16,18,20,2)]
+mkres2 <- lapply(mkres,readRDS(d))
+mkres2 <- lapply(mkres,readRDS)
+mkres2[[1]]
+names(mkres2)
+mkres
+readRDS(mkres[1])
+dat <- readRDS(mkres[1])
+mkres[1]
+dat[1,]
+dat <- dat[spdom %in% unique(spdom)[1:15]]
+unique(dat$spdom)
+i <- 2
+for (i in c(2:4)){dat <- rbind(dat,readRDS(mkres[2:4]))}
+mkres[2]
+mkres[3]
+for (i in c(2:4)){tmp <- readRDS(mkres[i])
+dat <- rbind(dat,tmp)
+length(unique(tmp$spdom))
+length(unique(dat$spdom))
+saveRDS(dat,"05-Common variant disease gene enrichment in markers.RDS")
+rm(dat,mkres)
+rm(i,mkres2)
+s <- list.files("sex")
+s <- list.files(pattern="sex")
+s
+sl <- lapply(s,readRDS)
+lapply(sl,FUN=function(x){length(unique(x$spdom))})
+for (i in c(1:4)){tmp <- copy(sl[[i]])
+if(i==1){slrb <- copy(tmp)}
+else{slrb <- rbind(slrb,tmp)}
+length(unique(slrb$spdom))
+is.data.table(slrb)
+saveRDS(slrb,"06-Common variant disease gene enrichment in sex DEGs.RDS")
+q(save=F)
+q(save="no")
+library(basilisk.utils)
+installConda()
+library(data.talbe)
+svg <- fread("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/data/08-Nucleus-specific SVGs/02b-ARC nnSVG nomsig genes and ranks per sample.txt")
+arctypes <- fread("~/Desktop/zhou ARCsubtype enriched logFCpt5 fdr05.txt")
+length(unique(arctypes$gene))
+nrow(svg[gene_name %in% arcttypes$gene])
+nrow(svg[gene_name %in% arctypes$gene])
+nrow(svg[gene_name %in% arctypes$gene,meanrank]
+t.test(svg[gene_name %in% arctypes$gene,meanrank],svg$meanrank)
+t.test(svg[gene_name %in% c("POMC", "CBLN1", "GHRH", "GSX1", "SST", "PCP4", "TBX3", "KISS1", "TAC3", "NPY", "AGRP"),meanrank],svg$meanrank)
+names(svg)
+min(svg$nsigsamps)
+t.test(svg[gene_name %in% c("POMC", "CBLN1", "GHRH", "GSX1", "SST", "PCP4", "TBX3", "KISS1", "TAC3", "NPY", "AGRP")&nsigsamps>=4,meanrank],svg$meanrank)
+nrow(svg[gene_name %in% c("POMC", "CBLN1", "GHRH", "GSX1", "SST", "PCP4", "TBX3", "KISS1", "TAC3", "NPY", "AGRP")&nsigsamps>=4])
+nrow(svg[gene_name %in% arctypes$gene&nsigsamps>=4])
+nrow(svg[gene_name %in% arctypes$gene&nsigsamps>=4,meanrank])
+svg[gene_name %in% arctypes$gene&nsigsamps>=4,meanrank]
+svg[gene_name %in% arctypes$gene&nsigsamps>=4&meanrank<1000]
+max(svg[nsigsamps>=4,meanrank])
+svg[gene_name %in% arctypes$gene&nsigsamps>=4&meanrank<(2467.75/4)]
+redc <- readRDS("~/Desktop/REDCap_HYP.rda")
+load("~/Desktop/REDCap_HYP.rda")
+REDCap_HYP
+ncol(REDCap_HYP)
+tolower("Iigaya ")
+names(arcsvg)
+nrow(arcsvg[nsigsamps>2])
+vmhsvg <- fread("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/data/08-Nucleus-specific SVGs/01b-VMH nnSVG nomsig genes and ranks per sample.txt")
+nrow(vmhsvg[nsigsamps>2])
+arcsvg <- arcsvg[meanrank>2]
+arcsvg[1:5]
+arcsvg[1]
+arcmk <- arcsvg[gene_name %in% genes,meanrankrank]
+arcrest <- arcsvg[!(gene_name %in% genes),meanrankrank]
+wilcox.test(arcmk,arcrest)
+nrow(arcsvg[gene_name %in% genes])
+arcsvg <- fread("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/data/08-Nucleus-specific SVGs/02b-ARC nnSVG nomsig genes and ranks per sample.txt")
+genes <- c("POMC", "CBLN1", "GHRH", "GSX1", "SST", "PCP4", "TBX3", "KISS1", "TAC3", "NPY", "AGRP")
+arcsvg[gene_name %in% genes,meanrank]
+setorderv(arcsvg,"meanrank")
+arcsvg[,meanrankrank:=c(1:nrow(arcsvg))]
+arcsvg[gene_name %in% genes,meanrankrank]
+arcsvg <- fread("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/data/08-Nucleus-specific SVGs/01b-VMH nnSVG nomsig genes and ranks per sample.txt")
+vmhsvg <- vmhsvg[nsigsamps>2]
+arcsvg <- arcsvg[nsigsamps>2]
+arcsvg[gene_name %in% gene]
+arcsvg[gene_name %in% genes]
+library(msigdb)
+library(msigdbr)
+msigdbr::msigdbr_show_species()
+msigdbr::msigdbr_collections
+msigdbr::msigdbr_collections()
+?msigdbr
+load("/Users/bmulvey/Library/CloudStorage/OneDrive-JohnsHopkins/visium_hyp_preliminary_dataset_SPE_101723.RDS")
+load("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/data/10-Spatial Registration/02g-sphyp-k15-20-31-15clps_ABAms-47subclass-47withVMHARCclps.RDS")
+names(res)
+vmha <- unique(unlist(lapply(VMHa,X$gene_id)))
+vmha <- unique(unlist(lapply(X=VMHa,X$gene_id)))
+vmha <- unique(unlist(lapply(X=VMHa,function(X){X$gene_id})))
+vmha <- unique(unlist(lapply(X=res[[2]],function(X){X$gene_id})))
+arca <- unique(unlist(lapply(X=res[[1]],function(X){X$gene_id})))
+res <- readRDS("~/Desktop/KM Lab/local_hthspatial/local_results_ref/human VMH and ARC genes gained and lost relative to Yao 23 VMH and ARC collapsed subclasses.RDS")
+vmha <- unique(unlist(lapply(X=res[[2]],function(X){X$gene_name})))
+arca <- unique(unlist(lapply(X=res[[1]],function(X){X$gene_name})))
+write.table(arca,"~/Desktop/arcall.txt",sep='\t',quote=F,row.names=F,col.names=F)
+write.table(vmha,"~/Desktop/vmhall.txt",sep='\t',quote=F,row.names=F,col.names=F)
+devtools::install_github("neurorestore/Libra")
+tired <- fread("~/Desktop/tiredduringdep.tsv")
+wgain <- fread("~/Desktop/weightgainworst.tsv")
+wloss <- fread("~/Desktop/weightlossduringworstdep.tsv")
+slp <- fread("~/Desktop/depdeltasleep.tsv")
+slp[1]
+gw <- list(tired,wgain,wloss,slp)
+names(gw) <- c("tiredness","wgain","wloss","slpchange")
+rm(tired,wgain,wloss,slp)
+gw <- lapply(gw,FUN=function(x){return(x[!is.na(pval)])})
+gw[1,]
+x[,majal:=apply(.SD,margin=1,FUN=function(z){
+if(z[2]==z[1]){z[3]}
+else{z[2]}}),.SDcols=c("minor_allele","one_allele","two_allele")]
+gw <- lapply(gw,FUN=function(x){#
++ x[,one_allele:=gsub(variant,pattern="^.*:.*:(.*):.*$",replacement="\\1")]#
++ x[,two_allele:=gsub(variant,pattern="^.*:.*:.*:(.*)$",replacement="\\1")]#
++ x[,majal:=apply(.SD,MARGIN=1,FUN=function(z){#
++ if(z[2]==z[1]){z[3]}#
++ else{z[2]}}),.SDcols=c("minor_allele","one_allele","two_allele")]#
++ }#
++ )
+gw <- lapply(gw,FUN=function(x){#
+x[,one_allele:=gsub(variant,pattern="^.*:.*:(.*):.*$",replacement="\\1")]#
+x[,two_allele:=gsub(variant,pattern="^.*:.*:.*:(.*)$",replacement="\\1")]#
+x[,majal:=apply(.SD,MARGIN=1,FUN=function(z){if(z[2]==z[1]){z[3]}#
++ else{z[2]}}),.SDcols=c("minor_allele","one_allele","two_allele")]#
++ }#
++ )
+gw <- lapply(gw,FUN=function(x){#
+x[,one_allele:=gsub(variant,pattern="^.*:.*:(.*):.*$",replacement="\\1")]#
+x[,two_allele:=gsub(variant,pattern="^.*:.*:.*:(.*)$",replacement="\\1")]#
+x[,majal:=apply(.SD,MARGIN=1,FUN=function(z){if(z[2]==z[1]){z[3]}#
+else{z[2]}}),.SDcols=c("minor_allele","one_allele","two_allele")]#
+}#
+)
+x[,one_allele:=NULL]
+x[,two_allele:=NULL]
+x[,majal:=NULL]
+return(x)})
+gw[[4]][1,]
+x[,one_allele:=gsub(variant,pattern="^.*:.*:(.*):.*$",replacement="\\1")]
+x[,two_allele:=gsub(variant,pattern="^.*:.*:.*:(.*)$",replacement="\\1")]
+x[,majal:=""]
+x[one_allele==minor_allele,majal:=two_allele]
+x[two_allele==minor_allele,majal:=one_allele]})
+gw <- lapply(gw,FUN=function(x){x[,one_allele:=NULL]
+x[,two_allele:=NULL]})
+gw <- lapply(gw,FUN=function(x){x[,variant2:=gsub(variant,pattern="^(.*):(.*):(.*):(.*)",replacement=paste0("\\1",":","\\2","_","\\3","_","\\4"))]})
+lut <- fread("~/Desktop/full_variant_qc_metrics.txt",select=c(5,6))
+setnames(lut,c("rsid",,"crap"))
+setnames(lut,c("rsid","crap"))
+lut[1,]
+nrow(lut[crap %in% gw[[1]]$variant])
+nrow(lut[crap %in% gw[[1]]$variant2])
+y <- merge.data.table(x,lut,by.x="variant2",by.y="crap")
+rm(lut)
+mapply(X=names(gw),Y=gw,FUN=function(x){fwrite(Y,paste0("~/Desktop/",X,".tsv.gz"),row.names=F,col.names=T,sep='\t',quote=F)})
+mapply(X=list(names(gw)),Y=gw,FUN=function(x){fwrite(Y,paste0("~/Desktop/",X,".tsv.gz"),row.names=F,col.names=T,sep='\t',quote=F)})
+mapply(X=list(names(gw)),Y=gw,FUN=function(X,Y){fwrite(Y,paste0("~/Desktop/",X,".tsv.gz"),row.names=F,col.names=T,sep='\t',quote=F)})
+mapply(X=list(names(gw)),Y=gw,FUN=function(X,Y){fwrite(Y,paste0("~/Desktop/",X,"mod.tsv.gz"),row.names=F,col.names=T,sep='\t',quote=F)})
+mapply(X=list(names(gw)),Y=gw,FUN=function(X,Y){fwrite(Y,file=paste0("~/Desktop/",X,"mod.tsv.gz"),row.names=F,col.names=T,sep='\t',quote=F)})
+is.character(names(gw))
+mapply(X=names(gw),Y=gw,FUN=function(X,Y){fwrite(Y,file=paste0("~/Desktop/",X,"mod.tsv.gz"),row.names=F,col.names=T,sep='\t',quote=F)})
+list.files("~/Desktop",".gz")
+all <- list.files("~/Desktop",".gz")
+fn <- gsub(all,pattern="^(.*)\\.tsv\\.gz$",replacement="\\1")
+gw <- lapply(all,FUN=function(x){fread(paste0("~/Desktop/x"))})
+gw <- lapply(all,FUN=function(x){fread(paste0("~/Desktop/",x))})
+gw <- lapply(gw,FUN=function(x){
+y <- x[!is.na(rsid),.(rsid,minor_allele,majal,beta,pval)]
+return(y)})
+gw[[1]][1,]
+names(gw)
+names(gw) <- fn
+mapply(X=names(gw),Y=gw,FUN=function(X,Y){fwrite(Y,paste0("~/Desktop/",X,".tsv.bgz"),row.names=F,col.names=T,sep='\t',quote=F)})
+gw <- lapply(gw,FUN=function(x){x[pval<0.7]})
+gw <- lapply(gw,FUN=function(x){x[pval<0.4]})
+gw <- lapply(gw,FUN=function(x){x[pval<0.25]})
+mapply(X=names(gw),Y=gw,FUN=function(X,Y){fwrite(Y,paste0("~/Desktop/",X,".tsv.gz"),row.names=F,col.names=T,sep='\t',quote=F)})
+names(gw[[1]])
+check <- fread("~/Desktop/Br2720-adult/transcripts.csv.gz",select=c(1:5))
+check
+rm(check)
+check <- read_parquet("~/Desktop/Br2720-adult/transcripts.parquet",as_data_frame=T,mmap=T)
+ls()
+check <- read_parquet("~/Desktop/Br2720-adult/transcripts.parquet",as_data_frame=T)
+check <- read_parquet("~/Desktop/Br2720-adult/transcripts.parquet",as_data_frame=T,select=c(1:10))
+check <- read_parquet("~/Desktop/Br2720-adult/transcripts.parquet",as_data_frame=FALSE)
+install.packages("arrow")
+devtools::install_github(repo="apache/arrow/tree/main/r")
+devtools::install_github(repo="apache/arrow",subdir="tree/main/r")
+install_arrow(nightly=T)
+check <- read_parquet("~/Desktop/Br2720-adult/transcripts.parquet")
+check[1,1]
+colnames(check)
+check[1,]
+range(check$qv)
+?arrow
+check <- fread("~/Desktop/Br2720-adult/transcripts.csv.gz",nrows=100)
+check[1]
+rm
+gc(full=T)
+devtools:install_github("chattr@copilot")
+devtools::install_github("chattr@copilot")
+devtools::install_github("mlverse/chattr@copilot")
+library(arrow)
+check <- read_parquet("~/Desktop/transcripts.parquet")
+names(check)
+check[1:3,]
+quantile(check$qv)
+p <- fread("~/Desktop/PPIs.txt")
+ppis[1,]
+p[1,]
+g <- unique(p$symbol1,p$symbol2)
+g
+fwrite(g,"~/Desktop/g.txt",sep='\t',quote=F,row.names=F,col.names=F)
+g <- unique(c(p$symbol1,p$symbol2))
+write.table(g,"~/Desktop/g.txt",sep='\t',quote=F,row.names=F,col.names=F)
+library(RcppML)
+dons <- fread("~/Desktop/dons.txt")
+blast <- fread("~/Desktop/brains w fibs.txt",header=F)
+blast$V1
+dons <- dons[Donors %in% blast$V1]
+dons
+length(blast)
+length(blast$V1)
+unique(dons)
+fwrite(unique(dons),"~/Desktop/donswblasts.txt",sep='\t',quote=F,row.names=F)
+library(biomaRt)
+mart <- useMart(biomart="ENSEMBL_MART_ENSEMBL",host="https://sep2019.archive.ensembl.org")
+mart <- useDataset("hsapiens_gene_ensembl",mart)#
+sexchrGenes <- getBM(mart = hgens,attributes = "ensembl_gene_id",filters = "chromosome_name",values=c("X","Y"))
+sexchrGenes <- getBM(mart = mart,attributes = "ensembl_gene_id",filters = "chromosome_name",values=c("X","Y"))
+sexchrgenes
+simplify(sexchrGenes)
+sexchrGenes[1]
+sexchrGenes[1,]
+sexchrGenes[1:5]
+sexchrGenes <- sexchrGenes[,1]
+sexchrGenes
+ens98XYgenes <- function(){#
+library(biomaRt)#
+mart <- useMart(biomart="ENSEMBL_MART_ENSEMBL",host="https://sep2019.archive.ensembl.org")#
+mart <- useDataset("hsapiens_gene_ensembl",mart)#
+sexchrGenes <- getBM(mart = mart,attributes = "ensembl_gene_id",filters = "chromosome_name",values=c("X","Y"))#
+return(sexchrGenes[,1])#
+}
+xygene <- ens98XYgenes()
+xygene
+setwd("Desktop")
+getwd()
+sup <- fread("sup.txt",skip=1)
+i<-2
+}e
+set(sup,curcol,gsub(x[,get(curcol)],pattern="^(.*) \\[.*$",replacement="\\1"))
+for (i in c(2:4)){
+curcol <- names(sup)[i]
+set(sup,curcol,gsub(sup[,get(curcol)],pattern="^(.*) \\[.*$",replacement="\\1"))
+tmp <- sup[1,2]
+tmp <- as.character(tmp)
+tmp[1]
+tmp
+gsub(tmp,pattern="^(.*) \\[.*$",replacement="\\1")
+gsub(tmp,pattern="^(.*) [.*$",replacement="\\1")
+gsub(as.character(tmp),pattern="^(.*) \\[.*$",replacement="\\1")
+rm(list=ls())
+sup[,`Braak 0-II (n=19)`:=gsub('Braak 0-II (n=19)',pattern="^(.*) \\(.* : .*\\)$",replacement="\\1")]
+sup <- fread("Book1.txt")
+sup[,Braak0_II_IQRlow:=gsub(`Braak 0-II (n=19)`,pattern="^.* \\((.*) :.*$",replacement="\\1")]
+sup[,Braak0_II_IQRhigh:=gsub(`Braak 0-II (n=19)`,pattern="^.* \\(.* : (.*)\\).*$",replacement="\\1")]
+sup[,BraakIII_IV_IQRlow:=gsub(`Braak III-IV (n=18)`,pattern="^.* \\((.*) :.*$",replacement="\\1")]
+sup[,BraakIII_IV_IQRhigh:=gsub(`Braak III-IV (n=18)`,pattern="^.* \\(.* : (.*)\\).*$",replacement="\\1")]
+sup[,BraakV_VI_IQRlow:=gsub(`Braak V-VI (n=15)`,pattern="^.* \\((.*) :.*$",replacement="\\1")]
+sup[,BraakV_VI_IQRhigh:=gsub(`Braak V-VI (n=15)`,pattern="^.* \\(.* : (.*)\\).*$",replacement="\\1")]
+sup2 <- copy(sup)
+setnames(sup,2,"b02_19")
+sup[,b02_19:=gsub(b02_19,pattern="^(.*) \\(.* : .*\\)$",replacement="\\1")]
+sup[1]
+setnames(sup,3,"b34_18")
+sup[,b34_18:=gsub(b34_18,pattern="^(.*) \\(.* : .*\\)$",replacement="\\1")]
+setnames(sup,4,"b56_15")
+sup[,b56_15:=gsub(b56_15,pattern="^(.*) \\(.* : .*\\)$",replacement="\\1")]
+setnames(sup,2,"Braak 0-II (n=19)")
+setnames(sup,3,"Braak III-IV (n=18)")
+setnames(sup,4,"Braak V-VI (n=15)")
+sup
+fwrite(sup,"~/Desktop/sup.txt",sep="\t",quote=F,row.names=F)
+mk <- fread("top10_markerGenes_multiSampleBanksy_13samples_lambda0_nucleus_res0.6.csv")
+mk[1]
+mk[,V1:=NULL]
+mk[,cluster:=paste0("X",cluster)]
+mk2 <- dcast(mk,cluster~p_val+avg_log2FC+pct.1+pct.2+p_val_adj+gene)
+mk2 <- dcast(mk,p_val+avg_log2FC+pct.1+pct.2+p_val_adj+gene~cluster)
+mk2 <- dcast(mk,p_val+avg_log2FC+pct.1+pct.2+p_val_adj+gene~cluster,value.var=p_val_adj)
+mk2 <- dcast(mk,p_val+avg_log2FC+pct.1+pct.2+p_val_adj+gene~cluster,value.var="p_val_adj")
+mk2 <- dcast(mk,p_val+avg_log2FC+pct.2+p_val_adj+gene~cluster,value.var="pct.1")
+mk2 <- dcast(mk,p_val+avg_log2FC+pct.2+p_val_adj+gene~cluster,value.var=c("p_val","p_val_adj","avg_log2FC","pct.1","pct.2"))
+mk2
+names(mk2)
+test[1]
+test[,geno1:=gsub(rs429358,pattern="^(.*)|.*$",replacement="\\1")]
+test[,geno2:=gsub(rs429358,pattern="^.*|(.*)$",replacement="\\1")]
+test[,geno4:=gsub(rs7412,pattern="^.*|(.*)$",replacement="\\1")]
+test[,geno3:=gsub(rs7412,pattern="^(.*)|.*$",replacement="\\1")]
+test <- test[,c(1,2,3,"geno1","geno2","geno3","geno4")]
+test <- test[,c(names(test)[1:3],"geno1","geno2","geno3","geno4")]
+test <- fread("gt_rs429358_rs7412_n28.tab")
+test[,geno1:=gsub(rs429358,pattern="^(.*)\\|.*$",replacement="\\1")]
+test[,geno2:=gsub(rs429358,pattern="^.*\\|(.*)$",replacement="\\1")]
+test[,geno3:=gsub(rs7412,pattern="^(.*)\\|.*$",replacement="\\1")]
+test[,geno4:=gsub(rs7412,pattern="^.*\\|(.*)$",replacement="\\1")]
+test[1,geno1]
+test[geno1=="1",geno1:="C"]
+test[geno2=="1",geno2:="C"]
+test[geno2=="0",geno2:="T"]
+test[geno1=="0",geno1:="T"]
+test[geno3=="1",geno3:="T"]
+test[geno3=="0",geno3:="C"]
+test[geno4=="0",geno4:="C"]
+test[geno4=="1",geno4:="T"]
+test[,apos1:=paste0(geno1,geno3)]
+test[,apos2:=paste0(geno2,geno4)]
+test[apos1=="CT",apos1:="APOE1"]
+test[apos1=="TT",apos1:="APOE"]
+test[apos1=="APOE",apos1:="APOE2"]
+test[apos1=="TC",apos1:="APOE3"]
+test[apos1=="CC",apos1:="APOE4"]
+test[apos2=="CC",apos2:="APOE4"]
+test[apos2=="TC",apos2:="APOE3"]
+test[apos2=="TT",apos2:="APOE2"]
+test[apos2=="CT",apos2:="APOE1"]
+setnames(test,c("geno1","geno2"),c("rs429358_Allele1","rs429358_Allele2"))
+setnames(test,c("geno3","geno4"),c("rs7412_Allele1","rs7412_Allele2"))
+setnames(test,"apos1","haplo1")
+setnames(test,"apos2","haplo2")
+test
+fwrite(test,"~/Desktop/control_ips_apoe_genotypes.txt",sep='\t',quote=F,row.names=F)
+snp <- fread("/Users/bmulvey/Documents/Personal Inventory/23me Genotypes Imputed to HRC v1.1 Sept2019, Simplified to Three Column SNP-Geno Table 010821.txt.gz")
+p[1]
+snp[1]
+snp[ID=="rs142232675"]
+snp[ID=="rs512941"]
+snp[ID=="rs2074451"]
+snp[ID=="rs146275714"]
+snp[ID=="rs60049679"]
+snp[ID=="rs4663105"]
+snp[ID=="rs6733839"]
+snp[ID=="rs5167"]
+snp[ID=="rs472486"]
+snp[ID=="rs867611"]
+snp[ID=="rs867230"]
+snp[ID=="rs4236673"]
+snp[ID=="rs1532278"]
+snp[ID=="rs9331896"]
+snp[ID=="rs679515"]
+snp[ID=="rs72924626"]
+snp[ID=="rs73223431"]
+snp[ID=="rs11218343"]
+snp[ID=="rs12590654"]
+snp[ID=="rs4803765"]
+ann <- fread("top50 markers annotated.csv")
+ann[1]
+ann[,bjm_annot:=gsub(bjm_annot,pattern=" ",replacement="_")]
+unique(ann$bjm_annot)
+mkog <- fread("top50_markerGenes_multiSampleBanksy_13samples_lambda0_res2.csv")
+nrow(ann)
+mkog <- merge.data.table(mkog,ann,by="idx")
+nrow(mkog)
+mkog[1]
+mkog <- as.data.frame(mkog)
+mkog[500,]
+mkog[500]
+mkog[500,1]
+mkog[500,2]
+rownames(mkog)==mkog$idx
+mkog$idx <- NULL
+mkog[1,]
+write.csv(mkog,"~/Desktop/top50_markerGenes_multiSampleBanksy_13samples_lambda0_res2_BJMannots.csv")
+remove.packages("data.table",.libPaths[2])
+remove.packages("data.table",.libPaths()[2])
+install.packages("data.table_1.15.4.tgz",configure.args=list(CC=/opt/gfortran/bin/aarch64-apple-darwin20.0-gcc -fopenmp,#
+CXX="/opt/gfortran/bin/aarch64-apple-darwin20.0-cpp -fopenmp",#
+CXX11 = "/opt/gfortran/bin/g++ -fopenmp",LDFLAGS="-L/opt/gfortran/lib -Wl,-rpath,/opt/gfortran/lib -lomp"))
+install.packages("data.table_1.15.4.tgz",configure.args=list(CC="/opt/gfortran/bin/aarch64-apple-darwin20.0-gcc -fopenmp",#
+CXX="/opt/gfortran/bin/aarch64-apple-darwin20.0-cpp -fopenmp",#
+CXX11 = "/opt/gfortran/bin/g++ -fopenmp",LDFLAGS="-L/opt/gfortran/lib -Wl,-rpath,/opt/gfortran/lib -lomp"))
+cells <- fread("top50_markerGenes_multiSampleBanksy_13samples_lambda0_res2_BJMannots.txt")
+shorthand <- fread("Book1.txt")
+shorthand <- shorthand[,c(1,3)]
+shorthand[1]
+cells <- merge.data.table(cells,shorthand,by="cluster",all.x=T)
+cells[1]
+ncol(cells)
+cells <- cells[,c(1:9,11,10)]
+nrow(cells)
+fwrite(cells,"~/Desktop/top50_markerGenes_multiSampleBanksy_13samples_lambda0_res2_BJM_draftNomenclature.txt",sep='\t',quote=F,row.names=F,col.names=T)
+library(zellkonverter)
+hyp1 <- readH5AD("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/raw-data/hypomap.h5ad")
+get.sysenv("PATH")
+load("/Users/bmulvey/Desktop/KM Lab/local_lffLC/LFF_spatial_LC/processed-data/02_build_spe/spe.rds")
+dat <- readRDS("/Users/bmulvey/Desktop/KM Lab/local_lffLC/LFF_spatial_LC/processed-data/02_build_spe/spe.rds")
+colnames(dat)[1]
+colData(dat)$uid <- paste(dat$sample_id,rownames(dat),collapse=F,sep="_")
+colData(dat)$uid <- paste(dat$sample_id,rownames(dat),sep="_")
+colData(dat)[1,]
+colnames(dat) <- dat$uid
+dim(dat)
+datraw <- readRDS("/Users/bmulvey/Desktop/KM Lab/local_lffLC/LFF_spatial_LC/processed-data/02_build_spe/spe_raw.rds")
+dim(datraw)
+colData(datraw)$uid <- paste(datraw$sample_id,rownames(datraw),sep="_")
+colnames(datraw) <- datraw$uid
+rownames(datraw)[1]
+rownames(colData(datraw))[1]
+saveRDS(datraw,"~/Desktop/spe_raw_uniquecolnames.RDS")
+setDTthreads(10)
+gen <- fread("/Users/bmulvey/Documents/Personal Inventory/23me Genotypes Imputed to HRC v1.1 Sept2019, Simplified to Three Column SNP-Geno Table 010821.txt")
+names(gen)
+gen[ID=="rs63751438"]
+gen[ID=="rs63751273"]
+gen[1,ID]
+gen[ID=="rs63751395"]
+gen[ID=="rs116733906"]
+gen[ID=="rs63750912"]
+gen[ID=="rs637751391"]
+gen[ID=="rs63751391"]
+t2 <- fread("Clinical dbSNP b156 v2.BED",header=F)
+t2[1,]
+t2 <- fread("Clinical dbSNP b156 v2(1).BED",header=F)
+gen[ID %in% t2$V4]
+t3 <- fread("Clinical dbSNP b156 v2.VCF")
+t3[1,]
+res <- gen[ID %in% t2$V4]
+res <- merge(unique(t3[,.(ID,REF,ALT)]),res,by.x="ID",by.y="ID")
+res
+res[genoA!=REF&genoB!=REF]
+res[genoA!=REF|genoB!=REF]
+BiocManager::install("BayesSpace",)
+BiocManager::install("BayesSpace",type="source")
+BiocManager::install("BayesSpace",type="source",force=TRUE)
+BiocManager::install("BayesSpace")
+?BayesSpace
+??BayesSpace
+library(multicore)
+install.packages("multicore")
+Biocmanager::install("ZarrExperiment")
+BiocManager::install("ZarrExperiment")
+devtools::install_github("Bioconductor/ZarrExperiment")
+remove.packages("ZarrExperiment")
+library(HDF5Array)
+fpt <- readRDS("/Users/bmulvey/Desktop/mprahold/LMM Allele and SxG Result Tables/FEM pT single cond LMM qiter 50k 062221 resobj betaSE appended 091121.RDS")
+fpt[1,]
+fpt
+ncol(fpt)
+length(fpt)
+fpt[[1]]
+fpt[[2]]
+fpt[[3]]
+nrow(fpt[[1]])
+nrow(fpt[[1]][!is.na(A1)])
+nrow(fpt[[1]][!is.na(A2)])
+mpras <- list.files(mprahold,pattern=".RDS",full.names=F)
+mpras <- list.files("mprahold",pattern=".RDS",full.names=F)
+mpras <- list.files("mprahold",pattern="RDS",full.names=F)
+mpras[2]
+length(mpras)
+mpras <- list.files(path="mprahold",pattern="RDS",full.names=F)
+mpras <- list.files(path="mprahold",pattern="RDS")
+mpras[1]
+list.files(path="~/Desktop/mprahold",full.names=T)
+list.files(path="~/Desktop/mprahold/LMM Allele and SxG Result Tables/",full.names=T)
+list.files(path="~/Desktop/mprahold/LMM Allele and SxG Result Tables/",full.names=T,pattern="RDS")
+mpras <- list.files(path="~/Desktop/mprahold/LMM Allele and SxG Result Tables",full.names=T,pattern="RDS")
+tmp <- readRDS(mpras[i])
+tmp <- tmp[[1]]
+tmp <- tmp[!is.na(A1)&!is.na(A2)]
+outname <- gsub(mpras[i],pattern="/Users/bmulvey/Desktop/mprahold/LMM Allele and SxG Result Tables/(.*)\\.RDS$",replacement="\\1")
+fwrite(tmp,paste0("/Users/bmulvey/Desktop/mprahold/LMM Allele and SxG Result Tables/mprahold2/",outname),sep='\t',quote=F)
+rm(tmp,outname)}
+mpras <- list.files("~/Desktop/mprahold/LMM Allele and SxG Result Tables/mprahold2/",full.names=T)
+i <-1
+tmp[,FDR:=p.adjust(P_emp_allele,"BH")]
+chrref <- fread("/Users/bmulvey/Desktop/mprahold/MDD_MPRA_refsheet_to_call_in_mpra4MPRA_092520_hg19-and-hg38.txt")
+chrref <- unique(chrref[!is.na(ref.allele)&!is.na(alt.allele),.(rsid_only,chr_hg38,start_hg38,end_hg38)])
+tmp <- merge.data.table(tmp,chrref,by="rsid_only")
+rm(tmp)}
+i <- 1
+for (i in c(1:length(mpras))){
+tmp <- fread(mpras[i])
+setnames(tmp,"P_emp_allele","P_empirical")
+setnames(tmp,"rsid_only","rsid")
+fwrite(tmp,mpras[i],quote=F,sep='\t')
+}
+length(unique(check$sample_id))
+colData(spe)[1,]
+colData(check)[1,]
+c2 <- as.data.table(colData(check))
+c2[,.N,by="sample_id"]
+c2[,.N,by="subject"]
+check <- readRDS("/Users/bmulvey/Desktop/KM Lab/local_lffLC/LFF_spatial_LC/processed-data/02_build_spe/spe_raw.rds")
+library(SpatialExperiment)
+colnames(colData(check))
+unique(colData(check)$sample_id)
+sessionInfo::sessionInfo()
+sessioninfo::session_info()
+devtools::install_github("const-ae/sparseMatrixStats")
+devtools::install_github("neurorestore/Augur")
+library(Augur)
+ment <- fread("~/Desktop/ment.txt",header=F)
+nonment <- fread("~/Desktop/nonment.txt",header=F)
+ment <- ment[!(V1 %in% nonment$V1)]
+fwrite(ment,"~/Desktop/ment.txt",sep='\t',quote=F)
+nonment <- nonment[!(V1 %in% ment$V1)]
+fwrite(nonment,"~/Desktop/nonment.txt",sep='\t',quote=F)
+library(patchwork)#
+library(SpatialFeatureExperiment)#
+library(SingleCellExperiment)#
+library(SpatialExperiment)#
+library(ggplot2)#
+library(bluster)#
+library(stringr)#
+library(scuttle)#
+library(BiocSingular)#
+library(scater)#
+library(rjson)#
+library(Matrix)#
+library(DropletUtils)#
+library(vroom)#
+library(arrow)#
+library(sf)#
+library(AnnotationDbi)#
+library(org.Hs.eg.db)#
+library(BiocParallel)#
+library(dplyr)#
+library(here)
+sce <- read10xCounts("~/Desktop/86_reg1_reseg/cell_feature_matrix.h5")
+dim(sce)
+counts(Sce)
+counts(sce)
+testlist <- list(1,2,3)
+testlist <- c(0,testlist)
+testlist
+dem <- fread("~/Desktop/demos.txt")
+met <- fread("demos_and_xeniumrun_metadata.tsv")
+setnames(met,gsub(names(met),pattern=" ",replacement="_"))
+setnames(met,gsub(names(met),pattern="&",replacement=""))
+names(met)
+names(meta)
+names(dem)
+met <- merge.data.table(dem,met,by.x="BrNum",by.y="Brain_Number",all.y=T)
+met
+met[is.na(Sex)]
+unique(met$sex)
+unique(met$Sex)
+fwrite(met,"demos_and_xeniumrun_metadata.tsv",sep='\t',quote=F)
+installed.packages()
+library("data.table")
+.libPaths(c("/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library","/Users/bmulvey/Library/R/arm64/4.4/library"))
+.libPaths()
+install.packages("data.table")
+remove.packages("data.table")
+library(data.table,type="source")
+library("data.table",kind="source")
+library("data.table",type="source")
+install.packages("data.table",type="source")
+library(rmarkdown)
+renv::
+library(renv)
+install.packages("odbc",type="source",force=T)
+library(DBI)
+library(obdc)
+install.packages("odbc")
+library(odbc)
+remove.packages(odbc)
+remove.packages("odbc")
+install.packages("odbc",type="source")
+devtools::install_local("~/Desktop/rigraph-main")
+Sys.setenv("PATH"="/opt/homebrew/opt/llvm/bin:$PATH")
+devtools::install_local("~/Desktop/rigraph-main",quiet=F)
+Sys.getenv("PATH")
+thresh <- seq(0.1,1,0.1)
+threshpairs <- gtools::combinations(v=thresh,r=2)
+threshpairs <- gtools::combinations(v=thresh,r=2,n=10)
+threshpairs <- gtools::combinations(v=thresh,r=2,n=5)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=length(thresh))
+threshpairs <- gtools::permutations(v=thresh,r=2,n=length(thresh),repeats.allowed=F)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=length(thresh),repeats.allowed=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=length(thresh),set=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=length(thresh),set=F)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=length(thresh),set=T,repeats.allowed=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=2*length(thresh),set=T,repeats.allowed=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=2*\length(thresh),set=F,repeats.allowed=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=2*length(thresh),set=F,repeats.allowed=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,n=length(thresh),set=F,repeats.allowed=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,set=F,repeats.allowed=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,set=T)
+threshpairs <- gtools::permutations(v=thresh,r=2,set=T,n=10)
+threshpairs <- gtools::permutations(v=thresh,r=2,set=F,n=10)
+threshpairs
+install.packages("rgeos")
+BiocManager::install("rgeos")
+library(parallel)
+names(test)
+test <- as.data.table(test[[4]])
+test[1,]
+nrow(test[assay=="VMH"&adj.P.Val<0.05])
+nrow(test[assay=="ARC"&adj.P.Val<0.05])
+nrow(test[assay=="ARC"&P.Value])
+nrow(test[assay=="ARC"&P.Value<0.05])
+nrow(test[assay=="VMH"&P.Value<0.05])
+test <- readRDS("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/spatial_HYP/data/09-Sex DE/01-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-20-31-15VMHARCclpsd.RDS")
+attr(test[[4]])
+details(test[[4]])
+test[[4]]
+xendomde <- fread("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
+visde <- fread("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/spatial_HYP/data/09-Sex DE/01c-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+visg <- visde[assay=="VMH"&adj.P.Val<0.05]
+visg
+visg <- visg$gene_name
+visg <- visde[assay=="ARC"&adj.P.Val<0.05]
+visg <- visde[assay=="ARC"&adj.P.Val<0.05,gene_name]
+xendomde[assay=="ARC"&ID %in% c(visg)]
+xende <- fread("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02-4celltypeARC-and-VMH-dualassignedDomains_celltypeSexDE.txt")
+unique(xende$assay)
+xende <- xende[FDR_inARC<0.05]
+panel <- fread("/Users/bmulvey/Desktop/KM Lab/local_hthspatial/xenium_HYP/raw-data/humanbrain_basepanel_genes.txt")
+panel <- unique(c(panel$Gene,xendomde$ID))
+length(panel)
+nrow(visde[assay=="ARC"&adj.P.Val<0.05&gene_name %in% panel])
+nrow(visde[adj.P.Val<0.05&assay=="ARC"])
+library(data.table)
+setwd("~/Desktop/KM Lab/local_hthspatial/xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/")
+cellde <- fread("02-4celltypeARC-and-VMH-dualassignedDomains_celltypeSexDE.txt")
+domde <- fread("04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
+visde <- fread("../../../spatial_HYP/data/09-Sex DE/01c-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+unique(visde$assay)
+visde <- visde[assay %in% c("ARC","VMH")]
+unique(domde$gene)
+unique(domde$ID)
+sum(unique(visde$gene_name) %in% unique(domde$gene))
+sum(unique(visde$gene_name) %in% unique(domde$ID))
+unique(domde[!(ID %in% visde$gene_name)])
+unique(domde[!(ID %in% visde$gene_name),ID])
+domde <- domde[ID %in% visde$gene_name]
+xende$ID[1]
+cellde$gene[1]
+cellde$ID[1]
+unique(cellde[!(ID %in% visde$gene_name),ID])
+visde[gene_name=="KRT8"]
+length(unique(cellde[ID %in% visde$gene_name&assay=="ARC",ID])
+length(unique(domde[ID %in% visde$gene_name&assay=="ARC",ID])
+length(unique(domde[ID %in% visde$gene_name&assay=="VMH",ID])
+)
+length(unique(visde[gene_name %in% domde$ID,gene_name]))
+visde[adj.P.Val<0.05,ID]
+visde[adj.P.Val<0.05&assay=="ARC",gene_name]
+domde[assay=="ARC" & ID %in% visde[adj.P.Val<0.05&assay=="ARC",gene_name]]
+domde2 <- merge.data.table(domde[assay=="ARC"],visde[adj.P.Val<0.05&assay=="ARC"],by.x="ID",by.y="gene_name")
+nrow(domde2[logFC*logFC_MvF])
+nrow(domde2[logFC*logFC_MvF>0])
+domde2 <- merge.data.table(domde[assay=="ARC"&P.Value<0.05],visde[adj.P.Val<0.05&assay=="ARC"],by.x="ID",by.y="gene_name")
+domde2
+nrow(visde[assay=="VMH"&gene_name %in% unique(domde$ID)])
+nrow(visde[assay=="VMH"&gene_name&FDR_inVMH<0.05 %in% unique(domde$ID)])
+nrow(visde[assay=="VMH"&gene_name&adj.P.Val<0.05 %in% unique(domde$ID)])
+nrow(visde[assay=="VMH"&gene_name&adj.P.Value<0.05 %in% unique(domde$ID)])
+nrow(visde[assay=="VMH"&gene_name&adj.P.Value<0.05&gene_name %in% unique(domde$ID)])
+nrow(visde[assay=="VMH"&gene_name %in% unique(domde$ID)]&adj.P.Val<0.05)
+names(visde)
+nrow(visde[assay=="VMH"&gene_name %in% unique(domde$ID)&adj.P.Val<0.05])
+domde[assay=="VMH"&FDR<0.05]
+domde[assay=="ARC"&P.Value<0.05]
+domde[assay=="ARC"&adj.P.Val<0.05]
+visde[assay=="ARC"&gene_name=="NRP1"]
+visde[gene_name=="HRH3"]
+visde[assay=="VMH"&adj.P.Val<0.05]
+vis3 <- visde[assay=="VMH"&adj.P.Val<0.05]
+nrow(vis3)
+domde[assay=="VMH"&adj.P.Val<0.05]
+visde[gene_name %in% domde$ID & assay=="VMH"&adj.P.Val <0.05]
+domde[ID %in% visde$gene_name & assay=="VMH"&adj.P.Val <0.05]
+domde[ID %in% visde[assay=="VMH"&adj.P.Val<0.05,gene_name]&P.Value<0.05]
+domde[assay=="VMH"]
+visde[gene_name=="TAC1"&assay=="VMH"]
+rm(domde)
+rm(domde2)
+nrow(visde)
+visa <- visde[assay=="ARC" & gene_name %in% cellde$gene]
+visa <- visde[assay=="ARC" & gene_name %in% cellde$Symbol]
+names(cellde)
+visa <- visde[assay=="ARC" & gene_name %in% cellde$ID]
+unique(cellde$assay)
+bkanno <- fread("../05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+bkanno[,clus:=paste0("X",clus)]
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno <- bkanno[bjm_annot!="DISCARD"]
+bkanno
+a1 <- cellde[bjm_annot=="ARC_1"]
+nrow(A1[FDR_inARC<0.05])
+nrow(a1[P.Value_inARC<0.05])
+nrow(a1)
+sum(unique(a1$ID))
+length(unique(a1$ID))
+length(unique(a1[!is.na(FDR_inARC),ID]))
+length(unique(a1[!is.na(FDR_inVMH),ID]))
+nrow(a1[!is.na(FDR_inARC)&ID %in% visde[assay=="ARC",gene_name]])
+a1
+a1 <- cellde[bjm_annot=="ARC_1"&ID %in% visde[assay=="ARC",gene_name]]
+nrow(a1[FDR_inARC<0.05])
+nrow(a1[FDR_inARC>0.05&P.Value_inARC<0.05])
+a1[FDR_inARC<0.05]
+visde[assay=="ARC" & ID %in% c("CHODL","RGS16")]
+visde[assay=="ARC" & gene_name %in% c("CHODL","RGS16")]
+nrow(visa[adj.P.Val])
+nrow(visa[P.Value<0.05])
+visa <- merge.data.table(visa,cellde[bjm_annot=="ARC_1",.(ID,logFC_inARC)])
+visa <- merge.data.table(visa,cellde[bjm_annot=="ARC_1",.(ID,logFC_MvFinARC)])
+visa <- merge.data.table(visa,cellde[bjm_annot=="ARC_1",.(ID,logFC_MvF_inARC)])
+visa <- visde[assay=="ARC" & gene_name %in% cellde[bjm_annot=="ARC_1"&P.Value_inARC<0.05,ID]]
+visa <- merge.data.table(visa,cellde[bjm_annot=="ARC_1",.(ID,logFC_inARC)],by.x="gene_name",by.y="ID")
+visa <- merge.data.table(visa,cellde[bjm_annot=="ARC_1",.(ID,logFC_MvF_inARC)],by.x="gene_name",by.y="ID")
+visa
+nrow(visa[logFC&logFC_MvF_inARC>0])
+nrow(visa[logFC&logFC_MvF_inARC>0&adj.P.Value<0.05])
+nrow(visa[logFC&logFC_MvF_inARC>0&adj.P.Val<0.05])
+nrow(visa[adj.P.Val<0.05])
+nrow(visa[logFC&logFC_MvF_inARC>0&adj.P.Val>0.05&P.Value<0.05])

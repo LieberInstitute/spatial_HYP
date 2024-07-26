@@ -1,7 +1,7 @@
 ---
 title: "03-Sex DE msigdb-GSEA"
 author: "Bernard Mulvey"
-date: "2023-12-20"
+date: "2024-07-25"
 output: html_document
 ---
 
@@ -20,7 +20,6 @@ library(fgsea)
 library(msigdbr)
 
 require(colorout)
-source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 
@@ -35,10 +34,14 @@ options(bphost="localhost")
 
 ```
 
-load dreamlet random effect sex DE stats, which were only run for the four clusterings of interest to begin with
+load sex DE stats, subsetted to the four clusterings of interest (nnsvg10, harmony lambda null, q=15,20,31 and q=15 collapsed VMH/ARC)
 
 ```{r}
-sexde <- readRDS("data/09-Sex DE/01-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-20-31-15VMHARCclpsd.RDS")
+sexde <- readRDS("processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+
+## subset to the nnsvg10 ones
+sexde <- sexde[grep(names(sexde),pattern="HARMONYlmbna_nnsvg10")]
+
 
 # check:
 # names(sexde)
@@ -74,7 +77,8 @@ sets <- split(allsigs$ensembl_gene,allsigs$gs_name)
 # SEX DE gsea
 ```{r}
 ### drop mito and sex chr genes
-sexde <- lapply(sexde,FUN=function(x){x[!(chromosome_name %in% grep(chromosome_name,pattern="MT|X|Y",value=T))]})
+sexde <- lapply(sexde,FUN=function(x){
+    x[!(chromosome_name %in% grep(chromosome_name,pattern="MT|X|Y",value=T))]})
 
 ### get named vectors of marker t-stats for each cluster in each result set (15+20+31+13)=79
 sexdelist <- list()
@@ -111,7 +115,7 @@ sexderes <- mapply(X=sexdelist,Y=names(sexdelist),SIMPLIFY=FALSE,FUN=function(X,
 })
 names(sexderes) <- names(sexdelist)
 
-saveRDS(sexderes,"data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+saveRDS(sexderes,"processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
 # clear some memory for the next step which is more intensive
 rm(allsigs)
@@ -120,12 +124,12 @@ gc(full=T)
 sbp <- MulticoreParam(4)
 register(sbp)
 
-sexderes2 <- bpmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, BPPARAM=sbp,FUN=function(X,Y){
+sexderes2 <- mcmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, mc.cores=10,FUN=function(X,Y){
     tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = sets)
     return(tmpres)
 })
 names(sexderes2) <- names(sexderes)
-saveRDS(sexderes2,"data/11-GSEA/03b-Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
+saveRDS(sexderes2,"processed-data/11-GSEA/03b-Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
 
 
 rm(sexdelist,sexde)
@@ -135,9 +139,9 @@ gc(full=T)
 sexderes3 <- mapply(X=sexderes,Y=sexderes2,SIMPLIFY = FALSE,FUN=function(X,Y){
     X[pathway %in% Y[[1]]]
 })
-saveRDS(sexderes3,"data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
+saveRDS(sexderes3,"processed-data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
 # clean up
-# rm(sexderes,sexderes2)
+rm(sexderes,sexderes2)
 gc(full=T)
 ```
 
@@ -145,125 +149,3 @@ gc(full=T)
 sessionInfo()
 sessioninfo::session_info()
 ```
-R version 4.3.1 (2023-06-16)
-Platform: aarch64-apple-darwin20 (64-bit)
-Running under: macOS Ventura 13.6
-
-Matrix products: default
-BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
-LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
-
-locale:
-[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
-
-time zone: America/Chicago
-tzcode source: internal
-
-attached base packages:
-[1] parallel  stats4    stats     graphics  grDevices utils     datasets 
-[8] methods   base     
-
-other attached packages:
- [1] default_1.0.0       colorout_1.3-0      msigdbr_7.5.1      
- [4] fgsea_1.28.0        parallelly_1.36.0   BiocParallel_1.36.0
- [7] Biostrings_2.70.1   GenomeInfoDb_1.38.2 XVector_0.42.0     
-[10] IRanges_2.36.0      S4Vectors_0.40.2    BiocGenerics_0.48.1
-[13] data.table_1.14.10  rlang_1.1.2        
-
-loaded via a namespace (and not attached):
- [1] utf8_1.2.4              generics_0.1.3          bitops_1.0-7           
- [4] lattice_0.22-5          digest_0.6.33           magrittr_2.0.3         
- [7] evaluate_0.23           grid_4.3.1              fastmap_1.1.1          
-[10] rprojroot_2.0.4         Matrix_1.6-4            sessioninfo_1.2.2      
-[13] fansi_1.0.6             scales_1.3.0            codetools_0.2-19       
-[16] cli_3.6.2               crayon_1.5.2            cowplot_1.1.2          
-[19] munsell_0.5.0           yaml_2.3.8              withr_2.5.2            
-[22] tools_4.3.1             dplyr_1.1.4             colorspace_2.1-0       
-[25] ggplot2_3.4.4           fastmatch_1.1-4         GenomeInfoDbData_1.2.11
-[28] here_1.0.1              babelgene_22.9          vctrs_0.6.5            
-[31] R6_2.5.1                lifecycle_1.0.4         zlibbioc_1.48.0        
-[34] pkgconfig_2.0.3         pillar_1.9.0            gtable_0.3.4           
-[37] glue_1.6.2              Rcpp_1.0.11             xfun_0.41              
-[40] tibble_3.2.1            tidyselect_1.2.0        rstudioapi_0.15.0      
-[43] knitr_1.45              htmltools_0.5.7         rmarkdown_2.25         
-[46] compiler_4.3.1          RCurl_1.98-1.13        
-> sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────
- setting  value
- version  R version 4.3.1 (2023-06-16)
- os       macOS Ventura 13.6
- system   aarch64, darwin20
- ui       RStudio
- language (EN)
- collate  en_US.UTF-8
- ctype    en_US.UTF-8
- tz       America/Chicago
- date     2023-12-20
- rstudio  2023.09.1+494 Desert Sunflower (desktop)
- pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
-
-─ Packages ────────────────────────────────────────────────────────────────
- package          * version   date (UTC) lib source
- babelgene          22.9      2022-09-29 [1] CRAN (R 4.3.0)
- BiocGenerics     * 0.48.1    2023-11-02 [1] Bioconductor
- BiocParallel     * 1.36.0    2023-10-26 [1] Bioconductor
- Biostrings       * 2.70.1    2023-10-26 [1] Bioconductor
- bitops             1.0-7     2021-04-24 [1] CRAN (R 4.3.0)
- cli                3.6.2     2023-12-11 [1] CRAN (R 4.3.1)
- codetools          0.2-19    2023-02-01 [1] CRAN (R 4.3.0)
- colorout         * 1.3-0     2023-11-01 [1] local (/Users/bmulvey/Desktop/colorout)
- colorspace         2.1-0     2023-01-23 [1] CRAN (R 4.3.0)
- cowplot            1.1.2     2023-12-15 [1] CRAN (R 4.3.1)
- crayon             1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
- data.table       * 1.14.10   2023-12-08 [1] CRAN (R 4.3.1)
- default          * 1.0.0     2017-08-07 [1] CRAN (R 4.3.0)
- digest             0.6.33    2023-07-07 [1] CRAN (R 4.3.0)
- dplyr              1.1.4     2023-11-17 [1] CRAN (R 4.3.1)
- evaluate           0.23      2023-11-01 [1] CRAN (R 4.3.1)
- fansi              1.0.6     2023-12-08 [1] CRAN (R 4.3.1)
- fastmap            1.1.1     2023-02-24 [1] CRAN (R 4.3.0)
- fastmatch          1.1-4     2023-08-18 [1] CRAN (R 4.3.0)
- fgsea            * 1.28.0    2023-10-24 [1] Bioconductor
- generics           0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
- GenomeInfoDb     * 1.38.2    2023-12-13 [1] Bioconductor 3.18 (R 4.3.1)
- GenomeInfoDbData   1.2.11    2023-11-10 [1] Bioconductor
- ggplot2            3.4.4     2023-10-12 [1] CRAN (R 4.3.1)
- glue               1.6.2     2022-02-24 [1] CRAN (R 4.3.0)
- gtable             0.3.4     2023-08-21 [1] CRAN (R 4.3.0)
- here               1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
- htmltools          0.5.7     2023-11-03 [1] CRAN (R 4.3.1)
- IRanges          * 2.36.0    2023-10-26 [1] Bioconductor
- knitr              1.45      2023-10-30 [1] CRAN (R 4.3.1)
- lattice            0.22-5    2023-10-24 [1] CRAN (R 4.3.1)
- lifecycle          1.0.4     2023-11-07 [1] CRAN (R 4.3.1)
- magrittr           2.0.3     2022-03-30 [1] CRAN (R 4.3.0)
- Matrix             1.6-4     2023-11-30 [1] CRAN (R 4.3.1)
- msigdbr          * 7.5.1     2022-03-30 [1] CRAN (R 4.3.0)
- munsell            0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
- parallelly       * 1.36.0    2023-05-26 [1] CRAN (R 4.3.0)
- pillar             1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
- pkgconfig          2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
- R6                 2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
- Rcpp               1.0.11    2023-07-06 [1] CRAN (R 4.3.1)
- RCurl              1.98-1.13 2023-11-02 [1] CRAN (R 4.3.1)
- rlang            * 1.1.2     2023-11-04 [1] CRAN (R 4.3.1)
- rmarkdown          2.25      2023-09-18 [1] CRAN (R 4.3.1)
- rprojroot          2.0.4     2023-11-05 [1] CRAN (R 4.3.1)
- rstudioapi         0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
- S4Vectors        * 0.40.2    2023-11-25 [1] Bioconductor 3.18 (R 4.3.2)
- scales             1.3.0     2023-11-28 [1] CRAN (R 4.3.1)
- sessioninfo        1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
- tibble             3.2.1     2023-03-20 [1] CRAN (R 4.3.0)
- tidyselect         1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
- utf8               1.2.4     2023-10-22 [1] CRAN (R 4.3.1)
- vctrs              0.6.5     2023-12-01 [1] CRAN (R 4.3.1)
- withr              2.5.2     2023-10-30 [1] CRAN (R 4.3.1)
- xfun               0.41      2023-11-01 [1] CRAN (R 4.3.1)
- XVector          * 0.42.0    2023-10-26 [1] Bioconductor
- yaml               2.3.8     2023-12-11 [1] CRAN (R 4.3.1)
- zlibbioc           1.48.0    2023-10-26 [1] Bioconductor
-
- [1] /Users/bmulvey/Library/R/arm64/4.3/library
- [2] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
-
-───────────────────────────────────────────────────────────────────────────

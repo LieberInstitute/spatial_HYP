@@ -1,7 +1,7 @@
 ---
 title: "04-Sex DE TF-Target GSEA"
 author: "Bernard Mulvey"
-date: "2023-12-18"
+date: "2024-07-25"
 output: html_document
 ---
 
@@ -19,7 +19,6 @@ library(parallelly)
 library(fgsea)
 
 require(colorout)
-source("~/.R/calc_tau_for_cellOrTissueSpecificity_metric.R")
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 
@@ -37,7 +36,9 @@ options(bphost="localhost")
 load dreamlet random effect sex DE stats, which were only run for the four clusterings of interest to begin with
 
 ```{r}
-sexde <- readRDS("data/09-Sex DE/01-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-20-31-15VMHARCclpsd.RDS")
+sexde <- readRDS("processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+
+sexde <- sexde[grep(names(sexde),pattern="HARMONYlmbna_nnsvg10")]
 
 # check:
 # names(sexde)
@@ -102,7 +103,7 @@ saveRDS(sexderes,"data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-
 sbp <- MulticoreParam(5)
 register(sbp)
 
-sexderes2 <- bpmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, BPPARAM=sbp,FUN=function(X,Y){
+sexderes2 <- mcmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, mc.cores=10,FUN=function(X,Y){
     tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = tftargsets)
     return(tmpres)
 })
