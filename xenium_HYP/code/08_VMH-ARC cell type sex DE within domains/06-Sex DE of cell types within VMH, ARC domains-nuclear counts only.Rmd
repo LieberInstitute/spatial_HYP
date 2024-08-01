@@ -1,7 +1,7 @@
 ---
 title: "06-Sex DE of cell types within VMH, ARC domains-nuclear counts only"
 output: html_document
-date: "2024-07-06"
+date: "2024-08-01"
 ---
 
 ```{r setup, include=FALSE}
@@ -10,13 +10,12 @@ knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
 knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
-library(Biostrings)
-library(ggplot2)
-library(gridExtra)
 library(MoleculeExperiment)
 library(SpatialExperiment)
 library(SpatialFeatureExperiment)
 library(dreamlet)
+library(limma)
+library(edgeR)
 
 ## rstudio GUI tweaks
 require(colorout)
@@ -25,14 +24,13 @@ options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 ##
 
 ## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
-library(parallelly)
+library(parallel)
 options(parallelly.supportsMulticore.disableOn="")
 options(parallelly.fork.enable=TRUE)
-library(BiocParallel)
+library(parallelly)
 options(bphost="localhost")
+library(BiocParallel)
 
-## ggplot defaults
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
 
 ### to get nuclear counts, we will use the slightly clunky but efficient MoleculeExperiment package to read in transcript detections, subset them by quality score >20 (qv--the raw transcripts-detected-by-location-table does not filter for this, though the tabulated counts per cell we've used up to now already are filtered thusly), and then tabulate the counts within the nuclear boundaries. 
@@ -147,67 +145,250 @@ rm(xens)
 gc(full=T)
 ```
 
+### use dreamlet to pseudobulk, then edgeR's voomLmFit to run sex DE (mirroring the procedures used for visium) for ARC. control for slide run (fall or winter).
 ```{r}
-hypnuc.adom.ag <- dreamlet::aggregateToPseudoBulk(hypnuc.adom,assay="counts",sample_id="sample_id",cluster_id = "label",BPPARAM = MulticoreParam(8))
+hyp.adom.ag <- dreamlet::aggregateToPseudoBulk(hypnuc.adom,assay="counts",sample_id="sample_id",cluster_id = "label",BPPARAM = MulticoreParam(8))
 
+# extract colData to feed into DGEList as the "samples" data
+agcd <- as.data.table(colData(hyp.adom.ag),keep.rownames=T)
+agcd[Date_Slides_Dropped_Off=="2/23/24",batch:="second"]
+agcd[Date_Slides_Dropped_Off=="10/19/23",batch:="first"]
+agcd <- as.data.frame(agcd)
+rownames(agcd) <- agcd$rn
+agcd$rn <- NULL
 
-## min samples 5 -- size of the smaller sex group in total samps (females)-- one female sample has ~no ARC with this smoothing unfortunately
-dl.rf <- dreamlet::processAssays(hypnuc.adom.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
+## only retain clusters for which at least 6 samples (size of the smaller sex group in total samps (females))) are available after pseudobulking+filtering through dreamlet and have at least 10,000 pseudobulked counts for the cluster of interest (or normalization and low-expression filtering gets to be impossible):
+ag <- as.list(assays(hyp.adom.ag))
+agc <- lapply(ag,FUN=function(a){ncol(a[,colSums(a)>10000])})
+# no samples pass for X10/27/29, which breaks this bit of code. substitute in 0 for that slot
+agc[c("X10","X27","X29")] <- 0
+ag <- ag[!(agc<6)]
 
-### Warning message: In dreamlet::processAssays(hyp.adom.ag, min.cells = 10, min.count = 10,  : Not enough samples retained or model fit fails: X28, X30, X34, X36, X37, X40
+## drop clusters where there are 6+ samples, but only 0 or 1 samples for one of the sexes:
+agsc <- lapply(ag,FUN=function(a){
+ cn <- colnames(a[,colSums(a)>10000])
+ tmp <- as.data.table(agcd[cn,])
+ if(nrow(tmp[,.N,by="Sex"][N<2])>0){
+   return(0)
+ } else {return(1)}
+})
 
-dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum),BPPARAM = MulticoreParam(8))
+ag <- ag[agsc==1]
 
-dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexMale",number=Inf,adjust.method ="BH")
-dl.rf.res <- as.data.table(dl.rf.res)
+## make the DGELists per remaining cluster:
+dgels <- lapply(ag,FUN=function(a){
+   # filtering for 10,000 counts minimum as above
+ X <- a[,colSums(a)>10000]
+ s <- copy(agcd)[colnames(X),]
+ if(length(unique(s$Sex))<2){
+   return()
+ } else {
+ 
+   dge <- DGEList(counts=as.matrix(X),samples=s)
+   dge <- normLibSizes(dge,method = "TMM")
+   
+   ## find the smaller group for this cluster
+   smolgrp <- table(dge$samples$Sex)[which.min(table(dge$samples$Sex))]
+   
+   ## for the smallest group, determine low expression cutoff
+   rowmn.m <- as.numeric(rowMeans(cpm(dge[,(dge$samples$Sex==names(smolgrp)[1])],log=TRUE)))
+   
+    ## get histogram distribution with 10 bins at the low end of the logcpm space, skipping to the second minimum in the distribution (to avoid including 0-count genes etc). this is tricky because with the small number of genes, the distribution is rather peaky. however, some spot-checking to tune this looks like using 8 bins for the lower norm-sized-logcpm range (second minima + 1.5 logcpm) retrieves an accurate last-minimum-before-the-normalish-part-of-the-norm-count-distribution.
+   # additionally, most genes fall in a small normalized library size window (6-10ish) -- part of the 10x panel design process when providing seq data from a similar sample (as we did, providing visium), which they use to tweak the number of probes per gene for detection based on the tissue's expression of the targets.
+   h <- hist(rowmn.m[which(rowmn.m>min(rowmn.m)&rowmn.m<(1.5+min(rowmn.m)))],breaks=8,plot=F)
+   ## get the minimum in this low logcpm range and its corresponding bin (x axis value, i.e. log cpm). in case of repeat values, grab the first (lowest)
+   minc <- h$breaks[which(h$counts==min(h$counts))][1]
+   
+   ## get the corresponding 33rd %ile-library count value for this minimum^
+   smollib <- min(dge$samples[(dge$samples$Sex==names(smolgrp)[1]),"lib.size"])
+   countthresh <- (minc^2)*(as.numeric(smollib)/10^6)
+   
+   ## and convert that smallest count to the logcpm value in said smallest library to use as a low-expression threshold. for conservativeness, round up, since we're dealing with relatively small numbers of counts here
+   cpmthresh <- log2(ceiling(countthresh)/(as.numeric(smollib)*10^-6))
+   
+   ## filter for genes with at least thresh counts in at least (smaller sex group size) samples
+   keep <- rowSums(cpm(dge,log=T)>cpmthresh) >= as.numeric(smolgrp)
+   
+   ## recalc lib factors after dropping low-expressed genes
+   dge <- dge[keep,,keep.lib.sizes=FALSE]
+   dge <- calcNormFactors(dge,method = "TMM")
+   
+   return(dge)
+ }
+})
+  
+clus <- makeCluster(10,type = "PSOCK")
+fulldgelres <- clusterApply(x=dgels,cl = clus,fun=function(X){
+ 
+ library(data.table)
+ setDTthreads(1,restore_after_fork = FALSE)
+ library(SpatialExperiment)
+ library(limma)
+ library(edgeR)
+ 
+ # prevent resource competition, though we aren't explicitly using DT at all here:
+ setDTthreads(1) 
+ 
+ dge <- X
+ des <- model.matrix(~0+Sex+batch, data = dge$samples)
+ # INITIALIZE the voomwithqualityweights model, equivalent to pseudobulkDGE(method="voom",qualities=T)
+ sexdif <- makeContrasts(SexMale-SexFemale,levels=des)
+ 
+ # run voomLmFit for the pseudobulked data, referring donor to duplicateCorrelation; using an adaptive span (number of genes, based on the number of genes in the dge) for smoothing the mean-variance trend
+ v.swt <- voomLmFit(dge,design = des,block = as.factor(dge$samples$BrNum),adaptive.span = T,sample.weights = T)
+ 
+ v.swt.fit <- contrasts.fit(v.swt,sexdif)
+ 
+ v.swt.fit.e <- eBayes(v.swt.fit)
+ 
+ v.swt.e.tt <- topTable(v.swt.fit.e,coef = 1,number=Inf,adjust.method = "BH")
+ 
+ return(v.swt.e.tt)
+})
 
-## append rowData, domain, cell type annots to result table
-dl.rf.res[,domain:="ARC_4typeDomain_nuclearCounts"]
+stopCluster(clus)
+names(fulldgelres) <- names(ag)
 
-dl.rf.res <- merge.data.table(dl.rf.res,bkanno,by.x="assay",by.y="clus",all.x=T)
-setnames(dl.rf.res,"logFC","logFC_MvF")
+### concatenate results for all cell types
+fulldgelres <- lapply(fulldgelres,as.data.table,keep.rownames=T)
+fulldgelres.arc <- rbindlist(fulldgelres,idcol="cluster")
+setnames(fulldgelres.arc,"rn","gene_name")
 
-dl.rf.res.nucadom <- copy(dl.rf.res)
+## append cell type annotations
+fulldgelres.arc <- merge.data.table(fulldgelres.arc,bkanno,by.x="cluster",by.y="clus",all.x=T)
+setnames(fulldgelres.arc,c("bjm_annot","cluster"),c("cluster_annotated","cluster_id"))
+fulldgelres.arc <- fulldgelres.arc[,.(cluster_annotated,gene_name,logFC,adj.P.Val,t,B,P.Value,AveExpr,cluster_id)]
+
+### clean up
+rm(ag,agc,agcd,agsc,clus,dgels,fulldgelres,hypnuc.adom,hyp.adom.ag)
+gc(full=T)
 ```
 
-## same for the dually assigned VMH
+### repeat as above for VMH
 ```{r}
-hypnuc.vdom.ag <- dreamlet::aggregateToPseudoBulk(hypnuc.vdom,assay="counts",sample_id="sample_id",cluster_id = "label",BPPARAM = MulticoreParam(8))
+hyp.vdom.ag <- dreamlet::aggregateToPseudoBulk(hypnuc.vdom,assay="counts",sample_id="sample_id",cluster_id = "label",BPPARAM = MulticoreParam(8))
 
+# extract colData to feed into DGEList as the "samples" data
+agcd <- as.data.table(colData(hyp.vdom.ag),keep.rownames=T)
+agcd[Date_Slides_Dropped_Off=="2/23/24",batch:="second"]
+agcd[Date_Slides_Dropped_Off=="10/19/23",batch:="first"]
+agcd <- as.data.frame(agcd)
+rownames(agcd) <- agcd$rn
+agcd$rn <- NULL
 
-## min samples 6 -- size of the smaller sex group in total samps (females)
-dl.rf <- dreamlet::processAssays(hypnuc.vdom.ag,min.cells = 10,min.count = 10,min.samples = 6,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
+## only retain clusters for which at least 6 samples (size of the smaller sex group in total samps (females))) are available after pseudobulking+filtering through dreamlet and have at least 10,000 pseudobulked counts for the cluster of interest (or normalization and low-expression filtering gets to be impossible):
+ag <- as.list(assays(hyp.vdom.ag))
+agc <- lapply(ag,FUN=function(a){ncol(a[,colSums(a)>10000])})
+# no samples pass for X6 or X10, which breaks this bit of code. substitute in 0 for that slot
+agc[c("X10","X6")] <- 0
+ag <- ag[!(agc<6)]
 
-### Warning messages flooded with In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  ... : Chernobyl! trL>n 9 ?
+## drop clusters where there are 6+ samples, but only 0 or 1 samples for one of the sexes:
+agsc <- lapply(ag,FUN=function(a){
+ cn <- colnames(a[,colSums(a)>10000])
+ tmp <- as.data.table(agcd[cn,])
+ if(nrow(tmp[,.N,by="Sex"][N<2])>0){
+   return(0)
+ } else {return(1)}
+})
 
-dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum),BPPARAM = MulticoreParam(8))
+ag <- ag[agsc==1]
 
-dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexMale",number=Inf,adjust.method ="BH")
-dl.rf.res <- as.data.table(dl.rf.res)
+## make the DGELists per remaining cluster:
+dgels <- lapply(ag,FUN=function(a){
+   # filtering for 10,000 counts minimum as above
+ X <- a[,colSums(a)>10000]
+ s <- copy(agcd)[colnames(X),]
+ if(length(unique(s$Sex))<2){
+   return()
+ } else {
+ 
+   dge <- DGEList(counts=as.matrix(X),samples=s)
+   dge <- normLibSizes(dge,method = "TMM")
+   
+   ## find the smaller group for this cluster
+   smolgrp <- table(dge$samples$Sex)[which.min(table(dge$samples$Sex))]
+   
+   ## for the smallest group, determine low expression cutoff
+   rowmn.m <- as.numeric(rowMeans(cpm(dge[,(dge$samples$Sex==names(smolgrp)[1])],log=TRUE)))
+   
+    ## get histogram distribution with 10 bins at the low end of the logcpm space, skipping to the second minimum in the distribution (to avoid including 0-count genes etc). this is tricky because with the small number of genes, the distribution is rather peaky. however, some spot-checking to tune this looks like using 8 bins for the lower norm-sized-logcpm range (second minima + 1.5 logcpm) retrieves an accurate last-minimum-before-the-normalish-part-of-the-norm-count-distribution.
+   # additionally, most genes fall in a small normalized library size window (6-10ish) -- part of the 10x panel design process when providing seq data from a similar sample (as we did, providing visium), which they use to tweak the number of probes per gene for detection based on the tissue's expression of the targets.
+   h <- hist(rowmn.m[which(rowmn.m>min(rowmn.m)&rowmn.m<(1.5+min(rowmn.m)))],breaks=8,plot=F)
+   ## get the minimum in this low logcpm range and its corresponding bin (x axis value, i.e. log cpm). in case of repeat values, grab the first (lowest)
+   minc <- h$breaks[which(h$counts==min(h$counts))][1]
+   
+   ## get the corresponding 33rd %ile-library count value for this minimum^
+   smollib <- min(dge$samples[(dge$samples$Sex==names(smolgrp)[1]),"lib.size"])
+   countthresh <- (minc^2)*(as.numeric(smollib)/10^6)
+   
+   ## and convert that smallest count to the logcpm value in said smallest library to use as a low-expression threshold. for conservativeness, round up, since we're dealing with relatively small numbers of counts here
+   cpmthresh <- log2(ceiling(countthresh)/(as.numeric(smollib)*10^-6))
+   
+   ## filter for genes with at least thresh counts in at least (smaller sex group size) samples
+   keep <- rowSums(cpm(dge,log=T)>cpmthresh) >= as.numeric(smolgrp)
+   
+   ## recalc lib factors after dropping low-expressed genes
+   dge <- dge[keep,,keep.lib.sizes=FALSE]
+   dge <- calcNormFactors(dge,method = "TMM")
+   
+   return(dge)
+ }
+})
+  
+clus <- makeCluster(10,type = "PSOCK")
+fulldgelres.vmh <- clusterApply(x=dgels,cl = clus,fun=function(X){
+ 
+ library(data.table)
+ setDTthreads(1,restore_after_fork = FALSE)
+ library(SpatialExperiment)
+ library(limma)
+ library(edgeR)
+ 
+ # prevent resource competition, though we aren't explicitly using DT at all here:
+ setDTthreads(1) 
+ 
+ dge <- X
+ des <- model.matrix(~0+Sex+batch, data = dge$samples)
+ # INITIALIZE the voomwithqualityweights model, equivalent to pseudobulkDGE(method="voom",qualities=T)
+ sexdif <- makeContrasts(SexMale-SexFemale,levels=des)
+ 
+ # run voomLmFit for the pseudobulked data, referring donor to duplicateCorrelation; using an adaptive span (number of genes, based on the number of genes in the dge) for smoothing the mean-variance trend
+ v.swt <- voomLmFit(dge,design = des,block = as.factor(dge$samples$BrNum),adaptive.span = T,sample.weights = T)
+ 
+ v.swt.fit <- contrasts.fit(v.swt,sexdif)
+ 
+ v.swt.fit.e <- eBayes(v.swt.fit)
+ 
+ v.swt.e.tt <- topTable(v.swt.fit.e,coef = 1,number=Inf,adjust.method = "BH")
+ 
+ return(v.swt.e.tt)
+})
 
-## append rowData, domain, cell type annots to result table
-dl.rf.res[,domain:="VMH_4typeDomain_nuclearCounts"]
+stopCluster(clus)
+names(fulldgelres.vmh) <- names(ag)
 
-dl.rf.res <- merge.data.table(dl.rf.res,bkanno,by.x="assay",by.y="clus",all.x=T)
-setnames(dl.rf.res,"logFC","logFC_MvF")
+### concatenate results for all cell types
+fulldgelres.vmh <- lapply(fulldgelres.vmh,as.data.table,keep.rownames=T)
+fulldgelres.vmh <- rbindlist(fulldgelres.vmh,idcol="cluster")
+setnames(fulldgelres.vmh,"rn","gene_name")
 
-dl.rf.res.nucvdom <- copy(dl.rf.res)
+## append cell type annotations
+fulldgelres.vmh <- merge.data.table(fulldgelres.vmh,bkanno,by.x="cluster",by.y="clus",all.x=T)
+setnames(fulldgelres.vmh,c("bjm_annot","cluster"),c("cluster_annotated","cluster_id"))
+fulldgelres.vmh <- fulldgelres.vmh[,.(cluster_annotated,gene_name,logFC,adj.P.Val,t,B,P.Value,AveExpr,cluster_id)]
 ```
 
-### concat and save
+### save
 ```{r}
-dl.rf.res.nucadom <- dl.rf.res.nucadom[,.(assay,bjm_annot,ID,logFC_MvF,adj.P.Val,t,P.Value)]
-
-setnames(dl.rf.res.nucadom,c("logFC_MvF","adj.P.Val","t","P.Value"),c("logFC_MvF_inARCnuc","FDR_inARCnuc","t_inARCnuc","P.Value_inARCnuc"))
-
-dl.rf.res.nucvdom <- dl.rf.res.nucvdom[,.(assay,bjm_annot,ID,logFC_MvF,adj.P.Val,t,P.Value)]
-
-setnames(dl.rf.res.nucvdom,c("logFC_MvF","adj.P.Val","t","P.Value"),c("logFC_MvF_inVMHnuc","FDR_inVMHnuc","t_inVMHnuc","P.Value_inVMHnuc"))
-
-sexDEnuc_indom <- merge.data.table(dl.rf.res.nucadom,dl.rf.res.nucvdom,by=c("assay","bjm_annot","ID"),all.x=T,all.y=T)
+setnames(fulldgelres.arc,"logFC","logFC_MvF")
+setnames(fulldgelres.vmh,"logFC","logFC_MvF")
 
 ## save
-fwrite(sexDEnuc_indom,"processed-data/08_VMH-ARC cell type sex DE within domains/06-4celltypeARC-and-VMH-dualassignedDomains_celltypeSexDE_nuclearcounts.txt")
+fwrite(fulldgelres.arc,"processed-data/08_VMH-ARC cell type sex DE within domains/06a-4celltypeARCsmoothing_celltypeSexDE_nuclearcounts_inARC.txt",sep='\t',quote=F)
+
+fwrite(fulldgelres.vmh,"processed-data/08_VMH-ARC cell type sex DE within domains/06b-4celltypeARCsmoothing_celltypeSexDE_nuclearcounts_inVMH.txt",sep='\t',quote=F)
+
 ```
 
 ## reprod info
@@ -230,110 +411,81 @@ time zone: America/Chicago
 tzcode source: internal
 
 attached base packages:
-[1] stats4    stats     graphics  grDevices utils     datasets  methods  
-[8] base     
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets  methods  
+[9] base     
 
 other attached packages:
- [1] parallelly_1.37.1              colorout_1.3-0.2              
- [3] dreamlet_1.2.1                 variancePartition_1.34.0      
- [5] BiocParallel_1.38.0            limma_3.60.3                  
- [7] SpatialFeatureExperiment_1.6.1 SpatialExperiment_1.14.0      
- [9] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
-[11] Biobase_2.64.0                 GenomicRanges_1.56.1          
-[13] MatrixGenerics_1.16.0          matrixStats_1.3.0             
-[15] MoleculeExperiment_1.4.1       gridExtra_2.3                 
-[17] ggplot2_3.5.1                  Biostrings_2.72.1             
-[19] GenomeInfoDb_1.40.1            XVector_0.44.0                
-[21] IRanges_2.38.0                 S4Vectors_0.42.0              
-[23] BiocGenerics_0.50.0            data.table_1.15.4             
-[25] rlang_1.1.4                   
+ [1] parallelly_1.38.0              colorout_1.3-0.2              
+ [3] edgeR_4.2.0                    dreamlet_1.2.1                
+ [5] variancePartition_1.34.0       BiocParallel_1.38.0           
+ [7] limma_3.60.3                   ggplot2_3.5.1                 
+ [9] SpatialFeatureExperiment_1.6.1 SpatialExperiment_1.14.0      
+[11] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
+[13] Biobase_2.64.0                 GenomicRanges_1.56.1          
+[15] GenomeInfoDb_1.40.1            IRanges_2.38.1                
+[17] S4Vectors_0.42.1               BiocGenerics_0.50.0           
+[19] MatrixGenerics_1.16.0          matrixStats_1.3.0             
+[21] MoleculeExperiment_1.4.1       data.table_1.15.4             
+[23] rlang_1.1.4                   
 
 loaded via a namespace (and not attached):
-  [1] bitops_1.0-7              sf_1.0-16                
-  [3] EBImage_4.46.0            httr_1.4.7               
-  [5] Rgraphviz_2.48.0          numDeriv_2016.8-1.1      
-  [7] tools_4.4.1               backports_1.5.0          
-  [9] utf8_1.2.4                R6_2.5.1                 
- [11] metafor_4.6-0             HDF5Array_1.32.0         
- [13] rhdf5filters_1.16.0       withr_3.0.0              
- [15] sp_2.1-4                  prettyunits_1.2.0        
- [17] cli_3.6.3                 KEGGgraph_1.64.0         
- [19] SQUAREM_2021.1            mvtnorm_1.2-5            
- [21] proxy_0.4-27              mixsqp_0.3-54            
- [23] R.utils_2.12.3            zenith_1.6.0             
- [25] sessioninfo_1.2.2         invgamma_1.1             
- [27] rstudioapi_0.16.0         RSQLite_2.3.7            
- [29] generics_0.1.3            gtools_3.9.5             
- [31] spdep_1.3-5               dplyr_1.1.4              
- [33] Matrix_1.7-0              metadat_1.2-0            
- [35] ggbeeswarm_0.7.2          fansi_1.0.6              
- [37] abind_1.4-5               R.methodsS3_1.8.2        
- [39] terra_1.7-78              lifecycle_1.0.4          
- [41] yaml_2.3.8                edgeR_4.2.0              
- [43] mathjaxr_1.6-0            gplots_3.1.3.1           
- [45] rhdf5_2.48.0              SparseArray_1.4.8        
- [47] grid_4.4.1                blob_1.2.4               
- [49] dqrng_0.4.1               crayon_1.5.3             
- [51] lattice_0.22-6            beachmat_2.20.0          
- [53] msigdbr_7.5.1             annotate_1.82.0          
- [55] KEGGREST_1.44.1           magick_2.8.3             
- [57] zeallot_0.1.0             pillar_1.9.0             
- [59] knitr_1.47                rjson_0.2.21             
- [61] boot_1.3-30               corpcor_1.6.10           
- [63] codetools_0.2-20          wk_0.9.1                 
- [65] glue_1.7.0                vctrs_0.6.5              
- [67] png_0.1-8                 Rdpack_2.6               
- [69] gtable_0.3.5              assertthat_0.2.1         
- [71] cachem_1.1.0              xfun_0.45                
- [73] rbibutils_2.2.16          S4Arrays_1.4.1           
- [75] DropletUtils_1.24.0       Rfast_2.1.0              
- [77] sfheaders_0.4.4           iterators_1.0.14         
- [79] units_0.8-5               statmod_1.5.0            
- [81] nlme_3.1-165              pbkrtest_0.5.3           
- [83] bit64_4.0.5               progress_1.2.3           
- [85] EnvStats_2.8.1            rprojroot_2.0.4          
- [87] irlba_2.3.5.1             vipor_0.4.7              
- [89] KernSmooth_2.23-24        colorspace_2.1-0         
- [91] spData_2.3.1              rmeta_3.0                
- [93] DBI_1.2.3                 tidyselect_1.2.1         
- [95] bit_4.0.5                 compiler_4.4.1           
- [97] graph_1.82.0              BiocNeighbors_1.22.0     
- [99] DelayedArray_0.30.1       scales_1.3.0             
-[101] caTools_1.18.2            classInt_0.4-10          
-[103] remaCor_0.0.18            tiff_0.1-12              
-[105] stringr_1.5.1             digest_0.6.36            
-[107] fftwtools_0.9-11          minqa_1.2.7              
-[109] rmarkdown_2.27            aod_1.3.3                
-[111] RhpcBLASctl_0.23-42       htmltools_0.5.8.1        
-[113] pkgconfig_2.0.3           jpeg_0.1-10              
-[115] lme4_1.1-35.4             sparseMatrixStats_1.16.0 
-[117] mashr_0.2.79              fastmap_1.2.0            
-[119] htmlwidgets_1.6.4         UCSC.utils_1.0.0         
-[121] DelayedMatrixStats_1.26.0 jsonlite_1.8.8           
-[123] R.oo_1.26.0               RCurl_1.98-1.14          
-[125] magrittr_2.0.3            scuttle_1.14.0           
-[127] GenomeInfoDbData_1.2.12   s2_1.1.6                 
-[129] Rhdf5lib_1.26.0           munsell_0.5.1            
-[131] Rcpp_1.0.12               babelgene_22.9           
-[133] EnrichmentBrowser_2.34.1  RcppZiggurat_0.1.6       
-[135] stringi_1.8.4             zlibbioc_1.50.0          
-[137] MASS_7.3-61               plyr_1.8.9               
-[139] parallel_4.4.1            ggrepel_0.9.5            
-[141] deldir_2.0-4              splines_4.4.1            
-[143] hms_1.1.3                 locfit_1.5-9.10          
-[145] reshape2_1.4.4            XML_3.99-0.17            
-[147] evaluate_0.24.0           RcppParallel_5.1.7       
-[149] nloptr_2.1.1              tidyr_1.3.1              
-[151] purrr_1.0.2               scattermore_1.2          
-[153] ashr_2.2-63               broom_1.0.6              
-[155] xtable_1.8-4              fANCOVA_0.6-1            
-[157] e1071_1.7-14              class_7.3-22             
-[159] truncnorm_1.0-9           tibble_3.2.1             
-[161] lmerTest_3.1-3            memoise_2.0.1            
-[163] beeswarm_0.4.0            AnnotationDbi_1.66.0     
-[165] GSEABase_1.66.0           here_1.0.1               
+  [1] splines_4.4.1             bitops_1.0-7              tibble_3.2.1             
+  [4] R.oo_1.26.0               graph_1.82.0              XML_3.99-0.17            
+  [7] lifecycle_1.0.4           mixsqp_0.3-54             Rdpack_2.6               
+ [10] sf_1.0-16                 rprojroot_2.0.4           lattice_0.22-6           
+ [13] MASS_7.3-61               backports_1.5.0           magrittr_2.0.3           
+ [16] metafor_4.6-0             rmarkdown_2.27            yaml_2.3.9               
+ [19] sp_2.1-4                  DBI_1.2.3                 minqa_1.2.7              
+ [22] abind_1.4-5               zlibbioc_1.50.0           EnvStats_2.8.1           
+ [25] purrr_1.0.2               R.utils_2.12.3            msigdbr_7.5.1            
+ [28] rmeta_3.0                 RCurl_1.98-1.14           GenomeInfoDbData_1.2.12  
+ [31] ggrepel_0.9.5             pbkrtest_0.5.3            irlba_2.3.5.1            
+ [34] terra_1.7-78              units_0.8-5               annotate_1.82.0          
+ [37] dqrng_0.4.1               DelayedMatrixStats_1.26.0 codetools_0.2-20         
+ [40] DropletUtils_1.24.0       DelayedArray_0.30.1       scuttle_1.14.0           
+ [43] tidyselect_1.2.1          UCSC.utils_1.0.0          lme4_1.1-35.5            
+ [46] mathjaxr_1.6-0            jsonlite_1.8.8            BiocNeighbors_1.22.0     
+ [49] e1071_1.7-14              iterators_1.0.14          progress_1.2.3           
+ [52] tools_4.4.1               zenith_1.6.0              Rcpp_1.0.13              
+ [55] glue_1.7.0                SparseArray_1.4.8         xfun_0.45                
+ [58] here_1.0.1                EBImage_4.46.0            dplyr_1.1.4              
+ [61] HDF5Array_1.32.0          withr_3.0.0               numDeriv_2016.8-1.1      
+ [64] fastmap_1.2.0             boot_1.3-30               rhdf5filters_1.16.0      
+ [67] fansi_1.0.6               spData_2.3.1              caTools_1.18.2           
+ [70] digest_0.6.36             truncnorm_1.0-9           R6_2.5.1                 
+ [73] colorspace_2.1-0          wk_0.9.2                  scattermore_1.2          
+ [76] gtools_3.9.5              jpeg_0.1-10               RSQLite_2.3.7            
+ [79] R.methodsS3_1.8.2         RhpcBLASctl_0.23-42       utf8_1.2.4               
+ [82] tidyr_1.3.1               generics_0.1.3            corpcor_1.6.10           
+ [85] class_7.3-22              prettyunits_1.2.0         httr_1.4.7               
+ [88] htmlwidgets_1.6.4         S4Arrays_1.4.1            spdep_1.3-5              
+ [91] pkgconfig_2.0.3           gtable_0.3.5              blob_1.2.4               
+ [94] XVector_0.44.0            remaCor_0.0.18            htmltools_0.5.8.1        
+ [97] fftwtools_0.9-11          GSEABase_1.66.0           scales_1.3.0             
+[100] png_0.1-8                 fANCOVA_0.6-1             ashr_2.2-63              
+[103] knitr_1.48                rstudioapi_0.16.0         reshape2_1.4.4           
+[106] rjson_0.2.21              nlme_3.1-165              nloptr_2.1.1             
+[109] proxy_0.4-27              cachem_1.1.0              rhdf5_2.48.0             
+[112] stringr_1.5.1             KernSmooth_2.23-24        metadat_1.2-0            
+[115] vipor_0.4.7               RcppZiggurat_0.1.6        AnnotationDbi_1.66.0     
+[118] s2_1.1.6                  pillar_1.9.0              grid_4.4.1               
+[121] vctrs_0.6.5               gplots_3.1.3.1            mashr_0.2.79             
+[124] beachmat_2.20.0           xtable_1.8-4              sfheaders_0.4.4          
+[127] beeswarm_0.4.0            Rgraphviz_2.48.0          KEGGgraph_1.64.0         
+[130] evaluate_0.24.0           invgamma_1.1              zeallot_0.1.0            
+[133] magick_2.8.3              mvtnorm_1.2-5             cli_3.6.3                
+[136] locfit_1.5-9.10           compiler_4.4.1            crayon_1.5.3             
+[139] SQUAREM_2021.1            classInt_0.4-10           ggbeeswarm_0.7.2         
+[142] plyr_1.8.9                stringi_1.8.4             deldir_2.0-4             
+[145] babelgene_22.9            assertthat_0.2.1          lmerTest_3.1-3           
+[148] munsell_0.5.1             Biostrings_2.72.1         tiff_0.1-12              
+[151] aod_1.3.3                 Matrix_1.7-0              hms_1.1.3                
+[154] sparseMatrixStats_1.16.0  bit64_4.0.5               Rhdf5lib_1.26.0          
+[157] KEGGREST_1.44.1           statmod_1.5.0             rbibutils_2.2.16         
+[160] Rfast_2.1.0               broom_1.0.6               memoise_2.0.1            
+[163] RcppParallel_5.1.8        bit_4.0.5                 EnrichmentBrowser_2.34.1 
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────
+─ Session info ──────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -343,11 +495,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-07-09
+ date     2024-08-01
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────────
+─ Packages ──────────────────────────────────────────────────────────────────────
  ! package                  * version    date (UTC) lib source
    abind                      1.4-5      2016-07-21 [1] CRAN (R 4.4.0)
    annotate                   1.82.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
@@ -359,11 +511,11 @@ loaded via a namespace (and not attached):
    backports                  1.5.0      2024-05-23 [1] CRAN (R 4.4.0)
    beachmat                   2.20.0     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
    beeswarm                   0.4.0      2021-06-01 [1] CRAN (R 4.4.0)
-   Biobase                  * 2.64.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   Biobase                  * 2.64.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
    BiocGenerics             * 0.50.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    BiocNeighbors              1.22.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   BiocParallel             * 1.38.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
-   Biostrings               * 2.72.1     2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocParallel             * 1.38.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   Biostrings                 2.72.1     2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
    bit                        4.0.5      2022-11-15 [1] CRAN (R 4.4.0)
    bit64                      4.0.5      2020-08-30 [1] CRAN (R 4.4.0)
    bitops                     1.0-7      2021-04-24 [1] CRAN (R 4.4.0)
@@ -392,7 +544,7 @@ loaded via a namespace (and not attached):
    DropletUtils               1.24.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    e1071                      1.7-14     2023-12-06 [1] CRAN (R 4.4.0)
    EBImage                    4.46.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   edgeR                      4.2.0      2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   edgeR                    * 4.2.0      2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    EnrichmentBrowser          2.34.1     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
    EnvStats                   2.8.1      2023-08-22 [1] CRAN (R 4.4.0)
    evaluate                   0.24.0     2024-06-10 [1] CRAN (R 4.4.0)
@@ -410,7 +562,6 @@ loaded via a namespace (and not attached):
    glue                       1.7.0      2024-01-09 [1] CRAN (R 4.4.0)
    gplots                     3.1.3.1    2024-02-02 [1] CRAN (R 4.4.0)
    graph                      1.82.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   gridExtra                * 2.3        2017-09-09 [1] CRAN (R 4.4.0)
    GSEABase                   1.66.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    gtable                     0.3.5      2024-04-22 [1] CRAN (R 4.4.0)
    gtools                     3.9.5      2023-11-20 [1] CRAN (R 4.4.0)
@@ -421,7 +572,7 @@ loaded via a namespace (and not attached):
    htmlwidgets                1.6.4      2023-12-06 [1] CRAN (R 4.4.0)
    httr                       1.4.7      2023-08-15 [1] CRAN (R 4.4.0)
    invgamma                   1.1        2017-05-07 [1] CRAN (R 4.4.0)
-   IRanges                  * 2.38.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   IRanges                  * 2.38.1     2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
    irlba                      2.3.5.1    2022-10-03 [1] CRAN (R 4.4.0)
    iterators                  1.0.14     2022-02-05 [1] CRAN (R 4.4.0)
    jpeg                       0.1-10     2022-11-29 [1] CRAN (R 4.4.0)
@@ -429,11 +580,11 @@ loaded via a namespace (and not attached):
    KEGGgraph                  1.64.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    KEGGREST                   1.44.1     2024-06-19 [1] Bioconductor 3.19 (R 4.4.0)
    KernSmooth                 2.23-24    2024-05-17 [1] CRAN (R 4.4.1)
-   knitr                      1.47       2024-05-29 [1] CRAN (R 4.4.0)
+   knitr                      1.48       2024-07-07 [1] CRAN (R 4.4.1)
    lattice                    0.22-6     2024-03-20 [1] CRAN (R 4.4.1)
    lifecycle                  1.0.4      2023-11-07 [1] CRAN (R 4.4.0)
    limma                    * 3.60.3     2024-06-16 [1] Bioconductor 3.19 (R 4.4.0)
-   lme4                       1.1-35.4   2024-06-19 [1] CRAN (R 4.4.0)
+   lme4                       1.1-35.5   2024-07-03 [1] CRAN (R 4.4.1)
    lmerTest                   3.1-3      2020-10-23 [1] CRAN (R 4.4.0)
    locfit                     1.5-9.10   2024-06-24 [1] CRAN (R 4.4.0)
    magick                     2.8.3      2024-02-18 [1] CRAN (R 4.4.0)
@@ -456,7 +607,7 @@ loaded via a namespace (and not attached):
    nlme                       3.1-165    2024-06-06 [1] CRAN (R 4.4.0)
    nloptr                     2.1.1      2024-06-25 [1] CRAN (R 4.4.0)
    numDeriv                   2016.8-1.1 2019-06-06 [1] CRAN (R 4.4.0)
-   parallelly               * 1.37.1     2024-02-29 [1] CRAN (R 4.4.0)
+   parallelly               * 1.38.0     2024-07-27 [1] CRAN (R 4.4.0)
    pbkrtest                   0.5.3      2024-06-26 [1] CRAN (R 4.4.0)
    pillar                     1.9.0      2023-03-22 [1] CRAN (R 4.4.0)
    pkgconfig                  2.0.3      2019-09-22 [1] CRAN (R 4.4.0)
@@ -471,8 +622,8 @@ loaded via a namespace (and not attached):
    R.utils                    2.12.3     2023-11-18 [1] CRAN (R 4.4.0)
    R6                         2.5.1      2021-08-19 [1] CRAN (R 4.4.0)
    rbibutils                  2.2.16     2023-10-25 [1] CRAN (R 4.4.0)
-   Rcpp                       1.0.12     2024-01-09 [1] CRAN (R 4.4.0)
-   RcppParallel               5.1.7      2023-02-27 [1] CRAN (R 4.4.0)
+   Rcpp                       1.0.13     2024-07-17 [1] CRAN (R 4.4.0)
+   RcppParallel               5.1.8      2024-07-06 [1] CRAN (R 4.4.0)
    RcppZiggurat               0.1.6      2020-10-20 [1] CRAN (R 4.4.0)
    RCurl                      1.98-1.14  2024-01-09 [1] CRAN (R 4.4.0)
    Rdpack                     2.6        2023-11-08 [1] CRAN (R 4.4.0)
@@ -493,7 +644,7 @@ loaded via a namespace (and not attached):
    rstudioapi                 0.16.0     2024-03-24 [1] CRAN (R 4.4.0)
    s2                         1.1.6      2023-12-19 [1] CRAN (R 4.4.0)
    S4Arrays                   1.4.1      2024-05-20 [1] Bioconductor 3.19 (R 4.4.0)
-   S4Vectors                * 0.42.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   S4Vectors                * 0.42.1     2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
    scales                     1.3.0      2023-11-28 [1] CRAN (R 4.4.0)
    scattermore                1.2        2023-06-12 [1] CRAN (R 4.4.0)
    scuttle                    1.14.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
@@ -526,12 +677,12 @@ loaded via a namespace (and not attached):
    vctrs                      0.6.5      2023-12-01 [1] CRAN (R 4.4.0)
    vipor                      0.4.7      2023-12-18 [1] CRAN (R 4.4.0)
    withr                      3.0.0      2024-01-16 [1] CRAN (R 4.4.0)
-   wk                         0.9.1      2023-11-29 [1] CRAN (R 4.4.0)
+   wk                         0.9.2      2024-07-09 [1] CRAN (R 4.4.0)
    xfun                       0.45       2024-06-16 [1] CRAN (R 4.4.0)
-   XML                        3.99-0.17  2024-06-25 [1] CRAN (R 4.4.0)
+   XML                        3.99-0.17  2024-06-25 [1] CRAN (R 4.3.3)
    xtable                     1.8-4      2019-04-21 [1] CRAN (R 4.4.0)
-   XVector                  * 0.44.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   yaml                       2.3.8      2023-12-11 [1] CRAN (R 4.4.0)
+   XVector                    0.44.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   yaml                       2.3.9      2024-07-05 [1] CRAN (R 4.4.0)
    zeallot                    0.1.0      2018-01-28 [1] CRAN (R 4.4.0)
    zenith                     1.6.0      2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    zlibbioc                   1.50.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
@@ -541,4 +692,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-───────────────────────────────────────────────────────────────────────────────
+─────────────────────────────────────────────────────────────────────────────────

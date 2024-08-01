@@ -1,7 +1,7 @@
 ---
 title: "11-Marker GSEA supplements output"
 author: "Bernard Mulvey"
-date: "2024-02-12"
+date: "2024-07-30"
 output: html_document
 ---
 
@@ -25,9 +25,9 @@ default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
 
 ### read in msigdb pre and post "collapsePathways" results
 ```{r}
-msigdbfull <- readRDS("data/11-GSEA/01a-Marker msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+msigdbfull <- readRDS("processed-data/11-GSEA/01a-Marker msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
-msigdbcollapsed <- readRDS("data/11-GSEA/01c-Marker mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
+msigdbcollapsed <- readRDS("processed-data/11-GSEA/01c-Marker mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
 
 msigbindpatterns <- c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed","k15_HARMONYlmbna_nnsvg10_60kiter_X","k20_HARMONYlmbna_nnsvg10_60kiter","k31_HARMONYlmbna_nnsvg10_60kiter")
 
@@ -60,36 +60,31 @@ clustres[[1]][spdom=="XVMH",spdom:="VMH"]
 clustres[[1]][spdom=="XARC",spdom:="ARC"]
 
 ### assign VMH.1,2 ARC1,2 labels to the corresponding k15 results
-clustres[[2]][spdom=="X3",spdom:="ARC.1"]
-clustres[[2]][spdom=="X5",spdom:="ARC.2"]
-clustres[[2]][spdom=="X11",spdom:="VMH.1"]
-clustres[[2]][spdom=="X12",spdom:="VMH.2"]
-
-# same for k20, k31
-clustres[[2]][spdom=="X3",spdom:="ARC.1"]
-clustres[[2]][spdom=="X5",spdom:="ARC.2"]
-clustres[[2]][spdom=="X11",spdom:="VMH.1"]
+clustres[[2]][spdom=="X4",spdom:="ARC.1"]
+clustres[[2]][spdom=="X6",spdom:="ARC.2"]
+clustres[[2]][spdom=="X7",spdom:="VMH.1"]
 clustres[[2]][spdom=="X12",spdom:="VMH.2"]
 
 ### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
-clustres[[3]][spdom=="X7",spdom:="VMH20.1"]
-clustres[[3]][spdom=="X9",spdom:="VMH20.2"]
-clustres[[3]][spdom=="X13",spdom:="VMH20.3"]
-clustres[[3]][spdom=="X14",spdom:="ARC20.1"]
-clustres[[3]][spdom=="X18",spdom:="ARC20.2"]
+clustres[[3]][spdom=="X2",spdom:="VMH20.1"]
+clustres[[3]][spdom=="X3",spdom:="VMH20.2"]
+clustres[[3]][spdom=="X1",spdom:="ARC20.1"]
+clustres[[3]][spdom=="X4",spdom:="ARC20.2"]
 
-clustres[[4]][spdom=="X3",spdom:="VMH31.1"]
-clustres[[4]][spdom=="X4",spdom:="VMH31.2"]
-clustres[[4]][spdom=="X6",spdom:="VMH31.3"]
-clustres[[4]][spdom=="X19",spdom:="VMH31.4"]
-clustres[[4]][spdom=="X20",spdom:="VMH31.5"]
-clustres[[4]][spdom=="X29",spdom:="VMH31.6"]
-clustres[[4]][spdom=="X1",spdom:="ARC31.1"]
-clustres[[4]][spdom=="X7",spdom:="ARC31.2"]
-clustres[[4]][spdom=="X8",spdom:="ARC31.3"]
-clustres[[4]][spdom=="X21",spdom:="ARC31.4"]
+clustres[[4]][spdom=="X6",spdom:="VMH31.1"]
+clustres[[4]][spdom=="X21",spdom:="VMH31.2"]
+clustres[[4]][spdom=="X25",spdom:="VMH31.3"]
+clustres[[4]][spdom=="X26",spdom:="VMH31.4"]
+clustres[[4]][spdom=="X31",spdom:="VMH31.5"]
+clustres[[4]][spdom=="X2",spdom:="ARC31.1"]
+clustres[[4]][spdom=="X4",spdom:="ARC31.2"]
+clustres[[4]][spdom=="X11",spdom:="ARC31.3"]
+clustres[[4]][spdom=="X22",spdom:="ARC31.4"]
 
-unique(clustres[[1]]$spdom)
+## check these are okay
+lapply(clustres,FUN=function(x){unique(x$spdom)})
+clustres[[1]][,spdom:=gsub(spdom,pattern="XX",replacement="X")]
+## 
 
 names(clustres) <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
 

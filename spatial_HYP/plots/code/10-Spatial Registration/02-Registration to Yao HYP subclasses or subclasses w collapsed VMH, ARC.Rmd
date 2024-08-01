@@ -1,7 +1,7 @@
 ---
 title: "02-spatialLIBD Registration to Yao HYP subclasses or Yao HYP Subclasses with unitary VMH and ARC"
 author: "Bernard Mulvey"
-date: "2024-02-06"
+date: "2024-08-01"
 output: html_document
 ---
 
@@ -14,12 +14,10 @@ knitr::opts_knit$set(root.dir = here::here())
 knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
-library(Biostrings)
 library(ggplot2)
 library(gridExtra)
 require(colorout)
 library(BiocParallel)
-library(orthogene)
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 
@@ -32,8 +30,18 @@ spatregs <- readRDS("data/10-Spatial Registration/02g-sphyp-k15-20-31-15clps_ABA
 ```
 
 manually plot each; collapse all lists of results into one big list
+## identations in this script are messed up, apologies to anyone reading
 ```{r}
-plotlist <- c(spatregs[[1]],spatregs[[2]],spatregs[[3]],spatregs[[4]],spatregs[[5]],spatregs[[6]],spatregs[[7]],spatregs[[8]])
+plotlist <- c(
+        spatregs[[1]],
+        spatregs[[2]],
+        spatregs[[3]],
+        spatregs[[4]],
+        spatregs[[5]],
+        spatregs[[6]],
+        spatregs[[7]],
+        spatregs[[8]]
+)
 stopifnot(length(unique(names(plotlist)))==length(spatregs)*length(spatregs[[1]]))
 
 sbp <- MulticoreParam(8)
@@ -44,13 +52,17 @@ bpmapply(m=plotlist,n=as.list(names(plotlist)),SIMPLIFY = F,BPPARAM = sbp,FUN = 
         plttab <- as.data.table(m,keep.rownames=T)
         plttab <- melt(plttab,id.vars="sphyp_domain")
         plt <- ggplot(plttab,aes(x=sphyp_domain,y=variable,fill=value))+
-            geom_tile()+
-            ggtitle(gsub(n,pattern="_",replacement=" "))+
-            theme(axis.text.x = element_text(angle=90,size=9,hjust=1),axis.text.y=element_text(size=9),title = element_text(size=12))+
-            scale_fill_viridis_c()
+                geom_tile()+
+                ggtitle(gsub(n,pattern="_",replacement=" "))+
+                theme(axis.text.x = element_text(angle=90,size=9,hjust=1),axis.text.y=element_text(size=9),title = element_text(size=12))+
+                scale_fill_viridis_c()
+        n <-  ifelse(as.numeric(gsub(
+                n,pattern="^.*_top_(.*)_sp.*$",replacement="\\1"))>1000,
+                yes=gsub(n,pattern="^(.*)_top_.*_(sp.*)$",replacement=paste0("\\1","_allgenes_","\\2")),
+                no=n)
         pdf(paste0("plots/10-Spatial Registration/02-",n,".pdf"),height = 0.2*ncol(m),width=10)
-            print(plt)
-            dev.off()
+        print(plt)
+        dev.off()
 })
 ```
 

@@ -1,7 +1,7 @@
 ---
-title: "01-Cell Type DE within VMH Domain"
+title: "03-All-cells VMH Domain sex DE"
 output: html_document
-date: "2024-07-04"
+date: "2024-08-01"
 ---
 
 ```{r setup, include=FALSE}
@@ -10,12 +10,11 @@ knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
 knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
-library(Biostrings)
-library(ggplot2)
-library(gridExtra)
 library(SpatialExperiment)
 library(SpatialFeatureExperiment)
 library(dreamlet)
+library(limma)
+library(edgeR)
 
 ## rstudio GUI tweaks
 require(colorout)
@@ -24,14 +23,12 @@ options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 ##
 
 ## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
-library(parallelly)
+library(parallel)
 options(parallelly.supportsMulticore.disableOn="")
 options(parallelly.fork.enable=TRUE)
-library(BiocParallel)
+library(parallelly)
 options(bphost="localhost")
-
-## ggplot defaults
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+library(BiocParallel)
 ```
 
 
@@ -73,32 +70,130 @@ rm(smoovedom)
 gc()
 ```
 
-### use dreamlet to run random-donor-effects sex DE (mirroring the procedures used for visium). include slide as covar
+
+### use dreamlet to pseudobulk, then edgeR's voomLmFit to run sex DE (mirroring the procedures used for visium) for the bulk domains.
 ```{r}
-hyp.domwise.ag <- dreamlet::aggregateToPseudoBulk(hypav,assay="counts",sample_id="sample_id",cluster_id = "dualdom",BPPARAM = MulticoreParam(2))
+hyp.adom.ag <- dreamlet::aggregateToPseudoBulk(hypav,assay="counts",sample_id="sample_id",cluster_id = "dualdom",BPPARAM = MulticoreParam(8))
 
+# extract colData to feed into DGEList as the "samples" data
+agcd <- as.data.table(colData(hyp.adom.ag),keep.rownames=T)
+agcd[Date_Experiment_Began=="2/21/24",batch:="second"]
+agcd[Date_Experiment_Began=="10/17/23",batch:="first"]
+agcd <- as.data.frame(agcd)
+rownames(agcd) <- agcd$rn
+agcd$rn <- NULL
 
-## min samples 5 -- size of the smaller sex group in total samps (females, one of whom lacks ARC); set min.prop to 0.1 since this is now mixed cell types in reality (vs min prop 0.4 for cell type-wise sex DE in scripts 08/01 and 02)
-dl.rf <- dreamlet::processAssays(hyp.domwise.ag,min.cells = 10,min.count = 10,min.samples = 5,min.prop = 0.1,normalize.method = "TMM",useCountsWeights = T,BPPARAM = MulticoreParam(8),formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum))
+## only retain clusters for which at least 5 samples (size of the smaller sex group in total samps (females for ARC))) are available after pseudobulking+filtering through dreamlet and have at least 10,000 pseudobulked counts for the cluster of interest (or normalization and low-expression filtering gets to be impossible):
+ag <- as.list(assays(hyp.adom.ag))
+agc <- lapply(ag,FUN=function(a){ncol(a[,colSums(a)>10000])})
+## both domains pass obviously, since this is pan-cell type
+ag <- ag[!(agc<5)]
 
-dl.rf <- dreamlet::dreamlet(dl.rf,formula = ~Sex+Date_Slides_Dropped_Off+(1|BrNum),BPPARAM = MulticoreParam(8))
+## drop clusters where there are 6+ samples, but only 0 or 1 samples for one of the sexes:
+agsc <- lapply(ag,FUN=function(a){
+ cn <- colnames(a[,colSums(a)>10000])
+ tmp <- as.data.table(agcd[cn,])
+ if(nrow(tmp[,.N,by="Sex"][N<2])>0){
+   return(0)
+ } else {return(1)}
+})
 
-dl.rf.res <- dreamlet::topTable(dl.rf,coef="SexMale",number=Inf,adjust.method ="BH")
-dl.rf.res <- as.data.table(dl.rf.res)
+ag <- ag[agsc==1]
 
-## append rowData to result table
+## make the DGELists per remaining cluster:
+dgels <- lapply(ag,FUN=function(a){
+   # filtering for 10,000 counts minimum as above
+ X <- a[,colSums(a)>10000]
+ s <- copy(agcd)[colnames(X),]
+ if(length(unique(s$Sex))<2){
+   return()
+ } else {
+ 
+   dge <- DGEList(counts=as.matrix(X),samples=s)
+   dge <- normLibSizes(dge,method = "TMM")
+   
+   ## find the smaller group for this cluster
+   smolgrp <- table(dge$samples$Sex)[which.min(table(dge$samples$Sex))]
+   
+   ## for the smallest group, determine low expression cutoff
+   rowmn.m <- as.numeric(rowMeans(cpm(dge[,(dge$samples$Sex==names(smolgrp)[1])],log=TRUE)))
+   
+    ## get histogram distribution with 10 bins at the low end of the logcpm space, skipping to the second minimum in the distribution (to avoid including 0-count genes etc). this is tricky because with the small number of genes, the distribution is rather peaky. however, some spot-checking to tune this looks like using 8 bins for the lower norm-sized-logcpm range (second minima + 1.5 logcpm) retrieves an accurate last-minimum-before-the-normalish-part-of-the-norm-count-distribution.
+   # additionally, most genes fall in a small normalized library size window (6-10ish) -- part of the 10x panel design process when providing seq data from a similar sample (as we did, providing visium), which they use to tweak the number of probes per gene for detection based on the tissue's expression of the targets.
+   h <- hist(rowmn.m[which(rowmn.m>min(rowmn.m)&rowmn.m<(1.5+min(rowmn.m)))],breaks=8,plot=F)
+   ## get the minimum in this low logcpm range and its corresponding bin (x axis value, i.e. log cpm). in case of repeat values, grab the first (lowest)
+   minc <- h$breaks[which(h$counts==min(h$counts))][1]
+   
+   ## get the corresponding 33rd %ile-library count value for this minimum^
+   smollib <- min(dge$samples[(dge$samples$Sex==names(smolgrp)[1]),"lib.size"])
+   countthresh <- (minc^2)*(as.numeric(smollib)/10^6)
+   
+   ## and convert that smallest count to the logcpm value in said smallest library to use as a low-expression threshold. for conservativeness, round up, since we're dealing with relatively small numbers of counts here
+   cpmthresh <- log2(ceiling(countthresh)/(as.numeric(smollib)*10^-6))
+   
+   ## filter for genes with at least thresh counts in at least (smaller sex group size) samples
+   keep <- rowSums(cpm(dge,log=T)>cpmthresh) >= as.numeric(smolgrp)
+   
+   ## recalc lib factors after dropping low-expressed genes
+   dge <- dge[keep,,keep.lib.sizes=FALSE]
+   dge <- calcNormFactors(dge,method = "TMM")
+   
+   return(dge)
+ }
+})
+  
+clus <- makeCluster(10,type = "PSOCK")
+fulldgelres <- clusterApply(x=dgels,cl = clus,fun=function(X){
+ 
+ library(data.table)
+ setDTthreads(1,restore_after_fork = FALSE)
+ library(SpatialExperiment)
+ library(limma)
+ library(edgeR)
+ 
+ # prevent resource competition, though we aren't explicitly using DT at all here:
+ setDTthreads(1) 
+ 
+ dge <- X
+ des <- model.matrix(~0+Sex+batch, data = dge$samples)
+ # INITIALIZE the voomwithqualityweights model, equivalent to pseudobulkDGE(method="voom",qualities=T)
+ sexdif <- makeContrasts(SexMale-SexFemale,levels=des)
+ 
+ # run voomLmFit for the pseudobulked data, referring donor to duplicateCorrelation; using an adaptive span (number of genes, based on the number of genes in the dge) for smoothing the mean-variance trend
+ v.swt <- voomLmFit(dge,design = des,block = as.factor(dge$samples$BrNum),adaptive.span = T,sample.weights = T)
+ 
+ v.swt.fit <- contrasts.fit(v.swt,sexdif)
+ 
+ v.swt.fit.e <- eBayes(v.swt.fit)
+ 
+ v.swt.e.tt <- topTable(v.swt.fit.e,coef = 1,number=Inf,adjust.method = "BH")
+ 
+ return(v.swt.e.tt)
+})
 
-rddt <- as.data.table(rowData(hypav))
-setnames(rddt,"ID","ensembl")
-dl.rf.res <- merge.data.table(dl.rf.res,rddt[,.(ensembl,Symbol)],by.x="ID",by.y="Symbol",all.x=T)
+stopCluster(clus)
+names(fulldgelres) <- names(ag)
 
-setnames(dl.rf.res,"logFC","logFC_MvF")
+### concatenate results for all cell types
+fulldgelres <- lapply(fulldgelres,as.data.table,keep.rownames=T)
+fulldgelres <- rbindlist(fulldgelres,idcol="domain")
+setnames(fulldgelres,"rn","gene_name")
 
-fwrite(dl.rf.res,"processed-data/08_VMH-ARC cell type sex DE within domains/03-5typeARC-and-dualassignVMH_domainwise_sexDE.txt",sep='\t',quote=F,row.names=F,col.names=T)
+## append cell type annotations
+fulldgelres <- fulldgelres[,.(domain,gene_name,logFC,adj.P.Val,t,B,P.Value,AveExpr)]
+
+### clean up
+rm(ag,agc,agcd,agsc,clus,dgels,hypav,hyp.adom.ag)
+gc(full=T)
+```
+
+## save
+```{r}
+fwrite(fulldgelres,"processed-data/08_VMH-ARC cell type sex DE within domains/03-5typeARC-and-dualassignVMH_domainwise_sexDE.txt",sep='\t',quote=F,row.names=F,col.names=T)
 
 ```
 
-### notably here, nothing passses FDR significance at 0.05.
+### notably here, only one gene (RDH10, ARC) passses FDR significance at 0.05.
 
 ## reproducibility info
 ```{r}

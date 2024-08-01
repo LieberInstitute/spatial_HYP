@@ -99,11 +99,11 @@ bpmapply(X=dimredlist,Y=names(dimredlist),SIMPLIFY=FALSE,BPPARAM=SnowParam(worke
     }
     
     ## determine appropriate subfolder for pllots -- github copilot came out swinging and filled most of this in near-perfectly!
-    if (length(grep(Y,pattern="PCA",value=T))>0){subdir<-"02-PCA/"}
-    else if (length(grep(Y,pattern="HARMONYdflt",value=T))>0){subdir<-"02-Harmonydefault/"}
-    else if (length(grep(Y,pattern="HARMONYlmbna",value=T))>0){subdir<-"02-Harmonylambdanull/"}
-    else if(length(grep(Y,pattern="mnn30",value=T))>0){subdir<-"02-mnn30/"}
-    else{subdir<-"02-UMAP/"}
+    if (length(grep(Y,pattern="PCA",value=T))>0){subdir<-"01-PCA/"}
+    else if (length(grep(Y,pattern="HARMONYdflt",value=T))>0){subdir<-"01-Harmonydefault/"}
+    else if (length(grep(Y,pattern="HARMONYlmbna",value=T))>0){subdir<-"01-Harmonylambdanull/"}
+    else if(length(grep(Y,pattern="mnn30",value=T))>0){subdir<-"01-mnn30/"}
+    else{subdir<-"01-UMAP/"}
     
     ## render
     png(paste0("plots/04-Feature Selection, PCA, Harmony/",subdir,Y,"_by_cohortvariables.png"),width=48,height=40,units="in",res=300)

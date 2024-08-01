@@ -12,9 +12,7 @@ knitr::opts_chunk$set(fig.width=7,fig.height=10)
 knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
-library(Biostrings)
 library(SpatialExperiment)
-library(BiocParallel)
 require(colorout)
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
@@ -29,17 +27,23 @@ options(parallelly.supportsMulticore.disableOn="")
 options(parallelly.fork.enable=TRUE)
 library(BiocParallel)
 options(bphost="localhost")
+
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
 ```
 
-Reload Sex DE - TFtarg GSEA results before having run collapsePathways (which could have e.g., removed a result for a TF that's relevant in the data but retained one for a TF with similar targets despite the TF NOT being expressed in the data) and the SPE (which we need for filtering on expression)
+load Sex DE - TFtarg GSEA results before having run collapsePathways (which could have e.g., removed a result for a TF that's relevant in the data but retained one for a TF with similar targets despite the TF NOT being expressed in the data) and the SPE (which we need for filtering on expression)
 ```{r}
 ## un-redundancied results
-sexreslist <- readRDS("data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+sexreslist <- readRDS("processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
-hyp2 <- readRDS("data/03-QC_filters/hypN9_umi275_gene166_chrm50_lognorm_111723.RDS")
+hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
 
 # set rownames of spe to gene symbol, since those are the identifiers we're stuck with for TF-targ sets
 # make all upper case to be sure
+dropg <- as.data.table(rowData(hyp2),keep.rownames=T)[,.(.N,gene_id),by=gene_name][N>1,gene_id]
+hyp2 <- hyp2[!(rownames(hyp2)%in%dropg),]
 rownames(hyp2) <- rowData(hyp2)$gene_name
 rownames(hyp2) <- toupper(rownames(hyp2))
 
@@ -86,9 +90,10 @@ names(sexreslist) <- c("BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbn
 
 ### get the clustering sets for the four Bayesspace runs we're reporting so we can extract and filter to TFs expressed in the cluster at >0.0025% of spots in ≥ 3 samples and with a mean expression in at least 1% of spots for all 4 clustering approaches
 ```{r}
-bscls <- lapply(list.files("data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out",pattern=".txt",full.names = T),fread)
+bscl <- list.files("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out",pattern=".txt",full.names = T,recursive = F)
+bscls <- lapply(bscl,fread)
 
-names(bscls) <- gsub(list.files("data/06-BayesSpace/02-bayesspace60kiter_k15-20-31_out",pattern=".txt",full.names = T),pattern="^.*31_out/(.*)\\.txt$",replacement="\\1")
+names(bscls) <- gsub(bscl,pattern="^.*31_out/(.*)\\.txt$",replacement="\\1")
 
 bscls <- bscls[names(bscls) %in% grep(names(bscls),pattern="HARMONYlmbna_nnsvg10",value=T)]
 
@@ -105,8 +110,8 @@ bscls <- lapply(bscls,FUN=function(x){
 ## (re)create the collapsed set with the same list name as its listed in the per-cluster GSEA results list 
 bscls[[4]] <- copy(bscls[["BSpace_k15_HARMONYlmbna_nnsvg10"]])
 bscls[[4]] <- as.data.table(bscls[[4]])
-bscls[[4]][label %in% c("X11","X12"),label:="VMH"]
-bscls[[4]][label %in% c("X3","X5"),label:="ARC"]
+bscls[[4]][label %in% c("X7","X12"),label:="VMH"]
+bscls[[4]][label %in% c("X4","X6"),label:="ARC"]
 bscls[[4]] <- DataFrame(bscls[[4]])
 rownames(bscls[[4]]) <- bscls[[4]]$rn
 bscls[[4]] <- bscls[[4]][colnames(hyp2),]
@@ -116,7 +121,7 @@ names(bscls)[4] <- "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH"
 stopifnot(names(bscls)==names(sexreslist))
 ```
 
-### get TFs qualifying as expressed in each cluster
+### get TFs qualifying as expressed in each cluster for at least one sex (≥3 samples of a sex with detection in at least 1% of cluster spots and overall at least 2.5% of cluster spots expressing.) see code/08 for a more marked-up version explaining how the code tabulating this works.
 ```{r}
 sbp <- MulticoreParam(4)
 register(sbp)
@@ -127,36 +132,43 @@ sexreslist.filt <- bpmapply(R=sexreslist,C=bscls,N=as.list(names(bscls)),FUN=fun
     filtres <- list()
     i<-1
     for (i in c(1:length(R))){
-        curclus <- gsub(names(R)[i],pattern=paste0(N,"_(.*)$"),replacement="\\1")
-        tflogcts <- as.data.table(as.data.frame(as.matrix(logcounts(hyp2[,hyp2$label==curclus]))),keep.rownames=T)
-        setnames(tflogcts,"rn","tf")
-        tflogcts <- melt(tflogcts,id.vars="tf",value.name="logcounts")
-        ### get sample ID from the unique spot identifiers
-        tflogcts[,samp:=gsub(variable,pattern="^.*_(.*_.*)$",replacement="\\1")]
-        tflogcts[,Nspot:=.N/length(unique(tf)),by="samp"]
+        sexwise <- lapply(c("Male","Female"),FUN=function(S){
+            cursamps <- unique(colData(hyp2[,hyp2$Sex==S])[,"sample_id"])
+            curclus <- gsub(names(R)[i],pattern=paste0(N,"_(.*)$"),replacement="\\1")
+            tflogcts <- as.data.table(as.data.frame(as.matrix(logcounts(hyp2[,hyp2$label==curclus&hyp2$sample_id %in% cursamps]))),keep.rownames=T)
+            setnames(tflogcts,"rn","tf")
+            tflogcts <- melt(tflogcts,id.vars="tf",value.name="logcounts")
+            ### get sample ID from the unique spot identifiers
+            tflogcts[,samp:=gsub(variable,pattern="^.*_(.*_.*)$",replacement="\\1")]
+            tflogcts[,Nspot:=.N/length(unique(tf)),by="samp"]
+            
+            # this is a clunky approach, but the TOTAL %age of spots expressing the TF in question (ie logcounts>0) for that sample will fill in for any rows where logcounts are >0. we can then get a table of unique combinations of sample X TF x %age of spots
+            tflogcts[logcounts>0,pctxpr:=.N/Nspot,by=c("tf","samp")]
+            # set NAs in pctxpr to 0
+            tflogcts[is.na(pctxpr),pctxpr:=0]
+            # get each unique pair of tf-sample-pctxpr, where we fetch the max row value of pctxpr for a tf-sample pair (which will be >0 and = the % of spots expressing in any row where the gene was detected for that sample)
+            tffilt <- tflogcts[,max(pctxpr),by=c("tf","samp")]
+            # calculate mean % spots expressing dataset wide and number of samples with expression over 1%. each tf occurs once per sample, so take the mean across rows with a given TF value for samplewise means, or tabulate the number of TF occurrences with the pctxpr filter to get the number of passing rows
+            setnames(tffilt,"V1","pctxpr")
+            tffilt[,meanxpr:=mean(pctxpr),by="tf"]
+            tffilt[pctxpr>0.01,Nxpr:=.N,by="tf"]
+            # na rows returned in Nxpr will be meaningless in this result, since we just will subset to max Nxpr analogous to what we did above, resulting in a table of X tfs with their mean + spot %age and number of samples over threshold. set na values to 0 to avoid errors relating to NAs here.
+            tffilt[is.na(Nxpr),Nxpr:=0]
+            tffilt2 <- tffilt[,max(Nxpr),by="tf"]
+            setnames(tffilt2,"V1","Nxpr")
+            ## add baack the mean expression to the number of threshold-passing samples by merging parts of the old data ttable to the above result
+            tffilt2 <- merge.data.table(tffilt2,unique(tffilt[,.(tf,meanxpr)],by="tf"))
+            
+            # FINALLY  get the TFs meeting criteria (expressed in at least 2.5% of spots of cluster for at least 3 samples from the given sex) back and filter the result table to them
+            
+            keeptfs <- tffilt2[Nxpr>3&meanxpr>0.025,tf]
+            # return qualifying TFs for this sex
+            return(keeptfs)
+        })
         
-        # this is a clunky approach, but the TOTAL %age of spots expressing the TF in question (ie logcounts>0) for that sample will fill in for any rows where logcounts are >0. we can then get a table of unique combinations of sample X TF x %age of spots
-        tflogcts[logcounts>0,pctxpr:=.N/Nspot,by=c("tf","samp")]
-        # set NAs in pctxpr to 0
-        tflogcts[is.na(pctxpr),pctxpr:=0]
-        # get each unique pair of tf-sample-pctxpr, where we fetch the max row value of pctxpr for a tf-sample pair (which will be >0 and = the % of spots expressing in any row where the gene was detected for that sample)
-        tffilt <- tflogcts[,max(pctxpr),by=c("tf","samp")]
-        # calculate mean % spots expressing dataset wide and number of samples with expression over 0.25%. each tf occurs once per sample, so take the mean across rows with a given TF value for samplewise means, or tabulate the number of TF occurrences with the pctxpr filter to get the number of passing rows
-        setnames(tffilt,"V1","pctxpr")
-        tffilt[,meanxpr:=mean(pctxpr),by="tf"]
-        tffilt[pctxpr>.0025,Nxpr:=.N,by="tf"]
-        # na rows returned in Nxpr will be meaningless in this result, since we just will subset to max Nxpr analogous to what we did above, resulting in a table of X tfs with their mean + spot %age and number of samples over threshold. set na values to 0 to avoid errors relating to NAs here.
-        tffilt[is.na(Nxpr),Nxpr:=0]
-        tffilt2 <- tffilt[,max(Nxpr),by="tf"]
-        setnames(tffilt2,"V1","Nxpr")
-        ## add baack the mean expression to the number of threshold-passing samples by merging parts of the old data ttable to the above result
-        tffilt2 <- merge.data.table(tffilt2,unique(tffilt[,.(tf,meanxpr)],by="tf"))
-        
-        # FINALLY  get the TFs meeting criteria back and filter the result table to them
-        
-        keeptfs <- tffilt2[Nxpr>2&meanxpr>0.01,tf]
-        # filter the current cluster's results to these TFs
-        filtres[[i]] <- R[[i]][tf %in% keeptfs]
+        filtres[[i]] <- R[[i]][tf %in% unique(unlist(sexwise))]
+        filtres[[i]][,TF_Male_Expr:=ifelse(tf %in% sexwise[[1]],yes="yes",no="no")]
+        filtres[[i]][,TF_Fem_Expr:=ifelse(tf %in% sexwise[[2]],yes="yes",no="no")]
         names(filtres)[i] <- names(R)[i]
     }
     return(filtres)
@@ -178,7 +190,7 @@ for (i in c(1:4)){
 }
 rm(i)
 
-saveRDS(megalist.filt,"data/11-GSEA/09-Sex DE TF-target GSEA results from 04a filtered to TFs expressed in avg 1pct of cluster spots and at least .25pct of cluster spots in 3samps.RDS")
+saveRDS(megalist.filt,"processed-data/11-GSEA/09-Sex DE TF-target GSEA results from 04a filtered to TFs expressed in at least one sex at avg 2.5pct of cluster spots and at least 1pct of cluster spots in 3samps.RDS")
 ```
 
 ```{r}

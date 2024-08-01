@@ -1,7 +1,7 @@
 ---
 title: "07-Sex DE (02, 04-06) Xenium-Visium comparison"
 output: html_document
-date: "2024-07-08"
+date: "2024-08-01"
 ---
 
 ```{r setup, include=FALSE}
@@ -10,9 +10,6 @@ knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
 knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
-library(Biostrings)
-library(ggplot2)
-library(gridExtra)
 
 ## rstudio GUI tweaks
 require(colorout)
@@ -20,87 +17,71 @@ ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 ##
 
-## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure.
-library(parallelly)
-options(parallelly.supportsMulticore.disableOn="")
-options(parallelly.fork.enable=TRUE)
-library(BiocParallel)
-options(bphost="localhost")
-
-## ggplot defaults
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
 ```
 
 ### read in xenium cell type DE results, domain DE results, cell type DE in high-conf domain results, nuclear counts DE results; Visium k=15 bayesspace sex DE results with VMH and ARC domains individually and with them collapsed
 
 ```{r}
-xencell <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/02-4celltypeARC-and-VMH-dualassignedDomains_celltypeSexDE.txt")
-### split ^ into an ARC and a VMH table
-xencellarc <- xencell[,.(ID,assay,t_inARC)]
-xencellvmh <- xencell[,.(ID,assay,t_inVMH)]
+xencellarc <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/02a-4ARCtypesmoothed_withinARC_celltypeSexDE.txt")
+xencellvmh <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/02b-4ARCtypesmoothed_withinVMH_celltypeSexDE.txt")
 
 # domain-wide sex DE
 xendomain <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
 
 # cell type DE in high conf domains
-xenhiconf <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/05-4celltypeARC-and-VMH-hiconf-interior96pctOfDomain_celltypeSexDE.txt")
-### split ^ into an ARC and a VMH table
-xenhiconfarc <- xenhiconf[,.(ID,assay,t_inARC)]
-xenhiconfvmh <- xenhiconf[,.(ID,assay,t_inVMH)]
+xenhiconfarc <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/05a-4celltypeARCsmoothing_hiconf-interior96pctOfARC_celltypeSexDE.txt")
+xenhiconfvmh <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/05b-4celltypeARCsmoothing_hiconf-interior96pctOfVMH_celltypeSexDE.txt")
 
-xennuc <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/06-4celltypeARC-and-VMH-dualassignedDomains_celltypeSexDE_nuclearcounts.txt")
-### split ^ into an ARC and a VMH table
-xennucarc <- xennuc[,.(ID,assay,t_inARCnuc)]
-xennucvmh <- xennuc[,.(ID,assay,t_inVMHnuc)]
+# nuclear counts-based cell type DE
+xennucarc <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/06a-4celltypeARCsmoothing_celltypeSexDE_nuclearcounts_inARC.txt")
+xennucvmh <- fread("processed-data/08_VMH-ARC cell type sex DE within domains/06b-4celltypeARCsmoothing_celltypeSexDE_nuclearcounts_inVMH.txt")
 
 ## read in visium and reorganinze to match xenium de result table contents
 ## subset to VMH and ARC domains in these two
-visdom <- fread("../spatial_HYP/data/09-Sex DE/01b-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt")
-visdom[,ID:=gene_name]
-visdom <- visdom[assay%in% c("X3","X5","X11","X12")]
+visdom <- fread("../spatial_HYP/processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt")
+visdom <- visdom[assay%in% c("X4","X6","X7","X12")]
+visdom[assay=="X4",assay:="ARC.1"]
+visdom[assay=="X6",assay:="ARC.2"]
+visdom[assay=="X7",assay:="VMH.1"]
+visdom[assay=="X12",assay:="VMH.2"]
 
-visclps <- fread("../spatial_HYP/data/09-Sex DE/01c-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
-visclps[,ID:=gene_name]
+visclps <- fread("../spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 visclps <- visclps[assay %in% c("VMH","ARC")]
 
 ## get a list of these together for streamlined operations
 des <- list(xencellarc,xencellvmh,xenhiconfarc,xenhiconfvmh,xennucarc,xennucvmh,xendomain,visdom,visclps)
 names(des) <- c("xencellarc","xencellvmh","xenhiconfarc","xenhiconfvmh","xennucarc","xennucvmh","xendomain","visdom","visclps")
-
-rm(xennuc,xenhiconf,xencell)
 ```
 
 
 extract t stat and gene from each and merge
 ```{r}
 ## assay corresponds to cell type/cluster; subset to VMH/ARC clusters for xenium
-des[1:6] <- lapply(des[1:6],FUN=function(x){x <- x[assay %in% c("X12","X18","X30","X15","X19","X23","X31","X33")]
-    x[assay=="X12",assay:="VMH_1"]
-    x[assay=="X18",assay:="VMH_2"]
-    x[assay=="X30",assay:="VMH_3"]
-    x[assay=="X15",assay:="ARC_1"]
-    x[assay=="X19",assay:="ARC_2"]
-    x[assay=="X23",assay:="ARC_3"]
-    x[assay=="X31",assay:="ARC_4"]
-    x[assay=="X33",assay:="ARC_5"]
-    })
+des[1:6] <- lapply(des[1:6],FUN=function(x){
+    x <- x[cluster_annotated %in% c(paste0("VMH_",c(1:3)),paste0("ARC_",c(1:5)))]
+})
 
 ## subset visiums to single/joint arc/vmh domains
-des[8:9] <- lapply(des[8:9],FUN=function(x){x <- x[assay %in% c("VMH","ARC","X3","X5","X11","X12")]
-    x[assay=="X3",assay:="Vis_ARC1"]
-    x[assay=="X5",assay:="Vis_ARC2"]
-    x[assay=="X11",assay:="Vis_VMH1"]
-    x[assay=="X12",assay:="Vis_VMH2"]})
+des[8:9] <- lapply(des[8:9],FUN=function(x){
+    x <- x[assay %in% c("VMH","ARC","VMH.1","VMH.2","ARC.1","ARC.2")]
+})
 
-## label the xenium ones and visium ones accordingly 
+## make the cluster column uniform across datasets
+des[1:6] <- lapply(des[1:6],FUN=function(x){setnames(x,"cluster_annotated","assay")})
+des[[7]] <- setnames(des[[7]],"domain","assay")
+
+
+## label the xenium/visium clusters at a generic level 
 des[1:7] <- lapply(des[1:7],FUN=function(x){x[,assay:=paste0(assay,"_xen")]})
 des[8:9] <- lapply(des[8:9],FUN=function(x){x[,assay:=paste0(assay,"_vis")]})
+
+
 
 ### merge all into one big gene-cell-cluster-Male-vs-Female-t-stat table
 i<-1
 for (i in c(1:length(des))){
     tstatcol <- grep(names(des[[i]]),pattern="^t.*$",value=T)
-    getnames <- c("ID","assay",tstatcol)
+    getnames <- c("gene_name","assay",tstatcol)
     tmp <- des[[i]][,..getnames]
     # set a unique t stat column name based on the analysis
     tstatreplace <- paste0("t_",names(des)[i])
@@ -113,103 +94,109 @@ for (i in c(1:length(des))){
     # merge xenium rows by cluster and gene
     else if (i<=6){
         setnames(tmp,"assay","assay_xen")
-        detabs <- merge.data.table(detabs,tmp,by=c("ID","assay_xen"),all=T)
+        detabs <- merge.data.table(detabs,tmp,by=c("gene_name","assay_xen"),all=T)
     }
     else if (i==7){setnames(tmp,"assay","assay_xendom")
-                detabs <- merge.data.table(detabs,tmp,by="ID",all=T,allow.cartesian=T)}
+                detabs <- merge.data.table(detabs,tmp,by="gene_name",all=T,allow.cartesian=T)}
     # subset visium results to xenium genes, merge by gene, allow multi-pairing so that each gene-cell type row from visium is paired to each from xenium
     else if (i>7){
-        tmp <- tmp[ID %in% detabs$ID]
+        tmp <- tmp[gene_name %in% detabs$gene_name]
         setnames(tmp,"assay",paste0("assay_",names(des)[i]))
-            detabs <- merge.data.table(detabs,tmp,by="ID",all=T,allow.cartesian=T)
+            detabs <- merge.data.table(detabs,tmp,by="gene_name",all=T,allow.cartesian=T)
     }
     rm(tmp,tstatcol,tstatreplace,getnames)
 }
 rm(i)
 ```
 
+### past this point, I'm totally stuck on how to get back a table with just three columns linking unique analyses (but only comparing across analysis types for matched cluster(s), e.g. ARC_1_xenhiconf vs. ARC_1_xennuc). the  below code sort of gets there but information gets lost and flipped around in the generation of the "correct" labels so it's pretty useless.
+
+### DO NOT USE -- ERRONEOUS RESULTS ###
+
 ```{r}
-combs <- expand.grid(grep(names(detabs),pattern="t_",value=T),grep(names(detabs),pattern="t_",value=T))
+# combs <- expand.grid(grep(names(detabs),pattern="t_",value=T),grep(names(detabs),pattern="t_",value=T))
+# 
+# combs <- as.data.table(combs)
+# setnames(combs,c("stat1","stat2"))
+# combs[,stat1:=as.character(stat1)]
+# combs[,stat2:=as.character(stat2)]
+# 
+# ## specify the suffix portion of the column names "assay_suffix" that each t stat column corresponds to.
+# combs[!(stat1 %in% grep(stat1,pattern="dom|vis",value=T)),asssuff1:="xen"]
+# combs[!(stat2 %in% grep(stat2,pattern="dom|vis",value=T)),asssuff2:="xen"]
+# 
+# combs[stat1 %in% grep(stat1,pattern="visclps",value=T),asssuff1:="visclps"]
+# combs[stat2 %in% grep(stat2,pattern="visclps",value=T),asssuff2:="visclps"]
+# 
+# combs[stat1 %in% grep(stat1,pattern="visdom",value=T),asssuff1:="visdom"]
+# combs[stat2 %in% grep(stat2,pattern="visdom",value=T),asssuff2:="visdom"]
+# 
+# combs[stat1 %in% grep(stat1,pattern="visdom",value=T),asssuff1:="visdom"]
+# combs[stat2 %in% grep(stat2,pattern="visdom",value=T),asssuff2:="visdom"]
+# 
+# combs[stat1 %in% grep(stat1,pattern="xendom",value=T),asssuff1:="xendom"]
+# combs[stat2 %in% grep(stat2,pattern="xendom",value=T),asssuff2:="xendom"]
+# 
+# ## loop through combinations of cell-type/domain pairs and calculate spearman correlation between the t stats for each pair
+# i<-1
+# for (i in c(1:nrow(combs))){
+#     # get the names of the two assay columns being used in this step
+#     bycols <- paste0("assay_",combs[i,.(asssuff1,asssuff2)])
+#     # calculate the spearman correlation between the two t stat vectors for each unique value in bycols
+#     res <- detabs[,cor(get(combs[i,stat1]),get(combs[i,stat2]),method="spearman",use = "pairwise.complete.obs"),by=bycols]
+# 
+#     # note which t stat columns were used in this step, since several xenium cell type DE analyses have the same assay column (but obv different stat cols).
+#     res[,stats:=paste0(combs[i,stat1],"::",combs[i,stat2])]
+# 
+#     # concatenate
+#     if(i==1){corrs <- copy(res)}
+#     else{corrs <- rbind(corrs,res,fill=T)}
+# }
+# # set the correlation column value name
+# setnames(corrs,"V1","spearman")
+# 
+# # drop NAs and 1s (self-correls)
+# corrs <- corrs[!(is.na(spearman)|spearman==1)]
+# 
+# ## tidy up the assay names to correspond to the specific analysis by creating a universal assay 1 and assay 2 column, with the assay suffix changed to the particular DE run
+# ## unfortunately i can't think kof a way to easily apply thru this, so we'll do a couple for i loops. not a huge table we're working with anyhow
+# ## basically everything except the first copy of the xenium cell type column is our other search space for the majority of rows
+# assaycheckcols <- c("assay_xen","assay_xen.1","assay_xendom","assay_visdom","assay_visdom.1","assay_visclps","assay_xendom.1","assay_visclps.1")
+# 
+# ## initialize the global assay columns
+# corrs[,assay1:=""]
+# corrs[,assay2:=""]
+# 
+# i<-1
+# for (i in c(1:nrow(corrs))){
+#     # get the first nonnull assay column. this isn't pretty, was a lot of guess and check til something worked as desired
+#     assaycol1 <- names(unlist(
+#         corrs[i,..assaycheckcols])[!is.na(unlist(corrs[i,..assaycheckcols]))])[1]
+#     assaycol2 <- names(unlist(
+#         corrs[i,..assaycheckcols])[!is.na(unlist(corrs[i,..assaycheckcols]))])[2]
+# 
+#     set(corrs,i,"assay1",value=corrs[i,get(assaycol1)])
+#     set(corrs,i,"assay2",value=corrs[i,get(assaycol2)])
+# 
+#     ### isolate the identifier from the assay again
+#     corrs[i,assay1:=gsub(assay1,pattern="(.*)_.*$",replacement="\\1")]
+#     corrs[i,assay2:=gsub(assay2,pattern="(.*)_.*$",replacement="\\1")]
+# 
+#     ## append the tstat suffix
+#     corrs[i,assay1:=paste0(assay1,gsub(corrs[i,stats],pattern="^t(_.*)::.*$",replacement="\\1"))]
+#     corrs[i,assay2:=paste0(assay2,gsub(corrs[i,stats],pattern="^.*::t(_.*)$",replacement="\\1"))]
+# }
+# 
+# ## remove self-correlations (some of which have inexplicable > 0.99999999 but < 1 values) and NAs
+# corrs <- corrs[!(spearman>0.999999)]
+# 
+# ### rearrange into assay1, assay2, spearman
+# corrsout <- corrs[,.(assay1,assay2,spearman)]
+```
 
-combs <- as.data.table(combs)
-setnames(combs,c("stat1","stat2"))
-combs[,stat1:=as.character(stat1)]
-combs[,stat2:=as.character(stat2)]
-
-## specify the suffix portion of the column names "assay_suffix" that each t stat column corresponds to.  
-combs[!(stat1 %in% grep(stat1,pattern="dom|vis",value=T)),asssuff1:="xen"]
-combs[!(stat2 %in% grep(stat2,pattern="dom|vis",value=T)),asssuff2:="xen"]
-
-combs[stat1 %in% grep(stat1,pattern="visclps",value=T),asssuff1:="visclps"]
-combs[stat2 %in% grep(stat2,pattern="visclps",value=T),asssuff2:="visclps"]
-
-combs[stat1 %in% grep(stat1,pattern="visdom",value=T),asssuff1:="visdom"]
-combs[stat2 %in% grep(stat2,pattern="visdom",value=T),asssuff2:="visdom"]
-
-combs[stat1 %in% grep(stat1,pattern="visdom",value=T),asssuff1:="visdom"]
-combs[stat2 %in% grep(stat2,pattern="visdom",value=T),asssuff2:="visdom"]
-
-combs[stat1 %in% grep(stat1,pattern="xendom",value=T),asssuff1:="xendom"]
-combs[stat2 %in% grep(stat2,pattern="xendom",value=T),asssuff2:="xendom"]
-
-## loop through combinations of cell-type/domain pairs and calculate spearman correlation between the t stats for each pair
-i<-1
-for (i in c(1:nrow(combs))){
-    # get the names of the two assay columns being used in this step
-    bycols <- paste0("assay_",combs[i,.(asssuff1,asssuff2)])
-    # calculate the spearman correlation between the two t stat vectors for each unique value in bycols
-    res <- detabs[,cor(get(combs[i,stat1]),get(combs[i,stat2]),method="spearman",use = "pairwise.complete.obs"),by=bycols]
-    
-    # note which t stat columns were used in this step, since several xenium cell type DE analyses have the same assay column (but obv different stat cols). 
-    res[,stats:=paste0(combs[i,stat1],"::",combs[i,stat2])]
-    
-    # concatenate
-    if(i==1){corrs <- copy(res)}
-    else{corrs <- rbind(corrs,res,fill=T)}
-}
-# set the correlation column value name
-setnames(corrs,"V1","spearman")
-
-# drop NAs and 1s (self-correls)
-corrs <- corrs[!(is.na(spearman)|spearman==1)]
-
-## tidy up the assay names to correspond to the specific analysis by creating a universal assay 1 and assay 2 column, with the assay suffix changed to the particular DE run
-## unfortunately i can't think kof a way to easily apply thru this, so we'll do a couple for i loops. not a huge table we're working with anyhow
-## basically everything except the first copy of the xenium cell type column is our other search space for the majority of rows
-assaycheckcols <- c("assay_xen","assay_xen.1","assay_xendom","assay_visdom","assay_visdom.1","assay_visclps","assay_xendom.1","assay_visclps.1")
-
-## initialize the global assay columns
-corrs[,assay1:=""]
-corrs[,assay2:=""]
-
-i<-1
-for (i in c(1:nrow(corrs))){
-    # get the first nonnull assay column. this isn't pretty, was a lot of guess and check til something worked as desired
-    assaycol1 <- names(unlist(
-        corrs[i,..assaycheckcols])[!is.na(unlist(corrs[i,..assaycheckcols]))])[1]
-    assaycol2 <- names(unlist(
-        corrs[i,..assaycheckcols])[!is.na(unlist(corrs[i,..assaycheckcols]))])[2]
-    
-    set(corrs,i,"assay1",value=corrs[i,get(assaycol1)])
-    set(corrs,i,"assay2",value=corrs[i,get(assaycol2)])
-    
-    ### isolate the identifier from the assay again
-    corrs[i,assay1:=gsub(assay1,pattern="(.*)_.*$",replacement="\\1")]
-    corrs[i,assay2:=gsub(assay2,pattern="(.*)_.*$",replacement="\\1")]
-    
-    ## append the tstat suffix
-    corrs[i,assay1:=paste0(assay1,gsub(corrs[i,stats],pattern="^t(_.*)::.*$",replacement="\\1"))]
-    corrs[i,assay2:=paste0(assay2,gsub(corrs[i,stats],pattern="^.*::t(_.*)$",replacement="\\1"))]
-}
-
-## remove self-correlations (some of which have inexplicable > 0.99999999 but < 1 values) and NAs
-corrs <- corrs[!(spearman>0.999999)]
-
-### rearrange into assay1, assay2, spearman
-corrsout <- corrs[,.(assay1,assay2,spearman)]
-
-### save
-fwrite(corrsout,"processed-data/08_VMH-ARC cell type sex DE within domains/07-Sex DE correlations between pairs of cell type or domain wise analyses of Xenium, Visium.txt")
+```{r}
+# ### save
+# fwrite(corrsout,"processed-data/08_VMH-ARC cell type sex DE within domains/07-Sex DE correlations between pairs of cell type or domain wise analyses of Xenium, Visium.txt")
 ```
 
 reprod info
@@ -223,115 +210,4 @@ Running under: macOS Sonoma 14.5
 
 Matrix products: default
 BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
-LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
-
-locale:
-[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
-
-time zone: America/Chicago
-tzcode source: internal
-
-attached base packages:
-[1] stats4    stats     graphics  grDevices utils     datasets  methods  
-[8] base     
-
-other attached packages:
- [1] BiocParallel_1.38.0 parallelly_1.37.1   colorout_1.3-0.2   
- [4] gridExtra_2.3       ggplot2_3.5.1       Biostrings_2.72.1  
- [7] GenomeInfoDb_1.40.1 XVector_0.44.0      IRanges_2.38.0     
-[10] S4Vectors_0.42.0    BiocGenerics_0.50.0 data.table_1.15.4  
-[13] rlang_1.1.4        
-
-loaded via a namespace (and not attached):
- [1] utf8_1.2.4              generics_0.1.3          digest_0.6.36          
- [4] magrittr_2.0.3          evaluate_0.24.0         grid_4.4.1             
- [7] fastmap_1.2.0           rprojroot_2.0.4         jsonlite_1.8.8         
-[10] sessioninfo_1.2.2       httr_1.4.7              fansi_1.0.6            
-[13] UCSC.utils_1.0.0        scales_1.3.0            codetools_0.2-20       
-[16] cli_3.6.3               crayon_1.5.3            munsell_0.5.1          
-[19] withr_3.0.0             yaml_2.3.8              tools_4.4.1            
-[22] parallel_4.4.1          dplyr_1.1.4             colorspace_2.1-0       
-[25] GenomeInfoDbData_1.2.12 here_1.0.1              vctrs_0.6.5            
-[28] R6_2.5.1                lifecycle_1.0.4         zlibbioc_1.50.0        
-[31] pkgconfig_2.0.3         pillar_1.9.0            gtable_0.3.5           
-[34] glue_1.7.0              xfun_0.45               tibble_3.2.1           
-[37] tidyselect_1.2.1        rstudioapi_0.16.0       knitr_1.47             
-[40] farver_2.1.2            htmltools_0.5.8.1       rmarkdown_2.27         
-[43] labeling_0.4.3          compiler_4.4.1         
-> sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────
- setting  value
- version  R version 4.4.1 RC (2024-06-06 r86719)
- os       macOS Sonoma 14.5
- system   aarch64, darwin20
- ui       RStudio
- language (EN)
- collate  en_US.UTF-8
- ctype    en_US.UTF-8
- tz       America/Chicago
- date     2024-07-09
- rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
- pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
-
-─ Packages ────────────────────────────────────────────────────────────────────
- ! package          * version date (UTC) lib source
-   BiocGenerics     * 0.50.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   BiocParallel     * 1.38.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
-   Biostrings       * 2.72.1  2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
- P cli                3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
-   codetools          0.2-20  2024-03-31 [1] CRAN (R 4.4.1)
-   colorout         * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
-   colorspace         2.1-0   2023-01-23 [1] CRAN (R 4.4.0)
-   crayon             1.5.3   2024-06-20 [1] CRAN (R 4.4.0)
-   data.table       * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
-   digest             0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
-   dplyr              1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
-   evaluate           0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
-   fansi              1.0.6   2023-12-08 [1] CRAN (R 4.4.0)
-   farver             2.1.2   2024-05-13 [1] CRAN (R 4.4.0)
-   fastmap            1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
-   generics           0.1.3   2022-07-05 [1] CRAN (R 4.4.0)
-   GenomeInfoDb     * 1.40.1  2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
-   GenomeInfoDbData   1.2.12  2024-05-01 [1] Bioconductor
-   ggplot2          * 3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
-   glue               1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
-   gridExtra        * 2.3     2017-09-09 [1] CRAN (R 4.4.0)
-   gtable             0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
-   here               1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
-   htmltools          0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
-   httr               1.4.7   2023-08-15 [1] CRAN (R 4.4.0)
-   IRanges          * 2.38.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   jsonlite           1.8.8   2023-12-04 [1] CRAN (R 4.4.0)
-   knitr              1.47    2024-05-29 [1] CRAN (R 4.4.0)
-   labeling           0.4.3   2023-08-29 [1] CRAN (R 4.4.0)
-   lifecycle          1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
-   magrittr           2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
-   munsell            0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
-   parallelly       * 1.37.1  2024-02-29 [1] CRAN (R 4.4.0)
-   pillar             1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
-   pkgconfig          2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
-   R6                 2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
- P rlang            * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
-   rmarkdown          2.27    2024-05-17 [1] CRAN (R 4.4.0)
-   rprojroot          2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
-   rstudioapi         0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
-   S4Vectors        * 0.42.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   scales             1.3.0   2023-11-28 [1] CRAN (R 4.4.0)
-   sessioninfo        1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
-   tibble             3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
-   tidyselect         1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
-   UCSC.utils         1.0.0   2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
-   utf8               1.2.4   2023-10-22 [1] CRAN (R 4.4.0)
-   vctrs              0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
-   withr              3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
-   xfun               0.45    2024-06-16 [1] CRAN (R 4.4.0)
-   XVector          * 0.44.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   yaml               2.3.8   2023-12-11 [1] CRAN (R 4.4.0)
-   zlibbioc           1.50.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-
- [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
- [2] /Users/bmulvey/Library/R/arm64/4.4/library
-
- P ── Loaded and on-disk path mismatch.
-
-───────────────────────────────────────────────────────────────────────────────
+LAPACK: /Library/Frameworks/R.framework/Versi
