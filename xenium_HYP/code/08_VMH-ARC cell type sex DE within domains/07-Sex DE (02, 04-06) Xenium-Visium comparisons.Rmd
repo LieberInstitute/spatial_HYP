@@ -53,10 +53,9 @@ des <- list(xencellarc,xencellvmh,xenhiconfarc,xenhiconfvmh,xennucarc,xennucvmh,
 names(des) <- c("xencellarc","xencellvmh","xenhiconfarc","xenhiconfvmh","xennucarc","xennucvmh","xendomain","visdom","visclps")
 ```
 
-
-extract t stat and gene from each and merge
+### this is clunky, but it'll work
 ```{r}
-## assay corresponds to cell type/cluster; subset to VMH/ARC clusters for xenium
+## subset to VMH/ARC clusters for xenium
 des[1:6] <- lapply(des[1:6],FUN=function(x){
     x <- x[cluster_annotated %in% c(paste0("VMH_",c(1:3)),paste0("ARC_",c(1:5)))]
 })
@@ -65,138 +64,68 @@ des[1:6] <- lapply(des[1:6],FUN=function(x){
 des[8:9] <- lapply(des[8:9],FUN=function(x){
     x <- x[assay %in% c("VMH","ARC","VMH.1","VMH.2","ARC.1","ARC.2")]
 })
-
-## make the cluster column uniform across datasets
+## make the cluster column uniformly "assay" across datasets
 des[1:6] <- lapply(des[1:6],FUN=function(x){setnames(x,"cluster_annotated","assay")})
 des[[7]] <- setnames(des[[7]],"domain","assay")
 
+## get the unique combinations of these analyses
+combs <- expand.grid(names(des),names(des))
+combs <- as.data.table(combs)
+setnames(combs,c("de1","de2"))
+combs[,de1:=as.character(de1)]
+combs[,de2:=as.character(de2)]
 
-## label the xenium/visium clusters at a generic level 
-des[1:7] <- lapply(des[1:7],FUN=function(x){x[,assay:=paste0(assay,"_xen")]})
-des[8:9] <- lapply(des[8:9],FUN=function(x){x[,assay:=paste0(assay,"_vis")]})
+corstab <- as.data.frame(matrix(nrow=1,ncol=3))
 
-
-
-### merge all into one big gene-cell-cluster-Male-vs-Female-t-stat table
 i<-1
-for (i in c(1:length(des))){
-    tstatcol <- grep(names(des[[i]]),pattern="^t.*$",value=T)
-    getnames <- c("gene_name","assay",tstatcol)
-    tmp <- des[[i]][,..getnames]
-    # set a unique t stat column name based on the analysis
-    tstatreplace <- paste0("t_",names(des)[i])
-    setnames(tmp,tstatcol,tstatreplace)
-
-    if(i==1){
-        setnames(tmp,"assay","assay_xen")
-        detabs <- copy(tmp)
+for (i in c(1:nrow(combs))){
+    # get the unique "assay" values across these two analyses
+    assays <- unique(c(des[[combs[i,de1]]]$assay,des[[combs[i,de2]]]$assay))
+    assays <- expand.grid(assays,assays)
+    assays <- as.data.table(assays)
+    setnames(assays,c("a1","a2"))
+    assays[,a1:=as.character(a1)]
+    assays[,a2:=as.character(a2)]
+    
+    ## iterate through those combinations for the i'th pair of analyses
+    j<-1
+    for (j in c(1:nrow(assays))){
+        assay1 <- des[[combs[i,de1]]][assay==assays[j,a1]]
+        assay2 <- des[[combs[i,de2]]][assay==assays[j,a2]]
+        
+        t1 <- grep(names(assay1),pattern="^t.*$",value=T)
+        setnames(assay1,t1,"t1")
+        
+        t2 <- grep(names(assay2),pattern="^t.*$",value=T)
+        setnames(assay2,t2,"t2")
+        
+        ## line up the values for correlation
+        curtest <- merge.data.table(assay1[,.(gene_name,t1)],assay2[,.(gene_name,t2)],by="gene_name")
+        ## correlate
+        if(nrow(curtest)==0){next(j)} else{
+            spear <- cor(curtest$t1,curtest$t2,method="spearman",use="pairwise.complete.obs")
+            corstab <- rbind(corstab, c(
+                paste0(assays[j,a1],"_",combs[i,de1]),
+                paste0(assays[j,a2],"_",combs[i,de2]),
+                spear
+            ))
+            rm(spear)
+        }
+        rm(curtest,t2,t1,assay1,assay2)
     }
-    # merge xenium rows by cluster and gene
-    else if (i<=6){
-        setnames(tmp,"assay","assay_xen")
-        detabs <- merge.data.table(detabs,tmp,by=c("gene_name","assay_xen"),all=T)
-    }
-    else if (i==7){setnames(tmp,"assay","assay_xendom")
-                detabs <- merge.data.table(detabs,tmp,by="gene_name",all=T,allow.cartesian=T)}
-    # subset visium results to xenium genes, merge by gene, allow multi-pairing so that each gene-cell type row from visium is paired to each from xenium
-    else if (i>7){
-        tmp <- tmp[gene_name %in% detabs$gene_name]
-        setnames(tmp,"assay",paste0("assay_",names(des)[i]))
-            detabs <- merge.data.table(detabs,tmp,by="gene_name",all=T,allow.cartesian=T)
-    }
-    rm(tmp,tstatcol,tstatreplace,getnames)
+    rm(assays,j)
 }
-rm(i)
+
+## remove self-correlations and NAs
+corstab <- as.data.table(corstab)
+setnames(corstab,c("DEcluster_domain1","DEcluster_domain2","spearman"))
+corstab <- corstab[DEcluster_domain1!=DEcluster_domain2 & !is.na(spearman)]
+
 ```
 
-### past this point, I'm totally stuck on how to get back a table with just three columns linking unique analyses (but only comparing across analysis types for matched cluster(s), e.g. ARC_1_xenhiconf vs. ARC_1_xennuc). the  below code sort of gets there but information gets lost and flipped around in the generation of the "correct" labels so it's pretty useless.
-
-### DO NOT USE -- ERRONEOUS RESULTS ###
-
+### save
 ```{r}
-# combs <- expand.grid(grep(names(detabs),pattern="t_",value=T),grep(names(detabs),pattern="t_",value=T))
-# 
-# combs <- as.data.table(combs)
-# setnames(combs,c("stat1","stat2"))
-# combs[,stat1:=as.character(stat1)]
-# combs[,stat2:=as.character(stat2)]
-# 
-# ## specify the suffix portion of the column names "assay_suffix" that each t stat column corresponds to.
-# combs[!(stat1 %in% grep(stat1,pattern="dom|vis",value=T)),asssuff1:="xen"]
-# combs[!(stat2 %in% grep(stat2,pattern="dom|vis",value=T)),asssuff2:="xen"]
-# 
-# combs[stat1 %in% grep(stat1,pattern="visclps",value=T),asssuff1:="visclps"]
-# combs[stat2 %in% grep(stat2,pattern="visclps",value=T),asssuff2:="visclps"]
-# 
-# combs[stat1 %in% grep(stat1,pattern="visdom",value=T),asssuff1:="visdom"]
-# combs[stat2 %in% grep(stat2,pattern="visdom",value=T),asssuff2:="visdom"]
-# 
-# combs[stat1 %in% grep(stat1,pattern="visdom",value=T),asssuff1:="visdom"]
-# combs[stat2 %in% grep(stat2,pattern="visdom",value=T),asssuff2:="visdom"]
-# 
-# combs[stat1 %in% grep(stat1,pattern="xendom",value=T),asssuff1:="xendom"]
-# combs[stat2 %in% grep(stat2,pattern="xendom",value=T),asssuff2:="xendom"]
-# 
-# ## loop through combinations of cell-type/domain pairs and calculate spearman correlation between the t stats for each pair
-# i<-1
-# for (i in c(1:nrow(combs))){
-#     # get the names of the two assay columns being used in this step
-#     bycols <- paste0("assay_",combs[i,.(asssuff1,asssuff2)])
-#     # calculate the spearman correlation between the two t stat vectors for each unique value in bycols
-#     res <- detabs[,cor(get(combs[i,stat1]),get(combs[i,stat2]),method="spearman",use = "pairwise.complete.obs"),by=bycols]
-# 
-#     # note which t stat columns were used in this step, since several xenium cell type DE analyses have the same assay column (but obv different stat cols).
-#     res[,stats:=paste0(combs[i,stat1],"::",combs[i,stat2])]
-# 
-#     # concatenate
-#     if(i==1){corrs <- copy(res)}
-#     else{corrs <- rbind(corrs,res,fill=T)}
-# }
-# # set the correlation column value name
-# setnames(corrs,"V1","spearman")
-# 
-# # drop NAs and 1s (self-correls)
-# corrs <- corrs[!(is.na(spearman)|spearman==1)]
-# 
-# ## tidy up the assay names to correspond to the specific analysis by creating a universal assay 1 and assay 2 column, with the assay suffix changed to the particular DE run
-# ## unfortunately i can't think kof a way to easily apply thru this, so we'll do a couple for i loops. not a huge table we're working with anyhow
-# ## basically everything except the first copy of the xenium cell type column is our other search space for the majority of rows
-# assaycheckcols <- c("assay_xen","assay_xen.1","assay_xendom","assay_visdom","assay_visdom.1","assay_visclps","assay_xendom.1","assay_visclps.1")
-# 
-# ## initialize the global assay columns
-# corrs[,assay1:=""]
-# corrs[,assay2:=""]
-# 
-# i<-1
-# for (i in c(1:nrow(corrs))){
-#     # get the first nonnull assay column. this isn't pretty, was a lot of guess and check til something worked as desired
-#     assaycol1 <- names(unlist(
-#         corrs[i,..assaycheckcols])[!is.na(unlist(corrs[i,..assaycheckcols]))])[1]
-#     assaycol2 <- names(unlist(
-#         corrs[i,..assaycheckcols])[!is.na(unlist(corrs[i,..assaycheckcols]))])[2]
-# 
-#     set(corrs,i,"assay1",value=corrs[i,get(assaycol1)])
-#     set(corrs,i,"assay2",value=corrs[i,get(assaycol2)])
-# 
-#     ### isolate the identifier from the assay again
-#     corrs[i,assay1:=gsub(assay1,pattern="(.*)_.*$",replacement="\\1")]
-#     corrs[i,assay2:=gsub(assay2,pattern="(.*)_.*$",replacement="\\1")]
-# 
-#     ## append the tstat suffix
-#     corrs[i,assay1:=paste0(assay1,gsub(corrs[i,stats],pattern="^t(_.*)::.*$",replacement="\\1"))]
-#     corrs[i,assay2:=paste0(assay2,gsub(corrs[i,stats],pattern="^.*::t(_.*)$",replacement="\\1"))]
-# }
-# 
-# ## remove self-correlations (some of which have inexplicable > 0.99999999 but < 1 values) and NAs
-# corrs <- corrs[!(spearman>0.999999)]
-# 
-# ### rearrange into assay1, assay2, spearman
-# corrsout <- corrs[,.(assay1,assay2,spearman)]
-```
-
-```{r}
-# ### save
-# fwrite(corrsout,"processed-data/08_VMH-ARC cell type sex DE within domains/07-Sex DE correlations between pairs of cell type or domain wise analyses of Xenium, Visium.txt")
+fwrite(corstab,"processed-data/08_VMH-ARC cell type sex DE within domains/07-Sex DE correlations between pairs of cell type or domain wise analyses of Xenium, Visium.txt")
 ```
 
 reprod info
@@ -210,4 +139,62 @@ Running under: macOS Sonoma 14.5
 
 Matrix products: default
 BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
-LAPACK: /Library/Frameworks/R.framework/Versi
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] colorout_1.3-0.2  data.table_1.15.4 rlang_1.1.4      
+
+loaded via a namespace (and not attached):
+ [1] compiler_4.4.1    here_1.0.1        fastmap_1.2.0     rprojroot_2.0.4  
+ [5] cli_3.6.3         htmltools_0.5.8.1 tools_4.4.1       rstudioapi_0.16.0
+ [9] yaml_2.3.9        rmarkdown_2.27    knitr_1.48        xfun_0.45        
+[13] digest_0.6.36     evaluate_0.24.0  
+> sessioninfo::session_info()
+─ Session info ──────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-08-01
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ──────────────────────────────────────────────────────────────────────
+ ! package     * version date (UTC) lib source
+ P cli           3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
+   colorout    * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   data.table  * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   digest        0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
+   evaluate      0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
+   fastmap       1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   here          1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools     0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   knitr         1.48    2024-07-07 [1] CRAN (R 4.4.1)
+ P rlang       * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown     2.27    2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot     2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi    0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
+   sessioninfo   1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   xfun          0.45    2024-06-16 [1] CRAN (R 4.4.0)
+   yaml          2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+─────────────────────────────────────────────────────────────────────────────────
