@@ -1,0 +1,373 @@
+---
+title: "Fig1_Overview"
+author: "Bernard Mulvey"
+date: "2024-08-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10, fig.width = 7, include = FALSE)
+knitr::opts_chunk$set(fig.width = 7, fig.height = 10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table) # Preferred data manipulation package
+library(ggplot2) # Dependency for several plotting functions
+library(ggtext) # more character types in ggplots
+library(ggrastr) # avoid making raster images one can't even open
+library(SpatialExperiment) # Visium data framework
+library(SpatialFeatureExperiment) # Xenium data framework
+library(spatialLIBD) # one option for plotting cluster assignments, but breaks when the in-tissue portion of a visium area is very un-square.
+library(escheR) # alternative spotplotting function, at least for visium
+library(viridis) # palettes
+library(Polychrome) # better palettes
+require(colorout) # Utility for RStudio
+library(sf) # define the polygonal boundaries of xenium domains
+ColorOut()
+
+# code reformatting in Rstudio
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+# set plotting defaults for ggplot
+theme_set(theme_bw() + theme(axis.text.x = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.y = element_text(size = 8), axis.title.y = element_text(size = 9), plot.title = element_blank(), strip.text = element_text(size = 10), legend.text = element_text(size = 8), legend.title = element_text(size = 8, hjust = 0.5)))
+```
+
+## load visium, xenium experiments, cluster labels
+```{r}
+#### VISIUM ####
+hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+bscl <- fread("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt") # main visium clustering (bs=bayesspace)
+
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("Vis",cl)]
+bscl[cl=="Vis7",cl:="VMH.1"]
+bscl[cl=="Vis12",cl:="VMH.2"]
+bscl[cl=="Vis4",cl:="ARC.1"]
+bscl[cl=="Vis6",cl:="ARC.2"]
+
+bscl[,dom:=cl]
+bscl[dom %in% c("VMH.1","VMH.2"),dom:="VMH"]
+bscl[dom %in% c("ARC.1","ARC.2"),dom:="ARC"]
+bscl[!(dom %in% c("VMH","ARC")),dom:="Other"]
+
+bscl<-DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
+hyp2$k15dom <- bscl$cl
+hyp2$`Visium Domain` <- bscl$dom
+
+#### XENIUM ####
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bksmooth <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt") ## xenium domain assignments after smoothing, by xenium cell
+
+bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
+bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
+hypx$dom <- bksmooth$dualVMHARC4
+```
+
+### previously made a working 15-color palette, so we can use this for both Xen/Vis VMH/ARC at subdomain/cluster levels (max 8 VM+ARC combined, in xenium) and for overarching domains (2 colors + a gray for other)
+
+that prior palette, with slots 1-2 for ARC, 3-4 for VMH, and 5-6 for WM or other, was: "#269422", "#169482", "#4a2881", "#6A0D53", "#3D4047", "#A9A7A9", "#F70022", "#551CFD", "#F59B26", "#00B3FD", "#FF0DF7", "#D193FE", "#D1CA1C", "#FB479F", "#AD260D"
+The colors slotted in 1 and 3 are also picked to have the same luminance so that gene expression coloration fill in escheR grayscale doesn't look falsely darker or lighter in one spot type vs. the other 
+```{r}
+pal <- c("#8c63cf","#5dd959","#A9A7A9")
+names(pal) <- c("VMH","ARC","Other")
+,
+### also save the prior palette for quick loadup
+fullpal <- c("#8c63cf", "#169482", ,"#5dd959" "#6A0D53", "#3D4047", "#A9A7A9", "#F70022", "#551CFD", "#F59B26", "#00B3FD", "#FF0DF7", "#D193FE", "#D1CA1C", "#FB479F", "#AD260D")
+saveRDS(fullpal,"manuscript_plots/15color_palette.RDS")
+rm(fullpal)
+####
+```
+
+Panels A and B are experimental overviews/schematics.
+Panels C and E are exemplary Visium samples illustrating the domain clustering.
+Our exemplary samples here are V12D05-350_C1 (Br8741,X99_8741C looks better) and V13Y24-346_C1 (Br1225, xenium rep X99_1225A looks better); D and F are those samples in Xenium
+```{r}
+panc <- hyp2[,hyp2$sample_id=="V12D05-350_C1"]
+
+p <- make_escheR(panc)
+p <- p |> add_fill("Visium Domain",size=0.25,point_size = 0.6)
+
+pdf("manuscript_plots/Fig1/1C-V12D05_350_C1_Visdomains.pdf",height=1.57,width=2)
+p+
+    scale_fill_manual(values=pal,na.value = NA)+
+    ggtitle("V12D05-350_C1 (Visium)")+
+    guides(color="none",fill=guide_legend(override.aes=list(size=1.5)))+
+    labs(fill="Visium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
+dev.off()
+
+rm(panc,p)
+```
+
+
+### Panel D: xenium counterpart to D (X99_8741C)
+```{r}
+pand <- hypx[,hypx$sample_id=="X99_8741C"]
+
+# y_reverse is an argument to unexported escheR internals that we don't want set to TRUE, since we have oriented all the tissue the way we want it already.
+p <- make_escheR(pand,y_reverse=FALSE)
+p <- p |> add_fill("dom",size=0.05,point_size = 0.2)
+
+pdf("manuscript_plots/Fig1/1D-X99_8741C_Xendomains.pdf",height=1.57,width=2)
+p+
+    scale_fill_manual(values=pal,na.value = NA)+
+    ggtitle("X99_8741C (Xenium)")+
+    guides(color="none",fill=guide_legend(override.aes=list(size=1.5)))+
+    labs(fill="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
+dev.off()
+
+rm(pand,p)
+
+```
+
+Panel E: V13Y24-346_C1 (Br1225)
+```{r}
+pane <- hyp2[,hyp2$sample_id=="V13Y24-346_C1"]
+
+p <- make_escheR(pane)
+p <- p |> add_fill("Visium Domain",size=0.25,point_size = 0.6)
+
+pdf("manuscript_plots/Fig1/1E-V13Y24_346_C1_Visdomains.pdf",height=1.57,width=2)
+p+
+    scale_fill_manual(values=pal,na.value = NA)+
+    ggtitle("V13Y24-346_C1 (Visium)")+
+    guides(color="none",fill=guide_legend(override.aes=list(size=1.5)))+
+    labs(fill="Visium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
+dev.off()
+
+rm(pane,p)
+```
+
+
+Panel F: xenium counterpart to E (X99_1225A)
+```{r}
+panf <- hypx[,hypx$sample_id=="X99_1225A"]
+
+p <- make_escheR(panf)
+p <- p |> add_fill("dom",size=0.05,point_size = 0.2)
+
+pdf("manuscript_plots/Fig1/1F-X99_1225A_Xendomains.pdf",height=1.57,width=2)
+p+
+    # the reverse_y argument didn't work here, but manually flipping the sign on the y variable designated in p (`.y`) restores the orientation we intended.
+    aes(y=-.y)+
+    scale_fill_manual(values=pal,na.value = NA)+
+    ggtitle("X99_1225A (Xenium)")+
+    guides(color="none",fill=guide_legend(override.aes=list(size=1.5)))+
+    labs(fill="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0,-0.05,0,unit = "in"))
+dev.off()
+
+rm(panf,p)
+
+```
+
+# panels G and H are two representative ARC markers in one Visium sample : POMC and GABRE
+```{r}
+## we need to set rownames of the visium object to gene symbols instead of ensembl identifiers for ease here
+rownames(hyp2) <- rowData(hyp2)$gene_name
+
+## for escheR, we put the assay value into the colData for it to use
+pang <- hyp2["POMC",hyp2$sample_id=="V12D05-350_C1"]
+colData(pang)$`log counts` <- as.numeric(logcounts(pang)["POMC",])
+
+p <- make_escheR(pang)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.5)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
+
+pdf("manuscript_plots/Fig1/1G-V12D05_350_C1_POMC.pdf",height=2,width=2)
+p+
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    #scale_fill_grey()+
+    ggtitle("V13Y24-346_C1 (Visium)<br>POMC Expression")+
+    guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+    labs(color="Visium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin = margin(-0.05,0,0,0,unit="in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"))
+dev.off()
+
+rm(p,pang)
+```
+
+
+### The xenium panels (I,J) are going to be tricky -- there's so many spots we can't really use the line-color / fill heuristic. we'll have to add an outline around the domain instead.
+
+
+Panel H (same sample, GABRE)
+### geez, the legend order somehow is opposite here and i would've been up shit creek without this handy post https://stackoverflow.com/questions/76397512/ggplot-ordering-legends-with-guides-changes-continuous-legend-to-discrete
+```{r}
+panh <- hyp2["GABRE",hyp2$sample_id=="V12D05-350_C1"]
+colData(panh)$`log counts` <- as.numeric(logcounts(panh)["GABRE",])
+
+### we need to get the hulls for the VMH and ARC domains, which I thought we were done with but hey
+
+
+p <- make_escheR(panh)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.5)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
+
+pdf("manuscript_plots/Fig1/1H-V12D05_350_C1_GABRE.pdf",height=2,width=2)
+p+
+    
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    #scale_fill_grey()+
+    ggtitle("V13Y24-346_C1 (Visium)<br>GABRE Expression")+
+    guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+    guides(fill=guide_colorbar(order=1),color=guide_legend(order=2))+
+    labs(color="Visium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin = margin(-0.05,0,0,0,unit="in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"))
+dev.off()
+
+rm(p,panh)
+```
+
+###  I and J are the same two genes in the xenium counterpart, X99_8741C
+
+The xenium panels (I,J,M,N) are going to be tricky -- there's so many spots we can't really use the line-color / fill heuristic. we'll have to add an outline around the domain instead.
+```{r}
+pani <- hypx["POMC",hypx$sample_id=="X99_8741C"]
+# 
+## attach the coordinate info to colData so we can make an sf object out of this for hull extraction. see well-annotated code from DE benchmarking of domain boundaries in xenium_HYP/code/07/03c-DE benchmarks...
+tmpcoldata <- cbind(colData(pani),spatialCoords(pani))
+paniv <- st_as_sf(as.data.frame(tmpcoldata[tmpcoldata$dom=="VMH",]),coords = c("sdimx","sdimy"))
+paniv <- st_convex_hull(st_union(paniv))
+
+pania <- st_as_sf(as.data.frame(tmpcoldata[tmpcoldata$dom=="ARC",]),coords=c("sdimx","sdimy"))
+pania <- st_concave_hull(st_union(pania),ratio = 0.1)
+
+## create the data table we will use for overlaying the boundary polygons
+dompoly <- cbind(paniv[[1]][[1]],rep("VMH",nrow(paniv[[1]][[1]])))
+dompoly <- rbind(dompoly,cbind(pania[[1]][[1]],rep("ARC",nrow(pania[[1]][[1]]))))
+dompoly <- as.data.table(dompoly)
+setnames(dompoly,c("xpol","ypol","dompol"))
+dompoly[,xpol:=as.numeric(xpol)]
+dompoly[,ypol:=as.numeric(ypol)]
+
+rm(pania,paniv)
+
+# ## finally, append the counts for our gene of interest (POMC)
+colData(pani)$`log counts` <- as.numeric(logcounts(pani)["POMC",])
+
+p <- make_escheR(pani,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+pdf("manuscript_plots/Fig1/1I-X99_8741C_POMC.pdf",height=2,width=2)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    ggtitle("X99_8741C (Xenium)<br>POMC Expression")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    labs(color="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin = margin(0,0,-0.15,0,unit="in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0.05,0.05,-0.1,-0.05,unit = "in"))
+dev.off()
+
+## keep the domain polygons for the plotting the other gene
+rm(pani,p,tmpcoldata)
+```
+
+Panel J: GABRE in Xenium X99_8741C
+```{r}
+panj <- hypx["GABRE",hypx$sample_id=="X99_8741C"]
+
+colData(panj)$`log counts` <- as.numeric(logcounts(panj)["GABRE",])
+
+p <- make_escheR(panj,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+pdf("manuscript_plots/Fig1/1J-X99_8741C_GABRE.pdf",height=2,width=2)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    ggtitle("X99_8741C (Xenium)<br>GABRE Expression")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    labs(color="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin = margin(0,0,-0.15,0,unit="in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0.05,0.05,-0.1,-0.05,unit = "in"))
+dev.off()
+
+## keep the polygons for xenium domain borders -- we're showing this sample for the VMH markers too. 
+```
+
+Now for K, L: VMH marker genes in V12D05_350_C1
+```{r}
+pank <- hyp2["NR5A1",hyp2$sample_id=="V12D05-350_C1"]
+colData(pank)$`log counts` <- as.numeric(logcounts(pank)["NR5A1",])
+
+p <- make_escheR(pank)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.5)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
+
+pdf("manuscript_plots/Fig1/1K-V12D05_350_C1_NR5A1.pdf",height=2,width=2)
+p+
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    ggtitle("V12D05-350_C1 (Visium)<br>NR5A1 Expression")+
+    guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+    labs(color="Visium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin = margin(-0.05,0,0,0,unit="in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"))
+dev.off()
+
+rm(p,pank)
+```
+
+```{r}
+panl <- hyp2["FEZF1",hyp2$sample_id=="V12D05-350_C1"]
+colData(panl)$`log counts` <- as.numeric(logcounts(panl)["FEZF1",])
+
+p <- make_escheR(panl)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.5)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
+
+pdf("manuscript_plots/Fig1/1L-V12D05_350_C1_FEZF1.pdf",height=2,width=2)
+p+
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    ggtitle("V12D05-350_C1 (Visium)<br>FEZF1 Expression")+
+    guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+    labs(color="Visium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin = margin(-0.05,0,0,0,unit="in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"))
+dev.off()
+
+rm(p,panl)
+```
+
+Now the VMH markers in Xenium:
+```{r}
+panm <- hypx["NR5A1",hypx$sample_id=="X99_8741C"]
+colData(panm)$`log counts` <- as.numeric(logcounts(panm)["NR5A1",])
+
+p <- make_escheR(panm,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+pdf("manuscript_plots/Fig1/1M-X99_8741C_NR5A1.pdf",height=2,width=2)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    ggtitle("X99_8741C (Xenium)<br>NR5A1 Expression")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    labs(color="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin = margin(0,0,-0.15,0,unit="in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0.05,0.05,-0.1,-0.05,unit = "in"))
+dev.off()
+```
+
+```{r}
+pann <- hypx["FEZF1",hypx$sample_id=="X99_8741C"]
+
+colData(pann)$`log counts` <- as.numeric(logcounts(pann)["FEZF1",])
+
+p <- make_escheR(pann,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+pdf("manuscript_plots/Fig1/1N-X99_8741C_FEZF1.pdf",height=2,width=2)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    ggtitle("X99_8741C (Xenium)<br>FEZF1 Expression")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    labs(color="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin = margin(0,0,-0.15,0,unit="in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0.05,0.05,-0.1,-0.05,unit = "in"))
+dev.off()
+
+rm(pann,dompoly,p)
+```
+
+Figure 1 O is a heatmap of VMH/ARC marker genes from Visium.
