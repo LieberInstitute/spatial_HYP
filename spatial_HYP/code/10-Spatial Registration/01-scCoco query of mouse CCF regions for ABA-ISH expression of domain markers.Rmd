@@ -13,6 +13,7 @@ knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
 library(scCoco)
+library(cocoframer)
 require(colorout)
 library(stringr)
 library(orthogene)
@@ -95,12 +96,23 @@ names(markerqueries[[3]]) <- gsub (names(markerqueries[[3]]),pattern="X22",repla
 ```{r}
 ### pull down some of this info locally to minimize queries during the actual run
 test <- aba_ids(genes=unique(unlist(markerqueries)))
-### LEFT OFF HERE -- CANNOT COMPLETE TESTS DUE TO TIMEOUTS ###
+### CANNOT COMPLETE TESTS FOR A GIVEN CLUSTER SET DUE TO TIMEOUTS ###
+### first attempt got through cluster set 1, resetting i to 2 ...
 
-cocoqueryres <- list()
-i<-1
-for(i in c(1:length(markerqueries))){
-    cocoqueryres[[i]] <- scCoco::findRegions_genesets(gene_set = markerqueries[[i]],min_ids = 50,target_structure_id=1097,timeout=1000)
+## the timeouts always appear to be with the step for getting CCF annotations, which per the sccoco docs are using cocoframer::get_mba_ontology() and passing that to cocoframer::flatten mba ontology. since get mba ontology targets the same file every time, we can download the former, run flatten on the latter, and then provide it to sccoco as a "cached version" using its mba_ontology_flatten argument. i have downloaded this file and stored it in processed data as 01a.
+## manually run the get_mba_ontology step, then pass that into theflatten step. save the flatten output to tsv to pass to scoco.
+temp <- tempfile()
+download.file("http://api.brain-map.org/api/v2/structure_graph_download/1.json",temp)
+raw_ontology <- jsonlite::fromJSON(temp)[["msg"]]
+# use the cocoframer flatten mba ontology and save this output as tsv
+ontout <- cocoframer::flatten_mba_ontology(raw_ontology)
+
+fwrite(ontout,"processed-data/10-Spatial Registration/01a-ABA_msbrn_ontolflatten_for_sccoco.tsv",sep='\t',quote=F)
+
+# cocoqueryres <- list()
+i<-2
+for(i in c(2:length(markerqueries))){
+    cocoqueryres[[i]] <- scCoco::findRegions_genesets(gene_set = markerqueries[[i]],min_ids = 50,target_structure_id=1097,mba_ontology_flatten="processed-data/10-Spatial Registration/01a_ABA_msbrn_ontolflatten_for_sccoco.tsv")
     names(cocoqueryres)[i] <- names(markerqueries)[i]
 }
 ```

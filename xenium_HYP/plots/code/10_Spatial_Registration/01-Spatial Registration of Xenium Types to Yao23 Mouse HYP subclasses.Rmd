@@ -1,0 +1,181 @@
+---
+title: "01-Spatial Registration of Xenium Types to Yao23 Mouse HYP subclasses"
+output: html_document
+date: "2024-08-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+load registration results (table of cluster-cluster marker t stat correlations)
+```{r}
+yaoreg <- readRDS("processed-data/10_Spatial_Registration/01-NonSampleSpecific_cluster_reg_to_Yao23_mouseHyp_subclasses.RDS")
+
+# collapse lists of results into one big list
+plotlist <- c(
+        yaoreg[[1]],
+        yaoreg[[2]]
+)
+stopifnot(length(unique(names(plotlist)))==length(yaoreg)*length(yaoreg[[1]]))
+### oops, we have duplicate runs (the max genes we set in the loop was greater than the number of compatible genes)
+plotlist <- plotlist[unique(names(plotlist))]
+
+## load the cluster annotations to annotate our clusters on the plots
+bkanno <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno[,clus:=paste0("X",clus)]
+```
+
+# plots
+```{r}
+sbp <- MulticoreParam(8)
+register(sbp)
+
+bpmapply(m=plotlist,n=as.list(names(plotlist)),SIMPLIFY = F,BPPARAM = sbp,FUN = function(m,n){
+        plttab <- as.data.table(m,keep.rownames=T)
+        plttab <- melt(plttab,id.vars="sphyp_domain")
+        plttab <- merge.data.table(plttab,bkanno,by.x="sphyp_domain",by.y="clus")
+        plt <- ggplot(plttab,aes(x=bjm_annot,y=variable,fill=value))+
+                geom_tile()+
+                ggtitle(gsub(n,pattern="_",replacement=" "))+
+                theme(axis.text.x = element_text(angle=90,size=9,hjust=1),axis.text.y=element_text(size=9),title = element_text(size=12))+
+                scale_fill_viridis_c()
+        n <-  ifelse(as.numeric(gsub(
+                n,pattern="^.*_top_(.*)_sp.*$",replacement="\\1"))>1000,
+                yes=gsub(n,pattern="^(.*)_top_.*_(sp.*)$",replacement=paste0("\\1","_allgenes_","\\2")),
+                no=n)
+        pdf(paste0("plots/10_Spatial_Registration/01-",n,".pdf"),height = 0.2*ncol(m),width=10)
+        print(plt)
+        dev.off()
+})
+```
+
+rep inf
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+[1] BiocParallel_1.38.0 parallelly_1.38.0   colorout_1.3-0.2    gridExtra_2.3      
+[5] ggplot2_3.5.1       data.table_1.15.4   rlang_1.1.4        
+
+loaded via a namespace (and not attached):
+ [1] vctrs_0.6.5       cli_3.6.3         knitr_1.48        xfun_0.45        
+ [5] generics_0.1.3    glue_1.7.0        colorspace_2.1-0  rprojroot_2.0.4  
+ [9] htmltools_0.5.8.1 datasets_4.4.1    scales_1.3.0      fansi_1.0.6      
+[13] rmarkdown_2.27    grid_4.4.1        evaluate_0.24.0   munsell_0.5.1    
+[17] tibble_3.2.1      fastmap_1.2.0     yaml_2.3.9        lifecycle_1.0.4  
+[21] compiler_4.4.1    codetools_0.2-20  dplyr_1.1.4       pkgconfig_2.0.3  
+[25] here_1.0.1        rstudioapi_0.16.0 digest_0.6.36     R6_2.5.1         
+[29] tidyselect_1.2.1  utf8_1.2.4        parallel_4.4.1    pillar_1.9.0     
+[33] magrittr_2.0.3    withr_3.0.0       tools_4.4.1       gtable_0.3.5     
+
+─ Session info ───────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-08-04
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ───────────────────────────────────────────────────────────────────────
+ ! package      * version date (UTC) lib source
+   BiocParallel * 1.38.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+ P cli            3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
+   codetools      0.2-20  2024-03-31 [1] CRAN (R 4.4.1)
+   colorout     * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace     2.1-0   2023-01-23 [1] CRAN (R 4.4.0)
+   data.table   * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   digest         0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
+   dplyr          1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
+   evaluate       0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
+   fansi          1.0.6   2023-12-08 [1] CRAN (R 4.4.0)
+   fastmap        1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   generics       0.1.3   2022-07-05 [1] CRAN (R 4.4.0)
+   ggplot2      * 3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
+   glue           1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
+   gridExtra    * 2.3     2017-09-09 [1] CRAN (R 4.4.0)
+   gtable         0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
+   here           1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools      0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   knitr          1.48    2024-07-07 [1] CRAN (R 4.4.1)
+   lifecycle      1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
+   magrittr       2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
+   munsell        0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
+   parallelly   * 1.38.0  2024-07-27 [1] CRAN (R 4.4.0)
+   pillar         1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig      2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
+   R6             2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
+ P rlang        * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown      2.27    2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot      2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi     0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
+   scales         1.3.0   2023-11-28 [1] CRAN (R 4.4.0)
+   sessioninfo    1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   tibble         3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
+   tidyselect     1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
+   utf8           1.2.4   2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs          0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
+   withr          3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
+   xfun           0.45    2024-06-16 [1] CRAN (R 4.4.0)
+   yaml           2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+──────────────────────────────────────────────────────────────────────────────────
