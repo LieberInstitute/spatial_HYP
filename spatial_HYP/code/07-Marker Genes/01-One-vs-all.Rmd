@@ -42,7 +42,7 @@ setnames(collapse,2,"cl")
 collapse[,cl:=paste0("X",cl)]
 
 collapse[cl %in% c("X7","X12"),cl:="VMH"]
-collapse[cl %in% c("X4","X6"),cl:="ARC"]
+collapse[cl %in% c("X4","X6",),cl:="ARC"]
 
 bscls[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]] <- collapse
 

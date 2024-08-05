@@ -26,8 +26,9 @@ slibdmk <- slibdmk[names(slibdmk) %in% grep(names(slibdmk),pattern="HARMONYlmbna
 
 ### fix VMH/ARC cluster labels for the collapsed case
 setnames(slibdmk[[4]],gsub(names(slibdmk[[4]]),pattern="XVMH",replacement="VMH"))
-setnames(slibdmk[[4]],gsub(names(slibdmk[[4]]),pattern="ARC",replacement="ARC"))
+setnames(slibdmk[[4]],gsub(names(slibdmk[[4]]),pattern="XARC",replacement="ARC"))
 setnames(slibdmk[[4]],gsub(names(slibdmk[[4]]),pattern="XX",replacement="X"))
+setnames(slibdmk[[4]],gsub(names(slibdmk[[4]]),pattern="X13",replacement="ARC.ventral"))
 
 
 ### assign VMH(k).n labels to the corresponding uncollapsed k15/20k31 results
@@ -35,12 +36,15 @@ setnames(slibdmk[[1]],gsub(names(slibdmk[[1]]),pattern="X4",replacement="ARC.1")
 setnames(slibdmk[[1]],gsub(names(slibdmk[[1]]),pattern="X6",replacement="ARC.2"))
 setnames(slibdmk[[1]],gsub(names(slibdmk[[1]]),pattern="X7",replacement="VMH.1"))
 setnames(slibdmk[[1]],gsub(names(slibdmk[[1]]),pattern="X12",replacement="VMH.2"))
+setnames(slibdmk[[1]],gsub(names(slibdmk[[1]]),pattern="X13",replacement="ARC.ventral"))
 
 ### add the k20/k31 ARC and VMH cluster identifiers
 setnames(slibdmk[[2]],gsub(names(slibdmk[[2]]),pattern="X2$",replacement="VMH20.1"))
 setnames(slibdmk[[2]],gsub(names(slibdmk[[2]]),pattern="X3",replacement="VMH20.2"))
 setnames(slibdmk[[2]],gsub(names(slibdmk[[2]]),pattern="X1$",replacement="ARC20.1"))
 setnames(slibdmk[[2]],gsub(names(slibdmk[[2]]),pattern="X4",replacement="ARC20.2"))
+setnames(slibdmk[[2]],gsub(names(slibdmk[[2]]),pattern="X11",replacement="ARC20.3"))
+setnames(slibdmk[[2]],gsub(names(slibdmk[[2]]),pattern="X12",replacement="ARC20.4"))
 
 # k=31
 setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X6",replacement="VMH31.1"))
@@ -52,7 +56,9 @@ setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X31",replacement="VMH31.
 setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X2$",replacement="ARC31.1"))
 setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X4",replacement="ARC31.2"))
 setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X11",replacement="ARC31.3"))
-setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X22",replacement="ARC31.4"))
+setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X17",replacement="ARC31.4"))
+setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X22",replacement="ARC31.5"))
+setnames(slibdmk[[3]],gsub(names(slibdmk[[3]]),pattern="X24",replacement="ARC31.6"))
 
 ### 
 slmn <- names(slibdmk)

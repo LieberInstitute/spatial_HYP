@@ -58,18 +58,22 @@ rm(i,catres)
 ### fix VMH/ARC cluster labels for the collapsed case which doesn't really work with this (no leading X)
 clustres[[1]][spdom=="XVMH",spdom:="VMH"]
 clustres[[1]][spdom=="XARC",spdom:="ARC"]
+clustres[[1]][spdom=="X13",spdom:="ARC.ventral"]
 
 ### assign VMH.1,2 ARC1,2 labels to the corresponding k15 results
 clustres[[2]][spdom=="X4",spdom:="ARC.1"]
 clustres[[2]][spdom=="X6",spdom:="ARC.2"]
 clustres[[2]][spdom=="X7",spdom:="VMH.1"]
 clustres[[2]][spdom=="X12",spdom:="VMH.2"]
+clustres[[2]][spdom=="X13",spdom:="ARC.ventral"]
 
 ### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
 clustres[[3]][spdom=="X2",spdom:="VMH20.1"]
 clustres[[3]][spdom=="X3",spdom:="VMH20.2"]
 clustres[[3]][spdom=="X1",spdom:="ARC20.1"]
 clustres[[3]][spdom=="X4",spdom:="ARC20.2"]
+clustres[[3]][spdom=="X11",spdom:="ARC20.3"]
+clustres[[3]][spdom=="X12",spdom:="ARC20.4"]
 
 clustres[[4]][spdom=="X6",spdom:="VMH31.1"]
 clustres[[4]][spdom=="X21",spdom:="VMH31.2"]
@@ -79,7 +83,9 @@ clustres[[4]][spdom=="X31",spdom:="VMH31.5"]
 clustres[[4]][spdom=="X2",spdom:="ARC31.1"]
 clustres[[4]][spdom=="X4",spdom:="ARC31.2"]
 clustres[[4]][spdom=="X11",spdom:="ARC31.3"]
-clustres[[4]][spdom=="X22",spdom:="ARC31.4"]
+clustres[[4]][spdom=="X17",spdom:="ARC31.4"]
+clustres[[4]][spdom=="X22",spdom:="ARC31.5"]
+clustres[[4]][spdom=="X24",spdom:="ARC31.6"]
 
 ## check these are okay
 lapply(clustres,FUN=function(x){unique(x$spdom)})

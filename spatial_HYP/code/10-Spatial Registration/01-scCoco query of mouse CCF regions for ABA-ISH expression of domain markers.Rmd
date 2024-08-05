@@ -1,7 +1,7 @@
 ---
 title: "01-scCoco query of mouse CCF regions for ABA-ISH expression of domain markers"
 author: "Bernard Mulvey"
-date: "2024-07-30"
+date: "2024-08-04"
 output: html_document
 ---
 
@@ -110,16 +110,17 @@ ontout <- cocoframer::flatten_mba_ontology(raw_ontology)
 fwrite(ontout,"processed-data/10-Spatial Registration/01a-ABA_msbrn_ontolflatten_for_sccoco.tsv",sep='\t',quote=F)
 
 # cocoqueryres <- list()
-i<-2
-for(i in c(2:length(markerqueries))){
-    cocoqueryres[[i]] <- scCoco::findRegions_genesets(gene_set = markerqueries[[i]],min_ids = 50,target_structure_id=1097,mba_ontology_flatten="processed-data/10-Spatial Registration/01a_ABA_msbrn_ontolflatten_for_sccoco.tsv")
+## that got us through the second iter.. now set i to 3..
+i<-3
+for(i in c(3:length(markerqueries))){
+    cocoqueryres[[i]] <- scCoco::findRegions_genesets(gene_set = markerqueries[[i]],min_ids = 50,target_structure_id=1097,mba_ontology_flatten="processed-data/10-Spatial Registration/01a-ABA_msbrn_ontolflatten_for_sccoco.tsv")
     names(cocoqueryres)[i] <- names(markerqueries)[i]
 }
 ```
 
 ### save
 ```{r}
-saveRDS(cocoqueryres,"processed-data/10-Spatial Registration/01-scCoco query of top 150 markers per k15-20-31-collapsedK15 domain in ABA ms hyp CCF areas.RDS")
+saveRDS(cocoqueryres,"processed-data/10-Spatial Registration/01b-scCoco query of top 150 markers per k15-20-31-collapsedK15 domain in ABA ms hyp CCF areas.RDS")
 ```
 
 ### session info
@@ -127,3 +128,161 @@ saveRDS(cocoqueryres,"processed-data/10-Spatial Registration/01-scCoco query of 
 sessionInfo()
 sessioninfo::session_info()
 ```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] cocoframer_0.1.1    xml2_1.3.6          BiocParallel_1.38.0 parallelly_1.38.0  
+ [5] orthogene_1.10.0    stringr_1.5.1       colorout_1.3-0.2    scCoco_0.0.0.9000  
+ [9] data.table_1.15.4   rlang_1.1.4        
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.5              babelgene_22.9            xfun_0.45                
+ [4] ggplot2_3.5.1             htmlwidgets_1.6.4         rstatix_0.7.2            
+ [7] lattice_0.22-6            bitops_1.0-7              vctrs_0.6.5              
+[10] tools_4.4.1               generics_0.1.3            yulab.utils_0.1.4        
+[13] curl_5.2.1                parallel_4.4.1            tibble_3.2.1             
+[16] fansi_1.0.6               pkgconfig_2.0.3           Matrix_1.7-0             
+[19] homologene_1.4.68.19.3.27 ggplotify_0.1.2           lifecycle_1.0.4          
+[22] compiler_4.4.1            treeio_1.28.0             munsell_0.5.1            
+[25] codetools_0.2-20          carData_3.0-5             ggtree_3.12.0            
+[28] gprofiler2_0.2.3          ggfun_0.1.5               htmltools_0.5.8.1        
+[31] RCurl_1.98-1.14           yaml_2.3.9                lazyeval_0.2.2           
+[34] plotly_4.10.4             pillar_1.9.0              car_3.1-2                
+[37] ggpubr_0.6.0              tidyr_1.3.1               cachem_1.1.0             
+[40] grr_0.9.5                 default_1.0.0             abind_1.4-5              
+[43] nlme_3.1-165              tidyselect_1.2.1          aplot_0.2.3              
+[46] digest_0.6.36             stringi_1.8.4             dplyr_1.1.4              
+[49] purrr_1.0.2               rprojroot_2.0.4           fastmap_1.2.0            
+[52] grid_4.4.1                here_1.0.1                colorspace_2.1-0         
+[55] cli_3.6.3                 magrittr_2.0.3            patchwork_1.2.0          
+[58] utf8_1.2.4                broom_1.0.6               ape_5.8                  
+[61] withr_3.0.0               scales_1.3.0              backports_1.5.0          
+[64] httr_1.4.7                rmarkdown_2.27            ggsignif_0.6.4           
+[67] memoise_2.0.1             evaluate_0.24.0           knitr_1.48               
+[70] viridisLite_0.4.2         gridGraphics_0.5-1        Rcpp_1.0.13              
+[73] glue_1.7.0                tidytree_0.4.6            jsonlite_1.8.8           
+[76] rstudioapi_0.16.0         R6_2.5.1                  fs_1.6.4                 
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-08-04
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ───────────────────────────────────────────────────────────────────────
+ ! package      * version        date (UTC) lib source
+   abind          1.4-5          2016-07-21 [1] CRAN (R 4.4.0)
+   ape            5.8            2024-04-11 [1] CRAN (R 4.4.0)
+   aplot          0.2.3          2024-06-17 [1] CRAN (R 4.4.0)
+   babelgene      22.9           2022-09-29 [1] CRAN (R 4.4.0)
+   backports      1.5.0          2024-05-23 [1] CRAN (R 4.4.0)
+   BiocParallel * 1.38.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   bitops         1.0-7          2021-04-24 [1] CRAN (R 4.4.0)
+   broom          1.0.6          2024-05-17 [1] CRAN (R 4.4.0)
+   cachem         1.1.0          2024-05-16 [1] CRAN (R 4.4.0)
+   car            3.1-2          2023-03-30 [1] CRAN (R 4.4.0)
+   carData        3.0-5          2022-01-06 [1] CRAN (R 4.4.0)
+ P cli            3.6.3          2024-06-21 [2] CRAN (R 4.4.0)
+   cocoframer   * 0.1.1          2024-05-01 [1] Github (AllenInstitute/cocoframer@1de30a8)
+   codetools      0.2-20         2024-03-31 [1] CRAN (R 4.4.1)
+   colorout     * 1.3-0.2        2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace     2.1-0          2023-01-23 [1] CRAN (R 4.4.0)
+   curl           5.2.1          2024-03-01 [1] CRAN (R 4.4.0)
+   data.table   * 1.15.4         2024-03-30 [2] CRAN (R 4.4.0)
+   default        1.0.0          2017-08-07 [1] CRAN (R 4.4.0)
+   digest         0.6.36         2024-06-23 [1] CRAN (R 4.4.0)
+   dplyr          1.1.4          2023-11-17 [1] CRAN (R 4.4.0)
+   evaluate       0.24.0         2024-06-10 [1] CRAN (R 4.4.0)
+   fansi          1.0.6          2023-12-08 [1] CRAN (R 4.4.0)
+   fastmap        1.2.0          2024-05-15 [1] CRAN (R 4.4.0)
+   fs             1.6.4          2024-04-25 [1] CRAN (R 4.4.0)
+   generics       0.1.3          2022-07-05 [1] CRAN (R 4.4.0)
+   ggfun          0.1.5          2024-05-28 [1] CRAN (R 4.4.0)
+   ggplot2        3.5.1          2024-04-23 [1] CRAN (R 4.4.0)
+   ggplotify      0.1.2          2023-08-09 [1] CRAN (R 4.4.0)
+   ggpubr         0.6.0          2023-02-10 [1] CRAN (R 4.4.0)
+   ggsignif       0.6.4          2022-10-13 [1] CRAN (R 4.4.0)
+   ggtree         3.12.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   glue           1.7.0          2024-01-09 [1] CRAN (R 4.4.0)
+   gprofiler2     0.2.3          2024-02-23 [1] CRAN (R 4.4.0)
+   gridGraphics   0.5-1          2020-12-13 [1] CRAN (R 4.4.0)
+   grr            0.9.5          2016-08-26 [1] CRAN (R 4.4.0)
+   gtable         0.3.5          2024-04-22 [1] CRAN (R 4.4.0)
+   here           1.0.1          2020-12-13 [1] CRAN (R 4.4.0)
+   homologene     1.4.68.19.3.27 2019-03-28 [1] CRAN (R 4.4.0)
+   htmltools      0.5.8.1        2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets    1.6.4          2023-12-06 [1] CRAN (R 4.4.0)
+   httr           1.4.7          2023-08-15 [1] CRAN (R 4.4.0)
+   jsonlite       1.8.8          2023-12-04 [1] CRAN (R 4.4.0)
+   knitr          1.48           2024-07-07 [1] CRAN (R 4.4.1)
+   lattice        0.22-6         2024-03-20 [1] CRAN (R 4.4.1)
+   lazyeval       0.2.2          2019-03-15 [1] CRAN (R 4.4.0)
+   lifecycle      1.0.4          2023-11-07 [1] CRAN (R 4.4.0)
+   magrittr       2.0.3          2022-03-30 [1] CRAN (R 4.4.0)
+   Matrix         1.7-0          2024-04-26 [1] CRAN (R 4.4.1)
+   memoise        2.0.1          2021-11-26 [1] CRAN (R 4.4.0)
+   munsell        0.5.1          2024-04-01 [1] CRAN (R 4.4.0)
+   nlme           3.1-165        2024-06-06 [1] CRAN (R 4.4.0)
+   orthogene    * 1.10.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   parallelly   * 1.38.0         2024-07-27 [1] CRAN (R 4.4.0)
+   patchwork      1.2.0          2024-01-08 [1] CRAN (R 4.4.0)
+   pillar         1.9.0          2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig      2.0.3          2019-09-22 [1] CRAN (R 4.4.0)
+   plotly         4.10.4         2024-01-13 [1] CRAN (R 4.4.0)
+   purrr          1.0.2          2023-08-10 [1] CRAN (R 4.4.0)
+   R6             2.5.1          2021-08-19 [1] CRAN (R 4.4.0)
+   Rcpp           1.0.13         2024-07-17 [1] CRAN (R 4.4.0)
+   RCurl          1.98-1.14      2024-01-09 [1] CRAN (R 4.4.0)
+ P rlang        * 1.1.4          2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown      2.27           2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot      2.0.4          2023-11-05 [1] CRAN (R 4.4.0)
+   rstatix        0.7.2          2023-02-01 [1] CRAN (R 4.4.0)
+   rstudioapi     0.16.0         2024-03-24 [1] CRAN (R 4.4.0)
+   scales         1.3.0          2023-11-28 [1] CRAN (R 4.4.0)
+   scCoco       * 0.0.0.9000     2024-05-01 [1] Github (lsteuernagel/scCoco@efffc50)
+   sessioninfo    1.2.2          2021-12-06 [1] CRAN (R 4.4.0)
+   stringi        1.8.4          2024-05-06 [1] CRAN (R 4.4.0)
+   stringr      * 1.5.1          2023-11-14 [1] CRAN (R 4.4.0)
+   tibble         3.2.1          2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr          1.3.1          2024-01-24 [1] CRAN (R 4.4.0)
+   tidyselect     1.2.1          2024-03-11 [1] CRAN (R 4.4.0)
+   tidytree       0.4.6          2023-12-12 [1] CRAN (R 4.4.0)
+   treeio         1.28.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   utf8           1.2.4          2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs          0.6.5          2023-12-01 [1] CRAN (R 4.4.0)
+   viridisLite    0.4.2          2023-05-02 [1] CRAN (R 4.4.0)
+   withr          3.0.0          2024-01-16 [1] CRAN (R 4.4.0)
+   xfun           0.45           2024-06-16 [1] CRAN (R 4.4.0)
+   xml2         * 1.3.6          2023-12-04 [1] CRAN (R 4.4.0)
+   yaml           2.3.9          2024-07-05 [1] CRAN (R 4.4.0)
+   yulab.utils    0.1.4          2024-01-28 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+──────────────────────────────────────────────────────────────────────────────────

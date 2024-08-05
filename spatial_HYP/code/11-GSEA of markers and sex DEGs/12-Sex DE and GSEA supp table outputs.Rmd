@@ -1,7 +1,7 @@
 ---
 title: "12-Sex DE and GSEA supp table outputs"
 author: "Bernard Mulvey"
-date: "2024-02-12"
+date: "2024-08-04"
 output: html_document
 ---
 
@@ -22,16 +22,15 @@ default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
 
 ```
 
-### read in, write out sex DE dreamlet tabs
+### read in, write out sex DE tabs
 ```{r}
-sexde <- readRDS("data/09-Sex DE/01-dreamlet-ranfx_nnsvg10-HmnylmbNA-BS-15-20-31-15VMHARCclpsd.RDS")
+sexde <- readRDS("processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
 
 ofile <- names(sexde)
 
 mapply(x=sexde,y=ofile,FUN=function(x,y){
-    setnames(x,c("Gene ID","Domain","logFC (Male to Female)","Avg Expression","t","P.Value","adj.P.Val","B","z.std","Gene Symbol","Chromosome"))
-    x <- x[,c(2,10,3,7,6,5,8,9,4,11,1)]
-    fwrite(x,paste0("local_supptab_assembly/sex de sheets/dreamlet_",y,".txt"),sep='\t',quote=F)})
+    setnames(x,c("Domain","Gene Symbol","logFC (Male to Female)","P.Value","adj.P.Val","t","B","Chromosome","Avg Expression","Gene ID"))
+    fwrite(x,paste0("local_supptab_assembly/sex DE tables/voomLmFit_",y,".txt"),sep='\t',quote=F)})
 rm(sexde,ofile)
 ```
 
@@ -78,6 +77,7 @@ clustres[[2]] <- clustres[[2]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsv
 ### assign VMH.1,2 ARC1,2 labels to the corresponding k15 results
 clustres[[2]][spdom=="X4",spdom:="ARC.1"]
 clustres[[2]][spdom=="X6",spdom:="ARC.2"]
+clustres[[2]][spdom=="X13",spdom:="ARC.3"]
 clustres[[2]][spdom=="X7",spdom:="VMH.1"]
 clustres[[2]][spdom=="X12",spdom:="VMH.2"]
 
@@ -95,8 +95,9 @@ clustres[[4]][spdom=="X31",spdom:="VMH31.5"]
 clustres[[4]][spdom=="X2",spdom:="ARC31.1"]
 clustres[[4]][spdom=="X4",spdom:="ARC31.2"]
 clustres[[4]][spdom=="X11",spdom:="ARC31.3"]
-clustres[[4]][spdom=="X22",spdom:="ARC31.4"]
-
+clustres[[4]][spdom=="X17",spdom:="ARC31.4"]
+clustres[[4]][spdom=="X22",spdom:="ARC31.5"]
+clustres[[4]][spdom=="X24",spdom:="ARC31.6"]
 
 ### name the lists and columns, rearrange, and save
 names(clustres) <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
