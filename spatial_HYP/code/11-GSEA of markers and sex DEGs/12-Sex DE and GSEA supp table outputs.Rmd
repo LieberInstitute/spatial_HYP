@@ -26,6 +26,38 @@ default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
 ```{r}
 sexde <- readRDS("processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
 
+### fix cluster names for bspace nnsvg10 harmony lambda null
+tmp <- sexde[grep(names(sexde),pattern="nnsvg10",value=T)]
+tmp <- tmp[grep(names(tmp),pattern="lmbna",value=T)]
+sexde <- sexde[!(names(sexde) %in% names(tmp))]
+
+#k15
+tmp[[1]][assay=="X13",assay:="ARC.ventral"]
+tmp[[1]][assay=="X4",assay:="ARC.1"]
+tmp[[1]][assay=="X6",assay:="ARC.2"]
+tmp[[1]][assay=="X11",assay:="VMH.1"]
+tmp[[1]][assay=="X12",assay:="VMH.2"]
+
+#k20
+tmp[[2]][assay=="X4",assay:="ARC.1"]
+tmp[[2]][assay=="X6",assay:="ARC.2"]
+tmp[[2]][assay=="X13",assay:="ARC.ventral"]
+tmp[[2]][assay=="X7",assay:="VMH.1"]
+tmp[[2]][assay=="X12",assay:="VMH.2"]
+
+#k31
+tmp[[3]][assay=="X2",assay:="VMH20.1"]
+tmp[[3]][assay=="X3",assay:="VMH20.2"]
+tmp[[3]][assay=="X1",assay:="ARC20.1"]
+tmp[[3]][assay=="X4",assay:="ARC20.2"]
+tmp[[3]][assay=="X11",assay:="ARC20.ventral1"]
+tmp[[3]][assay=="X12",assay:="ARC20.ventral2"]
+
+#k15 collapsed
+tmp[[4]][assay=="X13",assay:="ARC.ventral"]
+
+## append and save all tables
+sexde <- c(tmp,sexde)
 ofile <- names(sexde)
 
 mapply(x=sexde,y=ofile,FUN=function(x,y){
@@ -68,6 +100,7 @@ rm(i,catres)
 
 ### fix VMH/ARC cluster labels for the collapsed case
 clustres[[1]][,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
+clustres[[1]][spdom=="X13",spdom:="ARC.ventral"]
 
 ## remove collapsed cluster results from the k=15 single domain results. not sure how/why i copied them there before. 
 clustres[[2]] <- clustres[[2]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
@@ -77,7 +110,7 @@ clustres[[2]] <- clustres[[2]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsv
 ### assign VMH.1,2 ARC1,2 labels to the corresponding k15 results
 clustres[[2]][spdom=="X4",spdom:="ARC.1"]
 clustres[[2]][spdom=="X6",spdom:="ARC.2"]
-clustres[[2]][spdom=="X13",spdom:="ARC.3"]
+clustres[[2]][spdom=="X13",spdom:="ARC.ventral"]
 clustres[[2]][spdom=="X7",spdom:="VMH.1"]
 clustres[[2]][spdom=="X12",spdom:="VMH.2"]
 
@@ -86,6 +119,8 @@ clustres[[3]][spdom=="X2",spdom:="VMH20.1"]
 clustres[[3]][spdom=="X3",spdom:="VMH20.2"]
 clustres[[3]][spdom=="X1",spdom:="ARC20.1"]
 clustres[[3]][spdom=="X4",spdom:="ARC20.2"]
+clustres[[3]][spdom=="X11",spdom:="ARC20.ventral1"]
+clustres[[3]][spdom=="X12",spdom:="ARC20.ventral2"]
 
 clustres[[4]][spdom=="X6",spdom:="VMH31.1"]
 clustres[[4]][spdom=="X21",spdom:="VMH31.2"]
@@ -95,9 +130,9 @@ clustres[[4]][spdom=="X31",spdom:="VMH31.5"]
 clustres[[4]][spdom=="X2",spdom:="ARC31.1"]
 clustres[[4]][spdom=="X4",spdom:="ARC31.2"]
 clustres[[4]][spdom=="X11",spdom:="ARC31.3"]
-clustres[[4]][spdom=="X17",spdom:="ARC31.4"]
-clustres[[4]][spdom=="X22",spdom:="ARC31.5"]
-clustres[[4]][spdom=="X24",spdom:="ARC31.6"]
+clustres[[4]][spdom=="X17",spdom:="ARC31.ventral1"]
+clustres[[4]][spdom=="X22",spdom:="ARC31.4"]
+clustres[[4]][spdom=="X24",spdom:="ARC31.ventral2"]
 
 ### name the lists and columns, rearrange, and save
 names(clustres) <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
@@ -236,9 +271,9 @@ for (i in c(1:length(tfbindpatterns))){
 }
 rm(i,catres)
 
-### fix VMH/ARC cluster labels for the collapsed case which doesn't really work with this (no leading X)
 ### fix VMH/ARC cluster labels for the collapsed case
 clustres[[1]][,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
+clustres[[1]][spdom=="X13",spdom:="ARC.ventral"]
 
 ## remove collapsed cluster results from the k=15 single domain results. not sure how/why i copied them there before. 
 clustres[[2]] <- clustres[[2]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
@@ -248,6 +283,7 @@ clustres[[2]] <- clustres[[2]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsv
 ### assign VMH.1,2 ARC1,2 labels to the corresponding k15 results
 clustres[[2]][spdom=="X4",spdom:="ARC.1"]
 clustres[[2]][spdom=="X6",spdom:="ARC.2"]
+clustres[[2]][spdom=="X13",spdom:="ARC.ventral"]
 clustres[[2]][spdom=="X7",spdom:="VMH.1"]
 clustres[[2]][spdom=="X12",spdom:="VMH.2"]
 
@@ -256,6 +292,8 @@ clustres[[3]][spdom=="X2",spdom:="VMH20.1"]
 clustres[[3]][spdom=="X3",spdom:="VMH20.2"]
 clustres[[3]][spdom=="X1",spdom:="ARC20.1"]
 clustres[[3]][spdom=="X4",spdom:="ARC20.2"]
+clustres[[3]][spdom=="X11",spdom:="ARC20.ventral1"]
+clustres[[3]][spdom=="X12",spdom:="ARC20.ventral2"]
 
 clustres[[4]][spdom=="X6",spdom:="VMH31.1"]
 clustres[[4]][spdom=="X21",spdom:="VMH31.2"]
@@ -265,7 +303,9 @@ clustres[[4]][spdom=="X31",spdom:="VMH31.5"]
 clustres[[4]][spdom=="X2",spdom:="ARC31.1"]
 clustres[[4]][spdom=="X4",spdom:="ARC31.2"]
 clustres[[4]][spdom=="X11",spdom:="ARC31.3"]
+clustres[[4]][spdom=="X17",spdom:="ARC31.ventral1"]
 clustres[[4]][spdom=="X22",spdom:="ARC31.4"]
+clustres[[4]][spdom=="X24",spdom:="ARC31.ventral2"]
 
 # name lists and save RDS
 names(clustres) <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
@@ -315,12 +355,15 @@ sexdisres[Domain=="X4"&`BayesSpace Run`=="k15",Domain:="ARC.1"]
 sexdisres[Domain=="X6"&`BayesSpace Run`=="k15",Domain:="ARC.2"]
 sexdisres[Domain=="X7"&`BayesSpace Run`=="k15",Domain:="VMH.1"]
 sexdisres[Domain=="X12"&`BayesSpace Run`=="k15",Domain:="VMH.2"]
+sexdisres[Domain=="X13"&`BayesSpace Run`=="k15",Domain:="ARC.ventral"]
 
 ### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
 sexdisres[Domain=="X2"&`BayesSpace Run`=="k20",Domain:="VMH20.1"]
 sexdisres[Domain=="X3"&`BayesSpace Run`=="k20",Domain:="VMH20.2"]
 sexdisres[Domain=="X1"&`BayesSpace Run`=="k20",Domain:="ARC20.1"]
 sexdisres[Domain=="X4"&`BayesSpace Run`=="k20",Domain:="ARC20.2"]
+sexdisres[Domain=="X11"&`BayesSpace Run`=="k20",Domain:="ARC20.ventral1"]
+sexdisres[Domain=="X12"&`BayesSpace Run`=="k20",Domain:="ARC20.ventral2"]
 
 sexdisres[Domain=="X6"&`BayesSpace Run`=="k31",Domain:="VMH31.1"]
 sexdisres[Domain=="X21"&`BayesSpace Run`=="k31",Domain:="VMH31.2"]
@@ -331,6 +374,8 @@ sexdisres[Domain=="X2"&`BayesSpace Run`=="k31",Domain:="ARC31.1"]
 sexdisres[Domain=="X4"&`BayesSpace Run`=="k31",Domain:="ARC31.2"]
 sexdisres[Domain=="X11"&`BayesSpace Run`=="k31",Domain:="ARC31.3"]
 sexdisres[Domain=="X22"&`BayesSpace Run`=="k31",Domain:="ARC31.4"]
+sexdisres[Domain=="X17"&`BayesSpace Run`=="k31",Domain:="ARC31.ventral1"]
+sexdisres[Domain=="X24"&`BayesSpace Run`=="k31",Domain:="ARC31.ventral2"]
 
 names(sexdisres)
 setnames(sexdisres,c("Diagnosis or Trait","P.Value","P.Adj","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Data or Publication Type from Which Geneset Derives","Domain","BayesSpace Run"))
@@ -338,7 +383,7 @@ sexdisres[1,]
 sexdisres <- sexdisres[,c(1,9,11,10,3,6,5,4,7,2,8)]
 names(sexdisres)
 
-fwrite(sexdisres,"local_supptab_assembly/source mats/sex de sheets/sex-disgene-gsea.txt",sep='\t',quote=F)
+fwrite(sexdisres,"local_supptab_assembly/sex-disgene-gsea.txt",sep='\t',quote=F)
 ```
 
 ```{r}
