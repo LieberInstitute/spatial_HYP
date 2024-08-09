@@ -50,6 +50,8 @@ bkcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0
 ## load cell type annots, append to banksy clustering results; discard clusters labeled "DISCARD"
 bkanno <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
 bkanno[,clus:=paste0("X",clus)]
+## notice that for "Tanycyte_1" we need to exclude 1225 and 8741, where this label also propagated to all of the ventral ARC material unique to those samples, and for tanycyte_3 we need to exclude br6588 because an artifact gets this label in that sample.
+
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 
 bkcl <- merge(bkcl,bkanno,by.x="M0lam0_leiden_multisamp_res2",by.y="clus",all.x=TRUE)
@@ -65,14 +67,19 @@ colLabels(hypb) <- bkcl$M0lam0_leiden_multisamp_res2
 
 ## this should be, like, 35 clusters instead of 41 now
 length(unique(hypb$label)) # 33
+
+## now drop the Tanycyte_1 (X17) from 1225 and 8741 and _3 (X35) from 6588
+hypb <- hypb[,!(hypb$BrNum %in% c("Br1225","Br8741")&hypb$label=="X17")]
+hypb <- hypb[,!(hypb$BrNum %in% c("Br6588")&hypb$label=="X35")]
+
 ```
 
-run registration wrapper. use min cells = 50 since we have much lower per-cell gene content (often 10s to low 100s of transcripts) than would be in seq-based measaures
+run registration wrapper. use min cells = 25 since we have much lower per-cell gene content (often 10s to low 100s of transcripts) than would be in seq-based measaures
 ```{r}
 ## pre-drop sample-cluster pairs that are going to fall under the min_ncells threshold since unused levels will break reg wrapper
 tmpcd <- as.data.table(colData(hypb),keep.rownames=T)
 tmpcd[,sampclus:=paste0(sample_id,"_",label)]
-droplv <- tmpcd[,.N,by="sampclus"][N<50,sampclus]
+droplv <- tmpcd[,.N,by="sampclus"][N<25,sampclus]
 tmpcd <- tmpcd[!(sampclus %in% droplv)]
 tmpcd[,sampclus:=NULL]
 
@@ -80,7 +87,7 @@ tmpcd[,sampclus:=NULL]
 hypb <- hypb[,hypb$key %in% tmpcd$key]
 
 
-hypb.retainedclusts.mk <- spatialLIBD::registration_wrapper(hypb,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "ID",gene_name = "Symbol",min_ncells = 50)
+hypb.retainedclusts.mk <- spatialLIBD::registration_wrapper(hypb,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "ID",gene_name = "Symbol",min_ncells = 25)
 
 saveRDS(hypb.retainedclusts.mk,"processed-data/05_Banksy_M0lam0_res2_multisamp/03a-M0l0kg6_reproducibleClustersOnly_spLIBD_markers.RDS")
 

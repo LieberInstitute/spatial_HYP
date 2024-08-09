@@ -25,7 +25,7 @@ library(parallelly)
 options(parallelly.supportsMulticore.disableOn="")
 options(parallelly.fork.enable=TRUE)
 library(BiocParallel)
-#options(bphost="localhost")
+options(bphost="localhost")
 
 ## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
 unloadNamespace("datasets")
@@ -39,8 +39,8 @@ slibdvis <- readRDS("../spatial_HYP/processed-data/07-Marker_genes/01b-BSpace_al
 slibdvis <- slibdvis[grep(names(slibdvis),pattern="nnsvg10",value=T)]
 slibdvis <- slibdvis[grep(names(slibdvis),pattern="lmbna",value=T)]
 
-## xenium markers
-slibdxen <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_spLIBD_markers.RDS")
+## xenium markers for reproducible clusters and certain sample-cluster pairings excluded (Tanycyte 1 from a couple where that label goes to ventral ARC, Tanycyte 3 from a sample with a clear artifact)
+slibdxen <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/03a-M0l0kg6_reproducibleClustersOnly_spLIBD_markers.RDS")
 slibdxen <- as.data.table(slibdxen[["enrichment"]])
 
 ## xenium cell cluster annots

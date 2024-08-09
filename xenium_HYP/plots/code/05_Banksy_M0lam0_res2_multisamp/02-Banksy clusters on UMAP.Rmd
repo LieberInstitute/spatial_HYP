@@ -1,0 +1,193 @@
+---
+title: "02-Banksy clusters on UMAP"
+output: html_document
+date: "2024-08-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(ggrastr)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+### load table of UMAP embeddings w/ dataset metadata already added, clusters, and cluster annotations
+```{r}
+rastumap <- fread("processed-data/04_general_QC_and_normalization/02a-genetarg-lctUMAP_rawctCAandUMAP_w_metadata.txt.gz")
+
+bkcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+bkanno <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+
+## drop sample-specific clusters, append cluster annotations 
+bkanno[,clus:=paste0("X",clus)]
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
+
+## create supercluster labels to group related cell types together
+bkanno[,supercl:="ifthisisplottedigoofed"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="VMH",value=T),supercl:="VMH (4)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="ARC",value=T),supercl:="ARC (5)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="Tanyc|Alar",value=T),supercl:="Tanycytes or Mural (4)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="Oligo",value=T),supercl:="Oligodendrocyte (4)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="Astro",value=T),supercl:="Astrocyte (2)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="Microg",value=T),supercl:="Microg (3)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="Supraopt",value=T),supercl:="SON (2)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="Unsure_AVP",value=T),supercl:="Non-SON AVP+OXT+ (1)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="Macrop|Periph|Vascul|Endothel",value=T),supercl:="Vascular and Peripheral Immune (5)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="GABA",value=T),supercl:="Other GABAergic Neurons (2)"]
+bkanno[bjm_annot %in% grep(bjm_annot,pattern="Periven",value=T),supercl:="Periventricular nu. (Excitatory) (1)"]
+### the parenthetical numbers add up to 33, so we're good.
+
+setnames(bkcl,2,"cl")
+bkcl <- bkcl[cl %in% bkanno$clus]
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+# key is a field from the colData slot of the SPE that was exported, and is identical to the rownames in case they are lost during switches between d.t. and d.f elsewhere
+rastumap <- rastumap[key %in% bkcl$rn]
+rastumap <- merge.data.table(rastumap,bkcl,by.x="key",by.y="rn")
+
+```
+
+## plot as a 16x16 PDF for high raster quality, then shrink 4x in AI later. therefore, make font sizes ≥ 28 (eventual font size ≥ 7, except legend use equiv. size 5/6)
+```{r}
+p <- ggplot(rastumap,aes(x=UMAP1_CA,y=UMAP2_CA,color=supercl))+ 
+    xlab("UMAP dim 1")+
+    ylab("UMAP dim 2")+
+    labs(color="Cell group (N clusters)")+
+    guides(color=guide_legend(ncol=2,override.aes=list(size=1.5)))+
+    theme(legend.position = "bottom",legend.direction="vertical",title = element_blank(),axis.title = element_text(size=32),axis.text=element_blank(),legend.title = element_text(size=24),legend.text = element_text(size=20),legend.background = element_blank(),legend.box.margin = margin(0,0.25,0,-0.5,unit = "in"))+
+    geom_point(size=0.1)
+
+    
+
+
+pdf("plots/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_on_UMAP.pdf",width=9,height=9)
+rasterize(p,layers="Points",scale = 0.1)
+dev.off()
+```
+
+repro inf
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+[1] png_0.1-8         Cairo_1.6-2       ggrastr_1.0.2     colorout_1.3-0.2 
+[5] gridExtra_2.3     ggplot2_3.5.1     data.table_1.15.4 rlang_1.1.4      
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.5      dplyr_1.1.4       compiler_4.4.1    tidyselect_1.2.1 
+ [5] ggbeeswarm_0.7.2  scales_1.3.0      yaml_2.3.9        fastmap_1.2.0    
+ [9] here_1.0.1        R6_2.5.1          labeling_0.4.3    generics_0.1.3   
+[13] knitr_1.48        tibble_3.2.1      munsell_0.5.1     rprojroot_2.0.4  
+[17] pillar_1.9.0      R.utils_2.12.3    utf8_1.2.4        xfun_0.45        
+[21] cli_3.6.3         withr_3.0.0       magrittr_2.0.3    digest_0.6.36    
+[25] grid_4.4.1        rstudioapi_0.16.0 beeswarm_0.4.0    lifecycle_1.0.4  
+[29] vipor_0.4.7       R.methodsS3_1.8.2 R.oo_1.26.0       vctrs_0.6.5      
+[33] evaluate_0.24.0   glue_1.7.0        farver_2.1.2      sessioninfo_1.2.2
+[37] fansi_1.0.6       colorspace_2.1-0  rmarkdown_2.27    tools_4.4.1      
+[41] pkgconfig_2.0.3   htmltools_0.5.8.1
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-08-07
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ───────────────────────────────────────────────────────────────────────
+ ! package     * version date (UTC) lib source
+   beeswarm      0.4.0   2021-06-01 [1] CRAN (R 4.4.0)
+   Cairo       * 1.6-2   2023-11-28 [1] CRAN (R 4.4.0)
+ P cli           3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
+   colorout    * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace    2.1-0   2023-01-23 [1] CRAN (R 4.4.0)
+   data.table  * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   digest        0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
+   dplyr         1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
+   evaluate      0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
+   fansi         1.0.6   2023-12-08 [1] CRAN (R 4.4.0)
+   farver        2.1.2   2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap       1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   generics      0.1.3   2022-07-05 [1] CRAN (R 4.4.0)
+   ggbeeswarm    0.7.2   2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2     * 3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
+   ggrastr     * 1.0.2   2023-06-01 [1] CRAN (R 4.4.0)
+   glue          1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
+   gridExtra   * 2.3     2017-09-09 [1] CRAN (R 4.4.0)
+   gtable        0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
+   here          1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools     0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   knitr         1.48    2024-07-07 [1] CRAN (R 4.4.1)
+   labeling      0.4.3   2023-08-29 [1] CRAN (R 4.4.0)
+   lifecycle     1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
+   magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
+   munsell       0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
+   pillar        1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
+   png         * 0.1-8   2022-11-29 [1] CRAN (R 4.4.0)
+   R.methodsS3   1.8.2   2022-06-13 [1] CRAN (R 4.4.0)
+   R.oo          1.26.0  2024-01-24 [1] CRAN (R 4.4.0)
+   R.utils       2.12.3  2023-11-18 [1] CRAN (R 4.4.0)
+   R6            2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
+ P rlang       * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown     2.27    2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot     2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi    0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
+   scales        1.3.0   2023-11-28 [1] CRAN (R 4.4.0)
+   sessioninfo   1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   tibble        3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
+   tidyselect    1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
+   utf8          1.2.4   2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs         0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
+   vipor         0.4.7   2023-12-18 [1] CRAN (R 4.4.0)
+   withr         3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
+   xfun          0.45    2024-06-16 [1] CRAN (R 4.4.0)
+   yaml          2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+──────────────────────────────────────────────────────────────────────────────────

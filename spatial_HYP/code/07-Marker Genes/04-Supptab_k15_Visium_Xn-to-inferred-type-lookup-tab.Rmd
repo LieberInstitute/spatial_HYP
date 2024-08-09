@@ -1,0 +1,151 @@
+---
+title: "04-Supptab_k15_Visium_Xn-to-inferred-type-lookup-tab"
+output: html_document
+date: "2024-08-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+read in BayesSpace k15 nnsvg10 harmony lambda NA sheet
+```{r}
+bscl <- fread("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+
+
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("X",cl)]
+bscl[cl=="X7",cl2:="VMH.1"]
+bscl[cl=="X12",cl2:="VMH.2"]
+bscl[cl=="X4",cl2:="ARC.1"]
+bscl[cl=="X6",cl2:="ARC.2"]
+# WM (optic tract, OT): Clusters 3 and 10
+bscl[cl=="X3",cl2:="OT.1"]
+bscl[cl=="X10",cl2:="OT.2"]
+bscl[cl=="X5",cl2:="OT.3"]
+# others:
+bscl[cl=="X1",cl2:="GABA.1"]
+bscl[cl=="X2",cl2:="PeriVN"]
+bscl[cl=="X9",cl2:="Vascular"]
+bscl[cl=="X8",cl2:="SON"]
+bscl[cl=="X13",cl2:="Portal Vasc."]
+bscl[cl=="X14",cl2:="Astro"]
+bscl[cl=="X15",cl2:="GABA.2"]
+bscl[cl=="X11",cl2:="Glut.1"]
+
+### long names
+bscl[cl=="X7",cl3:="Ventromedial nucleus cluster 1"]
+bscl[cl=="X12",cl3:="Ventromedial nucleus cluster 2"]
+bscl[cl=="X4",cl3:="Arcuate nucleus cluster 1"]
+bscl[cl=="X6",cl3:="Arcuate nucleus cluster 2"]
+# WM (optic tract, OT): Clusters 3 and 10
+bscl[cl=="X3",cl3:="Optic tract cluster 1"]
+bscl[cl=="X10",cl3:="Optic tract cluster 2"]
+bscl[cl=="X5",cl3:="Optic tract cluster 3"]
+# others:
+bscl[cl=="X1",cl3:="GABAergic cluster 1"]
+bscl[cl=="X2",cl3:="Periventricular nucleus"]
+bscl[cl=="X9",cl3:="Vascular"]
+bscl[cl=="X8",cl3:="Supraoptic nucleus"]
+bscl[cl=="X13",cl3:="Hypothalamic-Pituitary Portal Vascular System"]
+bscl[cl=="X14",cl3:="Astrocytes"]
+bscl[cl=="X15",cl3:="GABAergic cluster 2"]
+bscl[cl=="X11",cl3:="Glutamatergic cluster 1"]
+
+### other notes
+bscl[cl=="X1",cl4:="Other hypothalamic GABAergic neurons, identity not established"]
+bscl[cl=="X15",cl4:="Other hypothalamic GABAergic neurons, identity not established"]
+bscl[cl=="X11",cl4:="Other hypothalamic or hypothalamus-adjacent excitatory neurons, identity not established"]
+
+
+bscl <- unique(bscl[,.(cl,cl2,cl3,cl4)])
+
+setnames(bscl,c("cl","cl2","cl3","cl4"),c("Cluster ID", "Cluster Short Name","Cluster Full Name","Other Notes"))
+
+fwrite(bscl,"local_supptab_assembly/k15_nnSVG10_cluster-Xn-ID_to_inferred_type_lookuptable.txt",sep='\t',quote=F)
+
+```
+
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+[1] colorout_1.3-0.2  data.table_1.15.4 rlang_1.1.4      
+
+loaded via a namespace (and not attached):
+ [1] compiler_4.4.1    here_1.0.1        fastmap_1.2.0     rprojroot_2.0.4  
+ [5] cli_3.6.3         htmltools_0.5.8.1 tools_4.4.1       rstudioapi_0.16.0
+ [9] yaml_2.3.9        rmarkdown_2.27    knitr_1.48        xfun_0.45        
+[13] digest_0.6.36     evaluate_0.24.0   sessioninfo_1.2.2
+> sessioninfo::session_info()
+─ Session info ────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-08-09
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ────────────────────────────────────────────────────────────────────────
+ ! package     * version date (UTC) lib source
+ P cli           3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
+   colorout    * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   data.table  * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   digest        0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
+   evaluate      0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
+   fastmap       1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   here          1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools     0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   knitr         1.48    2024-07-07 [1] CRAN (R 4.4.1)
+ P rlang       * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown     2.27    2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot     2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi    0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
+   sessioninfo   1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   xfun          0.45    2024-06-16 [1] CRAN (R 4.4.0)
+   yaml          2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+───────────────────────────────────────────────────────────────────────────────────
