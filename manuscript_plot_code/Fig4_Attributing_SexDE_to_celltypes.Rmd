@@ -1,0 +1,235 @@
+---
+title: "Fig4_Attributing_SexDE_to_celltypes"
+output: html_document
+date: "2024-08-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table) # Preferred data manipulation package
+library(ggplot2) # Dependency for several plotting functions
+library(ggtext) # more character types in ggplots
+library(ggrepel) # text labels in volcano plots
+library(ggrastr) # avoid making raster images one can't even open
+library(SpatialExperiment) # Visium data framework
+library(SpatialFeatureExperiment) # Xenium data framework
+library(spatialLIBD) # one option for plotting cluster assignments, but breaks when the in-tissue portion of a visium area is very un-square.
+library(escheR) # alternative spotplotting function, at least for visium
+library(viridis) # palettes
+library(Polychrome) # better palettes
+library(ggstance) # for y axis dodge
+library(sf) # define the polygonal boundaries of xenium domains
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw() + theme(axis.text.x = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.y = element_text(size = 8), axis.title.y = element_text(size = 9), plot.title = element_blank(), strip.text = element_text(size = 10), legend.text = element_text(size = 8), legend.title = element_text(size = 8, hjust = 0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+
+
+#### VISIUM setup ####
+```{r}
+hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+bscl <- fread("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt") # main visium clustering (bs=bayesspace)
+
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("Vis",cl)]
+bscl[cl=="Vis7",cl:="VMH.1"]
+bscl[cl=="Vis12",cl:="VMH.2"]
+bscl[cl=="Vis4",cl:="ARC.1"]
+bscl[cl=="Vis6",cl:="ARC.2"]
+
+bscl[,dom:=cl]
+bscl[dom %in% c("VMH.1","VMH.2"),dom:="VMH"]
+bscl[dom %in% c("ARC.1","ARC.2"),dom:="ARC"]
+bscl[!(dom %in% c("VMH","ARC")),dom:="Other"]
+
+bscl<-DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
+hyp2$k15dom <- bscl$cl
+hyp2$`Visium Domain` <- factor(bscl$dom,levels=c("ARC","VMH","Other"))
+```
+
+### XENIUM setup ###
+```{r}
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bksmooth <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt") ## xenium domain assignments after smoothing, by xenium cell
+
+## but drop discarded cell clusters, too
+bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bkcl,2,"cl")
+
+bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+
+## drop sample-specific clusters, append cluster annotations 
+bkanno[,clus:=paste0("X",clus)]
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
+
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+## drop excluded clusters from xenium spe
+hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
+
+## append cluster annots to xenium spe
+bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]
+bkcl$rn <- NULL
+hypx$banksyclus <- bkcl$bjm_annot
+
+## assign the domain labels to the xenium cells
+bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
+bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
+hypx$dom <- bksmooth$dualVMHARC4
+```
+
+### sex DE results
+```{r}
+visde <- fread("spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+### exclude sex chromosomal, mito genes (need to append this info)
+genelut <- fread("spatial_HYP/raw-data/USEFOR10X_ensg_lut_hg38_fromEns98_111123.txt")
+genelut <- unique(genelut[,.(ensembl_gene_id,chromosome_name)])
+setnames(genelut,c("ens","chr"))
+visde <- merge.data.table(visde,genelut,by.x="gene_id",by.y="ens")
+visde <- visde[!(chr %in% c("MT","X","Y"))]
+
+### load by cell type and full-domains xenium results from 4 ARC-cell-type-smoothing domain
+xenarcde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02a-4ARCtypesmoothed_withinARC_celltypeSexDE.txt")
+xenvmhde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02b-4ARCtypesmoothed_withinVMH_celltypeSexDE.txt")
+
+xendomde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
+
+### for correlation plot, merge xenium domain and visium arc/vmh stats
+vistmp <- copy(visde[assay %in% c("VMH","ARC")])
+setnames(vistmp,"logFC","logFC_Visium")
+
+setnames(xendomde,"logFC_MvF","logFC_Xenium")
+
+xendomde <- merge.data.table(xendomde[,.(domain,gene_name,logFC_Xenium)],vistmp[,.(assay,gene_name,logFC_Visium)],by.x=c("domain","gene_name"),by.y=c("assay","gene_name"))
+
+## clean up
+rm(genelut,vistmp)
+
+# also load pseudobulk ELists used in the DE analysis for plotting DE from pseudobulk results
+arcelist <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02c-pseudobulkARC_voomLmFitELists.RDS")
+vmhelist <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02d-pseudobulkVMH_voomLmFitELists.RDS")
+
+```
+
+cell types palettes
+```{r}
+vmhpal <- c("#8c63cf", "#6A0D53", "#D193FE", "#AD260D")
+names(vmhpal) <- paste0("VMH_",c(1,2,3,"Lateral_border"))
+
+arcpal <- c("#5dd959","#4CAF50", "#0DAD26","#2E8B57","#0D6A0D")
+names(arcpal) <- paste0("ARC_",c(1:5))
+
+```
+
+Panel A: Show a DEG per VMH cluster, shown for all VMH xenium clusters in a violin plot datawide (at the level of pseudobulked samples). VMH_1: MC4R, VMH_2 (and 3): TAC1, VMH_3: TMEM233
+```{r}
+## get VMH cluster ids
+bkanno[bjm_annot %in% grep(bjm_annot,pattern= "VMH",value=T),clus]
+# X12 X18 X29 X30
+vmhelist <- vmhelist[c("X12","X18","X29","X30")]
+names(vmhelist) <- c("VMH_1","VMH_2","VMH_Lateral_border","VMH_3")
+vmhe <- rbindlist(vmhelist,idcol = "celltype",fill=T)
+# removing leading "elist." from colnames
+setnames(vmhe,gsub(names(vmhe),pattern="^elist\\.",replacement=""))
+
+# melt for genes of interest
+vmhe.m <- melt(vmhe[rn %in% c("MC4R","TAC1","TMEM233")],id.vars=c("rn","celltype"))
+
+# append sex info
+vmhe.m <- merge.data.table(vmhe.m,unique(as.data.table(colData(hypx))[,.(sample_id,Sex)]),by.x="variable",by.y="sample_id")
+vmhe.m[,Sex:=gsub(Sex,pattern="^(.).*$",replacement="\\1")]
+
+## tidy up for plotting -- also do this for the palette or they won't match up
+vmhe.m[,celltype:=gsub(celltype,pattern="_",replacement=" ")]
+vmhe.m[celltype=="VMH Lateral border",celltype:="VMH Border"]
+names(vmhpal) <- gsub(names(vmhpal),pattern="_",replacement=" ")
+names(vmhpal)[4] <- "VMH Border"
+setnames(vmhe.m,"celltype","Xenium Cluster")
+
+# make the gene names markdown'ed so they appear in italics
+vmhe.m[,rn:=paste0("*",rn,"*")]
+
+pdf("manuscript_plots/Fig4/4A-VMH_DEGs_boxplot.pdf",height=3,width=3.5)
+ggplot(vmhe.m,aes(x=`Xenium Cluster`,y=value,color=`Xenium Cluster`,fill = Sex))+
+    geom_boxplot(outliers = FALSE,linewidth = 0.25)+
+    geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
+    scale_fill_manual(values=c("#FFFFFF","#000000"))+
+    scale_color_manual(values=vmhpal)+
+    guides(color="none")+
+    ylab("Pseudobulk log CPM")+
+    facet_wrap(~rn,scales = "free_y")+
+    theme(strip.text = element_markdown(size = 8,margin=margin(0.1,0,0,0,unit="in")),strip.background = element_blank(),axis.text.x=element_text(angle=90,size=7,hjust=1,vjust=0.5),axis.title.x=element_text(size=8),axis.title.y=element_text(size=8),axis.text.y=element_text(size=7),plot.margin = margin(-0.065,-0.05,0,0.02,unit="in"),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0.1,0,-0.075,unit="in"))
+dev.off()
+
+
+# clean up
+rm(vmhe.m,vmhe)
+```
+
+## for panel B, we want to do the same for three ARC genes of interest. For ARC_4 we have the pick of the litter--we'll go with CDH13, which has known associations to weight. For ARC_3, RXRG is pretty high up there signif wise. And ARC_1 has signif CYP26A1 DE.  
+```{r}
+## get ARC cluster ids
+bkanno[bjm_annot %in% grep(bjm_annot,pattern= "ARC",value=T),clus]
+# X15 X19 X23 X31 X33
+arcelist <- arcelist[c("X15","X19","X23","X31","X33")]
+names(arcelist) <- paste0("ARC_",c(1:5))
+arce <- rbindlist(arcelist,idcol = "celltype",fill=T)
+# removing leading "elist." from colnames
+setnames(arce,gsub(names(arce),pattern="^elist\\.",replacement=""))
+
+# melt for genes of interest
+arce.m <- melt(arce[rn %in% c("CDH13","RXRG","CYP26A1")],id.vars=c("rn","celltype"))
+
+# append sex info
+arce.m <- merge.data.table(arce.m,unique(as.data.table(colData(hypx))[,.(sample_id,Sex)]),by.x="variable",by.y="sample_id")
+arce.m[,Sex:=gsub(Sex,pattern="^(.).*$",replacement="\\1")]
+
+## tidy up for plotting -- also do this for the palette or they won't match up
+arce.m[,celltype:=gsub(celltype,pattern="_",replacement=" ")]
+names(arcpal) <- gsub(names(arcpal),pattern="_",replacement=" ")
+setnames(arce.m,"celltype","Xenium Cluster")
+
+# make the gene names markdown'ed so they appear in italics
+arce.m[,rn:=paste0("*",rn,"*")]
+
+pdf("manuscript_plots/Fig4/4B-ARC_DEGs_boxplot.pdf",height=3,width=4)
+ggplot(arce.m,aes(x=`Xenium Cluster`,y=value,color=`Xenium Cluster`,fill = Sex))+
+    geom_boxplot(outliers = FALSE,linewidth = 0.25)+
+    geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
+    scale_fill_manual(values=c("#FFFFFF","#000000"))+
+    scale_color_manual(values=arcpal)+
+    guides(color="none")+
+    ylab("Pseudobulk log CPM")+
+    facet_wrap(~rn,scales = "free_y")+
+    theme(strip.text = element_markdown(size = 8,margin=margin(0.1,0,0,0,unit="in")),strip.background = element_blank(),axis.text.x=element_text(angle=90,size=7,hjust=1,vjust=0.5),axis.title.x=element_text(size=8),axis.title.y=element_text(size=8),axis.text.y=element_text(size=7),plot.margin = margin(-0.065,-0.05,0,0.02,unit="in"),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0.1,0,-0.075,unit="in"))
+dev.off()
+
+
+# clean up
+rm(arce.m,arce)
+```

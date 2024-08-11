@@ -1,7 +1,7 @@
 ---
 title: "02-Cell Type Sex DE within 4-type-ARC and VMH Domains"
 output: html_document
-date: "2024-07-04"
+date: "2024-08-10"
 ---
 
 ```{r setup, include=FALSE}
@@ -153,7 +153,10 @@ dgels <- lapply(ag,FUN=function(a){
    return(dge)
  }
 })
-  
+
+### clean up, then iterate thru DE analysis for each pseudobulked cluster
+rm(agc,agcd,agsc)
+
 clus <- makeCluster(10,type = "PSOCK")
 fulldgelres <- clusterApply(x=dgels,cl = clus,fun=function(X){
  
@@ -173,6 +176,8 @@ fulldgelres <- clusterApply(x=dgels,cl = clus,fun=function(X){
  
  # run voomLmFit for the pseudobulked data, referring donor to duplicateCorrelation; using an adaptive span (number of genes, based on the number of genes in the dge) for smoothing the mean-variance trend
  v.swt <- voomLmFit(dge,design = des,block = as.factor(dge$samples$BrNum),adaptive.span = T,sample.weights = T)
+ ## get the Elist object to also output for plotting purposes later
+ v.swt.elist <- as.data.table(v.swt$EList$E,keep.rownames=T)
  
  v.swt.fit <- contrasts.fit(v.swt,sexdif)
  
@@ -180,24 +185,34 @@ fulldgelres <- clusterApply(x=dgels,cl = clus,fun=function(X){
  
  v.swt.e.tt <- topTable(v.swt.fit.e,coef = 1,number=Inf,adjust.method = "BH")
  
- return(v.swt.e.tt)
+ retlist <- list(elist=v.swt.elist,de=v.swt.e.tt)
+ return(retlist)
 })
 
 stopCluster(clus)
 names(fulldgelres) <- names(ag)
 
 ### concatenate results for all cell types
-fulldgelres <- lapply(fulldgelres,as.data.table,keep.rownames=T)
-fulldgelres.arc <- rbindlist(fulldgelres,idcol="cluster")
-setnames(fulldgelres.arc,"rn","gene_name")
+fulldgelres.arc <- lapply(fulldgelres,function(x){as.data.table(x["de"],keep.rownames=T)})
+fulldgelres.arc <- rbindlist(fulldgelres.arc,idcol="cluster")
+setnames(fulldgelres.arc,"de.rn","gene_name")
 
-## append cell type annotations
+### save elists in their own object for later plot use
+elists.arc <- lapply(fulldgelres,function(x){as.data.table(x["elist"],keep.rownames=T)})
+saveRDS(elists.arc,"processed-data/08_VMH-ARC cell type sex DE within domains/02c-pseudobulkARC_voomLmFitELists.RDS")
+
+rm(elists.arc)
+## fix leading "de." in colnames; append cell type annotations
+setnames(fulldgelres.arc,gsub(names(fulldgelres.arc),pattern="^de\\.(.*)$",replacement="\\1"))
+
 fulldgelres.arc <- merge.data.table(fulldgelres.arc,bkanno,by.x="cluster",by.y="clus",all.x=T)
 setnames(fulldgelres.arc,c("bjm_annot","cluster"),c("cluster_annotated","cluster_id"))
+
+## reorder
 fulldgelres.arc <- fulldgelres.arc[,.(cluster_annotated,gene_name,logFC,adj.P.Val,t,B,P.Value,AveExpr,cluster_id)]
 
 ### clean up
-rm(ag,agc,agcd,agsc,clus,dgels,fulldgelres,hyp.fineadom,hyp.adom.ag)
+rm(ag,clus,dgels,fulldgelres,hyp.fineadom,hyp.adom.ag)
 gc(full=T)
 ```
 
@@ -274,7 +289,7 @@ dgels <- lapply(ag,FUN=function(a){
 })
   
 clus <- makeCluster(10,type = "PSOCK")
-fulldgelres.vmh <- clusterApply(x=dgels,cl = clus,fun=function(X){
+fulldgelres <- clusterApply(x=dgels,cl = clus,fun=function(X){
  
  library(data.table)
  setDTthreads(1,restore_after_fork = FALSE)
@@ -293,26 +308,40 @@ fulldgelres.vmh <- clusterApply(x=dgels,cl = clus,fun=function(X){
  # run voomLmFit for the pseudobulked data, referring donor to duplicateCorrelation; using an adaptive span (number of genes, based on the number of genes in the dge) for smoothing the mean-variance trend
  v.swt <- voomLmFit(dge,design = des,block = as.factor(dge$samples$BrNum),adaptive.span = T,sample.weights = T)
  
+ # pull out the elist to save for later plotting use
+ v.swt.elist <- as.data.table(v.swt$EList$E,keep.rownames=T)
+ 
  v.swt.fit <- contrasts.fit(v.swt,sexdif)
  
  v.swt.fit.e <- eBayes(v.swt.fit)
  
  v.swt.e.tt <- topTable(v.swt.fit.e,coef = 1,number=Inf,adjust.method = "BH")
  
- return(v.swt.e.tt)
+ retlist <- list(elist=v.swt.elist,de=v.swt.e.tt)
+ 
+ return(retlist)
 })
 
 stopCluster(clus)
-names(fulldgelres.vmh) <- names(ag)
+names(fulldgelres) <- names(ag)
 
 ### concatenate results for all cell types
-fulldgelres.vmh <- lapply(fulldgelres.vmh,as.data.table,keep.rownames=T)
+fulldgelres.vmh <- lapply(fulldgelres,function(x){as.data.table(x["de"],keep.rownames=T)})
 fulldgelres.vmh <- rbindlist(fulldgelres.vmh,idcol="cluster")
-setnames(fulldgelres.vmh,"rn","gene_name")
+setnames(fulldgelres.vmh,"de.rn","gene_name")
 
-## append cell type annotations
+### save the elists in their own object for later plotting
+elists.vmh <- lapply(fulldgelres,function(x){as.data.table(x["elist"],keep.rownames=T)})
+saveRDS(elists.vmh,"processed-data/08_VMH-ARC cell type sex DE within domains/02d-pseudobulkVMH_voomLmFitELists.RDS")
+
+rm(elists.vmh)
+## clean up leading "de." in colnames; append cell type annotations
+setnames(fulldgelres.vmh,gsub(names(fulldgelres.vmh),pattern="^de\\.(.*)$",replacement="\\1"))
+
 fulldgelres.vmh <- merge.data.table(fulldgelres.vmh,bkanno,by.x="cluster",by.y="clus",all.x=T)
 setnames(fulldgelres.vmh,c("bjm_annot","cluster"),c("cluster_annotated","cluster_id"))
+
+# reorder
 fulldgelres.vmh <- fulldgelres.vmh[,.(cluster_annotated,gene_name,logFC,adj.P.Val,t,B,P.Value,AveExpr,cluster_id)]
 ```
 
@@ -420,7 +449,7 @@ loaded via a namespace (and not attached):
 [160] Rfast_2.1.0               broom_1.0.6               memoise_2.0.1            
 [163] RcppParallel_5.1.8        bit_4.0.5                 EnrichmentBrowser_2.34.1 
 > sessioninfo::session_info()
-─ Session info ──────────────────────────────────────────────────────────────────
+─ Session info ────────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -430,11 +459,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-01
+ date     2024-08-10
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ──────────────────────────────────────────────────────────────────────
+─ Packages ────────────────────────────────────────────────────────────────────────
  ! package                  * version    date (UTC) lib source
    abind                      1.4-5      2016-07-21 [1] CRAN (R 4.4.0)
    annotate                   1.82.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
@@ -626,4 +655,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-─────────────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────────

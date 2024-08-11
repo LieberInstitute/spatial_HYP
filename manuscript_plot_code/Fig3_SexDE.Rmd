@@ -1,0 +1,1004 @@
+---
+title: "Fig3_SexDE"
+output: html_document
+date: "2024-08-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+library(data.table) # Preferred data manipulation package
+library(ggplot2) # Dependency for several plotting functions
+library(ggtext) # more character types in ggplots
+library(ggrepel) # text labels in volcano plots
+library(ggrastr) # avoid making raster images one can't even open
+library(SpatialExperiment) # Visium data framework
+library(SpatialFeatureExperiment) # Xenium data framework
+library(spatialLIBD) # one option for plotting cluster assignments, but breaks when the in-tissue portion of a visium area is very un-square.
+library(escheR) # alternative spotplotting function, at least for visium
+library(viridis) # palettes
+library(Polychrome) # better palettes
+library(ggstance) # for y axis dodge
+library(sf) # define the polygonal boundaries of xenium domains
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw() + theme(axis.text.x = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.y = element_text(size = 8), axis.title.y = element_text(size = 9), plot.title = element_blank(), strip.text = element_text(size = 10), legend.text = element_text(size = 8), legend.title = element_text(size = 8, hjust = 0.5)))
+
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+
+#### VISIUM setup ####
+```{r}
+hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+bscl <- fread("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt") # main visium clustering (bs=bayesspace)
+
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("Vis",cl)]
+bscl[cl=="Vis7",cl:="VMH.1"]
+bscl[cl=="Vis12",cl:="VMH.2"]
+bscl[cl=="Vis4",cl:="ARC.1"]
+bscl[cl=="Vis6",cl:="ARC.2"]
+
+bscl[,dom:=cl]
+bscl[dom %in% c("VMH.1","VMH.2"),dom:="VMH"]
+bscl[dom %in% c("ARC.1","ARC.2"),dom:="ARC"]
+bscl[!(dom %in% c("VMH","ARC")),dom:="Other"]
+
+bscl<-DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
+hyp2$k15dom <- bscl$cl
+hyp2$`Visium Domain` <- factor(bscl$dom,levels=c("ARC","VMH","Other"))
+```
+
+### XENIUM setup ###
+```{r}
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bksmooth <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt") ## xenium domain assignments after smoothing, by xenium cell
+
+## but drop discarded cell clusters, too
+bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bkcl,2,"cl")
+
+bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+
+## drop sample-specific clusters, append cluster annotations 
+bkanno[,clus:=paste0("X",clus)]
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
+
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+## drop excluded clusters from xenium spe
+hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
+
+## append cluster annots to xenium spe
+bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]
+bkcl$rn <- NULL
+hypx$banksyclus <- bkcl$bjm_annot
+
+## assign the domain labels to the xenium cells
+bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
+bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
+hypx$dom <- bksmooth$dualVMHARC4
+```
+
+### sex DE results
+```{r}
+visde <- fread("spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+### exclude sex chromosomal, mito genes (need to append this info)
+genelut <- fread("spatial_HYP/raw-data/USEFOR10X_ensg_lut_hg38_fromEns98_111123.txt")
+genelut <- unique(genelut[,.(ensembl_gene_id,chromosome_name)])
+setnames(genelut,c("ens","chr"))
+visde <- merge.data.table(visde,genelut,by.x="gene_id",by.y="ens")
+visde <- visde[!(chr %in% c("MT","X","Y"))]
+
+### load by cell type and full-domains xenium results from 4 ARC-cell-type-smoothing domain
+xenarcde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02a-4ARCtypesmoothed_withinARC_celltypeSexDE.txt")
+xenvmhde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02b-4ARCtypesmoothed_withinVMH_celltypeSexDE.txt")
+
+xendomde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
+
+### for correlation plot, merge xenium domain and visium arc/vmh stats
+vistmp <- copy(visde[assay %in% c("VMH","ARC")])
+setnames(vistmp,"logFC","logFC_Visium")
+
+setnames(xendomde,"logFC_MvF","logFC_Xenium")
+
+xendomde <- merge.data.table(xendomde[,.(domain,gene_name,logFC_Xenium)],vistmp[,.(assay,gene_name,logFC_Visium)],by.x=c("domain","gene_name"),by.y=c("assay","gene_name"))
+
+## clean up
+rm(genelut,vistmp)
+```
+
+## palette set up (shared)
+```{r}
+pal <- c("#8c63cf","#5dd959","#A9A7A9")
+names(pal) <- c("VMH","ARC","Other")
+```
+
+
+Panel A: volcano of Visium ARC, VMH DE, colored by assay
+```{r}
+visdeplt <- visde[assay %in% c("ARC","VMH")]
+## points to label
+visdeplt <- visdeplt[assay=="VMH"&gene_name %in% c("PTGDS","TAC1","SHANK3","SDHD","BTBD1"),label:=gene_name]
+visdeplt[assay=="ARC"&gene_name %in% c("SHANK3","DCC","CHRM5","KCNMB2","RXRG"),label:=gene_name]
+
+p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay)) +
+    geom_point(size = 0.15) +
+    scale_color_manual(values=pal[1:2]) +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(max(visdeplt[adj.P.Val<0.05,P.Value])),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+            x = logFC,
+            label = ifelse(is.na(label), "", label)),
+        #nudge_y = ifelse(vmhde$genelabel %in% c("PTGR1","CACNA1D"), yes = 1.2, no = -0.4),
+        #nudge_x = ifelse(vmhde$genelabel%in%c("HACE1","CACNA1D"),yes=sign(vmhde$logFC)*1,no=sign(vmhde$logFC)*0.3),
+        min.segment.length = 0,
+        size = 0.9,
+        show.legend=FALSE,
+        max.overlaps = 10000,
+        nudge_x=0.6*sign(visdeplt$logFC),
+        nudge_y=sample(0.4,-0.4,replace=T),
+        #seed = 10403,
+        max.iter=100000,
+        max.time=3,
+        segment.size=0.125)+
+    xlab("logFC (M:F)")+
+    ylab("-log10 (P-value)")+
+    labs(color="Visium\nDomain")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.13,0.13),legend.position = "inside",legend.text=element_text(size=5),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
+
+# rasterize
+p <- rasterize(p,layers="Points",dpi=450)
+
+# save
+pdf("manuscript_plots/Fig3/3A-Visium Sex DE Volcano.pdf",height=2.5,width=2.3)
+p
+dev.off()
+
+# clean up
+rm(visdeplt,p)
+```
+
+## panel B: xenium equiv, VMH types in VMH domain
+## shit, now we need a four color VMH palette though...maybe just take the four most purple-oid colors from figure 1? 
+```{r}
+xenvmhdeplt <- xenvmhde[cluster_annotated %in% grep(cluster_annotated,pattern="VMH",value=T)]
+
+xenvmhdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
+
+vmhpal <- c("#8c63cf", "#6A0D53", "#D193FE", "#AD260D")
+names(vmhpal) <-unique(xenvmhdeplt$cluster_annotated)
+
+p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=cluster_annotated)) +
+    geom_point(size = 0.15) +
+    scale_color_manual(values=vmhpal) +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(max(xenvmhdeplt[FDR<0.05,P.Value])),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+            x = logFC_MvF,
+            label = ifelse(is.na(label), "", label)),
+        min.segment.length = 0,
+        size = 0.9,
+        show.legend=FALSE,
+        nudge_x=1.25*sign(xenvmhdeplt$logFC_MvF),
+        seed=10403, 
+        max.iter=100000,
+        max.overlaps=10000,
+        max.time=3,
+        segment.size=0.125)+
+    xlab("logFC (M:F)")+
+    ylab("-log10 (P-value)")+
+    labs(color="VMH Cell Type")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.21,0.13),legend.position = "inside",legend.text=element_text(size=5),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
+
+# rasterize
+p <- rasterize(p,layers="Points",dpi=450)
+
+# save
+pdf("manuscript_plots/Fig3/3B-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
+p
+dev.off()
+
+# clean up
+rm(xenvmhdeplt,p)
+
+```
+
+## Panel C: Arcuate xenium domain ARC cell types
+## need to make a 5 color ARC palette
+```{r}
+xenarcdeplt <- xenarcde[cluster_annotated %in% grep(cluster_annotated,pattern="ARC",value=T)]
+
+xenarcdeplt[gene_name %in% c("SHANK3","DCC","RXRG"),label:=gene_name]
+
+#we need 5 different shades of green that can be told apart but also are visible on a white background
+arcpal <- c("#5dd959","#4CAF50", "#0DAD26","#2E8B57","#0D6A0D")
+names(arcpal) <-unique(xenarcdeplt$cluster_annotated)
+
+p <- ggplot(xenarcdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=cluster_annotated)) +
+    geom_point(size = 0.075) +
+    scale_color_manual(values=arcpal) +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(max(xenarcdeplt[FDR<0.05,P.Value])),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+            x = logFC_MvF,
+            label = ifelse(is.na(label), "", label)),
+        min.segment.length = 0,
+        size = 0.9,
+        show.legend=FALSE,
+        nudge_x=1.25*sign(xenarcdeplt$logFC_MvF),
+        seed=10403, 
+        max.iter=100000,
+        max.overlaps=10000,
+        max.time=3,
+        segment.size=0.125)+
+    xlab("logFC (M:F)")+
+    ylab("-log10 (P-value)")+
+    labs(color="ARC Cell\nType")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.11,.85),legend.position = "inside",legend.text=element_text(size=5),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
+
+# rasterize
+p <- rasterize(p,layers="Points",dpi=450)
+
+# save
+pdf("manuscript_plots/Fig3/3C-XeniumARCcelltypes_sexDE.pdf",height=2.5,width=2.3)
+p
+dev.off()
+
+
+```
+
+Panels D-E and F-G are our representative male and female samples from Figures 1 and 2, showing a VMH and an ARC sex DE in spotplots on Visium. For the VMH gene, we'll use TAC1, and for ARC we'll use RXRG.
+
+panel D
+```{r}
+tac1M <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(tac1M) <- rowData(tac1M)$gene_name
+colData(tac1M)$`log counts` <- logcounts(tac1M)["TAC1",]
+
+### make spotplots
+p <- make_escheR(tac1M)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+
+pdf("manuscript_plots/Fig3/3D-TAC1_Visium_Male.pdf",height=1.75,width=2)
+p+
+    scale_color_manual(values=pal)+
+    scale_fill_gradient(low="white",high="black",limits=c(0,3))+
+    ggtitle("*TAC1* (Male)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"),legend.box=element_blank(),legend.background=element_blank())
+dev.off()
+
+rm(tac1M,p)
+
+### 
+tac1F <- hyp2[,hyp2$sample_id=="V12D05-350_C1"]
+rownames(tac1F) <- rowData(tac1F)$gene_name
+colData(tac1F)$`log counts` <- logcounts(tac1F)["TAC1",]
+
+### make spotplots
+p <- make_escheR(tac1F)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+
+pdf("manuscript_plots/Fig3/3E-TAC1_Visium_Female.pdf",height=1.75,width=2)
+p+
+    scale_color_manual(values=pal)+
+    scale_fill_gradient(low="white",high="black",limits=c(0,3))+
+    ggtitle("*TAC1* (Female)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin= margin(-0.05,0.03,-0.05,0,unit = "in"), legend.box= element_blank(), legend.background=element_blank())
+dev.off()
+
+rm(tac1F.p,tac1F,p,tac1lab)
+```
+
+
+# F/G: RXRG
+```{r}
+RXRGM <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(RXRGM) <- rowData(RXRGM)$gene_name
+colData(RXRGM)$`log counts` <- logcounts(RXRGM)["RXRG",]
+
+### make spotplots
+p <- make_escheR(RXRGM)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+
+pdf("manuscript_plots/Fig3/3F-RXRG_Visium_Male.pdf",height=1.75,width=2)
+p+
+    scale_color_manual(values=pal)+
+    scale_fill_gradient(low="white",high="black",limits=c(0,2.5))+
+    ggtitle("*RXRG* (Male)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"), legend.box= element_blank(), legend.background=element_blank())
+    #theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
+dev.off()
+
+rm(RXRGM,p)
+
+### 
+RXRGF <- hyp2[,hyp2$sample_id=="V12D05-348_D1"]
+rownames(RXRGF) <- rowData(RXRGF)$gene_name
+colData(RXRGF)$`log counts` <- logcounts(RXRGF)["RXRG",]
+
+### make spotplots
+p <- make_escheR(RXRGF)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+
+pdf("manuscript_plots/Fig3/3G-RXRG_Visium_female.pdf",height=1.75,width=2)
+p+
+    scale_color_manual(values=pal)+
+    scale_fill_gradient(low="white",high="black",limits=c(0,2.5))+
+    ggtitle("*RXRG* (Female)")+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"), legend.box= element_blank(), legend.background=element_blank())
+dev.off()
+
+rm(RXRGF,p)
+```
+
+for panels H-K, we want the respective donors' Xenium samples with the VMH/ARC boundaries displayed. so extract the two boundary sets 
+```{r}
+panh <- hypx["TAC1",hypx$sample_id=="X86_reg1"]
+pani <- hypx["TAC1",hypx$sample_id=="X99_8741C"]
+# 
+## attach the coordinate info to colData so we can make an sf object out of this for hull extraction. see well-annotated code from DE benchmarking of domain boundaries in xenium_HYP/code/07/03c-DE benchmarks...
+tmpcoldatah <- cbind(colData(panh),spatialCoords(panh))
+tmpcoldatai <- cbind(colData(pani),spatialCoords(pani))
+
+panhv <- st_as_sf(as.data.frame(tmpcoldatah[tmpcoldatah$dom=="VMH",]),coords = c("sdimx","sdimy"))
+paniv <- st_as_sf(as.data.frame(tmpcoldatai[tmpcoldatai$dom=="VMH",]),coords = c("sdimx","sdimy"))
+panhv <- st_convex_hull(st_union(panhv))
+paniv <- st_convex_hull(st_union(paniv))
+
+panha <- st_as_sf(as.data.frame(tmpcoldatah[tmpcoldatah$dom=="ARC",]),coords=c("sdimx","sdimy"))
+pania <- st_as_sf(as.data.frame(tmpcoldatai[tmpcoldatai$dom=="ARC",]),coords=c("sdimx","sdimy"))
+panha <- st_concave_hull(st_union(panha),ratio = 0.1)
+pania <- st_concave_hull(st_union(pania),ratio = 0.1)
+
+## create the data tables we will use for overlaying the boundary polygons
+# panel h (and j)
+dompolyh <- cbind(panhv[[1]][[1]],rep("VMH",nrow(panhv[[1]][[1]])))
+dompolyh <- rbind(dompolyh,cbind(panha[[1]][[1]],rep("ARC",nrow(panha[[1]][[1]]))))
+dompolyh <- as.data.table(dompolyh)
+setnames(dompolyh,c("xpol","ypol","dompol"))
+dompolyh[,xpol:=as.numeric(xpol)]
+dompolyh[,ypol:=as.numeric(ypol)]
+
+# panel i (and k)
+dompolyi <- cbind(paniv[[1]][[1]],rep("VMH",nrow(paniv[[1]][[1]])))
+dompolyi <- rbind(dompolyi,cbind(pania[[1]][[1]],rep("ARC",nrow(pania[[1]][[1]]))))
+dompolyi <- as.data.table(dompolyi)
+setnames(dompolyi,c("xpol","ypol","dompol"))
+dompolyi[,xpol:=as.numeric(xpol)]
+dompolyi[,ypol:=as.numeric(ypol)]
+
+rm(panha,panhv,pania,paniv)
+```
+
+## panel H: TAC1 in VMH/ARC domains for male donor and panel I: for female
+```{r}
+panh$`log counts` <- logcounts(panh)["TAC1",]
+pani$`log counts` <- logcounts(pani)["TAC1",]
+
+panh <- panh[,panh$`log counts`!=0]
+pani <- pani[,pani$`log counts`!=0]
+
+## panel h
+p <- make_escheR(panh,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+p <- p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000",limits=c(0,7))+
+    geom_path(data=dompolyh,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle("*TAC1* (Male)")+
+    guides(color="none")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
+
+p <- rasterize(p,layer="Points",dpi=600)
+
+pdf("manuscript_plots/Fig3/3H-TAC1_Xenium_Male.pdf",height=1.75,width=2)
+p
+dev.off()
+
+rm(panh,p,tmpcoldatah)
+
+## panel i
+p <- make_escheR(pani,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+p <- p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000",limits=c(0,7))+
+    geom_path(data=dompolyi,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle("*TAC1* (Female)")+
+    guides(color="none")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.125,0,-0.125,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
+
+p <- rasterize(p,layer="Points",dpi=600)
+
+pdf("manuscript_plots/Fig3/3I-TAC1_Xenium_female.pdf",height=1.75,width=2)
+p
+dev.off()
+
+rm(pani,tmpcoldatai,p)
+```
+
+
+pan j/k: rxrg in same
+
+```{r}
+panj <- hypx["RXRG",hypx$sample_id=="X86_reg1"]
+pank <- hypx["RXRG",hypx$sample_id=="X99_8741C"]
+
+panj$`log counts` <- logcounts(panj)["RXRG",]
+pank$`log counts` <- logcounts(pank)["RXRG",]
+
+panj <- panj[,panj$`log counts`!=0]
+pank <- pank[,pank$`log counts`!=0]
+
+## panel h
+p <- make_escheR(panj,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+p <- p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000",limits=c(0,5.02))+
+    geom_path(data=dompolyh,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle("*RXRG* (Male)")+
+    guides(color="none")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
+
+p <- rasterize(p,layer="Points",dpi=600)
+
+pdf("manuscript_plots/Fig3/3J-RXRG_Xenium_Male.pdf",height=1.75,width=2)
+p
+dev.off()
+
+rm(panj,p,dompolyh)
+
+## panel k
+p <- make_escheR(pank,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+p <- p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000",limits=c(0,5.02))+
+    geom_path(data=dompolyi,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle("*RXRG* (Female)")+
+    guides(color="none")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.125,0,-0.125,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
+
+p <- rasterize(p,layer="Points",dpi=600)
+
+pdf("manuscript_plots/Fig3/3K-RXRG_Xenium_female.pdf",height=1.75,width=2)
+p
+dev.off()
+
+rm(pank,p,dompolyi)
+```
+
+## panel L: fGSEA results for TF-target 
+
+Male both:
+MYT1L: PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors
+
+
+VMH ~UNIQUE Male (FDR 10E-8 vs 0.04):
+TCF20 (rare LOF NDD gene Vetrini '19): PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors
+
+
+VMH UNIQUE Fem:
+PPARA: PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression, PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression
+
+PPARG: PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression, PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression
+
+
+VMH shared-ish
+ESR1 (KD-down, female; ESR1 (targets, interactors male): ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression, 	
+PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors
+
+AR (KD-bidir DE, female; targets male): AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022, AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression, AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression
+
+
+ARC unique male:
+LIN28B (growth phenos): PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors
+
+ASH1L (ID/ASD in mice https://www.nature.com/articles/s42003-021-02282-z ): PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors
+
+
+ARC unique female:
+VDR (KO-bidir DE): VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression, VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression
+
+ESR1 (KO-bidir DE): ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression, ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression
+
+ARC general: 
+STAT3 (required for hypothalamic response to leptin Buettner 06): PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors, STAT3_human_TRRUST_Transcription_Factors_2019
+```{r}
+tfres <- readRDS("spatial_HYP/processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+tfres <- tfres[names(tfres) %in% c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH","BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC")]
+tfres <- rbindlist(tfres)
+
+# remove the leadingedge column, which is a list and doesn't play nice with table format
+tfres[,leadingEdge:=NULL]
+
+## clean up domain name
+tfres[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
+
+## define a palette for region-sex
+sexregpal <- c("VMH Fem. Up"="#8c63cf","VMH Male Up"="#6A0D53","ARC Fem. Up"="#5dd959","ARC Male Up"="#053b05")
+
+
+## subset to TF sets of interest, clean names up
+tfres <- tfres[pathway %in% c(
+    "PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors",
+    "AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression",
+    "PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors"),]
+
+## data sourcesr
+tfres[pathway %in% grep(pathway,pattern="Rummagene",value=T),source:="Rummagene"]
+tfres[pathway %in% grep(pathway,pattern="TRRUST",value=T),source:="TRRUST"]
+tfres[pathway %in% grep(pathway,pattern="CREEDSID|_GSE",value=T),source:="GEO TF\nPerturbations"]
+tfres[pathway %in% grep(pathway,pattern="ChEA",value=T),source:="ChEA 2022"]
+
+## TF specifics where applicable
+tfres[pathway %in% c("PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression"),tf:="PPARA (KO DE)"]
+tfres[pathway %in% c("PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="PPARG (OE DE)"]
+tfres[pathway=="ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression",tf:="ESR1 (KD Down)"]
+tfres[pathway=="PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors",tf:="ESR1 (Interactors)"]
+tfres[pathway %in% c("AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression"),tf:="AR (KD DE)"]
+tfres[pathway %in% c("VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="VDR (KO DE)"]
+tfres[pathway %in% c(
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
+     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="ESR1 (KO DE)"]
+
+
+tfres[pathway %in% c("PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors","STAT3_human_TRRUST_Transcription_Factors_2019"),tf:="STAT3"]
+tfres[pathway=="PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors",tf:="LIN28B"]
+tfres[pathway=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors",tf:="ASH1L"]
+tfres[pathway=="PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors",tf:="TCF20"]
+tfres[pathway=="AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022",tf:="AR"]
+tfres[pathway=="PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",tf:="MYT1L"]
+
+
+
+### group by sex•region, flip all NES to positive
+tfres[NES<0&spdom=="ARC",sexreg:="ARC Fem. Up"]
+tfres[NES>0&spdom=="ARC",sexreg:="ARC Male Up"]
+tfres[NES<0&spdom=="VMH",sexreg:="VMH Fem. Up"]
+tfres[NES>0&spdom=="VMH",sexreg:="VMH Male Up"]
+tfres[,NES:=abs(NES)]
+```
+
+Panel L continued:
+
+### for this to work, we have to manually make a double legend kinda clunkily. modified slightly from https://stackoverflow.com/questions/62541720/ggplot2-show-multiple-keys-shapes-in-size-legend -- speciifically, defining these variables below and then the scale_size_manual call.
+
+## get the breaks based on generating the plot once quick, then get a vector of the same values to feed into the legend override
+```{r}
+breaks <- seq(1.5,2.5,0.5)
+n_breaks <- length(breaks)
+labels <- c(c(rep("",n_breaks),breaks,rep("",2*n_breaks)))
+shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks))
+breaks2 <- rep(breaks, 4)
+
+### make plot
+pdf("manuscript_plots/Fig3/3L-Sex DEG TF GSEA.pdf",height=3,width=7)
+
+ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
+    geom_point(aes(col=sexreg,stroke=0,size=NES,shape=source,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
+    ylab("TF")+
+    scale_color_manual(values=sexregpal)+
+    xlab("-log10 (FDR)")+
+    labs(shape="Source Database",col="DE Gene Set")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
+    scale_shape_manual(values=c("Rummagene"=16,"TRRUST"=15,"GEO TF\nPerturbations"=18,"ChEA 2022"=17))+
+    #add minor gridlines between TFs to contain jittered points
+    geom_hline(yintercept = seq(0.5,length(unique(tfres$tf))-0.5),color="grey",linewidth=.25)+
+    #guides(size="none")+
+    # ^ necess. to get spacing to work in theme
+    guides(shape=guide_legend(override.aes=list(size = 2)))+
+    # ^ make legend points bigger
+    scale_size_continuous(range = c(0.5,4),breaks = breaks2, labels = labels, guide = guide_legend(ncol=4, nrow=3,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,label.hjust=0.5,direction="vertical"))+
+    guides(col=guide_legend(override.aes=list(stroke = 0,size=3.5)))+
+    labs(size="Normalized Enrichment Score")+
+    # ^ make size legend with all point types
+    theme(axis.text.y = element_text(size = 8),
+          axis.title.y=element_text(size=9,margin=margin(0,-0.175,0,0,"in")),
+          axis.title.x = element_text(size = 9),
+          axis.text.x = element_text(size = 8), 
+          legend.text = element_text(size=6), 
+          legend.title = element_text(size=7,hjust=0.5,vjust=0.5),
+          legend.key.height = ggplot2::unit(0.15,"in"),
+          legend.margin = margin(t = 0.1,0,0,-0.1,unit="in"),
+          panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),
+          panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),
+          panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),
+          panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),
+          axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),
+          axis.ticks.y=element_line(color = "#595959",linewidth = 0.25),
+          legend.spacing.x = ggplot2::unit(-0.015,"in"))
+
+dev.off()
+```
+
+reprod info
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+ [1] ggstance_0.3.7                 ggrepel_0.9.5                 
+ [3] BiocParallel_1.38.0            parallelly_1.38.0             
+ [5] sf_1.0-16                      Polychrome_1.5.1              
+ [7] viridis_0.6.5                  viridisLite_0.4.2             
+ [9] escheR_1.4.0                   spatialLIBD_1.16.2            
+[11] SpatialFeatureExperiment_1.6.1 SpatialExperiment_1.14.0      
+[13] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
+[15] Biobase_2.64.0                 GenomicRanges_1.56.1          
+[17] GenomeInfoDb_1.40.1            IRanges_2.38.1                
+[19] S4Vectors_0.42.1               BiocGenerics_0.50.0           
+[21] MatrixGenerics_1.16.0          matrixStats_1.3.0             
+[23] ggrastr_1.0.2                  ggtext_0.1.2                  
+[25] ggplot2_3.5.1                  colorout_1.3-0.2              
+[27] data.table_1.15.4              rlang_1.1.4                   
+
+loaded via a namespace (and not attached):
+  [1] later_1.3.2               BiocIO_1.14.0             fields_16.2              
+  [4] bitops_1.0-7              filelock_1.0.3            tibble_3.2.1             
+  [7] R.oo_1.26.0               XML_3.99-0.17             lifecycle_1.0.4          
+ [10] edgeR_4.2.0               doParallel_1.0.17         rprojroot_2.0.4          
+ [13] lattice_0.22-6            magrittr_2.0.3            sass_0.4.9               
+ [16] limma_3.60.3              plotly_4.10.4             rmarkdown_2.27           
+ [19] jquerylib_0.1.4           yaml_2.3.9                httpuv_1.6.15            
+ [22] spam_2.10-0               sp_2.1-4                  sessioninfo_1.2.2        
+ [25] cowplot_1.1.3             DBI_1.2.3                 RColorBrewer_1.1-3       
+ [28] golem_0.4.1               maps_3.4.2                abind_1.4-5              
+ [31] zlibbioc_1.50.0           purrr_1.0.2               R.utils_2.12.3           
+ [34] RCurl_1.98-1.14           rappdirs_0.3.3            GenomeInfoDbData_1.2.12  
+ [37] irlba_2.3.5.1             terra_1.7-78              units_0.8-5              
+ [40] dqrng_0.4.1               commonmark_1.9.1          DelayedMatrixStats_1.26.0
+ [43] codetools_0.2-20          DropletUtils_1.24.0       DelayedArray_0.30.1      
+ [46] DT_0.33                   scuttle_1.14.0            xml2_1.3.6               
+ [49] tidyselect_1.2.1          farver_2.1.2              UCSC.utils_1.0.0         
+ [52] ScaledMatrix_1.12.0       shinyWidgets_0.8.6        BiocFileCache_2.12.0     
+ [55] GenomicAlignments_1.40.0  jsonlite_1.8.8            BiocNeighbors_1.22.0     
+ [58] e1071_1.7-14              scater_1.32.0             iterators_1.0.14         
+ [61] foreach_1.5.2             tools_4.4.1               Rcpp_1.0.13              
+ [64] glue_1.7.0                gridExtra_2.3             SparseArray_1.4.8        
+ [67] xfun_0.45                 here_1.0.1                EBImage_4.46.0           
+ [70] dplyr_1.1.4               HDF5Array_1.32.0          withr_3.0.0              
+ [73] BiocManager_1.30.23       fastmap_1.2.0             boot_1.3-30              
+ [76] rhdf5filters_1.16.0       fansi_1.0.6               spData_2.3.1             
+ [79] rsvd_1.0.5                digest_0.6.36             R6_2.5.1                 
+ [82] mime_0.12                 colorspace_2.1-0          wk_0.9.2                 
+ [85] Cairo_1.6-2               markdown_1.13             jpeg_0.1-10              
+ [88] RSQLite_2.3.7             R.methodsS3_1.8.2         config_0.3.2             
+ [91] utf8_1.2.4                tidyr_1.3.1               generics_0.1.3           
+ [94] rtracklayer_1.64.0        class_7.3-22              httr_1.4.7               
+ [97] htmlwidgets_1.6.4         S4Arrays_1.4.1            scatterplot3d_0.3-44     
+[100] spdep_1.3-5               pkgconfig_2.0.3           gtable_0.3.5             
+[103] blob_1.2.4                XVector_0.44.0            htmltools_0.5.8.1        
+[106] dotCall64_1.1-1           fftwtools_0.9-11          scales_1.3.0             
+[109] attempt_0.3.1             png_0.1-8                 knitr_1.48               
+[112] rstudioapi_0.16.0         rjson_0.2.21              curl_5.2.1               
+[115] proxy_0.4-27              cachem_1.1.0              rhdf5_2.48.0             
+[118] stringr_1.5.1             BiocVersion_3.19.1        KernSmooth_2.23-24       
+[121] parallel_4.4.1            vipor_0.4.7               AnnotationDbi_1.66.0     
+[124] restfulr_0.0.15           s2_1.1.6                  pillar_1.9.0             
+[127] grid_4.4.1                vctrs_0.6.5               promises_1.3.0           
+[130] BiocSingular_1.20.0       dbplyr_2.5.0              beachmat_2.20.0          
+[133] xtable_1.8-4              sfheaders_0.4.4           beeswarm_0.4.0           
+[136] paletteer_1.6.0           evaluate_0.24.0           zeallot_0.1.0            
+[139] magick_2.8.3              Rsamtools_2.20.0          cli_3.6.3                
+[142] locfit_1.5-9.10           compiler_4.4.1            crayon_1.5.3             
+[145] labeling_0.4.3            classInt_0.4-10           rematch2_2.1.2           
+[148] ggbeeswarm_0.7.2          stringi_1.8.4             deldir_2.0-4             
+[151] munsell_0.5.1             Biostrings_2.72.1         lazyeval_0.2.2           
+[154] tiff_0.1-12               Matrix_1.7-0              ExperimentHub_2.12.0     
+[157] benchmarkme_1.0.8         sparseMatrixStats_1.16.0  bit64_4.0.5              
+[160] Rhdf5lib_1.26.0           KEGGREST_1.44.1           statmod_1.5.0            
+[163] shiny_1.8.1.1             AnnotationHub_3.12.0      gridtext_0.1.5           
+[166] memoise_2.0.1             bslib_0.7.0               benchmarkmeData_1.0.4    
+[169] bit_4.0.5                
+> sessioninfo::session_info()
+─ Session info ────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-08-09
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ────────────────────────────────────────────────────────────────────────
+ ! package                  * version   date (UTC) lib source
+   abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
+   AnnotationDbi              1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
+   AnnotationHub              3.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   attempt                    0.3.1     2020-05-03 [1] CRAN (R 4.4.0)
+   beachmat                   2.20.0    2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   beeswarm                   0.4.0     2021-06-01 [1] CRAN (R 4.4.0)
+   benchmarkme                1.0.8     2022-06-12 [1] CRAN (R 4.4.0)
+   benchmarkmeData            1.0.4     2020-04-23 [1] CRAN (R 4.4.0)
+   Biobase                  * 2.64.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
+   BiocFileCache              2.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocGenerics             * 0.50.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocIO                     1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocManager                1.30.23   2024-05-04 [1] CRAN (R 4.4.0)
+   BiocNeighbors              1.22.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocParallel             * 1.38.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocSingular               1.20.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocVersion                3.19.1    2024-04-22 [1] Bioconductor 3.19 (R 4.4.0)
+   Biostrings                 2.72.1    2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
+   bit                        4.0.5     2022-11-15 [1] CRAN (R 4.4.0)
+   bit64                      4.0.5     2020-08-30 [1] CRAN (R 4.4.0)
+   bitops                     1.0-7     2021-04-24 [1] CRAN (R 4.4.0)
+   blob                       1.2.4     2023-03-17 [1] CRAN (R 4.4.0)
+   boot                       1.3-30    2024-02-26 [1] CRAN (R 4.4.1)
+   bslib                      0.7.0     2024-03-29 [1] CRAN (R 4.4.0)
+   cachem                     1.1.0     2024-05-16 [1] CRAN (R 4.4.0)
+   Cairo                      1.6-2     2023-11-28 [1] CRAN (R 4.4.0)
+   class                      7.3-22    2023-05-03 [1] CRAN (R 4.4.1)
+   classInt                   0.4-10    2023-09-05 [1] CRAN (R 4.4.0)
+ P cli                        3.6.3     2024-06-21 [2] CRAN (R 4.4.0)
+   codetools                  0.2-20    2024-03-31 [1] CRAN (R 4.4.1)
+   colorout                 * 1.3-0.2   2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace                 2.1-0     2023-01-23 [1] CRAN (R 4.4.0)
+   commonmark                 1.9.1     2024-01-30 [1] CRAN (R 4.4.0)
+   config                     0.3.2     2023-08-30 [1] CRAN (R 4.4.0)
+   cowplot                    1.1.3     2024-01-22 [1] CRAN (R 4.4.0)
+   crayon                     1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
+   curl                       5.2.1     2024-03-01 [1] CRAN (R 4.4.0)
+   data.table               * 1.15.4    2024-03-30 [2] CRAN (R 4.4.0)
+   DBI                        1.2.3     2024-06-02 [1] CRAN (R 4.4.0)
+   dbplyr                     2.5.0     2024-03-19 [1] CRAN (R 4.4.0)
+   DelayedArray               0.30.1    2024-05-07 [1] Bioconductor 3.19 (R 4.4.0)
+   DelayedMatrixStats         1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   deldir                     2.0-4     2024-02-28 [1] CRAN (R 4.4.0)
+   digest                     0.6.36    2024-06-23 [1] CRAN (R 4.4.0)
+   doParallel                 1.0.17    2022-02-07 [1] CRAN (R 4.4.1)
+   dotCall64                  1.1-1     2023-11-28 [1] CRAN (R 4.4.0)
+   dplyr                      1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
+   dqrng                      0.4.1     2024-05-28 [1] CRAN (R 4.4.0)
+   DropletUtils               1.24.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   DT                         0.33      2024-04-04 [1] CRAN (R 4.4.0)
+   e1071                      1.7-14    2023-12-06 [1] CRAN (R 4.4.0)
+   EBImage                    4.46.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   edgeR                      4.2.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   escheR                   * 1.4.0     2024-05-16 [1] Bioconductor 3.19 (R 4.4.0)
+   evaluate                   0.24.0    2024-06-10 [1] CRAN (R 4.4.0)
+   ExperimentHub              2.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   fansi                      1.0.6     2023-12-08 [1] CRAN (R 4.4.0)
+   farver                     2.1.2     2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap                    1.2.0     2024-05-15 [1] CRAN (R 4.4.0)
+   fftwtools                  0.9-11    2021-03-01 [1] CRAN (R 4.4.0)
+   fields                     16.2      2024-06-27 [1] CRAN (R 4.4.0)
+   filelock                   1.0.3     2023-12-11 [1] CRAN (R 4.4.0)
+   foreach                    1.5.2     2022-02-02 [1] CRAN (R 4.4.0)
+   generics                   0.1.3     2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb             * 1.40.1    2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomeInfoDbData           1.2.12    2024-05-01 [1] Bioconductor
+   GenomicAlignments          1.40.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomicRanges            * 1.56.1    2024-06-12 [1] Bioconductor 3.19 (R 4.4.1)
+   ggbeeswarm                 0.7.2     2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2                  * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
+   ggrastr                  * 1.0.2     2023-06-01 [1] CRAN (R 4.4.0)
+   ggrepel                  * 0.9.5     2024-01-10 [1] CRAN (R 4.4.0)
+   ggstance                 * 0.3.7     2024-04-05 [1] CRAN (R 4.4.0)
+   ggtext                   * 0.1.2     2022-09-16 [1] CRAN (R 4.4.0)
+   glue                       1.7.0     2024-01-09 [1] CRAN (R 4.4.0)
+   golem                      0.4.1     2023-06-05 [1] CRAN (R 4.4.0)
+   gridExtra                  2.3       2017-09-09 [1] CRAN (R 4.4.0)
+   gridtext                   0.1.5     2022-09-16 [1] CRAN (R 4.4.0)
+   gtable                     0.3.5     2024-04-22 [1] CRAN (R 4.4.0)
+   HDF5Array                  1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   here                       1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools                  0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets                1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
+   httpuv                     1.6.15    2024-03-26 [1] CRAN (R 4.4.0)
+   httr                       1.4.7     2023-08-15 [1] CRAN (R 4.4.0)
+   IRanges                  * 2.38.1    2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
+   irlba                      2.3.5.1   2022-10-03 [1] CRAN (R 4.4.0)
+   iterators                  1.0.14    2022-02-05 [1] CRAN (R 4.4.0)
+   jpeg                       0.1-10    2022-11-29 [1] CRAN (R 4.4.0)
+   jquerylib                  0.1.4     2021-04-26 [1] CRAN (R 4.4.0)
+   jsonlite                   1.8.8     2023-12-04 [1] CRAN (R 4.4.0)
+   KEGGREST                   1.44.1    2024-06-19 [1] Bioconductor 3.19 (R 4.4.0)
+   KernSmooth                 2.23-24   2024-05-17 [1] CRAN (R 4.4.1)
+   knitr                      1.48      2024-07-07 [1] CRAN (R 4.4.1)
+   labeling                   0.4.3     2023-08-29 [1] CRAN (R 4.4.0)
+   later                      1.3.2     2023-12-06 [1] CRAN (R 4.4.0)
+   lattice                    0.22-6    2024-03-20 [1] CRAN (R 4.4.1)
+   lazyeval                   0.2.2     2019-03-15 [1] CRAN (R 4.4.0)
+   lifecycle                  1.0.4     2023-11-07 [1] CRAN (R 4.4.0)
+   limma                      3.60.3    2024-06-16 [1] Bioconductor 3.19 (R 4.4.0)
+   locfit                     1.5-9.10  2024-06-24 [1] CRAN (R 4.4.0)
+   magick                     2.8.3     2024-02-18 [1] CRAN (R 4.4.0)
+   magrittr                   2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
+   maps                       3.4.2     2023-12-15 [1] CRAN (R 4.4.0)
+   markdown                   1.13      2024-06-04 [1] CRAN (R 4.4.0)
+   Matrix                     1.7-0     2024-04-26 [1] CRAN (R 4.4.1)
+   MatrixGenerics           * 1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   matrixStats              * 1.3.0     2024-04-11 [1] CRAN (R 4.4.0)
+   memoise                    2.0.1     2021-11-26 [1] CRAN (R 4.4.0)
+   mime                       0.12      2021-09-28 [1] CRAN (R 4.4.0)
+   munsell                    0.5.1     2024-04-01 [1] CRAN (R 4.4.0)
+   paletteer                  1.6.0     2024-01-21 [1] CRAN (R 4.4.0)
+   parallelly               * 1.38.0    2024-07-27 [1] CRAN (R 4.4.0)
+   pillar                     1.9.0     2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig                  2.0.3     2019-09-22 [1] CRAN (R 4.4.0)
+   plotly                     4.10.4    2024-01-13 [1] CRAN (R 4.4.0)
+   png                        0.1-8     2022-11-29 [1] CRAN (R 4.4.0)
+   Polychrome               * 1.5.1     2022-05-03 [1] CRAN (R 4.4.0)
+   promises                   1.3.0     2024-04-05 [1] CRAN (R 4.4.0)
+   proxy                      0.4-27    2022-06-09 [1] CRAN (R 4.4.0)
+   purrr                      1.0.2     2023-08-10 [1] CRAN (R 4.4.0)
+   R.methodsS3                1.8.2     2022-06-13 [1] CRAN (R 4.4.0)
+   R.oo                       1.26.0    2024-01-24 [1] CRAN (R 4.4.0)
+   R.utils                    2.12.3    2023-11-18 [1] CRAN (R 4.4.0)
+   R6                         2.5.1     2021-08-19 [1] CRAN (R 4.4.0)
+   rappdirs                   0.3.3     2021-01-31 [1] CRAN (R 4.4.0)
+   RColorBrewer               1.1-3     2022-04-03 [1] CRAN (R 4.4.0)
+   Rcpp                       1.0.13    2024-07-17 [1] CRAN (R 4.4.0)
+   RCurl                      1.98-1.14 2024-01-09 [1] CRAN (R 4.4.0)
+   rematch2                   2.1.2     2020-05-01 [1] CRAN (R 4.4.0)
+   restfulr                   0.0.15    2022-06-16 [1] CRAN (R 4.4.0)
+   rhdf5                      2.48.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   rhdf5filters               1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   Rhdf5lib                   1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   rjson                      0.2.21    2022-01-09 [1] CRAN (R 4.4.0)
+ P rlang                    * 1.1.4     2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown                  2.27      2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot                  2.0.4     2023-11-05 [1] CRAN (R 4.4.0)
+   Rsamtools                  2.20.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   RSQLite                    2.3.7     2024-05-27 [1] CRAN (R 4.4.0)
+   rstudioapi                 0.16.0    2024-03-24 [1] CRAN (R 4.4.0)
+   rsvd                       1.0.5     2021-04-16 [1] CRAN (R 4.4.0)
+   rtracklayer                1.64.0    2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   s2                         1.1.6     2023-12-19 [1] CRAN (R 4.4.0)
+   S4Arrays                   1.4.1     2024-05-20 [1] Bioconductor 3.19 (R 4.4.0)
+   S4Vectors                * 0.42.1    2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
+   sass                       0.4.9     2024-03-15 [1] CRAN (R 4.4.0)
+   ScaledMatrix               1.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scales                     1.3.0     2023-11-28 [1] CRAN (R 4.4.0)
+   scater                     1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scatterplot3d              0.3-44    2023-05-05 [1] CRAN (R 4.4.0)
+   scuttle                    1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sessioninfo                1.2.2     2021-12-06 [1] CRAN (R 4.4.0)
+   sf                       * 1.0-16    2024-03-24 [1] CRAN (R 4.4.0)
+   sfheaders                  0.4.4     2024-01-17 [1] CRAN (R 4.4.0)
+   shiny                      1.8.1.1   2024-04-02 [1] CRAN (R 4.4.0)
+   shinyWidgets               0.8.6     2024-04-24 [1] CRAN (R 4.4.0)
+   SingleCellExperiment     * 1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sp                         2.1-4     2024-04-30 [1] CRAN (R 4.4.0)
+   spam                       2.10-0    2023-10-23 [1] CRAN (R 4.4.0)
+   SparseArray                1.4.8     2024-05-30 [1] Bioconductor 3.19 (R 4.4.0)
+   sparseMatrixStats          1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   SpatialExperiment        * 1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   SpatialFeatureExperiment * 1.6.1     2024-05-15 [1] Bioconductor 3.19 (R 4.4.0)
+   spatialLIBD              * 1.16.2    2024-05-28 [1] Bioconductor 3.19 (R 4.4.0)
+   spData                     2.3.1     2024-05-31 [1] CRAN (R 4.4.0)
+   spdep                      1.3-5     2024-06-10 [1] CRAN (R 4.4.0)
+   statmod                    1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
+   stringi                    1.8.4     2024-05-06 [1] CRAN (R 4.4.0)
+   stringr                    1.5.1     2023-11-14 [1] CRAN (R 4.4.0)
+   SummarizedExperiment     * 1.34.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   terra                      1.7-78    2024-05-22 [1] CRAN (R 4.4.0)
+   tibble                     3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr                      1.3.1     2024-01-24 [1] CRAN (R 4.4.0)
+   tidyselect                 1.2.1     2024-03-11 [1] CRAN (R 4.4.0)
+   tiff                       0.1-12    2023-11-28 [1] CRAN (R 4.4.0)
+   UCSC.utils                 1.0.0     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   units                      0.8-5     2023-11-28 [1] CRAN (R 4.4.0)
+   utf8                       1.2.4     2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs                      0.6.5     2023-12-01 [1] CRAN (R 4.4.0)
+   vipor                      0.4.7     2023-12-18 [1] CRAN (R 4.4.0)
+   viridis                  * 0.6.5     2024-01-29 [1] CRAN (R 4.4.0)
+   viridisLite              * 0.4.2     2023-05-02 [1] CRAN (R 4.4.0)
+   withr                      3.0.0     2024-01-16 [1] CRAN (R 4.4.0)
+   wk                         0.9.2     2024-07-09 [1] CRAN (R 4.4.0)
+   xfun                       0.45      2024-06-16 [1] CRAN (R 4.4.0)
+   XML                        3.99-0.17 2024-06-25 [1] CRAN (R 4.3.3)
+   xml2                       1.3.6     2023-12-04 [1] CRAN (R 4.4.0)
+   xtable                     1.8-4     2019-04-21 [1] CRAN (R 4.4.0)
+   XVector                    0.44.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   yaml                       2.3.9     2024-07-05 [1] CRAN (R 4.4.0)
+   zeallot                    0.1.0     2018-01-28 [1] CRAN (R 4.4.0)
+   zlibbioc                   1.50.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+───────────────────────────────────────────────────────────────────────────────────
