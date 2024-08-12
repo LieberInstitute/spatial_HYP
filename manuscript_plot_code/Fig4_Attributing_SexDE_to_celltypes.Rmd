@@ -88,8 +88,14 @@ bkanno[,clus:=paste0("X",clus)]
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
 
+## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
+arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
+bkanno <- merge.data.table(bkanno,arcvmhanno,by="bjm_annot",all.x=T)
+bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
+
+## this drops rows that were assigned one of the discarded types (ie no longer in the cell type annotations)
 bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
-## drop excluded clusters from xenium spe
+## and now we can drop excluded clusters from xenium spe
 hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
 
 ## append cluster annots to xenium spe
@@ -134,25 +140,78 @@ rm(genelut,vistmp)
 arcelist <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02c-pseudobulkARC_voomLmFitELists.RDS")
 vmhelist <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02d-pseudobulkVMH_voomLmFitELists.RDS")
 
+## subset the pseudobulk tables to the ARC clusters for the arc domain and VMH for vmh
+arcelist <- arcelist[bkanno[bjm_annot %in% grep(bjm_annot,pattern= "ARC",value=T),clus]]
+vmhelist <- vmhelist[bkanno[bjm_annot %in% grep(bjm_annot,pattern= "VMH",value=T),clus]]
+
+## change the pseudobulk entry names to be the more granularly annotated cell types
+names(vmhelist) <-  bkanno[match(names(vmhelist),bkanno$clus),bjm_annot]
+names(arcelist) <-  bkanno[match(names(arcelist),bkanno$clus),bjm_annot]
 ```
 
 cell types palettes
 ```{r}
 vmhpal <- c("#8c63cf", "#6A0D53", "#D193FE", "#AD260D")
-names(vmhpal) <- paste0("VMH_",c(1,2,3,"Lateral_border"))
+names(vmhpal) <-  names(vmhelist)
 
 arcpal <- c("#5dd959","#4CAF50", "#0DAD26","#2E8B57","#0D6A0D")
-names(arcpal) <- paste0("ARC_",c(1:5))
+names(arcpal) <-  names(arcelist)
 
 ```
 
-Panel A: Show a DEG per VMH cluster, shown for all VMH xenium clusters in a violin plot datawide (at the level of pseudobulked samples). VMH_1: MC4R, VMH_2 (and 3): TAC1, VMH_3: TMEM233
+Panel A: plot the VMH cells on an exemplary sample, showing only the VMH area
 ```{r}
-## get VMH cluster ids
-bkanno[bjm_annot %in% grep(bjm_annot,pattern= "VMH",value=T),clus]
-# X12 X18 X29 X30
-vmhelist <- vmhelist[c("X12","X18","X29","X30")]
-names(vmhelist) <- c("VMH_1","VMH_2","VMH_Lateral_border","VMH_3")
+pana <- hypx[,hypx$sample_id=="X99_1225A"&hypx$dom=="VMH"]
+pana <- as.data.table(cbind(spatialCoords(pana),as.data.table(colData(pana))))[,.(sdimx,sdimy,banksyclus)]
+
+pana <- pana[banksyclus %in% grep(banksyclus,pattern="VMH",value=T)]
+pana[,banksyclus:=gsub(banksyclus,pattern="_",replacement=" ")]
+
+pdf("manuscript_plots/Fig4/4A-VMH_celltypes_1225A.pdf",height=3.75,width=3.75)
+ggplot(pana[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
+    geom_point(size=0.075)+
+    scale_color_manual(values=vmhpal)+
+    guides(color=guide_legend(override.aes = list(size=1)))+
+    labs(color="VMH Cluster")+
+    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0,0,0,unit="in"))
+dev.off()
+
+
+rm(pana)
+```
+
+Panel B: same sample, showing ARC types in ARC domain.
+```{r}
+panb <- hypx[,hypx$sample_id=="X99_1225A"&hypx$dom=="ARC"]
+
+panb <- as.data.table(cbind(spatialCoords(panb),as.data.table(colData(panb))))[,.(sdimx,sdimy,banksyclus)]
+
+panb <- panb[banksyclus %in% grep(banksyclus,pattern="ARC",value=T)]
+panb[,banksyclus:=gsub(banksyclus,pattern="_",replacement=" ")]
+
+arcpal["ARC TAC3-AR-ESR1"] <- "#D0B"
+
+pdf("manuscript_plots/Fig4/4B-ARC_celltypes_1225A.pdf",height=3.75,width=3.75)
+ggplot(panb,aes(x=sdimx,y=sdimy,color=banksyclus))+
+    geom_point(size=0.075)+
+    scale_color_manual(values=arcpal)+
+    guides(color=guide_legend(override.aes = list(size=1)))+
+    labs(color="ARC Cluster")+
+    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0,0,0,unit="in"))
+dev.off()
+
+
+
+
+
+
+
+
+```
+
+
+Panel C: Show a DEG per VMH cluster, shown for all VMH xenium clusters in a violin plot datawide (at the level of pseudobulked samples). VMH_1: MC4R, VMH_2 (and 3): TAC1, VMH_3: TMEM233
+```{r}
 vmhe <- rbindlist(vmhelist,idcol = "celltype",fill=T)
 # removing leading "elist." from colnames
 setnames(vmhe,gsub(names(vmhe),pattern="^elist\\.",replacement=""))
@@ -166,15 +225,13 @@ vmhe.m[,Sex:=gsub(Sex,pattern="^(.).*$",replacement="\\1")]
 
 ## tidy up for plotting -- also do this for the palette or they won't match up
 vmhe.m[,celltype:=gsub(celltype,pattern="_",replacement=" ")]
-vmhe.m[celltype=="VMH Lateral border",celltype:="VMH Border"]
 names(vmhpal) <- gsub(names(vmhpal),pattern="_",replacement=" ")
-names(vmhpal)[4] <- "VMH Border"
 setnames(vmhe.m,"celltype","Xenium Cluster")
 
 # make the gene names markdown'ed so they appear in italics
 vmhe.m[,rn:=paste0("*",rn,"*")]
 
-pdf("manuscript_plots/Fig4/4A-VMH_DEGs_boxplot.pdf",height=3,width=3.5)
+pdf("manuscript_plots/Fig4/4C-VMH_DEGs_boxplot.pdf",height=3,width=3.5)
 ggplot(vmhe.m,aes(x=`Xenium Cluster`,y=value,color=`Xenium Cluster`,fill = Sex))+
     geom_boxplot(outliers = FALSE,linewidth = 0.25)+
     geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
@@ -191,13 +248,8 @@ dev.off()
 rm(vmhe.m,vmhe)
 ```
 
-## for panel B, we want to do the same for three ARC genes of interest. For ARC_4 we have the pick of the litter--we'll go with CDH13, which has known associations to weight. For ARC_3, RXRG is pretty high up there signif wise. And ARC_1 has signif CYP26A1 DE.  
+## for panel D, we want to do the same for three ARC genes of interest. For ARC_4 we have the pick of the litter--we'll go with CDH13, which has known associations to weight. For ARC_3, RXRG is pretty high up there signif wise. And ARC_1 has signif CYP26A1 DE.  
 ```{r}
-## get ARC cluster ids
-bkanno[bjm_annot %in% grep(bjm_annot,pattern= "ARC",value=T),clus]
-# X15 X19 X23 X31 X33
-arcelist <- arcelist[c("X15","X19","X23","X31","X33")]
-names(arcelist) <- paste0("ARC_",c(1:5))
 arce <- rbindlist(arcelist,idcol = "celltype",fill=T)
 # removing leading "elist." from colnames
 setnames(arce,gsub(names(arce),pattern="^elist\\.",replacement=""))
@@ -217,7 +269,7 @@ setnames(arce.m,"celltype","Xenium Cluster")
 # make the gene names markdown'ed so they appear in italics
 arce.m[,rn:=paste0("*",rn,"*")]
 
-pdf("manuscript_plots/Fig4/4B-ARC_DEGs_boxplot.pdf",height=3,width=4)
+pdf("manuscript_plots/Fig4/4D-ARC_DEGs_boxplot.pdf",height=3,width=4)
 ggplot(arce.m,aes(x=`Xenium Cluster`,y=value,color=`Xenium Cluster`,fill = Sex))+
     geom_boxplot(outliers = FALSE,linewidth = 0.25)+
     geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
