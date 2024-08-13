@@ -19,6 +19,7 @@ library(spatialLIBD) # one option for plotting cluster assignments, but breaks w
 library(escheR) # alternative spotplotting function, at least for visium
 library(viridis) # palettes
 library(Polychrome) # better palettes
+library(ggstance) # for y axis dodge
 require(colorout) # Utility for RStudio
 library(sf) # define the polygonal boundaries of xenium domains
 ColorOut()
@@ -73,8 +74,14 @@ bkanno[,clus:=paste0("X",clus)]
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
 
+## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
+arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
+bkanno <- merge.data.table(bkanno,arcvmhanno,by="bjm_annot",all.x=T)
+bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
+
+## this drops rows that were assigned one of the discarded types (ie no longer in the cell type annotations)
 bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
-## drop excluded clusters from xenium spe
+## and now we can drop excluded clusters from xenium spe
 hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
 
 ## append cluster annots to xenium spe
@@ -369,55 +376,157 @@ rm(pano,p)
 
 Let's see if we can plot both in Xenium in one panel.
 ```{r}
-pano <- hypx[c("GHRH","TAC3"),hypx$sample_id=="X86_reg1"]
-colData(pano)$`log counts GHRH` <- as.numeric(logcounts(pano)[c("GHRH"),])
-colData(pano)$`log counts TAC3` <- as.numeric(logcounts(pano)[c("TAC3"),])
+# pano <- hypx[c("GHRH","TAC3"),hypx$sample_id=="X86_reg1"]
+# colData(pano)$`log counts GHRH` <- as.numeric(logcounts(pano)[c("GHRH"),])
+# colData(pano)$`log counts TAC3` <- as.numeric(logcounts(pano)[c("TAC3"),])
+# 
+# ### adapting code from Boyi Guo/the "bivariate colorizer" code sandbox
+# RBG_norm_GHRH <- scales::rescale(
+# logcounts(pano)["GHRH", ] |>
+#   base::scale(center = TRUE, scale = FALSE) |>
+#   sapply(max, 0.2),
+# to = c(0.2,1)
+# )
+# RBG_norm_TAC3 <- scales::rescale(
+# logcounts(pano)["TAC3", ] |>
+#   base::scale(center = TRUE, scale = FALSE) |>
+#   sapply(max, 0.2),
+# to = c(0.2, 1)
+# )
+# 
+# ### assign each cell a single color based on its combo of these features
+# pano$rbg_val <- rgb(
+# red = RBG_norm_GHRH,
+# green = 0,
+# blue= RBG_norm_TAC3
+# )
+# 
+# ### find the color corresponding to most spots and blank those out
+# as.data.table(pano$rbg_val)[,.N,by="V1"][max(N)] # #330033
+# pano$rbg_val[which(pano$rbg_val=="#330033")] <- NA
+# ####
+# 
+# p <- make_escheR(pano,y_reverse=FALSE)
+# p <- p |> add_fill("rbg_val",size=0.125,point_size = 0.125)
+# 
+# p <- p+
+#     scale_fill_identity()+
+#     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+scale_color_manual(values=pal,na.value = NA)+
+#     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+# 
+# pdf("manuscript_plots/Fig2/2P-X86_reg1_GHRH-TAC3.pdf",height=1.6,width=1.75)
+# p
+# dev.off()
+# 
+# 
+# 
+# dev.off()
+# 
+# rm(pano,p)
+```
 
-### adapting code from Boyi Guo/the "bivariate colorizer" code sandbox
-RBG_norm_GHRH <- scales::rescale(
-logcounts(pano)["GHRH", ] |>
-  base::scale(center = TRUE, scale = FALSE) |>
-  sapply(max, 0.2),
-to = c(0.2,1)
-)
-RBG_norm_TAC3 <- scales::rescale(
-logcounts(pano)["TAC3", ] |>
-  base::scale(center = TRUE, scale = FALSE) |>
-  sapply(max, 0.2),
-to = c(0.2, 1)
-)
+panel P, option 1: GHRH and TAC3 clusters in different colors
+```{r}
+panp <- hypx[,hypx$sample_id=="X86_reg1"&hypx$dom=="ARC"]
+tmpcd <- as.data.table(colData(panp),keep.rownames=T)
+tmpcd[!(banksyclus %in% c("ARC_GAL-TRH-GHRH","ARC_TAC3-AR-ESR1")),banksyclus:=NA]
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(panp),]
+colData(panp) <- tmpcd
 
-### assign each cell a single color based on its combo of these features
-pano$rbg_val <- rgb(
-red = RBG_norm_GHRH,
-green = 0,
-blue= RBG_norm_TAC3
-)
+panp$banksyclus <- gsub(panp$banksyclus,pattern="_",replacement=" ")
 
-### find the color corresponding to most spots and blank those out
-as.data.table(pano$rbg_val)[,.N,by="V1"][max(N)] # #330033
-pano$rbg_val[which(pano$rbg_val=="#330033")] <- NA
-####
+p <- make_escheR(panp,y_reverse=FALSE)
+p <- p |> add_fill("banksyclus",size=.25,point_size = .25)
 
-p <- make_escheR(pano,y_reverse=FALSE)
-p <- p |> add_fill("rbg_val",size=0.125,point_size = 0.125)
+## at 1.6h x 1.75w with the various point size settings margins etc below, the NA gets chopped off the legend perfectly. 
+panppal <- c("#0DAD26","#F0B",NA)
+names(panppal) <- c("ARC GAL-TRH-GHRH","ARC TAC3-AR-ESR1","NA")
+
+tmpdompoly <- dompoly[dompol=="ARC"]
 
 p <- p+
-    scale_fill_identity()+
-    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+scale_color_manual(values=pal,na.value = NA)+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+   geom_path(data=tmpdompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+   scale_color_manual(values=pal["ARC"],na.value = NA)+
+   scale_fill_manual(values=panppal,na.value=NA)+
+   guides(color="none",fill=guide_legend(override.aes = list(size=2)))+
+   labs(fill="Xenium Cluster")+
+   theme(plot.title.position = "plot",
+         plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),
+         legend.text = element_text(size=7),
+         legend.key.size = ggplot2::unit(0.125,"in"),
+         legend.title=element_text(size=7.5,hjust=0.5),
+         plot.margin = margin(-0.07,0,-0.17,-0.05,unit = "in"),
+         legend.margin=margin(-0.1,0,0,0,"in"),
+         legend.position="bottom",legend.direction = "vertical")
 
-pdf("manuscript_plots/Fig2/2P-X86_reg1_GHRH-TAC3.pdf",height=1.6,width=1.75)
+pdf("manuscript_plots/Fig2/2Popt1-X86_reg1_GHRH-TAC3_clusters.pdf",height=1.6,width=1.75)
 p
 dev.off()
 
-
-
-dev.off()
-
-rm(pano,p)
+rm(p)
 ```
 
+panel P, option 2: GHRH, TAC3, and dual-positive cells color coded
+```{r}
+panp$ghrhpos <- ifelse(counts(panp["GHRH",])>0,1,0)
+panp$tacpos <- ifelse(counts(panp["TAC3",])>0,1,0)
+panp$bothpos <- ifelse(panp$ghrhpos+panp$tacpos==2,1,0)
+panp$mkxpr <- ifelse(panp$bothpos==1,"Both","Neither")
+panp$mkxpr <- ifelse(panp$bothpos==0&panp$ghrhpos==1,"*GHRH*",panp$mkxpr)
+panp$mkxpr <- ifelse(panp$bothpos==0&panp$ghrhpos==0&panp$tacpos==1,"*TAC3*",panp$mkxpr)
+panp$mkxpr <- factor(panp$mkxpr,levels=c("*GHRH*","Neither","*TAC3*","Both"))
+
+p <- make_escheR(panp,y_reverse=FALSE)
+p <- p |> add_fill("mkxpr",size=.25,point_size = .25)
+
+## at 1.6h x 1.75w with the various point size settings margins etc below, the NA gets chopped off the legend perfectly. 
+panppal <- c("#0DAD26","gray","#F0B","darkorange")
+names(panppal) <- c("*GHRH*","Neither","*TAC3*","Both")
+
+tmpdompoly <- dompoly[dompol=="ARC"]
+
+p <- p+
+   geom_path(data=tmpdompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+   scale_color_manual(values=pal["ARC"],na.value = NA)+
+   scale_fill_manual(values=panppal,na.value=NA)+
+   guides(color="none",fill=guide_legend(ncol=2,override.aes = list(size=2)))+
+   labs(fill="Counts >0 for")+
+   theme(plot.title.position = "plot",
+         plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),
+         legend.text = element_markdown(size=7),
+         legend.key.size = ggplot2::unit(0.125,"in"),
+         legend.title=element_text(size=7.5,hjust=0.5),
+         plot.margin = margin(-0.17,0,-0.17,-0.05,unit = "in"),
+         legend.margin=margin(-0.075,0,0,0,"in"),
+         legend.position="bottom",legend.direction = "vertical")
+
+pdf("manuscript_plots/Fig2/2Popt2-X86_reg1_GHRH-TAC3_detection.pdf",height=1.6,width=1.75)
+p
+dev.off()
+
+rm(p)
+```
+
+Option 3 / supp: scatter plot by GHRH, TAC3 counts
+```{r}
+panp3 <- logcounts(hypx[c("GHRH","TAC3"),])
+panp3 <- as.data.table(t(as.matrix(panp3)),keep.rownames=T)
+# make a dummy variable to force jitterdodge to work
+panp3$mkxpr <- "mk"
+
+panp3[is.infinite(GHRH),GHRH:=0]
+panp3[is.infinite(TAC3),TAC3:=0]
+
+pdf("manuscript_plots/Fig2/2Popt3orsupp-alldata_GHRH-TAC3_logcountscatter.pdf",height=7,width=7)
+ggplot(panp3,aes(x=GHRH,y=TAC3,color="mkxpr"))+
+   rasterize(geom_jitter(size=0.05,position=position_jitterdodge(jitter.width = 0.35,jitter.height=0.35)),dev="cairo_png",dpi=300)+
+   scale_color_manual(values="black")+
+   guides(color="none")+
+   geom_abline(intercept = 0,slope = 1,linetype="dashed",color="red")+
+   scale_x_continuous(limits=c(-0.36,6.25),expand=c(0,0))+
+   scale_y_continuous(limits=c(-0.36,6.25),expand=c(0,0))
+dev.off()
+```
 ### reprod info
 ```{r}
 sessionInfo()
