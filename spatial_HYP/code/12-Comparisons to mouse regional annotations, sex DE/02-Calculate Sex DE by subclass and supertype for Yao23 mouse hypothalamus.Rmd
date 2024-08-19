@@ -1,7 +1,7 @@
 ---
 title: "02-Calculate Sex DE by subclass for Yao23 mouse hypothalamus"
 author: "Bernard Mulvey"
-date: "2024-08-07"
+date: "2024-08-18"
 output: html_document
 ---
 
@@ -56,6 +56,50 @@ ncells <- as.data.table(table(bothhyp$subclass))
 
 fwrite(subdif2,"processed-data/12-Mouse comparisons/02-Yao23-HYP-subclass-sexDE_dreamlet_donormouse-ranfx.txt",sep='\t',quote=F,row.names=F)
 fwrite(ncells,"processed-data/12-Mouse comparisons/02-Yao23-HYP-ncells-per-subclass.txt",sep='\t',quote=F,row.names=F)
+```
+
+### as a more tightly honed analysis, do this for supertypes, but only those in VMH and ARC (22 supertypes total.)
+
+```{r}
+sbp <- MulticoreParam(10)
+
+## of 1115 supertypes, 22 are VMH or ARH (ARC). check how many mice there are for each of these.
+tmpcd <- as.data.table(colData(bothhyp))[supertype %in% grep(supertype,pattern="VMH|ARH",value=T)]
+## ^ 24882 cells total are one of these supertypes.
+
+keeptypes <- unique(tmpcd[,.(supertype,donor_label,donor_sex)])
+keeptypes[,Nmiceforclust:=.N,by=c("supertype")]
+keeptypes[,supertype:=as.character(supertype)]
+keeptypes[donor_sex=="M",nmale:=.N,by=c("supertype")]
+keeptypes[donor_sex=="F",nfem:=.N,by=c("supertype")]
+keeptypes <- merge.data.table(unique(keeptypes[!is.na(nmale),.(supertype,nmale)]),unique(keeptypes[!is.na(nfem),.(supertype,Nmiceforclust,nfem)]),by="supertype",all.x=T,all.y=T)
+
+
+keeptypes <- unique(keeptypes[Nmiceforclust>=12&nmale>=5&nfem>=5,supertype])
+## all 22 of these are represented in at least 5 of each sex for a total of 12 or more mice.
+
+
+### samples labeled by library label; unique donor mice by donor_label
+subag <- aggregateToPseudoBulk(bothhyp[,bothhyp$supertype %in% keeptypes],sample_id = "library_label.x",cluster_id = "supertype",assay = "counts",BPPARAM = sbp)
+
+subdif <- dreamlet::processAssays(subag,min.cells = 15,min.count = 1,min.samples = 12,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,formula = ~donor_sex+(1|donor_label),BPPARAM = sbp)
+
+# Warning message:
+# In dreamlet::processAssays(subag, min.cells = 15, min.count = 1,  :
+#   Not enough samples retained or model fit fails: x0296_PVa_ARH_Six3_Dopa_Gaba_2, x0487_ARH_PVp_Tbx3_Glut_4, x0488_ARH_PVp_Tbx3_Glut_5, x0493_VMH_Fezf1_Glut_1, x0501_VMH_Nr5a1_Glut_6
+
+subdif <- dreamlet::dreamlet(subdif,BPPARAM = sbp,formula = ~donor_sex+(1|donor_label))
+
+# Of 212,506 models fit across all assays, 0.00141% failed (comparable to the 672k / 0.000893% failure rate for the subclass analysis above)
+
+subdif2 <- dreamlet::topTable(subdif,coef="donor_sexM",number=Inf,adjust.method ="BH")
+subdif2 <- as.data.table(subdif2)
+
+## make table of n cells per supertype
+ncells <- as.data.table(table(bothhyp[,bothhyp$supertype %in% keeptypes]$supertype))[N>0]
+
+fwrite(subdif2,"processed-data/12-Mouse comparisons/02-Yao23-HYP-VMHARCsupertypes-sexDE_dreamlet_donormouse-ranfx.txt",sep='\t',quote=F,row.names=F)
+fwrite(ncells,"processed-data/12-Mouse comparisons/02-Yao23-HYP-ncells-per-VMHARCsupertype.txt",sep='\t',quote=F,row.names=F)
 ```
 
 ## reproducibility info
@@ -158,7 +202,7 @@ loaded via a namespace (and not attached):
 [181] AnnotationDbi_1.66.0      GenomicAlignments_1.40.0  shinyWidgets_0.8.6       
 [184] GSEABase_1.66.0           here_1.0.1               
 > sessioninfo::session_info()
-─ Session info ───────────────────────────────────────────────────────────────────
+─ Session info ────────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -168,11 +212,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-07
+ date     2024-08-18
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ───────────────────────────────────────────────────────────────────────
+─ Packages ────────────────────────────────────────────────────────────────────────
  ! package              * version    date (UTC) lib source
    abind                  1.4-5      2016-07-21 [1] CRAN (R 4.4.0)
    annotate               1.82.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
@@ -383,4 +427,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-──────────────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────────
