@@ -38,25 +38,33 @@ unloadNamespace("datasets")
 
 load registration results (table of cluster-cluster marker t stat correlations)
 ```{r}
-yaoreg <- readRDS("processed-data/10_Spatial_Registration/01-NonSampleSpecific_cluster_reg_to_Yao23_mouseHyp_subclasses.RDS")
+yaoreg <- readRDS("processed-data/10_Spatial_Registration/01-NonSampleSpecific_cluster_reg_to_Yao23_mouseHyp_subclasses_and_VMHARCsupertypes.RDS")
 
 # collapse lists of results into one big list
 plotlist <- c(
         yaoreg[[1]],
-        yaoreg[[2]]
+        yaoreg[[2]],
+        yaoreg[[3]]
 )
-stopifnot(length(unique(names(plotlist)))==length(yaoreg)*length(yaoreg[[1]]))
-### oops, we have duplicate runs (the max genes we set in the loop was greater than the number of compatible genes)
+
+## account for any duplicate cases where the top n genes (all)==250 (i.e., duplicate runs)
 plotlist <- plotlist[unique(names(plotlist))]
 
 ## load the cluster annotations to annotate our clusters on the plots
 bkanno <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
 
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
-bkanno[,clus:=paste0("X",clus)]
+
+## add more precise ARC/VMH cluster labels
+vmharclab <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
+bkanno <- merge.data.table(bkanno,vmharclab,by="bjm_annot",all.x=T)
+bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
+
+## drop sample specific clusters
+bkanno <- bkanno[!(bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T))]
 ```
 
-# plots
+# plots, as heatmaps
 ```{r}
 sbp <- MulticoreParam(8)
 register(sbp)
@@ -74,10 +82,85 @@ bpmapply(m=plotlist,n=as.list(names(plotlist)),SIMPLIFY = F,BPPARAM = sbp,FUN = 
                 n,pattern="^.*_top_(.*)_sp.*$",replacement="\\1"))>1000,
                 yes=gsub(n,pattern="^(.*)_top_.*_(sp.*)$",replacement=paste0("\\1","_allgenes_","\\2")),
                 no=n)
-        pdf(paste0("plots/10_Spatial_Registration/01-",n,".pdf"),height = 0.2*ncol(m),width=10)
+        pdf(paste0("plots/10_Spatial_Registration/01a-Yao23_markerRegistration_Xeniumclus_Heatmaps/Heatmap_",n,".pdf"),height = 0.2*ncol(m),width=10)
         print(plt)
         dev.off()
 })
+```
+
+# subclass plot as line plots with x = number of top genes
+```{r}
+plotlist2 <- rbind(rbindlist(yaoreg[[1]],idcol="ntop"),rbindlist(yaoreg[[3]],idcol="ntop"),fill=T)
+
+plotlist2[,ntop:=as.numeric(gsub(ntop,pattern="^.*_top_(.*)_sp.*$",replacement="\\1"))]
+plotlist3 <- unique(rbind(
+   melt(plotlist2[!is.na(VMHall)],id.vars=c("sphyp_domain","ntop")),
+   melt(plotlist2[!is.na(ARHall)],id.vars=c("sphyp_domain","ntop")),
+   melt(plotlist2[is.na(VMHall)&is.na(ARHall)],id.vars=c("sphyp_domain","ntop"))))
+
+bplapply(X=unique(plotlist2$sphyp_domain),BPPARAM = sbp,FUN = function(m){
+        plttab <- as.data.table(plotlist2[sphyp_domain==m],keep.rownames=T)
+        plttab <- melt(plttab,id.vars=c("sphyp_domain","ntop"))
+        plttab[,ntop:=as.numeric(ntop)]
+        plttab <- plttab[!is.na(value)]
+        plttab <- merge.data.table(plttab,bkanno,by.x="sphyp_domain",by.y="clus")
+        plt <- ggplot(plttab,aes(x=ntop,y=value))+
+                geom_line(color="blue")+
+                geom_hline(yintercept = 0,color="black",linetype = "dashed")+
+                facet_wrap(.~variable)+
+                ggtitle(paste0("Xenium Human ",unique(plttab$bjm_annot), " to\nYao 2023 Mouse Subclasses"))+
+                theme(axis.text.x = element_text(angle=90,size=9,hjust=1),axis.text.y=element_text(size=9),title = element_text(size=12),strip.text=element_text(size=7))
+        pdf(paste0("plots/10_Spatial_Registration/01b-Yao23_markerRegistration_Xeniumclus_Lineplots/Lineplot_Xen-",bkanno[clus==m,bjm_annot],"_to_Yao23Subclasses.pdf"),height = 25,width=25)
+        print(plt)
+        dev.off()
+})
+
+```
+
+
+
+### Lineplots showing all VMH subclasses in one plot for each xenium VMH cluster
+```{r}
+pltsuper <- rbindlist(yaoreg[[2]],idcol="ntop")
+pltsuper[,ntop:=as.numeric(gsub(ntop,pattern="^.*_top_(.*)_sp.*$",replacement="\\1"))]
+
+pltsuper <- merge.data.table(pltsuper,bkanno,by.x="sphyp_domain",by.y="clus")
+
+## get VMH supertypes and VMH xenium clusters, melt, plot
+vnames <- c("ntop","bjm_annot",grep(names(pltsuper),pattern="VMH",value=T))
+vmhsuper <- pltsuper[bjm_annot %in% grep(bjm_annot,pattern="VMH",value=T),..vnames]
+vmhsuper <- melt(vmhsuper,id.vars=c("bjm_annot","ntop"))
+
+## same for arc
+anames <- c("ntop","bjm_annot",grep(names(pltsuper),pattern="ARH",value=T))
+arcsuper <- pltsuper[bjm_annot %in% grep(bjm_annot,pattern="ARC",value=T),..anames]
+arcsuper <- melt(arcsuper,id.vars=c("bjm_annot","ntop"))
+
+## VMH plot set:
+pdf("plots/10_Spatial_Registration/01c-VMH_to_YaoVMHsupertypes.pdf",height=10,width=6)
+ggplot(vmhsuper,aes(x=ntop,y=value,col=variable))+
+        geom_line()+
+        geom_hline(yintercept = 0,color="black",linetype = "dashed")+
+        facet_wrap(.~bjm_annot)+
+        labs(color="Yao 23 Mouse\nVMH Supertype")+
+        ylab("Spearman correlation of human\n to mouse 1-vs-all marker t stats")+
+           xlab("Top n human markers by t stat")+
+        ggtitle("Xenium Human VMH to\nYao 2023 Mouse VMH Supertypes")+
+        theme(axis.text.x = element_text(angle=90,size=9,hjust=1),axis.text.y=element_text(size=9),title = element_text(size=12),strip.text=element_text(size=7))
+dev.off()
+## ARC plot set:
+pdf("plots/10_Spatial_Registration/01c-ARC_to_YaoARHsupertypes.pdf",height=14,width=9)
+ggplot(arcsuper,aes(x=ntop,y=value,col=variable))+
+        geom_line()+
+        geom_hline(yintercept = 0,color="black",linetype = "dashed")+
+        facet_wrap(.~bjm_annot)+
+        labs(color="Yao 23 Mouse\nARC Supertype")+
+        ylab("Spearman correlation of human\n to mouse 1-vs-all marker t stats")+
+        xlab("Top n human markers by t stat")+
+        guides(color=guide_legend(ncol=2))+
+        ggtitle("Xenium Human ARC to\nYao 2023 Mouse ARC Supertypes")+
+        theme(axis.text.x = element_text(angle=90,size=9,hjust=1),axis.text.y=element_text(size=9),title = element_text(size=12),strip.text=element_text(size=7),legend.position = "bottom")
+dev.off()
 ```
 
 rep inf
@@ -100,24 +183,41 @@ time zone: America/Chicago
 tzcode source: internal
 
 attached base packages:
-[1] stats     graphics  grDevices utils     methods   base     
+[1] parallel  stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
-[1] BiocParallel_1.38.0 parallelly_1.38.0   colorout_1.3-0.2    gridExtra_2.3      
-[5] ggplot2_3.5.1       data.table_1.15.4   rlang_1.1.4        
+[1] gridExtra_2.3       ggplot2_3.5.1       parallelly_1.38.0   orthogene_1.10.0   
+[5] BiocParallel_1.38.0 magrittr_2.0.3      colorout_1.3-0.2    data.table_1.15.4  
+[9] rlang_1.1.4        
 
 loaded via a namespace (and not attached):
- [1] vctrs_0.6.5       cli_3.6.3         knitr_1.48        xfun_0.45        
- [5] generics_0.1.3    glue_1.7.0        colorspace_2.1-0  rprojroot_2.0.4  
- [9] htmltools_0.5.8.1 datasets_4.4.1    scales_1.3.0      fansi_1.0.6      
-[13] rmarkdown_2.27    grid_4.4.1        evaluate_0.24.0   munsell_0.5.1    
-[17] tibble_3.2.1      fastmap_1.2.0     yaml_2.3.9        lifecycle_1.0.4  
-[21] compiler_4.4.1    codetools_0.2-20  dplyr_1.1.4       pkgconfig_2.0.3  
-[25] here_1.0.1        rstudioapi_0.16.0 digest_0.6.36     R6_2.5.1         
-[29] tidyselect_1.2.1  utf8_1.2.4        parallel_4.4.1    pillar_1.9.0     
-[33] magrittr_2.0.3    withr_3.0.0       tools_4.4.1       gtable_0.3.5     
-
-─ Session info ───────────────────────────────────────────────────────────────────
+ [1] gtable_0.3.5              babelgene_22.9            xfun_0.45                
+ [4] htmlwidgets_1.6.4         rstatix_0.7.2             lattice_0.22-6           
+ [7] bitops_1.0-7              vctrs_0.6.5               tools_4.4.1              
+[10] generics_0.1.3            yulab.utils_0.1.4         tibble_3.2.1             
+[13] fansi_1.0.6               pkgconfig_2.0.3           Matrix_1.7-0             
+[16] homologene_1.4.68.19.3.27 ggplotify_0.1.2           lifecycle_1.0.4          
+[19] farver_2.1.2              compiler_4.4.1            treeio_1.28.0            
+[22] munsell_0.5.1             codetools_0.2-20          carData_3.0-5            
+[25] ggtree_3.12.0             gprofiler2_0.2.3          ggfun_0.1.5              
+[28] htmltools_0.5.8.1         RCurl_1.98-1.14           yaml_2.3.9               
+[31] lazyeval_0.2.2            plotly_4.10.4             pillar_1.9.0             
+[34] car_3.1-2                 ggpubr_0.6.0              tidyr_1.3.1              
+[37] cachem_1.1.0              grr_0.9.5                 sessioninfo_1.2.2        
+[40] abind_1.4-5               nlme_3.1-165              tidyselect_1.2.1         
+[43] aplot_0.2.3               digest_0.6.36             dplyr_1.1.4              
+[46] purrr_1.0.2               labeling_0.4.3            rprojroot_2.0.4          
+[49] fastmap_1.2.0             grid_4.4.1                here_1.0.1               
+[52] colorspace_2.1-0          cli_3.6.3                 patchwork_1.2.0          
+[55] utf8_1.2.4                broom_1.0.6               ape_5.8                  
+[58] withr_3.0.0               scales_1.3.0              backports_1.5.0          
+[61] httr_1.4.7                rmarkdown_2.27            ggsignif_0.6.4           
+[64] memoise_2.0.1             evaluate_0.24.0           knitr_1.48               
+[67] viridisLite_0.4.2         gridGraphics_0.5-1        Rcpp_1.0.13              
+[70] glue_1.7.0                tidytree_0.4.6            rstudioapi_0.16.0        
+[73] jsonlite_1.8.8            R6_2.5.1                  fs_1.6.4                 
+> sessioninfo::session_info()
+─ Session info ────────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -127,55 +227,97 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-04
+ date     2024-08-20
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ───────────────────────────────────────────────────────────────────────
- ! package      * version date (UTC) lib source
-   BiocParallel * 1.38.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
- P cli            3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
-   codetools      0.2-20  2024-03-31 [1] CRAN (R 4.4.1)
-   colorout     * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
-   colorspace     2.1-0   2023-01-23 [1] CRAN (R 4.4.0)
-   data.table   * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
-   digest         0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
-   dplyr          1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
-   evaluate       0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
-   fansi          1.0.6   2023-12-08 [1] CRAN (R 4.4.0)
-   fastmap        1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
-   generics       0.1.3   2022-07-05 [1] CRAN (R 4.4.0)
-   ggplot2      * 3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
-   glue           1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
-   gridExtra    * 2.3     2017-09-09 [1] CRAN (R 4.4.0)
-   gtable         0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
-   here           1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
-   htmltools      0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
-   knitr          1.48    2024-07-07 [1] CRAN (R 4.4.1)
-   lifecycle      1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
-   magrittr       2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
-   munsell        0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
-   parallelly   * 1.38.0  2024-07-27 [1] CRAN (R 4.4.0)
-   pillar         1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
-   pkgconfig      2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
-   R6             2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
- P rlang        * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
-   rmarkdown      2.27    2024-05-17 [1] CRAN (R 4.4.0)
-   rprojroot      2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
-   rstudioapi     0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
-   scales         1.3.0   2023-11-28 [1] CRAN (R 4.4.0)
-   sessioninfo    1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
-   tibble         3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
-   tidyselect     1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
-   utf8           1.2.4   2023-10-22 [1] CRAN (R 4.4.0)
-   vctrs          0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
-   withr          3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
-   xfun           0.45    2024-06-16 [1] CRAN (R 4.4.0)
-   yaml           2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
+─ Packages ────────────────────────────────────────────────────────────────────────
+ ! package      * version        date (UTC) lib source
+   abind          1.4-5          2016-07-21 [1] CRAN (R 4.4.0)
+   ape            5.8            2024-04-11 [1] CRAN (R 4.4.0)
+   aplot          0.2.3          2024-06-17 [1] CRAN (R 4.4.0)
+   babelgene      22.9           2022-09-29 [1] CRAN (R 4.4.0)
+   backports      1.5.0          2024-05-23 [1] CRAN (R 4.4.0)
+   BiocParallel * 1.38.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   bitops         1.0-7          2021-04-24 [1] CRAN (R 4.4.0)
+   broom          1.0.6          2024-05-17 [1] CRAN (R 4.4.0)
+   cachem         1.1.0          2024-05-16 [1] CRAN (R 4.4.0)
+   car            3.1-2          2023-03-30 [1] CRAN (R 4.4.0)
+   carData        3.0-5          2022-01-06 [1] CRAN (R 4.4.0)
+ P cli            3.6.3          2024-06-21 [2] CRAN (R 4.4.0)
+   codetools      0.2-20         2024-03-31 [1] CRAN (R 4.4.1)
+   colorout     * 1.3-0.2        2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace     2.1-0          2023-01-23 [1] CRAN (R 4.4.0)
+   data.table   * 1.15.4         2024-03-30 [2] CRAN (R 4.4.0)
+   digest         0.6.36         2024-06-23 [1] CRAN (R 4.4.0)
+   dplyr          1.1.4          2023-11-17 [1] CRAN (R 4.4.0)
+   evaluate       0.24.0         2024-06-10 [1] CRAN (R 4.4.0)
+   fansi          1.0.6          2023-12-08 [1] CRAN (R 4.4.0)
+   farver         2.1.2          2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap        1.2.0          2024-05-15 [1] CRAN (R 4.4.0)
+   fs             1.6.4          2024-04-25 [1] CRAN (R 4.4.0)
+   generics       0.1.3          2022-07-05 [1] CRAN (R 4.4.0)
+   ggfun          0.1.5          2024-05-28 [1] CRAN (R 4.4.0)
+   ggplot2      * 3.5.1          2024-04-23 [1] CRAN (R 4.4.0)
+   ggplotify      0.1.2          2023-08-09 [1] CRAN (R 4.4.0)
+   ggpubr         0.6.0          2023-02-10 [1] CRAN (R 4.4.0)
+   ggsignif       0.6.4          2022-10-13 [1] CRAN (R 4.4.0)
+   ggtree         3.12.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   glue           1.7.0          2024-01-09 [1] CRAN (R 4.4.0)
+   gprofiler2     0.2.3          2024-02-23 [1] CRAN (R 4.4.0)
+   gridExtra    * 2.3            2017-09-09 [1] CRAN (R 4.4.0)
+   gridGraphics   0.5-1          2020-12-13 [1] CRAN (R 4.4.0)
+   grr            0.9.5          2016-08-26 [1] CRAN (R 4.4.0)
+   gtable         0.3.5          2024-04-22 [1] CRAN (R 4.4.0)
+   here           1.0.1          2020-12-13 [1] CRAN (R 4.4.0)
+   homologene     1.4.68.19.3.27 2019-03-28 [1] CRAN (R 4.4.0)
+   htmltools      0.5.8.1        2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets    1.6.4          2023-12-06 [1] CRAN (R 4.4.0)
+   httr           1.4.7          2023-08-15 [1] CRAN (R 4.4.0)
+   jsonlite       1.8.8          2023-12-04 [1] CRAN (R 4.4.0)
+   knitr          1.48           2024-07-07 [1] CRAN (R 4.4.1)
+   labeling       0.4.3          2023-08-29 [1] CRAN (R 4.4.0)
+   lattice        0.22-6         2024-03-20 [1] CRAN (R 4.4.1)
+   lazyeval       0.2.2          2019-03-15 [1] CRAN (R 4.4.0)
+   lifecycle      1.0.4          2023-11-07 [1] CRAN (R 4.4.0)
+   magrittr     * 2.0.3          2022-03-30 [1] CRAN (R 4.4.0)
+   Matrix         1.7-0          2024-04-26 [1] CRAN (R 4.4.1)
+   memoise        2.0.1          2021-11-26 [1] CRAN (R 4.4.0)
+   munsell        0.5.1          2024-04-01 [1] CRAN (R 4.4.0)
+   nlme           3.1-165        2024-06-06 [1] CRAN (R 4.4.0)
+   orthogene    * 1.10.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   parallelly   * 1.38.0         2024-07-27 [1] CRAN (R 4.4.0)
+   patchwork      1.2.0          2024-01-08 [1] CRAN (R 4.4.0)
+   pillar         1.9.0          2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig      2.0.3          2019-09-22 [1] CRAN (R 4.4.0)
+   plotly         4.10.4         2024-01-13 [1] CRAN (R 4.4.0)
+   purrr          1.0.2          2023-08-10 [1] CRAN (R 4.4.0)
+   R6             2.5.1          2021-08-19 [1] CRAN (R 4.4.0)
+   Rcpp           1.0.13         2024-07-17 [1] CRAN (R 4.4.0)
+   RCurl          1.98-1.14      2024-01-09 [1] CRAN (R 4.4.0)
+ P rlang        * 1.1.4          2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown      2.27           2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot      2.0.4          2023-11-05 [1] CRAN (R 4.4.0)
+   rstatix        0.7.2          2023-02-01 [1] CRAN (R 4.4.0)
+   rstudioapi     0.16.0         2024-03-24 [1] CRAN (R 4.4.0)
+   scales         1.3.0          2023-11-28 [1] CRAN (R 4.4.0)
+   sessioninfo    1.2.2          2021-12-06 [1] CRAN (R 4.4.0)
+   tibble         3.2.1          2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr          1.3.1          2024-01-24 [1] CRAN (R 4.4.0)
+   tidyselect     1.2.1          2024-03-11 [1] CRAN (R 4.4.0)
+   tidytree       0.4.6          2023-12-12 [1] CRAN (R 4.4.0)
+   treeio         1.28.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   utf8           1.2.4          2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs          0.6.5          2023-12-01 [1] CRAN (R 4.4.0)
+   viridisLite    0.4.2          2023-05-02 [1] CRAN (R 4.4.0)
+   withr          3.0.0          2024-01-16 [1] CRAN (R 4.4.0)
+   xfun           0.45           2024-06-16 [1] CRAN (R 4.4.0)
+   yaml           2.3.9          2024-07-05 [1] CRAN (R 4.4.0)
+   yulab.utils    0.1.4          2024-01-28 [1] CRAN (R 4.4.0)
 
  [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
  [2] /Users/bmulvey/Library/R/arm64/4.4/library
 
  P ── Loaded and on-disk path mismatch.
 
-──────────────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────────
