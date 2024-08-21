@@ -83,7 +83,6 @@ setnames(bkcl,2,"cl")
 bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
 
 ## drop sample-specific clusters, append cluster annotations 
-bkanno[,clus:=paste0("X",clus)]
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
 
@@ -112,7 +111,7 @@ names(pal) <- c("VMH","ARC","OT","Other")
 
 ### also save the prior palette for quick loadup
 fullpal <- c("#8c63cf", "#169482" ,"#5dd959" , "#6A0D53","#F70022", "#F59B26", "#D1CA1C", "#551CFD", "#D193FE", "#3D4047", "#00B3FD", "#FF0DF7", "#A9A7A9", "#FB479F", "#AD260D")
-saveRDS(fullpal,"manuscript_plots/15color_palette.RDS")
+# saveRDS(fullpal,"manuscript_plots/15color_palette.RDS")
 
 ## the fifteenth color is not represented in our figure 1 sample, which doesn't have one of the domains; since fig 1 is the only place we're using this palette just make that 15th color label whatever 
 names(fullpal) <- c("VMH.1","ARC.1","ARC.2","VMH.2","OT.1","OT.2","OT.3","GABA.1","PeriVN","SON","Vascular","Astro","Portal Vasc.","GABA.2","NA")
@@ -207,31 +206,56 @@ p
 dev.off()
 ```
 
-## Panel E: Visium with key domains labeled
+hypothetical UMAP alternative: xenium "spot"plot with superclusters labeled
 ```{r}
-pane <- hyp2[,hyp2$sample_id=="V12D05-350_C1"]
+# hypx$supercl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]$supercl
+# 
+# ggplot(as.data.table(cbind(colData(hypx[,hypx$sample_id=="X99_8741C"]),spatialCoords(hypx[,hypx$sample_id=="X99_8741C"]))),aes(x=10*sdimx,y=10*sdimy,col=supercl))+
+#    rasterize(geom_point(size=0.01),dpi=300,dev="cairo_png")+
+#    guides(color="none")+
+#    scale_color_manual(values=xenpal)
+# 
+# dev.off()
 
-p <- make_escheR(pand)
-p <- p |> add_fill("Visium Domain",size=0.25,point_size = 0.5)
-
-pdf("manuscript_plots/Fig1/1E-V12D05_350_C1_keydomains.pdf",height=2,width=2)
-p+
-    scale_fill_manual(values=pal,na.value = NA)+
-    ggtitle("V12D05-350_C1 (Visium)")+
-    guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
-    labs(color="Visium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"),legend.margin = margin(0,0,0,-0.14,"in"))
-dev.off()
-
-rm(p,pane)
 
 
 
 ```
 
+## Panel d: Visium with key domains labeled. Don't show OT.
+```{r}
+pand <- hyp2[,hyp2$sample_id=="V12D05-350_C1"]
+pand$`Visium Domain` <- as.character(pand$`Visium Domain`)
+pand$`Visium Domain`[pand$`Visium Domain`=="OT"] <- "Other"
+pand$`Visium Domain` <- factor(pand$`Visium Domain`,levels=c("ARC","VMH","Other"))
+
+p <- make_escheR(pand)
+p <- p |> add_fill("Visium Domain",size=0.8,point_size = 0.8)
+
+pdf("manuscript_plots/Fig1/1D-V12D05_350_C1_keydomains.pdf",height=2,width=2)
+p+
+    scale_fill_manual(values=pal,na.value = NA)+
+    # ggtitle("V12D05-350_C1 (Visium)")+
+    # guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+    guides(fill="none")
+    # labs(color="Visium\nDomain")+
+    theme(# legend.text = element_text(size=7),
+          # plot.title.position = "plot",
+          # plot.title = element_markdown(size=9,hjust=0.5),
+          plot.title = element_blank(),
+          # legend.key.size = ggplot2::unit(0.075,"in"),
+          # legend.title=element_text(size=7.5,hjust=0.5),
+          plot.margin = margin(0,0,0,0,unit = "in"))
+          # legend.margin = margin(0,0,0,-0.14,"in"))
+dev.off()
+
+rm(p,pand)
+```
 
 
-### Panel F: VMH marker in Visium sample (NR5A1)
+
+### Panel F part 1: VMH marker expression (NR5A1). For consistency with the xenium plots, we first want to make an OUTLINE around the domain, rather than fill it in. We want the most precise polygons possible here, so we will not use hull functions and instead use the "Jarvis March" or gift-wrapping algorithm, which exhaustively searches for boundary points that fall within a query set. 
+   # Credit for the approach to github copilot chat on IntelliJ IDEA in response to the prompt "How do I calculate the coordinates of all points defining a 2D polygon boundary from a set of x,y coordinates without needing to tune parameters? I want all points defining the boundary to be from within the set of query points. Concave and convex hull functions, like concaveman, chull, alphahull, and functions from the sf package are not appropriate."
 
 ```{r}
 ## set visium rownames  to gene symbols
@@ -240,17 +264,148 @@ rownames(hyp2) <- rowData(hyp2)$gene_name
 panf <- hyp2["NR5A1",hyp2$sample_id=="V12D05-350_C1"]
 colData(panf)$`log counts` <- as.numeric(logcounts(panf)["NR5A1",])
 
+# drop OT for now
+panf$`Visium Domain` <- as.character(panf$`Visium Domain`)
+panf$`Visium Domain`[panf$`Visium Domain`=="OT"] <- "Other"
+panf$`Visium Domain` <- factor(panf$`Visium Domain`,levels=c("ARC","VMH","Other"))
+
+## now we need to sidetrack and get the points defining the perimeter of the ARC and VMH. modifying some template code from copilot:
+
+# subFunction to find the orientation of the triplet (p, q, r)
+# Function to find the orientation of the triplet (p, q, r)
+orientation <- function(p, q, r) {
+  val <- (q[2] - p[2]) * (r[1] - q[1]) - (q[1] - p[1]) * (r[2] - q[2])
+  if (val == 0) return(0)  # collinear
+  if (val > 0) return(1)   # clockwise
+  return(2)                # counterclockwise
+}
+
+# Function to check if point q is on segment pr
+on_segment <- function(p, q, r) {
+  if (q[1] <= max(p[1], r[1]) && q[1] >= min(p[1], r[1]) &&
+      q[2] <= max(p[2], r[2]) && q[2] >= min(p[2], r[2])) {
+    return(TRUE)
+  }
+  return(FALSE)
+}
+
+# Function to implement the gift wrapping algorithm allowing for potential concavity in polygons
+gift_wrapping_concave <- function(points) {
+  n <- nrow(points)
+  if (n < 3) stop("There must be at least 3 points")
+
+  # Initialize result
+  hull <- list()
+
+  # Find the leftmost point
+  l <- which.min(points[, 1])
+
+  p <- l
+  repeat {
+    # Add current point to result
+    hull <- append(hull, list(points[p, ]))
+
+    # Search for a point 'q' such that orientation(p, q, x) is counterclockwise
+    q <- (p + 1) %% n
+    for (i in 1:n) {
+      if (orientation(points[p, ], points[i, ], points[q, ]) == 2) {
+        q <- i
+      }
+    }
+
+    # Now q is the most counterclockwise with respect to p
+    p <- q
+
+    # While we don't come to the first point
+    if (p == l) break
+  }
+
+  # Convert list to matrix
+  hull <- do.call(rbind, hull)
+
+  # Remove points that are inside the concave polygon
+  is_inside <- function(pt, hull) {
+    n <- nrow(hull)
+    count <- 0
+    for (i in 1:n) {
+      next_i <- ifelse(i == n, 1, i + 1)
+      if (on_segment(hull[i, ], pt, hull[next_i, ])) return(FALSE)
+      if (orientation(hull[i, ], pt, hull[next_i, ]) == 0) return(FALSE)
+      if (orientation(hull[i, ], pt, hull[next_i, ]) == 2) count <- count + 1
+    }
+    return(count %% 2 == 1)
+  }
+
+  hull <- hull[!apply(points, 1, is_inside, hull = hull), ]
+
+  return(hull)
+}
+
+
+## attach the coordinate info to colData so we can subset to VMH points and wrap this gift. it'll take a bit
+tmpcoldata <- as.data.table(as.data.frame(cbind(colData(panf),spatialCoords(panf))))
+
+### these end up looking wacky without some stray spots removed, so we need to manually drop a handful of singletons
+tmpcoldata <- tmpcoldata[Visium.Domain %in% c("ARC","VMH")]
+# this will be easier to figure out using the array row/col values on a temporary plot with some lines overlaid to help pinpoint array coords to remove from the tracing. this doesn't account for the rotations or mirroring of the visium data, so grab a screenshot and rotate so that the x and y coords are not changed relative to the values we'll use to filter the table.
+ggplot(tmpcoldata,aes(x=array_col,y=array_row,color=Visium.Domain))+
+   geom_point(size=1.5)+
+   geom_vline(xintercept=seq(0,max(tmpcoldata$array_col),by=5))+
+   geom_hline(yintercept=seq(0,max(tmpcoldata$array_row),5))
+dev.off()
+# ok three conditionals should do it: ARC points that are at array_row<30, or at array_col>25 & array_row<41; for VMH, remove the 4 points at array_col<5 & array_col>19
+tmpcoldata <- rbind(tmpcoldata[(Visium.Domain=="ARC"&!(array_row<30|(array_col>25&array_row<41)))],
+                    tmpcoldata[Visium.Domain=="VMH"&!(array_col<5&array_row>19)])
+
+## for plotting with geom_path, we need to add the first point at the end of the sequence as well. this function is a little glitchy in that it returns a matrix of equal dimensions to the input but now with a bunch of NA rows so dump those after
+vhull <- gift_wrapping_concave(as.data.frame(tmpcoldata[Visium.Domain=="VMH",.(array_col,array_row)]))
+vhull <- vhull[rowSums(is.na(vhull))==0,]
+vhull <- as.data.frame(rbind(vhull,vhull[1,]))
+vhull$dom <- "VMH"
+rownames(vhull) <- paste0("pt",seq(1,nrow(vhull),by=1))
+
+
+ahull <- gift_wrapping(as.data.frame(tmpcoldata[Visium.Domain=="ARC",.(array_col,array_row)]))
+
+# the ARC hull points still come out a little goofy because of some points in perfect line with each other along the perimeter meeting VMH. so find the point where the points would in order be jumping across the ARC diagonally (after col 15 row 31) and insert 29,41; 41,43 after that point. 
+
+addpoints <- as.data.frame(cbind(c(29,41),c(41,43)))
+colnames(addpoints) <- c("array_col","array_row")
+insertrow <- which(ahull[,1]==15&ahull[,2]==31)
+ahull <- rbind(ahull[c(1:insertrow),],addpoints,ahull[c(1+insertrow:nrow(ahull)),])
+
+# then add the first point to the end of the sequence again
+ahull <- rbind(ahull,ahull[1,])
+ahull$dom <- "ARC"
+rownames(ahull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(ahull),by=1))
+
+
+dompoly <- rbind(vhull,ahull)
+
+## get the pixel-resolution values corresponding to these spots as pixel res is what escher uses to plot
+dompoly2 <- merge.data.table(as.data.table(dompoly,keep.rownames=T),tmpcoldata,by=c("array_col","array_row"))
+dompoly2 <- dompoly2[,.(rn,array_col,array_row,pxl_col_in_fullres,pxl_row_in_fullres,Visium.Domain)]
+dompoly2[,rn:=as.numeric(gsub(rn,pattern="pt",replacement=""))]
+setorderv(dompoly2,"rn")
+
+rm(vhull,ahull,dompoly,tmpcoldata)
+```
+
+now plot it
+```{r}
 p <- make_escheR(panf)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.5)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
+p <- p |> add_fill("log counts",size=0.8,point_size = 0.8)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
 
 pdf("manuscript_plots/Fig1/1F-V12D05_350_C1_NR5A1.pdf",height=2,width=2)
 p+
+   geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,color=Visium.Domain,group=Visium.Domain),size=0.4)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    ggtitle("*NR5A1* (Visium)")+
-    guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
-    labs(color="Visium\nDomain")+
+    ggtitle("*NR5A1*")+
+    # guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+    # labs(color="Visium\nDomain")+
+    guides(color="none")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"),legend.margin = margin(0,0,0,-0.14,"in"))
 dev.off()
 
@@ -268,24 +423,26 @@ pang <- hyp2["POMC",hyp2$sample_id=="V12D05-350_C1"]
 colData(pang)$`log counts` <- as.numeric(logcounts(pang)["POMC",])
 
 p <- make_escheR(pang)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.5)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
+p <- p |> add_fill("log counts",size=0.8,point_size = 0.8)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
 
 pdf("manuscript_plots/Fig1/1G-V12D05_350_C1_POMC.pdf",height=2,width=2)
 p+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,color=Visium.Domain,group=Visium.Domain),size=0.4)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     #scale_fill_grey()+
-    ggtitle("*POMC* (Visium)")+
-    guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
-    labs(color="Visium\nDomain")+
+    ggtitle("*POMC*")+
+    # guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+    # labs(color="Visium\nDomain")+
+    guides(color="none")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"),legend.margin = margin(0,0,0,-0.14,"in"))
 dev.off()
 
 rm(p,pang)
 ```
 
-Panel G is Visium expression of a WM marker, KLK6. (Our options for those are somewhat limited on the xenium side).
+Panel  is Visium expression of a WM marker, KLK6. (Our options for those are somewhat limited on the xenium side).
 ```{r}
 ## for escheR, we put the assay value into the colData for it to use
 panh <- hyp2["KLK6",hyp2$sample_id=="V12D05-350_C1"]
