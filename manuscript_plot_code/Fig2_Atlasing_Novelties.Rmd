@@ -1,7 +1,7 @@
 ---
 title: "Fig2_Atlasing_Novelties"
 output: html_document
-date: "2024-08-08"
+date: "2024-08-22"
 ---
 
 ```{r setup, include=FALSE}
@@ -105,6 +105,52 @@ Tentatively, the plan here is to have the top row be two novel markers each for 
 
 To show the robustness of the dataset, a different sample will be used on a per-figure basis. So here, let's use the classic V12Y31-080_A1 and its xenium counterpart, X86 reg1.
 
+The last bit of setup we need to do here is to define the polygonal boundaries of the VMH and ARC in Xenium. the sf_concave_hull function actually works for this sample's ARC, mostly, so we can define this once pretty quickly and use it for all the visium plots.
+```{r}
+lamp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+
+## attach the coordinate info to colData so we can subset to VMH points and wrap this gift. it'll take a bit
+tmpcoldata <- as.data.table(as.data.frame(cbind(colData(lamp),spatialCoords(lamp))))
+
+### these end up looking wacky without some stray spots removed, so we need to manually drop a handful of singletons
+tmpcoldata <- tmpcoldata[Visium.Domain %in% c("ARC","VMH")]
+
+# this will be easier to figure out using the array row/col values on a temporary plot with some lines overlaid to help pinpoint array coords to remove from the tracing. this doesn't account for the rotations or mirroring of the visium data, so grab a screenshot and rotate so that the x and y coords are not changed relative to the values we'll use to filter the table.
+ggplot(tmpcoldata,aes(x=array_col,y=array_row,color=Visium.Domain))+
+   geom_point(size=1.5)+
+   geom_vline(xintercept=seq(0,max(tmpcoldata$array_col),by=5))+
+   geom_hline(yintercept=seq(0,max(tmpcoldata$array_row),5))
+dev.off()
+# ok just a couple easy drops here: ARC: drop col 30, row 22; 81,27; anything past col 100; anything in array_col>80&array_row<45
+# VMH drop everything at row>35 & col > 78 and anything at array_col>90
+tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!((array_row==22&array_col==30)|(array_row==27&array_col==81)|array_col>100|(array_col>80&array_row<45))],
+                    tmpcoldata[Visium.Domain=="VMH"&!(array_col>90|(array_col>78&array_row>35))])
+
+## for plotting with geom_path, we need to add the first point at the end of the sequence as well. for vmh, we can use convex hull because..well, its a convex shape
+tmpcoldata.sf <- st_as_sf(tmpcoldata,coords=c("array_col","array_row"))
+vhull <- st_convex_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="VMH",]))
+vhull <- vhull[[1]][[1]]
+vhull <- rbind(vhull,vhull[1,])
+rownames(vhull) <- rownames(vhull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(vhull),by=1))
+vhull <- as.data.table(vhull,keep.rownames=T)
+
+ahull <- st_concave_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="ARC",]),ratio = 0.1)
+ahull <- ahull[[1]][[1]]
+ahull <- rbind(ahull,ahull[1,])
+rownames(ahull) <- rownames(ahull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(ahull),by=1))
+ahull <- as.data.table(ahull,keep.rownames=T)
+
+dompoly <- rbind(vhull,ahull)
+
+## get the pixel-resolution values corresponding to these spots as pixel res is what escher uses to plot
+dompoly2 <- merge.data.table(dompoly,tmpcoldata,by.x=c("V1","V2"),by.y=c("array_col","array_row"))
+dompoly2[,rn:=as.numeric(gsub(rn,pattern="pt",replacement=""))]
+setorderv(dompoly2,"rn")
+
+rm(vhull,ahull,dompoly,tmpcoldata)
+```
+
+
 Panel A: LAMP5 in visium VMH
 ```{r}
 ### extract sample to plot ###
@@ -114,11 +160,12 @@ colData(lamp)$`log counts` <- logcounts(lamp)["LAMP5",]
 
 ### make spotplots
 p <- make_escheR(lamp)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
 pdf("manuscript_plots/Fig2/2A-LAMP5_Visium.pdf",height=1.6,width=1.75)
 p+
+   geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
     ggtitle("*LAMP5* (Visium)")+
@@ -140,11 +187,12 @@ colData(ankrd)$`log counts` <- logcounts(ankrd)["ANKRD34B",]
 
 ### make spotplots
 p <- make_escheR(ankrd)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
 pdf("manuscript_plots/Fig2/2B-ANKRD34B_Visium.pdf",height=1.6,width=1.75)
 p+
+      geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
     ggtitle("*ANKRD34B* (Visium)")+
@@ -166,11 +214,12 @@ colData(gabre)$`log counts` <- logcounts(gabre)["GABRE",]
 
 ### make spotplots
 p <- make_escheR(gabre)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
 pdf("manuscript_plots/Fig2/2C-GABRE_Visium.pdf",height=1.6,width=1.75)
 p+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
     ggtitle("*GABRE* (Visium)")+
@@ -193,11 +242,12 @@ colData(cyp)$`log counts` <- logcounts(cyp)["CYP26A1",]
 
 ### make spotplots
 p <- make_escheR(cyp)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+#p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
 pdf("manuscript_plots/Fig2/2D-CYP26A1_Visium.pdf",height=1.6,width=1.75)
 p+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
     ggtitle("*CYP26A1* (Visium)")+
@@ -265,7 +315,7 @@ p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
 pdf("manuscript_plots/Fig2/2F-X86_reg1_ANKRD34B.pdf",height=1.6,width=1.75)
 p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    geom_path(data=ahull,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=dom,color=dom),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     ggtitle("*ANKRD34B* (Xenium)")+
     guides(color="none")+
@@ -334,11 +384,12 @@ rownames(pann) <- rowData(pann)$gene_name
 colData(pann)$`log counts` <- as.numeric(logcounts(pann)["GHRH",])
 
 p <- make_escheR(pann)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+#p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
 pdf("manuscript_plots/Fig2/2N-GHRH_visium.pdf",height=1.6,width=1.75)
 p+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
     ggtitle("*GHRH* (Visium)")+
@@ -357,11 +408,12 @@ rownames(pano) <- rowData(pano)$gene_name
 colData(pano)$`log counts` <- as.numeric(logcounts(pano)["TAC3",])
 
 p <- make_escheR(pano)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
 pdf("manuscript_plots/Fig2/2O-TAC3_visium.pdf",height=1.6,width=1.75)
 p+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
     ggtitle("*TAC3* (Visium)")+
@@ -547,84 +599,81 @@ time zone: America/Chicago
 tzcode source: internal
 
 attached base packages:
-[1] stats4    stats     graphics  grDevices utils     datasets  methods   base     
+[1] stats4    stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
- [1] lubridate_1.9.3                forcats_1.0.0                 
- [3] stringr_1.5.1                  dplyr_1.1.4                   
- [5] purrr_1.0.2                    readr_2.1.5                   
- [7] tidyr_1.3.1                    tibble_3.2.1                  
- [9] tidyverse_2.0.0                gridExtra_2.3                 
-[11] sf_1.0-16                      colorout_1.3-0.2              
-[13] Polychrome_1.5.1               viridis_0.6.5                 
-[15] viridisLite_0.4.2              escheR_1.4.0                  
-[17] spatialLIBD_1.16.2             SpatialFeatureExperiment_1.6.1
-[19] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
-[21] SummarizedExperiment_1.34.0    Biobase_2.64.0                
-[23] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
-[25] IRanges_2.38.1                 S4Vectors_0.42.1              
-[27] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
-[29] matrixStats_1.3.0              ggrastr_1.0.2                 
-[31] ggtext_0.1.2                   ggplot2_3.5.1                 
-[33] data.table_1.15.4              rlang_1.1.4                   
+ [1] sf_1.0-16                      colorout_1.3-0.2              
+ [3] ggstance_0.3.7                 Polychrome_1.5.1              
+ [5] viridis_0.6.5                  viridisLite_0.4.2             
+ [7] escheR_1.4.0                   spatialLIBD_1.16.2            
+ [9] SpatialFeatureExperiment_1.6.1 SpatialExperiment_1.14.0      
+[11] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
+[13] Biobase_2.64.0                 GenomicRanges_1.56.1          
+[15] GenomeInfoDb_1.40.1            IRanges_2.38.1                
+[17] MatrixGenerics_1.16.0          matrixStats_1.3.0             
+[19] ggrastr_1.0.2                  ggtext_0.1.2                  
+[21] ggplot2_3.5.1                  data.table_1.15.4             
+[23] S4Vectors_0.42.1               BiocGenerics_0.50.0           
+[25] rlang_1.1.4                   
 
 loaded via a namespace (and not attached):
   [1] bitops_1.0-7              EBImage_4.46.0            httr_1.4.7               
   [4] RColorBrewer_1.1-3        doParallel_1.0.17         tools_4.4.1              
   [7] utf8_1.2.4                R6_2.5.1                  DT_0.33                  
  [10] HDF5Array_1.32.0          lazyeval_0.2.2            rhdf5filters_1.16.0      
- [13] withr_3.0.0               sp_2.1-4                  cli_3.6.3                
- [16] labeling_0.4.3            sass_0.4.9                proxy_0.4-27             
- [19] Rsamtools_2.20.0          commonmark_1.9.1          R.utils_2.12.3           
- [22] scater_1.32.0             sessioninfo_1.2.2         attempt_0.3.1            
- [25] maps_3.4.2                limma_3.60.3              rstudioapi_0.16.0        
- [28] RSQLite_2.3.7             generics_0.1.3            BiocIO_1.14.0            
- [31] spdep_1.3-5               Matrix_1.7-0              ggbeeswarm_0.7.2         
- [34] fansi_1.0.6               abind_1.4-5               R.methodsS3_1.8.2        
- [37] terra_1.7-78              lifecycle_1.0.4           scatterplot3d_0.3-44     
- [40] yaml_2.3.9                edgeR_4.2.0               rhdf5_2.48.0             
- [43] SparseArray_1.4.8         BiocFileCache_2.12.0      paletteer_1.6.0          
- [46] grid_4.4.1                blob_1.2.4                promises_1.3.0           
- [49] dqrng_0.4.1               ExperimentHub_2.12.0      crayon_1.5.3             
- [52] lattice_0.22-6            beachmat_2.20.0           cowplot_1.1.3            
- [55] KEGGREST_1.44.1           magick_2.8.3              zeallot_0.1.0            
- [58] pillar_1.9.0              knitr_1.48                rjson_0.2.21             
- [61] boot_1.3-30               codetools_0.2-20          wk_0.9.2                 
- [64] glue_1.7.0                vctrs_0.6.5               png_0.1-8                
- [67] spam_2.10-0               gtable_0.3.5              rematch2_2.1.2           
- [70] cachem_1.1.0              xfun_0.45                 S4Arrays_1.4.1           
- [73] mime_0.12                 DropletUtils_1.24.0       sfheaders_0.4.4          
- [76] iterators_1.0.14          units_0.8-5               fields_16.2              
- [79] statmod_1.5.0             bit64_4.0.5               filelock_1.0.3           
- [82] rprojroot_2.0.4           bslib_0.7.0               irlba_2.3.5.1            
- [85] vipor_0.4.7               KernSmooth_2.23-24        colorspace_2.1-0         
- [88] spData_2.3.1              DBI_1.2.3                 tidyselect_1.2.1         
- [91] bit_4.0.5                 compiler_4.4.1            curl_5.2.1               
- [94] BiocNeighbors_1.22.0      xml2_1.3.6                DelayedArray_0.30.1      
- [97] plotly_4.10.4             rtracklayer_1.64.0        scales_1.3.0             
-[100] classInt_0.4-10           rappdirs_0.3.3            tiff_0.1-12              
-[103] digest_0.6.36             fftwtools_0.9-11          rmarkdown_2.27           
-[106] benchmarkmeData_1.0.4     XVector_0.44.0            htmltools_0.5.8.1        
-[109] pkgconfig_2.0.3           jpeg_0.1-10               sparseMatrixStats_1.16.0 
-[112] dbplyr_2.5.0              fastmap_1.2.0             htmlwidgets_1.6.4        
-[115] UCSC.utils_1.0.0          shiny_1.8.1.1             DelayedMatrixStats_1.26.0
-[118] farver_2.1.2              jquerylib_0.1.4           jsonlite_1.8.8           
-[121] BiocParallel_1.38.0       config_0.3.2              R.oo_1.26.0              
-[124] BiocSingular_1.20.0       RCurl_1.98-1.14           magrittr_2.0.3           
-[127] scuttle_1.14.0            GenomeInfoDbData_1.2.12   s2_1.1.6                 
-[130] dotCall64_1.1-1           Rhdf5lib_1.26.0           munsell_0.5.1            
-[133] Rcpp_1.0.13               stringi_1.8.4             zlibbioc_1.50.0          
-[136] AnnotationHub_3.12.0      parallel_4.4.1            ggrepel_0.9.5            
-[139] deldir_2.0-4              Biostrings_2.72.1         gridtext_0.1.5           
-[142] hms_1.1.3                 locfit_1.5-9.10           markdown_1.13            
-[145] ScaledMatrix_1.12.0       BiocVersion_3.19.1        XML_3.99-0.17            
-[148] evaluate_0.24.0           golem_0.4.1               BiocManager_1.30.23      
-[151] tzdb_0.4.0                foreach_1.5.2             httpuv_1.6.15            
-[154] benchmarkme_1.0.8         rsvd_1.0.5                xtable_1.8-4             
-[157] restfulr_0.0.15           e1071_1.7-14              later_1.3.2              
-[160] class_7.3-22              memoise_2.0.1             beeswarm_0.4.0           
-[163] AnnotationDbi_1.66.0      GenomicAlignments_1.40.0  timechange_0.3.0         
-[166] shinyWidgets_0.8.6        here_1.0.1               
+ [13] withr_3.0.0               sp_2.1-4                  gridExtra_2.3            
+ [16] cli_3.6.3                 labeling_0.4.3            sass_0.4.9               
+ [19] proxy_0.4-27              Rsamtools_2.20.0          commonmark_1.9.1         
+ [22] R.utils_2.12.3            scater_1.32.0             sessioninfo_1.2.2        
+ [25] attempt_0.3.1             maps_3.4.2                limma_3.60.3             
+ [28] rstudioapi_0.16.0         RSQLite_2.3.7             generics_0.1.3           
+ [31] BiocIO_1.14.0             spdep_1.3-5               dplyr_1.1.4              
+ [34] Matrix_1.7-0              ggbeeswarm_0.7.2          fansi_1.0.6              
+ [37] abind_1.4-5               R.methodsS3_1.8.2         terra_1.7-78             
+ [40] lifecycle_1.0.4           scatterplot3d_0.3-44      yaml_2.3.9               
+ [43] edgeR_4.2.0               rhdf5_2.48.0              SparseArray_1.4.8        
+ [46] BiocFileCache_2.12.0      paletteer_1.6.0           grid_4.4.1               
+ [49] blob_1.2.4                promises_1.3.0            dqrng_0.4.1              
+ [52] ExperimentHub_2.12.0      crayon_1.5.3              lattice_0.22-6           
+ [55] beachmat_2.20.0           cowplot_1.1.3             KEGGREST_1.44.1          
+ [58] magick_2.8.3              zeallot_0.1.0             pillar_1.9.0             
+ [61] knitr_1.48                rjson_0.2.21              boot_1.3-30              
+ [64] codetools_0.2-20          wk_0.9.2                  glue_1.7.0               
+ [67] vctrs_0.6.5               png_0.1-8                 spam_2.10-0              
+ [70] gtable_0.3.5              rematch2_2.1.2            cachem_1.1.0             
+ [73] xfun_0.45                 S4Arrays_1.4.1            mime_0.12                
+ [76] DropletUtils_1.24.0       sfheaders_0.4.4           iterators_1.0.14         
+ [79] units_0.8-5               fields_16.2               statmod_1.5.0            
+ [82] bit64_4.0.5               filelock_1.0.3            rprojroot_2.0.4          
+ [85] bslib_0.7.0               irlba_2.3.5.1             vipor_0.4.7              
+ [88] KernSmooth_2.23-24        colorspace_2.1-0          spData_2.3.1             
+ [91] DBI_1.2.3                 tidyselect_1.2.1          bit_4.0.5                
+ [94] compiler_4.4.1            curl_5.2.1                BiocNeighbors_1.22.0     
+ [97] xml2_1.3.6                DelayedArray_0.30.1       plotly_4.10.4            
+[100] rtracklayer_1.64.0        scales_1.3.0              classInt_0.4-10          
+[103] rappdirs_0.3.3            tiff_0.1-12               stringr_1.5.1            
+[106] digest_0.6.36             fftwtools_0.9-11          rmarkdown_2.27           
+[109] benchmarkmeData_1.0.4     XVector_0.44.0            htmltools_0.5.8.1        
+[112] pkgconfig_2.0.3           jpeg_0.1-10               sparseMatrixStats_1.16.0 
+[115] dbplyr_2.5.0              fastmap_1.2.0             htmlwidgets_1.6.4        
+[118] UCSC.utils_1.0.0          shiny_1.8.1.1             DelayedMatrixStats_1.26.0
+[121] farver_2.1.2              jquerylib_0.1.4           jsonlite_1.8.8           
+[124] BiocParallel_1.38.0       config_0.3.2              R.oo_1.26.0              
+[127] BiocSingular_1.20.0       RCurl_1.98-1.14           magrittr_2.0.3           
+[130] scuttle_1.14.0            GenomeInfoDbData_1.2.12   s2_1.1.6                 
+[133] dotCall64_1.1-1           Rhdf5lib_1.26.0           munsell_0.5.1            
+[136] Rcpp_1.0.13               stringi_1.8.4             zlibbioc_1.50.0          
+[139] AnnotationHub_3.12.0      parallel_4.4.1            ggrepel_0.9.5            
+[142] deldir_2.0-4              Biostrings_2.72.1         gridtext_0.1.5           
+[145] locfit_1.5-9.10           markdown_1.13             ScaledMatrix_1.12.0      
+[148] BiocVersion_3.19.1        XML_3.99-0.17             evaluate_0.24.0          
+[151] golem_0.4.1               BiocManager_1.30.23       foreach_1.5.2            
+[154] httpuv_1.6.15             tidyr_1.3.1               purrr_1.0.2              
+[157] benchmarkme_1.0.8         rsvd_1.0.5                xtable_1.8-4             
+[160] restfulr_0.0.15           e1071_1.7-14              later_1.3.2              
+[163] class_7.3-22              tibble_3.2.1              memoise_2.0.1            
+[166] beeswarm_0.4.0            AnnotationDbi_1.66.0      GenomicAlignments_1.40.0 
+[169] shinyWidgets_0.8.6        concaveman_1.1.0          here_1.0.1               
 > sessioninfo::session_info()
 ─ Session info ────────────────────────────────────────────────────────────────────
  setting  value
@@ -636,7 +685,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-08
+ date     2024-08-22
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
@@ -674,6 +723,7 @@ loaded via a namespace (and not attached):
    colorout                 * 1.3-0.2   2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
    colorspace                 2.1-0     2023-01-23 [1] CRAN (R 4.4.0)
    commonmark                 1.9.1     2024-01-30 [1] CRAN (R 4.4.0)
+   concaveman                 1.1.0     2020-05-11 [1] CRAN (R 4.4.0)
    config                     0.3.2     2023-08-30 [1] CRAN (R 4.4.0)
    cowplot                    1.1.3     2024-01-22 [1] CRAN (R 4.4.0)
    crayon                     1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
@@ -687,7 +737,7 @@ loaded via a namespace (and not attached):
    digest                     0.6.36    2024-06-23 [1] CRAN (R 4.4.0)
    doParallel                 1.0.17    2022-02-07 [1] CRAN (R 4.4.1)
    dotCall64                  1.1-1     2023-11-28 [1] CRAN (R 4.4.0)
-   dplyr                    * 1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
+   dplyr                      1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
    dqrng                      0.4.1     2024-05-28 [1] CRAN (R 4.4.0)
    DropletUtils               1.24.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    DT                         0.33      2024-04-04 [1] CRAN (R 4.4.0)
@@ -703,7 +753,6 @@ loaded via a namespace (and not attached):
    fftwtools                  0.9-11    2021-03-01 [1] CRAN (R 4.4.0)
    fields                     16.2      2024-06-27 [1] CRAN (R 4.4.0)
    filelock                   1.0.3     2023-12-11 [1] CRAN (R 4.4.0)
-   forcats                  * 1.0.0     2023-01-29 [1] CRAN (R 4.4.0)
    foreach                    1.5.2     2022-02-02 [1] CRAN (R 4.4.0)
    generics                   0.1.3     2022-07-05 [1] CRAN (R 4.4.0)
    GenomeInfoDb             * 1.40.1    2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
@@ -714,15 +763,15 @@ loaded via a namespace (and not attached):
    ggplot2                  * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
    ggrastr                  * 1.0.2     2023-06-01 [1] CRAN (R 4.4.0)
    ggrepel                    0.9.5     2024-01-10 [1] CRAN (R 4.4.0)
+   ggstance                 * 0.3.7     2024-04-05 [1] CRAN (R 4.4.0)
    ggtext                   * 0.1.2     2022-09-16 [1] CRAN (R 4.4.0)
    glue                       1.7.0     2024-01-09 [1] CRAN (R 4.4.0)
    golem                      0.4.1     2023-06-05 [1] CRAN (R 4.4.0)
-   gridExtra                * 2.3       2017-09-09 [1] CRAN (R 4.4.0)
+   gridExtra                  2.3       2017-09-09 [1] CRAN (R 4.4.0)
    gridtext                   0.1.5     2022-09-16 [1] CRAN (R 4.4.0)
    gtable                     0.3.5     2024-04-22 [1] CRAN (R 4.4.0)
    HDF5Array                  1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    here                       1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
-   hms                        1.1.3     2023-03-21 [1] CRAN (R 4.4.0)
    htmltools                  0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
    htmlwidgets                1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
    httpuv                     1.6.15    2024-03-26 [1] CRAN (R 4.4.0)
@@ -743,7 +792,6 @@ loaded via a namespace (and not attached):
    lifecycle                  1.0.4     2023-11-07 [1] CRAN (R 4.4.0)
    limma                      3.60.3    2024-06-16 [1] Bioconductor 3.19 (R 4.4.0)
    locfit                     1.5-9.10  2024-06-24 [1] CRAN (R 4.4.0)
-   lubridate                * 1.9.3     2023-09-27 [1] CRAN (R 4.4.0)
    magick                     2.8.3     2024-02-18 [1] CRAN (R 4.4.0)
    magrittr                   2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
    maps                       3.4.2     2023-12-15 [1] CRAN (R 4.4.0)
@@ -762,7 +810,7 @@ loaded via a namespace (and not attached):
    Polychrome               * 1.5.1     2022-05-03 [1] CRAN (R 4.4.0)
    promises                   1.3.0     2024-04-05 [1] CRAN (R 4.4.0)
    proxy                      0.4-27    2022-06-09 [1] CRAN (R 4.4.0)
-   purrr                    * 1.0.2     2023-08-10 [1] CRAN (R 4.4.0)
+   purrr                      1.0.2     2023-08-10 [1] CRAN (R 4.4.0)
    R.methodsS3                1.8.2     2022-06-13 [1] CRAN (R 4.4.0)
    R.oo                       1.26.0    2024-01-24 [1] CRAN (R 4.4.0)
    R.utils                    2.12.3    2023-11-18 [1] CRAN (R 4.4.0)
@@ -771,7 +819,6 @@ loaded via a namespace (and not attached):
    RColorBrewer               1.1-3     2022-04-03 [1] CRAN (R 4.4.0)
    Rcpp                       1.0.13    2024-07-17 [1] CRAN (R 4.4.0)
    RCurl                      1.98-1.14 2024-01-09 [1] CRAN (R 4.4.0)
-   readr                    * 2.1.5     2024-01-10 [1] CRAN (R 4.4.0)
    rematch2                   2.1.2     2020-05-01 [1] CRAN (R 4.4.0)
    restfulr                   0.0.15    2022-06-16 [1] CRAN (R 4.4.0)
    rhdf5                      2.48.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
@@ -812,16 +859,13 @@ loaded via a namespace (and not attached):
    spdep                      1.3-5     2024-06-10 [1] CRAN (R 4.4.0)
    statmod                    1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
    stringi                    1.8.4     2024-05-06 [1] CRAN (R 4.4.0)
-   stringr                  * 1.5.1     2023-11-14 [1] CRAN (R 4.4.0)
+   stringr                    1.5.1     2023-11-14 [1] CRAN (R 4.4.0)
    SummarizedExperiment     * 1.34.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    terra                      1.7-78    2024-05-22 [1] CRAN (R 4.4.0)
-   tibble                   * 3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
-   tidyr                    * 1.3.1     2024-01-24 [1] CRAN (R 4.4.0)
+   tibble                     3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr                      1.3.1     2024-01-24 [1] CRAN (R 4.4.0)
    tidyselect                 1.2.1     2024-03-11 [1] CRAN (R 4.4.0)
-   tidyverse                * 2.0.0     2023-02-22 [1] CRAN (R 4.4.0)
    tiff                       0.1-12    2023-11-28 [1] CRAN (R 4.4.0)
-   timechange                 0.3.0     2024-01-18 [1] CRAN (R 4.4.0)
-   tzdb                       0.4.0     2023-05-12 [1] CRAN (R 4.4.0)
    UCSC.utils                 1.0.0     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
    units                      0.8-5     2023-11-28 [1] CRAN (R 4.4.0)
    utf8                       1.2.4     2023-10-22 [1] CRAN (R 4.4.0)

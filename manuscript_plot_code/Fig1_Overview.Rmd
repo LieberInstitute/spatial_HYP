@@ -383,7 +383,7 @@ ggplot(tmpcoldata,aes(x=array_col,y=array_row,color=Visium.Domain))+
    geom_vline(xintercept=seq(0,max(tmpcoldata$array_col),by=5))+
    geom_hline(yintercept=seq(0,max(tmpcoldata$array_row),5))
 dev.off()
-# ok three conditionals should do it: ARC points that are to the right of an array_row/col line col = 5.8*row - 230 and for array_row>=50 & array_row<=55 or at array_col>40 where array_row<40. for ARC, points right of the line 10.8*row-184
+# ok three conditionals should do it: ARC points that are to the right of an array_row/col line col = 5.8*row - 230 and for array_row>=50 & array_row<=55 or at array_col>40 where array_row<40. for VMH, points right of the line 10.8*row-184
 tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!((array_row<40&array_col>40)|(array_row>=50&array_row<=55&array_col>5.8*array_row-230))],
                     tmpcoldata[Visium.Domain=="VMH"&!(array_col>10.8*array_row-184)])
 
