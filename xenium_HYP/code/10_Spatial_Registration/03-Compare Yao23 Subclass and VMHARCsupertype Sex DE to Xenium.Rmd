@@ -1,7 +1,7 @@
 ---
 title: "03-Compare Yao23 single-cell Sex DE to Xenium ARC, VMH types"
 author: "Bernard Mulvey"
-date: "2024-08-19"
+date: "2024-08-23"
 output: html_document
 ---
 
@@ -217,50 +217,51 @@ time zone: America/Chicago
 tzcode source: internal
 
 attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods   base     
+[1] parallel  stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
-[1] default_1.0.0       BiocParallel_1.38.0 gtools_3.9.5        biomaRt_2.60.1     
-[5] orthogene_1.10.0    colorout_1.3-0.2    data.table_1.15.4   rlang_1.1.4        
+ [1] default_1.0.0       gtools_3.9.5        biomaRt_2.60.1      parallelly_1.38.0  
+ [5] orthogene_1.10.0    BiocParallel_1.38.0 magrittr_2.0.3      colorout_1.3-0.2   
+ [9] data.table_1.15.4   rlang_1.1.4        
 
 loaded via a namespace (and not attached):
   [1] bitops_1.0-7              DBI_1.2.3                 grr_0.9.5                
-  [4] httr2_1.0.1               magrittr_2.0.3            compiler_4.4.1           
-  [7] RSQLite_2.3.7             png_0.1-8                 vctrs_0.6.5              
- [10] gprofiler2_0.2.3          stringr_1.5.1             pkgconfig_2.0.3          
- [13] crayon_1.5.3              fastmap_1.2.0             dbplyr_2.5.0             
- [16] backports_1.5.0           XVector_0.44.0            utf8_1.2.4               
- [19] rmarkdown_2.27            UCSC.utils_1.0.0          purrr_1.0.2              
+  [4] httr2_1.0.1               compiler_4.4.1            RSQLite_2.3.7            
+  [7] png_0.1-8                 vctrs_0.6.5               gprofiler2_0.2.3         
+ [10] stringr_1.5.1             pkgconfig_2.0.3           crayon_1.5.3             
+ [13] fastmap_1.2.0             dbplyr_2.5.0              backports_1.5.0          
+ [16] XVector_0.44.0            utf8_1.2.4                rmarkdown_2.27           
+ [19] sessioninfo_1.2.2         UCSC.utils_1.0.0          purrr_1.0.2              
  [22] bit_4.0.5                 xfun_0.45                 zlibbioc_1.50.0          
  [25] cachem_1.1.0              aplot_0.2.3               GenomeInfoDb_1.40.1      
  [28] jsonlite_1.8.8            progress_1.2.3            blob_1.2.4               
- [31] broom_1.0.6               parallel_4.4.1            prettyunits_1.2.0        
- [34] R6_2.5.1                  stringi_1.8.4             car_3.1-2                
- [37] Rcpp_1.0.13               knitr_1.48                IRanges_2.38.1           
- [40] Matrix_1.7-0              tidyselect_1.2.1          rstudioapi_0.16.0        
- [43] abind_1.4-5               yaml_2.3.9                codetools_0.2-20         
- [46] curl_5.2.1                lattice_0.22-6            tibble_3.2.1             
- [49] withr_3.0.0               Biobase_2.64.0            treeio_1.28.0            
- [52] KEGGREST_1.44.1           evaluate_0.24.0           gridGraphics_0.5-1       
- [55] BiocFileCache_2.12.0      xml2_1.3.6                Biostrings_2.72.1        
- [58] filelock_1.0.3            pillar_1.9.0              ggtree_3.12.0            
- [61] ggpubr_0.6.0              carData_3.0-5             stats4_4.4.1             
- [64] ggfun_0.1.5               plotly_4.10.4             generics_0.1.3           
- [67] RCurl_1.98-1.14           rprojroot_2.0.4           S4Vectors_0.42.1         
- [70] hms_1.1.3                 ggplot2_3.5.1             munsell_0.5.1            
- [73] scales_1.3.0              tidytree_0.4.6            glue_1.7.0               
- [76] lazyeval_0.2.2            tools_4.4.1               ggsignif_0.6.4           
+ [31] prettyunits_1.2.0         broom_1.0.6               R6_2.5.1                 
+ [34] stringi_1.8.4             car_3.1-2                 Rcpp_1.0.13              
+ [37] knitr_1.48                IRanges_2.38.1            Matrix_1.7-0             
+ [40] tidyselect_1.2.1          rstudioapi_0.16.0         abind_1.4-5              
+ [43] yaml_2.3.9                codetools_0.2-20          curl_5.2.1               
+ [46] lattice_0.22-6            tibble_3.2.1              withr_3.0.0              
+ [49] Biobase_2.64.0            treeio_1.28.0             KEGGREST_1.44.1          
+ [52] evaluate_0.24.0           gridGraphics_0.5-1        BiocFileCache_2.12.0     
+ [55] xml2_1.3.6                Biostrings_2.72.1         filelock_1.0.3           
+ [58] pillar_1.9.0              ggtree_3.12.0             ggpubr_0.6.0             
+ [61] carData_3.0-5             stats4_4.4.1              ggfun_0.1.5              
+ [64] plotly_4.10.4             generics_0.1.3            RCurl_1.98-1.14          
+ [67] rprojroot_2.0.4           hms_1.1.3                 S4Vectors_0.42.1         
+ [70] ggplot2_3.5.1             munsell_0.5.1             scales_1.3.0             
+ [73] tidytree_0.4.6            glue_1.7.0                lazyeval_0.2.2           
+ [76] tools_4.4.1               datasets_4.4.1            ggsignif_0.6.4           
  [79] babelgene_22.9            fs_1.6.4                  grid_4.4.1               
  [82] tidyr_1.3.1               ape_5.8                   AnnotationDbi_1.66.0     
  [85] colorspace_2.1-0          nlme_3.1-165              GenomeInfoDbData_1.2.12  
  [88] patchwork_1.2.0           homologene_1.4.68.19.3.27 cli_3.6.3                
  [91] rappdirs_0.3.3            fansi_1.0.6               viridisLite_0.4.2        
- [94] dplyr_1.1.4               gtable_0.3.5              rstatix_0.7.2            
+ [94] dplyr_1.1.4               gtable_0.3.5             > sessioninfo::session_info()
+ rstatix_0.7.2            
  [97] yulab.utils_0.1.4         digest_0.6.36             BiocGenerics_0.50.0      
 [100] ggplotify_0.1.2           htmlwidgets_1.6.4         memoise_2.0.1            
 [103] htmltools_0.5.8.1         lifecycle_1.0.4           httr_1.4.7               
 [106] here_1.0.1                bit64_4.0.5              
-> sessioninfo::session_info()
 ─ Session info ────────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
@@ -271,7 +272,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-19
+ date     2024-08-23
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
@@ -343,12 +344,13 @@ loaded via a namespace (and not attached):
    lattice            0.22-6         2024-03-20 [1] CRAN (R 4.4.1)
    lazyeval           0.2.2          2019-03-15 [1] CRAN (R 4.4.0)
    lifecycle          1.0.4          2023-11-07 [1] CRAN (R 4.4.0)
-   magrittr           2.0.3          2022-03-30 [1] CRAN (R 4.4.0)
+   magrittr         * 2.0.3          2022-03-30 [1] CRAN (R 4.4.0)
    Matrix             1.7-0          2024-04-26 [1] CRAN (R 4.4.1)
    memoise            2.0.1          2021-11-26 [1] CRAN (R 4.4.0)
    munsell            0.5.1          2024-04-01 [1] CRAN (R 4.4.0)
    nlme               3.1-165        2024-06-06 [1] CRAN (R 4.4.0)
    orthogene        * 1.10.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   parallelly       * 1.38.0         2024-07-27 [1] CRAN (R 4.4.0)
    patchwork          1.2.0          2024-01-08 [1] CRAN (R 4.4.0)
    pillar             1.9.0          2023-03-22 [1] CRAN (R 4.4.0)
    pkgconfig          2.0.3          2019-09-22 [1] CRAN (R 4.4.0)

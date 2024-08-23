@@ -1,7 +1,7 @@
 ---
 title: "03b-Domain definition from 2step smoothing of ARC w.o periventricular types"
 output: html_document
-date: "2024-07-05"
+date: "2024-08-23"
 ---
 
 ```{r setup, include=FALSE}
@@ -12,6 +12,7 @@ knitr::opts_knit$set(root.dir = here::here())
 library(data.table)
 library(sf)
 library(ggplot2)
+library(gridExtra)
 library(ggrastr)
 
 ## rstudio GUI tweaks
@@ -128,6 +129,146 @@ arcvmh4ready[,.N,by="dualVMHARC4"]
 arcvmh4ready <- arcvmh4ready[,.(rn,sample_id,xcoord,ycoord,dualVMHARC4)]
 ```
 
+### check for remaining holes or little pockets outside of VMH/ARC proper
+```{r}
+pal <- c("VMH"="purple","ARC"="limegreen","other"="white")
+
+plt <- lapply(unique(arcvmh4ready$sample_id),FUN=function(x){
+   tmp <- arcvmh4ready[sample_id==x&dualVMHARC4!="other"]
+   ggplot(tmp,aes(x=xcoord,y=ycoord,color=dualVMHARC4))+
+      ggtitle(x)+
+      scale_color_manual(values=pal)+
+      geom_hline(yintercept=seq(min(tmp$ycoord),max(tmp$ycoord),by=500),color="black",linetype="dotted",linewidth=0.2)+
+      geom_vline(xintercept = seq(min(tmp$xcoord),max(tmp$xcoord),by=500),color="black",linetype="dotted",linewidth=0.2)+
+      rasterize(
+         geom_point(size=0.1,stroke=0),layers="Points",dpi=900,dev="cairo_png")+
+      theme_minimal()+
+      theme(plot.background = element_blank(),line = element_blank(),axis.text.x=element_text(size=4,angle=90,hjust=0.5),axis.text.y=element_text(size=4),axis.title=element_text(size=5))
+})
+
+pdf("~/checkXenDomainsForStrayCells.pdf",width=10,height=10)
+do.call(gridExtra::grid.arrange,c(plt,list(ncol=3)))
+dev.off()
+```
+
+### visual check...
+
+### X36_5459A: two ARC points at y<0 & x<16500
+```{r}
+ggplot(arcvmh4ready[sample_id=="X36_5459A"&dualVMHARC4=="ARC"&ycoord<0&xcoord<16500],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() # the only two points at x<16200
+
+arcvmh4ready <- arcvmh4ready[sample_id=="X36_5459A"&dualVMHARC4=="ARC"&xcoord<16200&ycoord<0,dualVMHARC4:="other"]
+```
+
+
+### X36_5459B: two bunches of ARC points at x<32500 & y<0
+```{r}
+ggplot(arcvmh4ready[sample_id=="X36_5459B"&dualVMHARC4=="ARC"&ycoord<0&xcoord<32500],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() # xcoord<32200 &  ycoord<0
+
+arcvmh4ready <- arcvmh4ready[sample_id=="X36_5459B"&dualVMHARC4=="ARC"&xcoord<32200&ycoord<0,dualVMHARC4:="other"]
+```
+
+### X86_reg1: one VMH way beyond y 9000; several VMH points at x>70000 & y < 2750; one ARC point x<66000 & y < 2000
+```{r}
+ggplot(arcvmh4ready[sample_id=="X86_reg1"&dualVMHARC4=="VMH"&xcoord>70100&ycoord<3000],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() ## these are at x > 70200 & y < 2600
+
+ggplot(arcvmh4ready[sample_id=="X86_reg1"&dualVMHARC4=="ARC"&xcoord<66000&ycoord<2000],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() # x<65400 & y< 1600
+
+arcvmh4ready <- arcvmh4ready[sample_id=="X86_reg1"&dualVMHARC4=="VMH"&xcoord>70200&ycoord<2600,dualVMHARC4:="other"]
+arcvmh4ready <- arcvmh4ready[sample_id=="X86_reg1"&dualVMHARC4=="ARC"&xcoord<65400&ycoord<1600,dualVMHARC4:="other"]
+arcvmh4ready <- arcvmh4ready[sample_id=="X86_reg1"&dualVMHARC4=="VMH"&ycoord>9000,dualVMHARC4:="other"]
+```
+
+
+### X86_reg2: one ARC point somewhere at x<81000
+```{r}
+ggplot(arcvmh4ready[sample_id=="X86_reg2"&dualVMHARC4=="ARC"&xcoord<82000],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() # actually three: one at x<80000, another at x<80500 & y < 3000, and a third that needs closer inspection to get coords
+ggplot(arcvmh4ready[sample_id=="X86_reg2"&dualVMHARC4=="ARC"&xcoord<82000&ycoord>5000],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() ## third one is x<80150 & y< 5500&y>5000
+
+## make doubly sure here
+stopifnot(nrow(arcvmh4ready[sample_id=="X86_reg2"&dualVMHARC4=="ARC"&(xcoord<80000|(xcoord<80500&ycoord<3000)|(xcoord<80150&ycoord>5000&ycoord<5500))])==3)
+
+## do it
+arcvmh4ready <- arcvmh4ready[sample_id=="X86_reg2"&dualVMHARC4=="ARC"&(xcoord<80000|(xcoord<80500&ycoord<3000)|(xcoord<80150&ycoord>5000&ycoord<5500)),dualVMHARC4:="other"]
+```
+
+
+### X86_reg3: 4 ARC points somewhere x<96500 & y<3500
+```{r}
+ggplot(arcvmh4ready[sample_id=="X86_reg3"&dualVMHARC4=="ARC"&xcoord<96500&ycoord<3500],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() ## x<96100 & y < 2600
+
+arcvmh4ready <- arcvmh4ready[sample_id=="X86_reg3"&dualVMHARC4=="ARC"&xcoord<96100&ycoord<2600,dualVMHARC4:="other"]
+```
+
+### X97_Reg3: a few ARC stragglers around xcoord<145000&ycoord>1500
+```{r}
+ggplot(arcvmh4ready[sample_id=="X97_reg3"&dualVMHARC4=="ARC"&xcoord<144300&ycoord>1500],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() ### xcoord < 143800 & ycoord> 1750
+
+arcvmh4ready <- arcvmh4ready[sample_id=="X97_reg3"&dualVMHARC4=="ARC"&xcoord<143800&ycoord>1750,dualVMHARC4:="other"]
+```
+
+### X99_8741_C: 1 lousy arc point way out somewhere past xcoord<192000
+```{r}
+ggplot(arcvmh4ready[sample_id=="X99_8741C"&dualVMHARC4=="ARC"&xcoord<192000],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off() ## specifically just above x 191200
+
+arcvmh4ready <- arcvmh4ready[sample_id=="X99_8741C"&dualVMHARC4=="ARC"&xcoord<191300,dualVMHARC4:="other"]
+```
+
+### X99_8741_D: 4 ARC points at xcoord < 207250
+```{r}
+arcvmh4ready <- arcvmh4ready[sample_id=="X99_8741D"&dualVMHARC4=="ARC"&xcoord<207250,dualVMHARC4:="other"]
+```
+
+### 1225A: two groups of VMH stragglers past y > 7000
+```{r}
+arcvmh4ready <- arcvmh4ready[sample_id=="X99_1225A"&dualVMHARC4=="VMH"&ycoord>7000,dualVMHARC4:="other"]
+```
+
+### 1225B has a couple super-far out VMH cells at ycoord > 8500, plus a little run of VMH stragglers around x=179500 y 4000. will need a refined plot to find those
+```{r}
+ggplot(arcvmh4ready[sample_id=="X99_1225B"&dualVMHARC4=="VMH"&xcoord>179500],aes(x=xcoord,y=ycoord))+geom_point()
+dev.off()
+## specifically x>179850 & y > 3750
+
+arcvmh4ready <- arcvmh4ready[sample_id=="X99_1225B"&dualVMHARC4=="VMH"&(ycoord>8500|(xcoord>179850&ycoord>3750)),dualVMHARC4:="other"]
+```
+
+## recheck:
+
+### check for remaining holes or little pockets outside of VMH/ARC proper
+```{r}
+pal <- c("VMH"="purple","ARC"="limegreen","other"="white")
+
+plt <- lapply(unique(arcvmh4ready$sample_id),FUN=function(x){
+   tmp <- arcvmh4ready[sample_id==x&dualVMHARC4!="other"]
+   ggplot(tmp,aes(x=xcoord,y=ycoord,color=dualVMHARC4))+
+      ggtitle(x)+
+      scale_color_manual(values=pal)+
+      geom_hline(yintercept=seq(min(tmp$ycoord),max(tmp$ycoord),by=500),color="black",linetype="dotted",linewidth=0.2)+
+      geom_vline(xintercept = seq(min(tmp$xcoord),max(tmp$xcoord),by=500),color="black",linetype="dotted",linewidth=0.2)+
+      rasterize(
+         geom_point(size=0.1,stroke=0),layers="Points",dpi=900,dev="cairo_png")+
+      theme_minimal()+
+      theme(plot.background = element_blank(),line = element_blank(),axis.text.x=element_text(size=4,angle=90,hjust=0.5),axis.text.y=element_text(size=4),axis.title=element_text(size=5))
+})
+
+pdf("~/checkXenDomainsForStrayCells.pdf",width=10,height=10)
+do.call(gridExtra::grid.arrange,c(plt,list(ncol=3)))
+dev.off()
+```
+
+## okay, now we're good.
+
+
 ### save
 ```{r}
 fwrite(arcvmh4ready,"processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt",sep='\t',quote=F)
@@ -157,24 +298,24 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] ggrastr_1.0.2     ggplot2_3.5.1     colorout_1.3-0.2  data.table_1.15.4
-[5] sf_1.0-16         rlang_1.1.4      
+[1] gridExtra_2.3     colorout_1.3-0.2  ggrastr_1.0.2     ggplot2_3.5.1    
+[5] sf_1.0-16         data.table_1.15.4 rlang_1.1.4      
 
 loaded via a namespace (and not attached):
  [1] gtable_0.3.5       dplyr_1.1.4        compiler_4.4.1     tidyselect_1.2.1  
- [5] Rcpp_1.0.12        ggbeeswarm_0.7.2   scales_1.3.0       yaml_2.3.8        
- [9] fastmap_1.2.0      here_1.0.1         R6_2.5.1           labeling_0.4.3    
-[13] generics_0.1.3     classInt_0.4-10    knitr_1.47         tibble_3.2.1      
-[17] units_0.8-5        munsell_0.5.1      rprojroot_2.0.4    DBI_1.2.3         
-[21] pillar_1.9.0       utf8_1.2.4         xfun_0.45          cli_3.6.3         
-[25] withr_3.0.0        magrittr_2.0.3     class_7.3-22       digest_0.6.36     
-[29] grid_4.4.1         rstudioapi_0.16.0  beeswarm_0.4.0     lifecycle_1.0.4   
-[33] vipor_0.4.7        vctrs_0.6.5        KernSmooth_2.23-24 proxy_0.4-27      
-[37] evaluate_0.24.0    glue_1.7.0         farver_2.1.2       fansi_1.0.6       
-[41] e1071_1.7-14       colorspace_2.1-0   rmarkdown_2.27     tools_4.4.1       
-[45] pkgconfig_2.0.3    htmltools_0.5.8.1 
+ [5] Rcpp_1.0.13        ggbeeswarm_0.7.2   png_0.1-8          scales_1.3.0      
+ [9] yaml_2.3.9         fastmap_1.2.0      here_1.0.1         R6_2.5.1          
+[13] labeling_0.4.3     generics_0.1.3     classInt_0.4-10    knitr_1.48        
+[17] tibble_3.2.1       units_0.8-5        munsell_0.5.1      rprojroot_2.0.4   
+[21] DBI_1.2.3          pillar_1.9.0       utf8_1.2.4         xfun_0.45         
+[25] cli_3.6.3          withr_3.0.0        magrittr_2.0.3     class_7.3-22      
+[29] digest_0.6.36      grid_4.4.1         rstudioapi_0.16.0  beeswarm_0.4.0    
+[33] lifecycle_1.0.4    vipor_0.4.7        vctrs_0.6.5        KernSmooth_2.23-24
+[37] proxy_0.4-27       evaluate_0.24.0    glue_1.7.0         farver_2.1.2      
+[41] fansi_1.0.6        e1071_1.7-14       colorspace_2.1-0   rmarkdown_2.27    
+[45] tools_4.4.1        pkgconfig_2.0.3    htmltools_0.5.8.1 
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────
+─ Session info ────────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -184,11 +325,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-07-05
+ date     2024-08-23
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────────
+─ Packages ────────────────────────────────────────────────────────────────────────
  ! package     * version date (UTC) lib source
    beeswarm      0.4.0   2021-06-01 [1] CRAN (R 4.4.0)
    class         7.3-22  2023-05-03 [1] CRAN (R 4.4.1)
@@ -210,20 +351,22 @@ loaded via a namespace (and not attached):
    ggplot2     * 3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
    ggrastr     * 1.0.2   2023-06-01 [1] CRAN (R 4.4.0)
    glue          1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
+   gridExtra   * 2.3     2017-09-09 [1] CRAN (R 4.4.0)
    gtable        0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
    here          1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
    htmltools     0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
    KernSmooth    2.23-24 2024-05-17 [1] CRAN (R 4.4.1)
-   knitr         1.47    2024-05-29 [1] CRAN (R 4.4.0)
+   knitr         1.48    2024-07-07 [1] CRAN (R 4.4.1)
    labeling      0.4.3   2023-08-29 [1] CRAN (R 4.4.0)
    lifecycle     1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
    magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
    munsell       0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
    pillar        1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
    pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
+   png           0.1-8   2022-11-29 [1] CRAN (R 4.4.0)
    proxy         0.4-27  2022-06-09 [1] CRAN (R 4.4.0)
    R6            2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
-   Rcpp          1.0.12  2024-01-09 [1] CRAN (R 4.4.0)
+   Rcpp          1.0.13  2024-07-17 [1] CRAN (R 4.4.0)
  P rlang       * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
    rmarkdown     2.27    2024-05-17 [1] CRAN (R 4.4.0)
    rprojroot     2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
@@ -239,11 +382,11 @@ loaded via a namespace (and not attached):
    vipor         0.4.7   2023-12-18 [1] CRAN (R 4.4.0)
    withr         3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
    xfun          0.45    2024-06-16 [1] CRAN (R 4.4.0)
-   yaml          2.3.8   2023-12-11 [1] CRAN (R 4.4.0)
+   yaml          2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
 
  [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
  [2] /Users/bmulvey/Library/R/arm64/4.4/library
 
  P ── Loaded and on-disk path mismatch.
 
-───────────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────────
