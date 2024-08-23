@@ -1,7 +1,7 @@
 ---
 title: "11-Make_XeniumSPE_forSamui"
 output: html_document
-date: "2024-08-19"
+date: "2024-08-23"
 ---
 
 ```{r setup, include=FALSE}
@@ -69,8 +69,7 @@ saveRDS(hypx,"processed-data/11-XeniumSPE_forSamui.RDS")
 ```{r}
 sessionInfo()
 sessioninfo::session_info()
-```
-R version 4.4.1 RC (2024-06-06 r86719)
+```R version 4.4.1 RC (2024-06-06 r86719)
 Platform: aarch64-apple-darwin20
 Running under: macOS Sonoma 14.5
 
@@ -137,7 +136,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-19
+ date     2024-08-23
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
