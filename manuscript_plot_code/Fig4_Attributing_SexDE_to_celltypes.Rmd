@@ -84,7 +84,6 @@ setnames(bkcl,2,"cl")
 bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
 
 ## drop sample-specific clusters, append cluster annotations 
-bkanno[,clus:=paste0("X",clus)]
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
 

@@ -295,10 +295,11 @@ p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*LAMP5* (Xenium)")+
+    ggtitle("*LAMP5*")+
     guides(color="none")+
-    labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
+
 dev.off()
 
 rm(pane,p)
@@ -315,12 +316,13 @@ p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
 pdf("manuscript_plots/Fig2/2F-X86_reg1_ANKRD34B.pdf",height=1.6,width=1.75)
 p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    geom_path(data=ahull,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=dom,color=dom),linewidth = 0.25)+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*ANKRD34B* (Xenium)")+
+    ggtitle("*ANKRD34B*")+
     guides(color="none")+
-    labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
+
 dev.off()
 
 rm(panf,p)
@@ -340,10 +342,11 @@ p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*GABRE* (Xenium)")+
+    ggtitle("*GABRE*")+
     guides(color="none")+
-    labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
+
 dev.off()
 
 rm(pang,p)
@@ -362,9 +365,9 @@ p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*CYP26A1* (Xenium)")+
+    ggtitle("*CYP26A1*")+
     guides(color="none")+
-    labs(col="Xenium\nDomain")+
+    #labs(col="Xenium\nDomain")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
 dev.off()
 
@@ -392,10 +395,10 @@ p+
     geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*GHRH* (Visium)")+
+    ggtitle("*GHRH*")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(pann,p)
@@ -416,10 +419,10 @@ p+
     geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*TAC3* (Visium)")+
+    ggtitle("*TAC3*")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(pano,p)

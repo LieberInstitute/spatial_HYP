@@ -497,9 +497,9 @@ dev.off()
 rm(p,panh)
 ```
 
-Panel I is the xenium domains in the same donor (Br8741 , sample X99_8741C).
+Panel I is the xenium domains in the same donor (Br1225 , sample X99_1225V).
 
-### Panel I: xenium counterpart to C (X99_8741C)
+### Panel I: xenium counterpart to C (X99_1225B)
 ```{r}
 pani <- hypx[,hypx$sample_id=="X99_1225B"]
 
@@ -514,7 +514,7 @@ p+
     # guides(color="none",fill=guide_legend(override.aes=list(size=1.5)))+
     # labs(fill="Xenium\nDomain")+
    guides(color="none",fill="none")+
-   theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.1,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+   theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.12,0,-0.10,0,"in")),plot.margin = margin(-0.11,-0.4,-0.12,-0.4,unit = "in"))
 dev.off()
 
 rm(pani,p)
@@ -565,17 +565,17 @@ p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*NR5A1* (Xenium)")+
+    ggtitle("*NR5A1*")+
     guides(color="none")+
-    labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.1,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.12,0,-0.12,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.11,-0.4,-0.12,-0.4,unit = "in"),legend.margin=margin(0,-0.2,0,0,"in"),legend.background = element_blank(),legend.box = element_blank(),legend.key = element_blank())
 dev.off()
 
-rm(panj,p,tmpcoldata)
+# rm(panj,p,tmpcoldata)
 
 ```
 
-K: POMC in X99_8741C
+K: POMC in X99_1225B
 ```{r}
 pank <- hypx["POMC",hypx$sample_id=="X99_1225B"]
 colData(pank)$`log counts` <- as.numeric(logcounts(pank)["POMC",])
@@ -588,32 +588,32 @@ p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*POMC* (Xenium)")+
+    ggtitle("*POMC*")+
     guides(color="none")+
-    labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.1,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.12,0,-0.12,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.11,-0.4,-0.12,-0.4,unit = "in"),legend.margin=margin(0,-0.2,0,0,"in"),legend.background = element_blank(),legend.box = element_blank(),legend.key = element_blank())
 dev.off()
 
 rm(pank,p)
 ```
 
-1L: KLK6 in xenium
+1L: KLK6 in xenium X99_1225B
 ```{r}
-panl <- hypx["KLK6",hypx$sample_id=="X99_8741C"]
+panl <- hypx["KLK6",hypx$sample_id=="X99_1225B"]
 colData(panl)$`log counts` <- as.numeric(logcounts(panl)["KLK6",])
 
 p <- make_escheR(panl,y_reverse=FALSE)
 p <- p |> add_fill("log counts",size=0.125,point_size = 0.175)
 
-pdf("manuscript_plots/Fig1/1L-X99_8741C_KLK6.pdf",height=2,width=2)
+pdf("manuscript_plots/Fig1/1L-X99_1225B_KLK6.pdf",height=2,width=2)
 p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*KLK6* (Xenium)")+
+    ggtitle("*KLK6*")+
     guides(color="none")+
-    labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.1,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.12,0,-0.12,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.11,-0.4,-0.12,-0.4,unit = "in"),legend.margin=margin(0,-0.2,0,0,"in"),legend.background = element_blank(),legend.box = element_blank(),legend.key = element_blank())
 dev.off()
 
 rm(panl,p)

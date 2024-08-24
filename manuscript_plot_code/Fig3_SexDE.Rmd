@@ -500,7 +500,8 @@ p <- p+
     scale_color_manual(values=pal,na.value = NA)+
     ggtitle("*TAC1* (Female)")+
     guides(color="none",fill="none")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.125,0,-0.125,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.025,0,-0.08,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(0,0,-0.09,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
+
 
 p <- rasterize(p,layer="Points",dpi=600)
 
@@ -508,7 +509,7 @@ pdf("manuscript_plots/Fig3/3I-TAC1_Xenium_female.pdf",height=1.75,width=2)
 p
 dev.off()
 
-rm(pani,tmpcoldatai,p)
+ rm(pani,tmpcoldatai,p)
 ```
 
 
@@ -542,7 +543,7 @@ pdf("manuscript_plots/Fig3/3J-RXRG_Xenium_Male.pdf",height=1.75,width=2)
 p
 dev.off()
 
-rm(panj,p,dompolyh)
+# rm(panj,p,dompolyh)
 
 ## panel k
 p <- make_escheR(pank,y_reverse=FALSE)
@@ -554,7 +555,7 @@ p <- p+
     scale_color_manual(values=pal,na.value = NA)+
     ggtitle("*RXRG* (Female)")+
     guides(color="none",fill="none")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.125,0,-0.125,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.025,0,-0.08,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(0,0,-0.09,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
 
 p <- rasterize(p,layer="Points",dpi=600)
 
@@ -562,7 +563,7 @@ pdf("manuscript_plots/Fig3/3K-RXRG_Xenium_female.pdf",height=1.75,width=2)
 p
 dev.off()
 
-rm(pank,p,dompolyi)
+# m(pank,p,dompolyi)
 ```
 
 ## panel L: fGSEA results for TF-target 
