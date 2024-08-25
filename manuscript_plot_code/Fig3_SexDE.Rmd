@@ -83,7 +83,6 @@ setnames(bkcl,2,"cl")
 bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
 
 ## drop sample-specific clusters, append cluster annotations 
-bkanno[,clus:=paste0("X",clus)]
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
 
@@ -327,49 +326,137 @@ dev.off()
 
 ```
 
-Panels D-E and F-G are our representative male and female samples from Figures 1 and 2, showing a VMH and an ARC sex DE in spotplots on Visium. For the VMH gene, we'll use TAC1, and for ARC we'll use RXRG.
+Panels D-E and F-G are our representative male sample from Figure 2 and a female sample (we haven't displayed one yet). showing a VMH and an ARC sex DE in spotplots on Visium. For the VMH gene, we'll use TAC1, and for ARC we'll use RXRG. First we need to define the polygonal outlines that'll trace VMH and ARC in the two samples (which we did previously, including removal of select spots in order to make the spotplots more readable).
+
+## male polygons:
+```{r}
+rownames(hyp2) <- rowData(hyp2)$gene_name
+tac1M <- hyp2["TAC1",hyp2$sample_id=="V12Y31-080_A1"]
+
+## attach the coordinate info to colData so we can subset to VMH points and wrap this gift. it'll take a bit
+tmpcoldata <- as.data.table(as.data.frame(cbind(colData(tac1M),spatialCoords(tac1M))))
+
+### these end up looking wacky without some stray spots removed, so we need to manually drop a handful of singletons
+tmpcoldata <- tmpcoldata[Visium.Domain %in% c("ARC","VMH")]
+
+# this will be easier to figure out using the array row/col values on a temporary plot with some lines overlaid to help pinpoint array coords to remove from the tracing. this doesn't account for the rotations or mirroring of the visium data, so grab a screenshot and rotate so that the x and y coords are not changed relative to the values we'll use to filter the table.
+ggplot(tmpcoldata,aes(x=array_col,y=array_row,color=Visium.Domain))+
+   geom_point(size=1.5)+
+   geom_vline(xintercept=seq(0,max(tmpcoldata$array_col),by=5))+
+   geom_hline(yintercept=seq(0,max(tmpcoldata$array_row),5))
+dev.off()
+# ok just a couple easy drops here: ARC: drop col 30, row 22; 81,27; anything past col 100; anything in array_col>80&array_row<45
+# VMH drop everything at row>35 & col > 78 and anything at array_col>90
+tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!((array_row==22&array_col==30)|(array_row==27&array_col==81)|array_col>100|(array_col>80&array_row<45))],
+                    tmpcoldata[Visium.Domain=="VMH"&!(array_col>90|(array_col>78&array_row>35))])
+
+## for plotting with geom_path, we need to add the first point at the end of the sequence as well. for vmh, we can use convex hull because..well, its a convex shape
+tmpcoldata.sf <- st_as_sf(tmpcoldata,coords=c("array_col","array_row"))
+vhull <- st_convex_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="VMH",]))
+vhull <- vhull[[1]][[1]]
+vhull <- rbind(vhull,vhull[1,])
+rownames(vhull) <- rownames(vhull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(vhull),by=1))
+vhull <- as.data.table(vhull,keep.rownames=T)
+
+ahull <- st_concave_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="ARC",]),ratio = 0.1)
+ahull <- ahull[[1]][[1]]
+ahull <- rbind(ahull,ahull[1,])
+rownames(ahull) <- rownames(ahull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(ahull),by=1))
+ahull <- as.data.table(ahull,keep.rownames=T)
+
+dompoly <- rbind(vhull,ahull)
+
+## get the pixel-resolution values corresponding to these spots as pixel res is what escher uses to plot
+dompoly2 <- merge.data.table(dompoly,tmpcoldata,by.x=c("V1","V2"),by.y=c("array_col","array_row"))
+dompoly2[,rn:=as.numeric(gsub(rn,pattern="pt",replacement=""))]
+setorderv(dompoly2,"rn")
+
+rm(vhull,ahull,dompoly,tmpcoldata)
+```
+
+## female polygons:
+```{r}
+tac1F <- hyp2["TAC1",hyp2$sample_id=="V12D05-348_D1"]
+
+
+## attach the coordinate info to colData so we can subset to VMH points and wrap this gift. it'll take a bit
+tmpcoldata <- as.data.table(as.data.frame(cbind(colData(tac1F),spatialCoords(tac1F))))
+
+### these end up looking wacky without some stray spots removed, so we need to manually drop a handful of singletons
+tmpcoldata <- tmpcoldata[Visium.Domain %in% c("ARC","VMH")]
+
+# this will be easier to figure out using the array row/col values on a temporary plot with some lines overlaid to help pinpoint array coords to remove from the tracing. this doesn't account for the rotations or mirroring of the visium data, so grab a screenshot and rotate so that the x and y coords are not changed relative to the values we'll use to filter the table.
+ggplot(tmpcoldata,aes(x=array_col,y=array_row,color=Visium.Domain))+
+   geom_point(size=1.5)+
+   geom_vline(xintercept=seq(0,max(tmpcoldata$array_col),by=5))+
+   geom_hline(yintercept=seq(0,max(tmpcoldata$array_row),5))
+dev.off()
+# ok this one is REALLY easy: ARC, drop everything in array col >=30 and array_row > 50; VMH: drop %in% array_row==42
+tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!(array_col>=30&array_row>50)],
+                    tmpcoldata[Visium.Domain=="VMH"&array_row!=42])
+
+## for plotting with geom_path, we need to add the first point at the end of the sequence as well. for vmh, we can use convex hull because..well, its a convex shape
+tmpcoldata.sf <- st_as_sf(tmpcoldata,coords=c("array_col","array_row"))
+vhull <- st_convex_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="VMH",]))
+vhull <- vhull[[1]][[1]]
+vhull <- rbind(vhull,vhull[1,])
+rownames(vhull) <- rownames(vhull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(vhull),by=1))
+vhull <- as.data.table(vhull,keep.rownames=T)
+
+ahull <- st_concave_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="ARC",]),ratio = 0.1)
+ahull <- ahull[[1]][[1]]
+ahull <- rbind(ahull,ahull[1,])
+rownames(ahull) <- rownames(ahull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(ahull),by=1))
+ahull <- as.data.table(ahull,keep.rownames=T)
+
+dompoly <- rbind(vhull,ahull)
+
+## get the pixel-resolution values corresponding to these spots as pixel res is what escher uses to plot
+femdompoly2 <- merge.data.table(dompoly,tmpcoldata,by.x=c("V1","V2"),by.y=c("array_col","array_row"))
+femdompoly2[,rn:=as.numeric(gsub(rn,pattern="pt",replacement=""))]
+setorderv(femdompoly2,"rn")
+
+rm(vhull,ahull,dompoly,tmpcoldata)
+```
 
 panel D/E. only put the logcounts in D (it's a shared scale for both panels)
 ```{r}
-tac1M <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(tac1M) <- rowData(tac1M)$gene_name
 colData(tac1M)$`log counts` <- logcounts(tac1M)["TAC1",]
 
 ### make spotplots
 p <- make_escheR(tac1M)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+#p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
 pdf("manuscript_plots/Fig3/3D-TAC1_Visium_Male.pdf",height=1.75,width=2)
 p+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal)+
     scale_fill_gradient(low="white",high="black",limits=c(0,5.5))+
     ggtitle("*TAC1* (Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"),legend.box=element_blank(),legend.background=element_blank(),legend.margin = margin(0,0,0,-0.1,"in"))
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5,margin=margin(0,0,-0.05,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05+0.05,0.03,-0.15,0,unit = "in"))
 dev.off()
 
 rm(tac1M,p)
 
 ### 
-tac1F <- hyp2[,hyp2$sample_id=="V12D05-348_D1"]
-rownames(tac1F) <- rowData(tac1F)$gene_name
 colData(tac1F)$`log counts` <- logcounts(tac1F)["TAC1",]
 
 ### make spotplots
 p <- make_escheR(tac1F)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 
-pdf("manuscript_plots/Fig3/3E-TAC1_Visium_Female.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig3/3E-TAC1_Visium_Female.pdf",height=1.75,width=1.6)
 p+
     scale_color_manual(values=pal)+
+    geom_path(data=femdompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
     scale_fill_gradient(low="white",high="black",limits=c(0,5.5))+
     ggtitle("*TAC1* (Female)")+
     guides(color="none",fill="none")+
     #labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin= margin(-0.05,0.03,-0.05,0,unit = "in"), legend.box= element_blank(), legend.background=element_blank())
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(tac1F,p)
@@ -378,46 +465,44 @@ rm(tac1F,p)
 
 # F/G: RXRG, log counts only shown in F as is shared legend
 ```{r}
-RXRGM <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(RXRGM) <- rowData(RXRGM)$gene_name
+RXRGM <- hyp2["RXRG",hyp2$sample_id=="V12Y31-080_A1"]
 colData(RXRGM)$`log counts` <- logcounts(RXRGM)["RXRG",]
 
 ### make spotplots
 p <- make_escheR(RXRGM)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 
 pdf("manuscript_plots/Fig3/3F-RXRG_Visium_Male.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=pal)+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
     scale_fill_gradient(low="white",high="black",limits=c(0,3.1))+
     ggtitle("*RXRG* (Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"), legend.box= element_blank(), legend.background=element_blank())
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5,margin=margin(0,0,-0.05,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05+0.05,0.03,-0.15,0,unit = "in"))
     #theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
 dev.off()
 
 rm(RXRGM,p)
 
 ### 
-RXRGF <- hyp2[,hyp2$sample_id=="V12D05-348_D1"]
-rownames(RXRGF) <- rowData(RXRGF)$gene_name
+RXRGF <- hyp2["RXRG",hyp2$sample_id=="V12D05-348_D1"]
 colData(RXRGF)$`log counts` <- logcounts(RXRGF)["RXRG",]
 
 ### make spotplots
 p <- make_escheR(RXRGF)
-p <- p |> add_fill("log counts",size=0.25,point_size = 0.6)
-p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 
-pdf("manuscript_plots/Fig3/3G-RXRG_Visium_female.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig3/3G-RXRG_Visium_female.pdf",height=1.75,width=1.6)
 p+
     scale_color_manual(values=pal)+
+    geom_path(data=femdompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
     scale_fill_gradient(low="white",high="black",limits=c(0,3.1))+
     ggtitle("*RXRG* (Female)")+
     guides(color="none",fill="none")+
     #labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"), legend.box= element_blank(), legend.background=element_blank())
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
 rm(RXRGF,p)
