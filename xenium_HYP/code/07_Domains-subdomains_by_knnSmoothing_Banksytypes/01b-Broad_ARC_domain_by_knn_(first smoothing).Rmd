@@ -75,7 +75,7 @@ rm(xyARC, hypx)
 gc(full=T)
 ```
 
-## step 1 knn smoothing of ARC with k=10
+## step 1 knn smoothing of ARC with k=50
 #### note that the data.table-internalized sapply call is not the absolute fastest way to run that step (but still only takes a matter of seconds at scale here).
 #### however, this approach is more transparent in that the user can take an entry of xyARC_list into the environment as v and step through the bplapply to see what's being done here, and can see that cells are always matched in the process (as opposed to working with vectors where we don't have cell ids matched up anymore. which always makes me unccomfortable, however rationally/irrationally.)
 ```{r}

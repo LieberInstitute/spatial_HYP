@@ -1,7 +1,7 @@
 ---
 title: "Fig3_SexDE"
 output: html_document
-date: "2024-08-17"
+date: "2024-08-28"
 ---
 
 ```{r setup, include=FALSE}
@@ -123,7 +123,7 @@ setnames(vistmp,"logFC","logFC_Visium")
 
 setnames(xendomde,"logFC_MvF","logFC_Xenium")
 
-xendomde <- merge.data.table(xendomde[,.(domain,gene_name,logFC_Xenium)],vistmp[,.(assay,gene_name,logFC_Visium)],by.x=c("domain","gene_name"),by.y=c("assay","gene_name"))
+xendomdecor <- merge.data.table(xendomde[,.(domain,gene_name,logFC_Xenium)],vistmp[,.(assay,gene_name,logFC_Visium)],by.x=c("domain","gene_name"),by.y=c("assay","gene_name"))
 
 ## clean up
 rm(genelut,vistmp)
@@ -136,7 +136,7 @@ names(pal) <- c("VMH","ARC","Other")
 ```
 
 
-Panel A: volcano of Visium ARC, VMH DE, colored by assay
+# Panel A, option 1: volcano of Visium ARC, VMH DE, colored by assay
 ```{r}
 visdeplt <- visde[assay %in% c("ARC","VMH")]
 ## points to label
@@ -186,6 +186,49 @@ dev.off()
 rm(visdeplt,p)
 ```
 
+Panel A, option 2: Visium VMH volcano
+```{r}
+visdeplt <- visde[assay=="VMH"]
+## points to label
+visdeplt <- visdeplt[assay=="VMH"&gene_name %in% c("PTGDS","TAC1","SHANK3","SDHD","BTBD1"),label:=gene_name]
+
+## no fdr sig genes here; min FDR 0.07 and corresponding p value is 6.904826e-05, so conveniently we can approximate FDR ~= p*10^-3 at this range, and use p 5e-05 to draw the line
+p <- ggplot(visdeplt[assay=="VMH"], aes(y = -log10(P.Value), x = logFC,col=assay))+
+    geom_point(size = 0.15,stroke=0.35) +
+    ggtitle("VMH (Visium)")+
+    scale_color_manual(values=pal[1]) +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(5e-5),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(seed = 23942,aes(y = -log10(P.Value),
+            x = logFC,
+            label = ifelse(is.na(label), "", label)),
+        min.segment.length = 0,
+        size = 1.5,
+        show.legend=FALSE,
+        nudge_x=1.25*sign(visdeplt$logFC),
+        #seed=10403, 
+        max.iter=100000,
+        max.overlaps=10000,
+        max.time=3,
+        segment.size=0.125)+
+    scale_x_continuous(limits=c(-4,2.5),expand=c(0,0))+
+    xlab("logFC (M:F)")+
+    ylab("-log10 (P-value)")+
+    guides(color="none")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
+
+# save
+pdf("manuscript_plots/Fig3/3Aalt-Visium VMH Sex DE Volcano.pdf",height=2,width=1.95)
+p
+dev.off()
+```
+
 ## panel B: xenium equiv, VMH types in VMH domain
 ## shit, now we need a four color VMH palette though...maybe just take the four most purple-oid colors from figure 1? 
 ```{r}
@@ -207,10 +250,6 @@ xenvmhdeplt[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*N
 xenvmhdeplt[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
 
 
-## add the more informative cluster names to vmhpal
-vmhpal <- c("#8c63cf", "#6A0D53", "#D193FE", "#AD260D")
-names(vmhpal) <-unique(xenvmhdeplt$subclus_annot)
-
 p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
     geom_point(size = 0.15) +
     scale_color_manual(values=vmhpal) +
@@ -224,12 +263,12 @@ p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
         linewidth=0.25) +
     geom_text_repel(aes(y = -log10(P.Value),
             x = logFC_MvF,
-            label = ifelse(is.na(label), "", label)),
+            label = ifelse(is.na(label), "", label),size=),
         min.segment.length = 0,
         size = 0.9,
         show.legend=FALSE,
         nudge_x=1.25*sign(xenvmhdeplt$logFC_MvF),
-        seed=10403, 
+        seed=10403,
         max.iter=100000,
         max.overlaps=10000,
         max.time=3,
@@ -252,79 +291,132 @@ rm(xenvmhdeplt,p)
 
 ```
 
-## Panel C: Arcuate xenium domain ARC cell types
-## need to make a 5 color ARC palette
+Panel B alt: xenium VMH domain-allcells DE
 ```{r}
-xenarcdeplt <- xenarcde[cluster_annotated %in% grep(cluster_annotated,pattern="ARC",value=T)]
+xendomdeplt <- xendomde[domain %in% c("VMH")]
 
-xenarcdeplt[gene_name %in% c("SHANK3","DCC","RXRG"),label:=gene_name]
+## points to label
+xendomdeplt <- xendomdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
 
-## replace names with informative cell type labels for plot, and thus in palette
-xenarcdeplt <- merge.data.table(xenarcdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
-
-# remove "ARC_" from cluster ids since its redundant with legend title; remove other underscores from cluster ids
-xenarcdeplt[,subclus_annot:=gsub(subclus_annot,pattern="ARC_",replacement="")]
-xenarcdeplt[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
-
-# asterisk-ize for italics in legend
-xenarcdeplt[subclus_annot=="AGRP",subclus_annot:="*AGRP*"]
-xenarcdeplt[subclus_annot=="TAC3-AR-ESR1",subclus_annot:="*TAC3*-*AR*-*ESR1*"]
-xenarcdeplt[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo"]
-xenarcdeplt[subclus_annot=="Excit-SLC17A7-Glial-Mixed",subclus_annot:="*SLC17A7*-Glia"]
-xenarcdeplt[subclus_annot=="GAL-TRH-GHRH",subclus_annot:="*GAL*-*TRH*-*GHRH*"]
-
-#we need 5 different shades of green that can be told apart but also are visible on a white background
-arcpal <- c("#5dd959","#4CAF50", "#0DAD26","#2E8B57","#0D6A0D")
-names(arcpal) <-unique(xenarcdeplt$subclus_annot)
-
-## but swap ESR1 neuron color to #D0B since it's the standout
-arcpal["*TAC3*-*AR*-*ESR1*"] <- "#D0B"
-
-
-# lastly, make the cluster annotation a factor so they occur in the order thatll fit into the legend inside of the plotting space
-# so
-xenarcdeplt$subclus_annot <- factor(xenarcdeplt$subclus_annot,levels=c("*TAC3*-*AR*-*ESR1*","*GAL*-*TRH*-*GHRH*","*AGRP*","*POMC*-Oligo","*SLC17A7*-Glia"))
-
-
-
-p <- ggplot(xenarcdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
-    geom_point(size = 0.075) +
-    scale_color_manual(values=arcpal) +
+p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) +
+    geom_point(size = 0.15,stroke=0.35) +
+    ggtitle("VMH (Xenium, All Cells)")+
+    scale_color_manual(values=pal[1]) +
     geom_hline(yintercept = -log10(0.05),
         linetype = "dashed",
         color = "black",
         linewidth=0.25) +
-    geom_hline(yintercept = -log10(max(xenarcdeplt[FDR<0.05,P.Value])),
+    geom_hline(yintercept = -log10(5e-5),
         linetype = "dashed",
         color = "red",
         linewidth=0.25) +
     geom_text_repel(aes(y = -log10(P.Value),
-            x = logFC_MvF,
+            x = logFC_Xenium,
             label = ifelse(is.na(label), "", label)),
         min.segment.length = 0,
-        size = 0.9,
+        size = 1.5,
         show.legend=FALSE,
-        nudge_x=1.25*sign(xenarcdeplt$logFC_MvF),
+        nudge_x=1.25*sign(xendomdeplt$logFC_Xenium),
         seed=10403, 
         max.iter=100000,
         max.overlaps=10000,
         max.time=3,
         segment.size=0.125)+
+    scale_x_continuous(limits=c(-4,2.5),expand=c(0,0))+
     xlab("logFC (M:F)")+
     ylab("-log10 (P-value)")+
-    labs(color="ARC Cell Type")+
-    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.1675,0.88),legend.position = "inside",legend.text=element_markdown(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
-
-# rasterize
-p <- rasterize(p,layers="Points",dpi=450)
+    guides(color="none")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
 # save
-pdf("manuscript_plots/Fig3/3C-XeniumARCcelltypes_sexDE.pdf",height=2.5,width=2.3)
+pdf("manuscript_plots/Fig3/3Balt-Xenium VMH domain, all cells considered together.pdf",height=2,width=1.95)
+p
+dev.off()
+```
+
+
+## panel C alt: Visium ARC volcano plot
+```{r}
+visdeplt <- visde[assay=="ARC"][gene_name %in% c("SHANK3","DCC","CHRM5","KCNMB2","RXRG"),label:=gene_name]
+
+
+p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay,col=assay)) +
+    geom_point(size = 0.15,stroke=0.35) +
+    ggtitle("ARC (Visium)")+
+    scale_color_manual(values=pal) +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(5e-5),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+            x = logFC,
+            label = ifelse(is.na(label), "", label)),
+        min.segment.length = 0,
+        size = 1.5,
+        show.legend=FALSE,
+        #nudge_x=0.85*sign(visdeplt$logFC),
+        seed=10403, 
+        max.iter=100000,
+        max.overlaps=10000,
+        max.time=3,
+        segment.size=0.125)+
+    # scale_x_continuous(limits=c(-4,2.5),expand=c(0,0))+
+    xlab("logFC (M:F)")+
+    ylab("-log10 (P-value)")+
+    guides(color="none")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
+
+# save
+pdf("manuscript_plots/Fig3/3Calt-Visium ARC Sex DE Volcano.pdf",height=2,width=1.95)
+p
+dev.off()
+```
+
+### panel D alt: ARC xenium domain-wide DE
+```{r}
+xendomdeplt <- xendomde[domain %in% c("ARC")]
+
+## points to label
+xendomdeplt <- xendomdeplt[gene_name %in% c("SHANK3","DCC","RXRG"),label:=gene_name]
+
+p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) +
+    geom_point(size = 0.15,stroke=0.35) +
+    ggtitle("ARC (Xenium, All Cells)")+
+    scale_color_manual(values=pal[2]) +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(5e-5),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+            x = logFC_Xenium,
+            label = ifelse(is.na(label), "", label)),
+        min.segment.length = 0,
+        size = 1.5,
+        show.legend=FALSE,
+        max.iter=100000,
+        max.overlaps=10000,
+        max.time=3,
+        segment.size=0.125)+
+    #scale_x_continuous(limits=c(-4,2.5),expand=c(0,0))+
+    xlab("logFC (M:F)")+
+    ylab("-log10 (P-value)")+
+    guides(color="none")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
+
+pdf("manuscript_plots/Fig3/3Dalt-Xenium ARC domain, all cells considered together.pdf",height=2,width=1.95)
 p
 dev.off()
 
-
 ```
+
 
 Panels D-E and F-G are our representative male sample from Figure 2 and a female sample (we haven't displayed one yet). showing a VMH and an ARC sex DE in spotplots on Visium. For the VMH gene, we'll use TAC1, and for ARC we'll use RXRG. First we need to define the polygonal outlines that'll trace VMH and ARC in the two samples (which we did previously, including removal of select spots in order to make the spotplots more readable).
 
@@ -838,17 +930,17 @@ attached base packages:
 
 other attached packages:
  [1] BiocParallel_1.38.0            parallelly_1.38.0             
- [3] ggrepel_0.9.5                  sf_1.0-16                     
- [5] colorout_1.3-0.2               ggstance_0.3.7                
- [7] Polychrome_1.5.1               viridis_0.6.5                 
- [9] viridisLite_0.4.2              escheR_1.4.0                  
-[11] spatialLIBD_1.16.2             SpatialFeatureExperiment_1.6.1
-[13] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
-[15] SummarizedExperiment_1.34.0    Biobase_2.64.0                
-[17] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
-[19] IRanges_2.38.1                 S4Vectors_0.42.1              
-[21] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
-[23] matrixStats_1.3.0              ggrastr_1.0.2                 
+ [3] colorout_1.3-0.2               sf_1.0-16                     
+ [5] ggstance_0.3.7                 Polychrome_1.5.1              
+ [7] viridis_0.6.5                  viridisLite_0.4.2             
+ [9] escheR_1.4.0                   spatialLIBD_1.16.2            
+[11] SpatialFeatureExperiment_1.6.1 SpatialExperiment_1.14.0      
+[13] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
+[15] Biobase_2.64.0                 GenomicRanges_1.56.1          
+[17] GenomeInfoDb_1.40.1            IRanges_2.38.1                
+[19] S4Vectors_0.42.1               BiocGenerics_0.50.0           
+[21] MatrixGenerics_1.16.0          matrixStats_1.3.0             
+[23] ggrastr_1.0.2                  ggrepel_0.9.5                 
 [25] ggtext_0.1.2                   ggplot2_3.5.1                 
 [27] data.table_1.15.4              rlang_1.1.4                   
 
@@ -921,7 +1013,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-17
+ date     2024-08-28
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 

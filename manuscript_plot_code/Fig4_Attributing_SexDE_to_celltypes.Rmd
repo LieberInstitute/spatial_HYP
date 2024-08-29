@@ -22,6 +22,7 @@ library(viridis) # palettes
 library(Polychrome) # better palettes
 library(ggstance) # for y axis dodge
 library(sf) # define the polygonal boundaries of xenium domains
+library(ggrepel) # for most of the ARC cell type palette https://github.com/moldach/vapoRwave 
 
 ## rstudio GUI tweaks
 require(colorout)
@@ -168,55 +169,141 @@ names(arcelist) <-  bkanno[match(names(arcelist),bkanno$clus),bjm_annot]
 
 cell types palettes
 ```{r}
-vmhpal <- c("#8c63cf", "#6A0D53", "#D193FE", "#AD260D")
-names(vmhpal) <-  names(vmhelist)
+vmhpal <- c("#8c63cf", "lightgray", "#6A0D53", "#AD260D")
+names(vmhpal) <- c("*SLC17A6*-*CRHR2*","Microglia","*FEZF1*-*LAMP5*-*NRGN*","*HCRT*-*SLC6A3*-*TAC1*")
 
-arcpal <- c("#5dd959","#4CAF50", "#0DAD26","#2E8B57","#0D6A0D")
-names(arcpal) <-  names(arcelist)
+arcpal <- c("#5dd959","#296656","#09979B","#A997AB","#D0B")
+names(arcpal) <-  c("*AGRP*","*POMC*-Oligo","*GAL*-*TRH*-*GHRH*","*SLC17A7*-Glia","*TAC3*-*AR*-*ESR1*")
 
-# substitute #D0B as the color for ESR1 cluster
-arcpal["*TAC3*-*AR*-*ESR1*"] <- "#D0B"
 ```
 
-Panel A: plot the VMH cells on an exemplary sample, showing only the VMH area
+## palette set up (shared)
 ```{r}
-pana <- hypx[,hypx$sample_id=="X99_1225A"&hypx$dom=="VMH"]
-pana <- as.data.table(cbind(spatialCoords(pana),as.data.table(colData(pana))))[,.(sdimx,sdimy,banksyclus)]
-
-pana <- pana[banksyclus %in% bkanno[subclus_domain=="VMH",bjm_annot]]
-
-pdf("manuscript_plots/Fig4/4A-VMH_celltypes_1225A.pdf",height=3.75,width=3.75)
-ggplot(pana[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
-    geom_point(size=0.075)+
-    scale_color_manual(values=vmhpal)+
-    guides(color=guide_legend(override.aes = list(size=1)))+
-    labs(color="VMH Cluster")+
-    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")))
-dev.off()
-
-
-rm(pana)
+pal <- c("#8c63cf","#5dd959","#A9A7A9")
+names(pal) <- c("VMH","ARC","Other")
 ```
 
-Panel B: same sample, showing ARC types in ARC domain.
+## panel A: xenium volcano, VMH types in VMH domain
 ```{r}
-panb <- hypx[,hypx$sample_id=="X99_1225A"&hypx$dom=="ARC"]
+xenvmhdeplt <- xenvmhde[cluster_annotated %in% grep(cluster_annotated,pattern="VMH",value=T)]
 
-panb <- as.data.table(cbind(spatialCoords(panb),as.data.table(colData(panb))))[,.(sdimx,sdimy,banksyclus)]
+xenvmhdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
 
-panb <- panb[banksyclus %in% bkanno[subclus_domain=="ARC",bjm_annot]]
+## replace names with informative cell type labels for plot, and thus in palette
+arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
+xenvmhdeplt <- merge.data.table(xenvmhdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
 
+# remove "VMH_" from cluster ids since its redundant with legend title; remove other underscores from cluster ids
+xenvmhdeplt[,subclus_annot:=gsub(subclus_annot,pattern="VMH_",replacement="")]
+xenvmhdeplt[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
 
-pdf("manuscript_plots/Fig4/4B-ARC_celltypes_1225A.pdf",height=3.75,width=3.75)
-ggplot(panb,aes(x=sdimx,y=sdimy,color=banksyclus))+
-    geom_point(size=0.075)+
-    scale_color_manual(values=arcpal)+
-    guides(color=guide_legend(override.aes = list(size=1)))+
-    labs(color="ARC Cluster")+
-    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text=element_markdown(margin=margin(0,0,0,-0.075,"in")))
+# flank each gene in the cluster ids with asterisks so that they can be italicized with ggtext element_markdown in the legend
+xenvmhdeplt[subclus_annot=="SLC17A6-CRHR2",subclus_annot:="*SLC17A6*-*CRHR2*"]
+xenvmhdeplt[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*NRGN*"]
+xenvmhdeplt[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
+
+p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
+    geom_point(size = 0.15) +
+    scale_color_manual(values=vmhpal) +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(max(xenvmhdeplt[FDR<0.05,P.Value])),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+            x = logFC_MvF,
+            label = ifelse(is.na(label), "", label),size=),
+        min.segment.length = 0,
+        size = 0.9,
+        show.legend=FALSE,
+        nudge_x=1.25*sign(xenvmhdeplt$logFC_MvF),
+        seed=10403,
+        max.iter=100000,
+        max.overlaps=10000,
+        max.time=3,
+        segment.size=0.125)+
+    xlab("logFC (M:F)")+
+    ylab("-log10 (P-value)")+
+    labs(color="VMH Cell Type")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.21,0.9),legend.position = "inside",legend.text=element_markdown(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
+
+# rasterize
+p <- rasterize(p,layers="Points",dpi=450)
+
+# save
+pdf("manuscript_plots/Fig4/4A-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
+p
 dev.off()
 
-rm(panb)
+# clean up
+rm(xenvmhdeplt,p)
+
+```
+
+Panel B: ARC sex DE volcano by cell type.
+```{r}
+xenarcdeplt <- xenarcde[cluster_annotated %in% grep(cluster_annotated,pattern="ARC",value=T)]
+
+xenarcdeplt[gene_name %in% c("SHANK3","DCC","RXRG"),label:=gene_name]
+
+## replace names with informative cell type labels for plot, and thus in palette
+xenarcdeplt <- merge.data.table(xenarcdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
+
+# remove "ARC_" from cluster ids since its redundant with legend title; remove other underscores from cluster ids
+xenarcdeplt[,subclus_annot:=gsub(subclus_annot,pattern="ARC_",replacement="")]
+xenarcdeplt[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
+
+# asterisk-ize for italics in legend
+xenarcdeplt[subclus_annot=="AGRP",subclus_annot:="*AGRP*"]
+xenarcdeplt[subclus_annot=="TAC3-AR-ESR1",subclus_annot:="*TAC3*-*AR*-*ESR1*"]
+xenarcdeplt[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo"]
+xenarcdeplt[subclus_annot=="Excit-SLC17A7-Glial-Mixed",subclus_annot:="*SLC17A7*-Glia"]
+xenarcdeplt[subclus_annot=="GAL-TRH-GHRH",subclus_annot:="*GAL*-*TRH*-*GHRH*"]
+
+# lastly, make the cluster annotation a factor so they occur in the order thatll fit into the legend inside of the plotting space
+# so
+xenarcdeplt$subclus_annot <- factor(xenarcdeplt$subclus_annot,levels=c("*TAC3*-*AR*-*ESR1*","*GAL*-*TRH*-*GHRH*","*AGRP*","*POMC*-Oligo","*SLC17A7*-Glia"))
+
+
+
+p <- ggplot(xenarcdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
+    geom_point(size = 0.075) +
+    scale_color_manual(values=arcpal) +
+    geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed",
+        color = "black",
+        linewidth=0.25) +
+    geom_hline(yintercept = -log10(max(xenarcdeplt[FDR<0.05,P.Value])),
+        linetype = "dashed",
+        color = "red",
+        linewidth=0.25) +
+    geom_text_repel(aes(y = -log10(P.Value),
+            x = logFC_MvF,
+            label = ifelse(is.na(label), "", label)),
+        min.segment.length = 0,
+        size = 0.9,
+        show.legend=FALSE,
+        nudge_x=1.25*sign(xenarcdeplt$logFC_MvF),
+        seed=10403,
+        max.iter=100000,
+        max.overlaps=10000,
+        max.time=3,
+        segment.size=0.125)+
+    xlab("logFC (M:F)")+
+    ylab("-log10 (P-value)")+
+    labs(color="ARC Cell Type")+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.1675,0.88),legend.position = "inside",legend.text=element_markdown(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
+
+# rasterize
+p <- rasterize(p,layers="Points",dpi=450)
+
+# save
+pdf("manuscript_plots/Fig4/4B-XeniumARCcelltypes_sexDE.pdf",height=2.5,width=2.3)
+p
+dev.off()
 ```
 
 
