@@ -1,7 +1,7 @@
 ---
 title: "Fig4_Attributing_SexDE_to_celltypes"
 output: html_document
-date: "2024-08-17"
+date: "2024-08-29"
 ---
 
 ```{r setup, include=FALSE}
@@ -187,20 +187,9 @@ names(pal) <- c("VMH","ARC","Other")
 ```{r}
 xenvmhdeplt <- xenvmhde[cluster_annotated %in% grep(cluster_annotated,pattern="VMH",value=T)]
 
-xenvmhdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
-
-## replace names with informative cell type labels for plot, and thus in palette
-arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
 xenvmhdeplt <- merge.data.table(xenvmhdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
 
-# remove "VMH_" from cluster ids since its redundant with legend title; remove other underscores from cluster ids
-xenvmhdeplt[,subclus_annot:=gsub(subclus_annot,pattern="VMH_",replacement="")]
-xenvmhdeplt[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
-
-# flank each gene in the cluster ids with asterisks so that they can be italicized with ggtext element_markdown in the legend
-xenvmhdeplt[subclus_annot=="SLC17A6-CRHR2",subclus_annot:="*SLC17A6*-*CRHR2*"]
-xenvmhdeplt[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*NRGN*"]
-xenvmhdeplt[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
+xenvmhdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
 
 p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
     geom_point(size = 0.15) +
@@ -251,23 +240,6 @@ xenarcdeplt[gene_name %in% c("SHANK3","DCC","RXRG"),label:=gene_name]
 
 ## replace names with informative cell type labels for plot, and thus in palette
 xenarcdeplt <- merge.data.table(xenarcdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
-
-# remove "ARC_" from cluster ids since its redundant with legend title; remove other underscores from cluster ids
-xenarcdeplt[,subclus_annot:=gsub(subclus_annot,pattern="ARC_",replacement="")]
-xenarcdeplt[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
-
-# asterisk-ize for italics in legend
-xenarcdeplt[subclus_annot=="AGRP",subclus_annot:="*AGRP*"]
-xenarcdeplt[subclus_annot=="TAC3-AR-ESR1",subclus_annot:="*TAC3*-*AR*-*ESR1*"]
-xenarcdeplt[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo"]
-xenarcdeplt[subclus_annot=="Excit-SLC17A7-Glial-Mixed",subclus_annot:="*SLC17A7*-Glia"]
-xenarcdeplt[subclus_annot=="GAL-TRH-GHRH",subclus_annot:="*GAL*-*TRH*-*GHRH*"]
-
-# lastly, make the cluster annotation a factor so they occur in the order thatll fit into the legend inside of the plotting space
-# so
-xenarcdeplt$subclus_annot <- factor(xenarcdeplt$subclus_annot,levels=c("*TAC3*-*AR*-*ESR1*","*GAL*-*TRH*-*GHRH*","*AGRP*","*POMC*-Oligo","*SLC17A7*-Glia"))
-
-
 
 p <- ggplot(xenarcdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
     geom_point(size = 0.075) +

@@ -1,0 +1,135 @@
+---
+title: "SF-UMI, gene, mito metrics per Visium sample and per spot, including standalone
+  VMH and ARC"
+output: html_document
+date: "2024-09-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggrastr)
+library(gridExtra)
+library(SpatialExperiment)
+library(SpatialFeatureExperiment)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+For this, we just need the SPEs and cluster labels as the QC data of interest is stored in colData slots.
+```{r}
+hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+bscl <- fread("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt") # main visium clustering (bs=bayesspace)
+
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("Vis",cl)]
+bscl[cl=="Vis7",cl:="VMH.1"]
+bscl[cl=="Vis12",cl:="VMH.2"]
+bscl[cl=="Vis4",cl:="ARC.1"]
+bscl[cl=="Vis6",cl:="ARC.2"]
+
+bscl[,dom:=cl]
+bscl[dom %in% c("VMH.1","VMH.2"),dom:="VMH"]
+bscl[dom %in% c("ARC.1","ARC.2"),dom:="ARC"]
+bscl[!(dom %in% c("VMH","ARC")),dom:="Other"]
+
+bscl<-DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
+hyp2$k15dom <- bscl$cl
+hyp2$`Visium Domain` <- factor(bscl$dom,levels=c("ARC","VMH","Other"))
+```
+
+```{r}
+tmpcd <- as.data.table(colData(hyp2))
+
+sampmeds <- tmpcd[,.(median_spotGenes=median(sum_gene),median_spotUMIs=median(sum_umi),median_spot_mitoPct=median(expr_chrM_ratio)),by="sample_id"]
+sampmeds <- melt(sampmeds,id.vars=c("sample_id"))
+
+visqcplots <- list()
+
+visqcplots[[1]] <- ggplot(sampmeds,aes(x=1,y=value))+
+    geom_point(position = position_jitter(width = 0.2))+
+    scale_x_continuous(limits=c(0,2),expand=c(0,0))+
+    facet_wrap(~variable,scales="free_y")+
+    theme(axis.text.x=element_blank(),axis.ticks.x=element_blank(),axis.title.x = element_blank(),strip.text = element_text(size=6))+
+    ylab("Sample Medians")
+```
+
+then, make violin plots of all individual spot values for each metric, faceted by sample:
+```{r}
+spotvals <- tmpcd[,.(spotGenes=sum_gene,spotUMIs=sum_umi,spot_mitoPct=expr_chrM_ratio,sample_id)]
+# sum_gene is an integer column which will screw with melting, so fix
+spotvals[,spotGenes:=as.numeric(spotGenes)]
+spotvals <- melt(spotvals,id.vars=c("sample_id"))
+
+# violin with dashed lines for the 10/90%ile, solid for the 50%ile
+# simplest approach is two violins: https://stackoverflow.com/questions/48936704/manual-specification-of-draw-quantile-argument-in-violin-plot-call-in-r
+
+visqcplots[[2]] <- ggplot(spotvals,aes(x=sample_id,y=value))+
+    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.1,0.9),linetype="dashed",linewidth=0.5)+
+    geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=0.8,fill="transparent")+
+    facet_wrap(~variable,scales="free_y")+
+    theme(strip.text = element_text(size=6),axis.text.x=element_text(angle=90))+
+    ylab("Spot Values")+
+    xlab("Sample ID")
+
+
+# the same for VMH spots:
+vmhvals <- tmpcd[Visium.Domain=="VMH",.(spotGenes=as.numeric(sum_gene),spotUMIs=sum_umi,spot_mitoPct=expr_chrM_ratio,sample_id)]
+
+vmhvals <- melt(vmhvals,id.vars=c("sample_id"))
+
+visqcplots[[3]] <- ggplot(vmhvals,aes(x=sample_id,y=value))+
+    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.1,0.9),linetype="dashed",linewidth=0.5)+
+    geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=0.8,fill="transparent")+
+    facet_wrap(~variable,scales="free_y")+
+    theme(strip.text = element_text(size=6),axis.text.x=element_text(angle=90))+
+    ylab("VMH Spot Values")+
+    xlab("Sample ID")
+
+# the same for ARC spots:
+arcvals <- tmpcd[Visium.Domain=="ARC",.(spotGenes=as.numeric(sum_gene),spotUMIs=sum_umi,spot_mitoPct=expr_chrM_ratio,sample_id)]
+
+arcvals <- melt(arcvals,id.vars=c("sample_id"))
+
+visqcplots[[4]] <- ggplot(arcvals,aes(x=sample_id,y=value))+
+    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.1,0.9),linetype="dashed",linewidth=0.5)+
+    geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=0.8,fill="transparent")+
+    facet_wrap(~variable,scales="free_y")+
+    theme(strip.text = element_text(size=6),axis.text.x=element_text(angle=90))+
+    ylab("ARC Spot Values")+
+    xlab("Sample ID")
+
+
+```
+
+arrange and save into one pdf
+```{r}
+pdf("manuscript_plots/Supplemental/SFig-UMI_gene_mito_Visium.pdf",height=11,width=8.5)
+do.call("grid.arrange",list(arrangeGrob(grobs=visqcplots,ncol=1,nrow=4,heights = c(2,3,3,3))))
+dev.off()
+```
