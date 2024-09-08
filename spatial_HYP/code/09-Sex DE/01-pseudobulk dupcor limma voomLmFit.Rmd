@@ -1,7 +1,7 @@
----
+   ---
 title: "01-pseudobulk dupcor limma voomLmFit sex DE"
 author: "Bernard Mulvey"
-date: "2024-07-24"
+date: "2024-09-08"
 output: html_document
 ---
 
@@ -63,7 +63,7 @@ tmprd <- as.data.table(tmprd)
 rm(genchr)
 ```
 
-## run sex DE using voomLmFit. only on bayesspace 60kiter clusterings at k15,20,31
+## run sex DE using voomLmFit.
 ```{r}
 # get cluster assignment files
 bscl <- list.files("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out",pattern = ".txt",recursive=F,full.names = T)
@@ -85,7 +85,7 @@ names(bscls)[length(bscls)] <- "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVM
 # clean up
 rm(bscl,collapsed)
 gc(full=T)
-# loop thru one at a time so we can use biocparallel w/ dreamlet
+# loop thru one at a time so we can use biocparallel w/ dreamlet and PSOCK clusters for running the DE tests (19 clustering results * 13 to 31 clusters ea.)
 
 sbp <- MulticoreParam(6)
 register(sbp)
@@ -176,6 +176,8 @@ bsHna60s <- lapply(bscls,function(b){
     
     # run voomLmFit for the pseudobulked data, referring donor to duplicateCorrelation; using an adaptive span (number of genes, based on the number of genes in the dge) for smoothing the mean-variance trend
     v.swt <- voomLmFit(dge,design = des,block = as.factor(dge$samples$brnum),adaptive.span = T,sample.weights = T)
+    ## get the Elist object to also output for plotting purposes later
+    v.swt.elist <- as.data.table(v.swt$EList$E,keep.rownames=T)
     
     v.swt.fit <- contrasts.fit(v.swt,sexdif)
     
@@ -183,21 +185,25 @@ bsHna60s <- lapply(bscls,function(b){
     
     v.swt.e.tt <- topTable(v.swt.fit.e,coef = 1,number=Inf,adjust.method = "BH")
     
-    return(v.swt.e.tt)
-  })
+    retlist <- list(elist=v.swt.elist,de=v.swt.e.tt)
+    
+    return(retlist)
+    })
   stopCluster(clus)
   # make sure the output list has the corresponding cell cluster names
   names(fulldgelres) <- names(ag)
   return(fulldgelres)
 })
+
 ```
 
 
 ### add gene symbols
 ```{r}
-bsHna60sOut <- lapply(X=bsHna60s,FUN=function(X){
+bsHna60sOut2 <- lapply(X=bsHna60s,FUN=function(X){
    lapply(X,FUN=function(Y){
-      Z <- merge.data.table(as.data.table(Y,keep.rownames=T),tmprd[,.(gene_id,gene_name,chromosome_name)],by.x="rn",by.y="gene_id")
+      # de results are in the second slot for each cluster (elist is the)
+      Z <- merge.data.table(as.data.table(Y[[2]],keep.rownames=T),tmprd[,.(gene_id,gene_name,chromosome_name)],by.x="rn",by.y="gene_id")
        setnames(Z,"rn","gene_id")
        reordnames <- c("gene_name","logFC","P.Value","adj.P.Val","t","B","chromosome_name","AveExpr","gene_id")
        return(Z[,..reordnames])
@@ -205,21 +211,43 @@ bsHna60sOut <- lapply(X=bsHna60s,FUN=function(X){
 })
 
 ### concatenate into one data table per clustering with a column, assay, indicating the cluster a result corresponds to.
-bsHna60sOut <- lapply(X=bsHna60sOut,FUN=function(X){
+bsHna60sOut2 <- lapply(X=bsHna60sOut2,FUN=function(X){
    Y <- rbindlist(X,idcol="assay")
    return(Y)
 })
+
+## tabulate elists the same way
+bsHna60sOutE <- lapply(X=bsHna60s,FUN=function(X){
+   lapply(X,FUN=function(Y){
+      # de results are in the second slot for each cluster (elist is the first)
+      Z <- merge.data.table(as.data.table(Y[[1]],keep.rownames=T),tmprd[,.(gene_id,gene_name,chromosome_name)],by.x="rn",by.y="gene_id")
+       setnames(Z,"rn","gene_id")
+       reordnames <- c("gene_name",grep(names(Z),pattern="-",value=T),"gene_id")
+       return(Z[,..reordnames])
+  })
+})
+
+bsHna60sOutE <- lapply(X=bsHna60sOutE,FUN=function(X){
+   Y <- rbindlist(X,idcol="assay",fill=T)
+   return(Y)
+})
+
 
 ```
 
 
 # save results
 ```{r}
-saveRDS(bsHna60sOut,"processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+saveRDS(bsHna60sOut2,"processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
 
 # save table with the single-cluster and collapsed cluster DE as plaintext since those are the primary results going forward
-fwrite(bsHna60sOut[["BSpace_k15_HARMONYlmbna_nnsvg10"]],"processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt",sep="\t",quote=F)
-fwrite(bsHna60sOut[["BSpace_k15_HARMONYlmbna_hvg20_clpsdARC_clpsdVMH"]],"processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_nnsvg10"]],"processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt",sep="\t",quote=F)
+fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_hvg20_clpsdARC_clpsdVMH"]],"processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+
+
+## save RDS of pseudobulk expression values for plotting aggregate results
+saveRDS(bsHna60sOutE,"processed-data/09-Sex De/01d-pseudobulkExpr_01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+
 ```
 
 ```{r}
@@ -245,16 +273,17 @@ attached base packages:
 [9] base     
 
 other attached packages:
- [1] colorout_1.3-0.2            edgeR_4.2.0                
- [3] dreamlet_1.2.1              variancePartition_1.34.0   
- [5] BiocParallel_1.38.0         limma_3.60.3               
- [7] ggplot2_3.5.1               SpatialExperiment_1.14.0   
- [9] SingleCellExperiment_1.26.0 SummarizedExperiment_1.34.0
-[11] Biobase_2.64.0              GenomicRanges_1.56.1       
-[13] GenomeInfoDb_1.40.1         IRanges_2.38.1             
-[15] S4Vectors_0.42.1            BiocGenerics_0.50.0        
-[17] MatrixGenerics_1.16.0       matrixStats_1.3.0          
-[19] data.table_1.15.4           rlang_1.1.4                
+ [1] parallelly_1.38.0           colorout_1.3-0.2           
+ [3] edgeR_4.2.0                 dreamlet_1.2.1             
+ [5] variancePartition_1.34.0    BiocParallel_1.38.0        
+ [7] limma_3.60.3                ggplot2_3.5.1              
+ [9] SpatialExperiment_1.14.0    SingleCellExperiment_1.26.0
+[11] SummarizedExperiment_1.34.0 Biobase_2.64.0             
+[13] GenomicRanges_1.56.1        GenomeInfoDb_1.40.1        
+[15] IRanges_2.38.1              S4Vectors_0.42.1           
+[17] BiocGenerics_0.50.0         MatrixGenerics_1.16.0      
+[19] matrixStats_1.3.0           data.table_1.15.4          
+[21] rlang_1.1.4                
 
 loaded via a namespace (and not attached):
   [1] splines_4.4.1             bitops_1.0-7              tibble_3.2.1             
@@ -303,7 +332,7 @@ loaded via a namespace (and not attached):
 [130] memoise_2.0.1             RcppParallel_5.1.8        bit_4.0.5                
 [133] EnrichmentBrowser_2.34.1 
 > sessioninfo::session_info()
-─ Session info ──────────────────────────────────────────────────────────────────
+─ Session info ────────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -313,11 +342,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-07-25
+ date     2024-09-08
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ──────────────────────────────────────────────────────────────────────
+─ Packages ────────────────────────────────────────────────────────────────────────
  ! package              * version    date (UTC) lib source
    abind                  1.4-5      2016-07-21 [1] CRAN (R 4.4.0)
    annotate               1.82.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
@@ -328,7 +357,7 @@ loaded via a namespace (and not attached):
    babelgene              22.9       2022-09-29 [1] CRAN (R 4.4.0)
    backports              1.5.0      2024-05-23 [1] CRAN (R 4.4.0)
    beeswarm               0.4.0      2021-06-01 [1] CRAN (R 4.4.0)
-   Biobase              * 2.64.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   Biobase              * 2.64.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
    BiocGenerics         * 0.50.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    BiocParallel         * 1.38.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    Biostrings             2.72.1     2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
@@ -411,6 +440,7 @@ loaded via a namespace (and not attached):
    nlme                   3.1-165    2024-06-06 [1] CRAN (R 4.4.0)
    nloptr                 2.1.1      2024-06-25 [1] CRAN (R 4.4.0)
    numDeriv               2016.8-1.1 2019-06-06 [1] CRAN (R 4.4.0)
+   parallelly           * 1.38.0     2024-07-27 [1] CRAN (R 4.4.0)
    pbkrtest               0.5.3      2024-06-26 [1] CRAN (R 4.4.0)
    pillar                 1.9.0      2023-03-22 [1] CRAN (R 4.4.0)
    pkgconfig              2.0.3      2019-09-22 [1] CRAN (R 4.4.0)
@@ -421,7 +451,7 @@ loaded via a namespace (and not attached):
    purrr                  1.0.2      2023-08-10 [1] CRAN (R 4.4.0)
    R6                     2.5.1      2021-08-19 [1] CRAN (R 4.4.0)
    rbibutils              2.2.16     2023-10-25 [1] CRAN (R 4.4.0)
-   Rcpp                   1.0.13     2024-07-17 [1] CRAN (R 4.4.1)
+   Rcpp                   1.0.13     2024-07-17 [1] CRAN (R 4.4.0)
    RcppParallel           5.1.8      2024-07-06 [1] CRAN (R 4.4.0)
    RcppZiggurat           0.1.6      2020-10-20 [1] CRAN (R 4.4.0)
    RCurl                  1.98-1.14  2024-01-09 [1] CRAN (R 4.4.0)
@@ -475,4 +505,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-─────────────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────────

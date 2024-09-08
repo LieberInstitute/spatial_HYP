@@ -360,6 +360,11 @@ sexdisres[Domain=="X4"&`BayesSpace Run`=="k31",Domain:="ARC31.2"]
 sexdisres[Domain=="X11"&`BayesSpace Run`=="k31",Domain:="ARC31.3"]
 sexdisres[Domain=="X22"&`BayesSpace Run`=="k31",Domain:="ARC31.4"]
 
+## somehow, there are newlines in the leadingEdge genes, even though we previously fixed them to not be a list, so remove those
+sexdisres[,leadingEdge:=gsub(leadingEdge,pattern="\n",replacement=" ")]
+sexdisres[,leadingEdge:=gsub(leadingEdge,pattern="  ",replacement=" ")]
+
+
 names(sexdisres)
 setnames(sexdisres,c("Diagnosis or Trait","P.Value","P.Adj","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Data or Publication Type from Which Geneset Derives","Domain","BayesSpace Run"))
 sexdisres[1,]

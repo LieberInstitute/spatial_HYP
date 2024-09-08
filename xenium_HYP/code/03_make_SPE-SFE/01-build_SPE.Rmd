@@ -333,6 +333,12 @@ save core Xenium data as RDS
 saveRDS(resegsamps,"processed-data/03_make_SPE-SFE/01_sfe_raw.RDS")
 ```
 
+since the downstream work occurs mostly in an SPE after filtering and coordinate-staggering (part of banksy set-up), save the original cell id-coordinate table so we can plot transcript-level data in the future. transcript-level data is not retained in the SPE/SFE and thus later imports will need the original, not modified coordinates.
+```{r}
+origcoords <- as.data.table(cbind(colnames(xenshift),spatialCoords(xenshift)))
+fwrite(origcoords,"processed-data/03_make_SPE-SFE/01_sfe_raw_cellcentroidcoords.txt",sep='\t',quote=F)
+```
+
 ### Reproducibility info
 ```{r}
 sessionInfo()
