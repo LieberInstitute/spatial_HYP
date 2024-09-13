@@ -39,7 +39,7 @@ unloadNamespace("datasets")
 
 the key xenium output files being used behind the scenes here are in processed-data/01/[resegmented sample]/outs/transcripts.csv.gz and nucleus_boundaries.csv.gz .
 
-### here, we only care to retrieve info on transcripts from the small set of genes of interest that were chosen based on possible spatial variability seen in visium: PEG10, MAN1A1, ACVR1C, LEPR, SST, FRMPD2, GDF10, BDNF, NECAB2, TMEM233, CYP19A1.
+### here, we only care to retrieve info on transcripts from the small set of genes of interest that were chosen based on possible spatial variability seen in visium: PEG10, MAN1A1, ACVR1C, LEPR, SST, FRMPD2, GDF10, BDNF, NECAB2, TMEM233, CYP19A1. We also noted DDN in a previous version of the manuscript text.
 
 ```{r}
 xenouts <- list.files(pattern="wnuclei",path="processed-data/01_xeniumranger1.7-resegment",full.names=T)
@@ -49,7 +49,7 @@ xens <- lapply(xenouts,FUN=function(x){
     xendat <- MoleculeExperiment::readXenium(x,keepCols="all",addBoundaries=c("nucleus","cell"))
     
     ## filter to genes of interest
-    xendat@molecules$detected$outs <- xendat@molecules$detected$outs[c("PEG10","MAN1A1","ACVR1C","LEPR","SST","FRMPD2","GDF10","BDNF","NECAB2","TMEM233","CYP19A1")]
+    xendat@molecules$detected$outs <- xendat@molecules$detected$outs[c("PEG10","MAN1A1","ACVR1C","LEPR","SST","FRMPD2","GDF10","BDNF","NECAB2","TMEM233","CYP19A1","DDN")]
     
     ## filter by qv
     xendat@molecules$detected$outs <- lapply(xendat@molecules$detected$outs, FUN=function(g){return(g[which(g$qv>20),])})
@@ -127,11 +127,16 @@ dombounds <- dombounds[names(xens2)]
 gns <- names(xens[[1]])
 
 lapply(gns,FUN=function(g){
-    plts <- mapply(x=xens,d=dombounds,n=names(xens),SIMPLIFY=FALSE,FUN=function(x,d,n){
+    plts <- mapply(x=xens,y=xens2,d=dombounds,n=names(xens),SIMPLIFY=FALSE,FUN=function(x,y,d,n){
     ## make the plot, scaling transcript point sizes to # transcripts detected
-    ## point size of 0.1 with PEG10 (prob most abundant gene of these) so use something in that range to adjust other values to
+    ## point size of 0.1 with PEG10 (prob most abundant gene of these) so start there to adjust other values to. we can tune point size using the VMH portion of the detections in particular, which we got the approx subset of in creating object xens2. the math here is made up by guess and check, and not based on any real approach.
     ggplot(x[[g]],aes(x=x_location,y=y_location))+
-            rasterize(geom_point(size=(.05*nrow(x[["PEG10"]]))/nrow(x[[g]]),stroke=0),dpi=450,dev = "cairo_png")+
+            rasterize(geom_point(
+               size=sqrt(
+                  .025*nrow(y[["PEG10"]][dualVMHARC4=="VMH"])/
+                     nrow(y[[g]][dualVMHARC4=="VMH"])),
+               stroke=0),
+            dpi=450,dev = "cairo_png")+
             geom_path(data=d,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 1.5)+
             #scale_x_reverse()+
             #scale_y_reverse()+
