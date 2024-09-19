@@ -1,0 +1,162 @@
+---
+title: "SF-PCA, Harmony, and UMAPs colored by dataset variables"
+output: html_document
+date: "2024-09-19"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(ggrastr)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+library(parallel)
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+## all of the myriad dimensionality reductions tried are saved in a separate RDS
+## but we need the spe itself for spot metadata
+```{r}
+hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+hyp2drs <- readRDS("spatial_HYP/processed-data/04-feature_selection/02-hypfiltered_4featureset-pca-umap-harmonydefault-harmonylambdanull-mnn30_reducedDim_slot.RDS")
+
+keepdrs <- grep(names(hyp2drs),pattern="nnsvg10|HARMONYlmbNA",value=T)
+keepdrs <- grep(keepdrs,pattern="HARMONYdflt|mnn30",invert=T,value=T)
+
+hyp2drs <- hyp2drs[keepdrs]
+names(hyp2drs)
+names(hyp2drs) <- c("Unadjusted PCA","Unadjusted UMAP","Harmony PCA","Harmony UMAP")
+```
+
+## replace sample_ids with manuscript sample_ids, make into data tables, change a couple of column names for plot readability
+
+```{r}
+hyp2drs <- lapply(hyp2drs,FUN=function(d){
+    pd <- as.data.table(d,keep.rownames=T)
+    pd <- merge.data.table(as.data.table(colData(hyp2),keep.rownames=T),pd,by="rn")
+    setnames(pd,c("sum_umi","sum_gene","brnum","PMI","bmi"),c("Spot_UMIs","Spot_Unique_Genes","Donor","Postmortem_Interval","Body_Mass_Index"))
+    return(pd)
+})
+
+## fix harmony names
+names(hyp2drs[[3]]) <- gsub(names(hyp2drs[[3]]),pattern="^HARMONYlmbna_nnsvg10_(.*)$",replacement=paste0("Harmony","\\1"))
+# 
+
+# get variables to plot
+# names(hyp2drs[[1]])
+
+# variables to plot by: 
+colorvars <- c("sample_id", "Spot_UMIs", "Spot_Unique_Genes", "expr_chrM_ratio", "Donor", "AgeDeath", "Sex", "Postmortem_Interval", "best_RIN_PFC", "Body_Mass_Index", "slide")
+```
+
+
+## uncorrected PCAs
+```{r}
+pcpairs <- list(c("PC1","PC2"),c("PC2","PC3"),c("PC1","PC3"))
+x <- hyp2drs[[1]]
+pcp <- lapply(colorvars,FUN=function(v){
+        pa <- ggplot(x,aes_string(x=pcpairs[[1]][1],y=pcpairs[[1]][2],color=v)) + geom_point(size=0.15,stroke=0.15) + ggtitle(paste0(names(hyp2drs)[1]," colored by\n",v))
+        pb <- ggplot(x,aes_string(x=pcpairs[[2]][1],y=pcpairs[[2]][2],color=v)) + geom_point(size=0.15,stroke=0.15) + ggtitle(paste0(names(hyp2drs)[1]," colored by\n",v))
+        pc <- ggplot(x,aes_string(x=pcpairs[[3]][1],y=pcpairs[[3]][2],color=v)) + geom_point(size=0.15,stroke=0.15) + ggtitle(paste0(names(hyp2drs)[1]," colored by\n",v))
+    retlist <- list(pa,pb,pc)
+    return(retlist)
+})
+
+i<-1
+pcplt <- list()
+for (i in c(1:length(pcp))){
+    pcplt <- c(pcplt,pcp[[i]])
+}
+
+rm(pcp,pcpairs,x)
+```
+
+## uncorrected UMAPs
+```{r}
+x <- hyp2drs[[2]]
+ump <- lapply(colorvars,FUN=function(v){
+        pa <- ggplot(x,aes_string(x="UMAP1",y="UMAP2",color=v)) + geom_point(size=0.15,stroke=0.15) + ggtitle(paste0(names(hyp2drs)[2]," colored by\n",v))
+    return(pa)
+})
+rm(x)
+```
+
+uncorrected haromnies
+```{r}
+hpairs <- list(c("Harmony1","Harmony2"),c("Harmony2","Harmony3"),c("Harmony1","Harmony3"))
+x <- hyp2drs[[3]]
+hp <- lapply(colorvars,FUN=function(v){
+        pa <- ggplot(x,aes_string(x=hpairs[[1]][1],y=hpairs[[1]][2],color=v)) + geom_point(size=0.15,stroke=0.15) + ggtitle(paste0(names(hyp2drs)[3]," colored by\n",v))
+        pb <- ggplot(x,aes_string(x=hpairs[[2]][1],y=hpairs[[2]][2],color=v)) + geom_point(size=0.15,stroke=0.15) + ggtitle(paste0(names(hyp2drs)[3]," colored by\n",v))
+        pc <- ggplot(x,aes_string(x=hpairs[[3]][1],y=hpairs[[3]][2],color=v)) + geom_point(size=0.15,stroke=0.15) + ggtitle(paste0(names(hyp2drs)[3]," colored by\n",v))
+
+    retlist <- list(pa,pb,pc)
+    return(retlist)
+})
+
+i<-1
+hplt <- list()
+for (i in c(1:length(hp))){
+    hplt <- c(hplt,hp[[i]])
+}
+
+rm(hp,hpairs,x)
+```
+
+## Harmony UMAPS
+```{r}
+x <- hyp2drs[[4]]
+hump <- lapply(colorvars,FUN=function(v){
+        pa <- ggplot(x,aes_string(x="UMAP1",y="UMAP2",color=v)) + geom_point(size=0.15,stroke=0.15) + ggtitle(paste0(names(hyp2drs)[4]," colored by\n",v))
+    return(pa)
+})
+rm(x)
+```
+
+plot em
+```{r}
+pcplt <- lapply(pcplt,FUN=function(x){rasterize(x,dpi=300,dev="cairo_png")})
+ump <- lapply(ump,FUN=function(x){rasterize(x,dpi=300,dev="cairo_png")})
+hplt <- lapply(hplt,FUN=function(x){rasterize(x,dpi=300,dev="cairo_png")})
+hump <- lapply(hump,FUN=function(x){rasterize(x,dpi=300,dev="cairo_png")})
+
+pdf("manuscript_plots/Supplemental/SF-PCA_UMAP_Harmony_UMAP_coloredByMetadataVars",height=23,width=16)
+do.call("grid.arrange",c(pcplt,ncol=5))
+do.call("grid.arrange",c(ump,ncol=3))
+do.call("grid.arrange",c(hplt,ncol=5))
+do.call("grid.arrange",c(hump,ncol=3))
+dev.off()
+```
+
+
+
+
+
+
+```
