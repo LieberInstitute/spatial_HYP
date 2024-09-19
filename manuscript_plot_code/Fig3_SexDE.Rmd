@@ -141,10 +141,13 @@ names(pal) <- c("VMH","ARC","Other")
 visdeplt <- visde[assay %in% c("ARC","VMH")]
 ## points to label
 visdeplt <- visdeplt[assay=="VMH"&gene_name %in% c("PTGDS","TAC1","SHANK3","SDHD","BTBD1"),label:=gene_name]
-visdeplt[assay=="ARC"&gene_name %in% c("SHANK3","DCC","CHRM5","KCNMB2","RXRG"),label:=gene_name]
+visdeplt[assay=="ARC"&gene_name %in% c("SHANK3","DCC","CHRM5","KCNMB2","RDH10"),label:=gene_name]
 
 p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay)) +
-    geom_point(size = 0.15) +
+    geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
+    scale_size_continuous(guide = "none",
+                          range = c(0.005,.35),
+                          breaks = seq(0.1,7,0.01)) +
     scale_color_manual(values=pal[1:2]) +
     geom_hline(yintercept = -log10(0.05),
         linetype = "dashed",
@@ -175,10 +178,10 @@ p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay)) +
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.13,0.13),legend.position = "inside",legend.text=element_text(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
 
 # rasterize
-p <- rasterize(p,layers="Points",dpi=450)
+p <- rasterize(p,layers="Points",dpi=450,dev="cairo_png")
 
 # save
-pdf("manuscript_plots/Fig3/3A-Visium Sex DE Volcano.pdf",height=2.5,width=2.3)
+pdf("manuscript_plots/Fig3/3A-Visium Sex DE Volcano_ptsizeByP.pdf",height=2.5,width=2.3)
 p
 dev.off()
 
@@ -194,7 +197,10 @@ visdeplt <- visdeplt[assay=="VMH"&gene_name %in% c("PTGDS","TAC1","SHANK3","SDHD
 
 ## no fdr sig genes here; min FDR 0.07 and corresponding p value is 6.904826e-05, so conveniently we can approximate FDR ~= p*10^-3 at this range, and use p 5e-05 to draw the line
 p <- ggplot(visdeplt[assay=="VMH"], aes(y = -log10(P.Value), x = logFC,col=assay))+
-    geom_point(size = 0.15,stroke=0.35) +
+    geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
+    scale_size_continuous(guide = "none",
+                          range = c(0.005,.35),
+                          breaks = seq(0.1,7,0.01)) +
     ggtitle("VMH (Visium)")+
     scale_color_manual(values=pal[1]) +
     geom_hline(yintercept = -log10(0.05),
@@ -224,12 +230,23 @@ p <- ggplot(visdeplt[assay=="VMH"], aes(y = -log10(P.Value), x = logFC,col=assay
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
 # save
-pdf("manuscript_plots/Fig3/3Aalt-Visium VMH Sex DE Volcano.pdf",height=2,width=1.95)
+pdf("manuscript_plots/Fig3/3Aalt-Visium VMH Sex DE Volcano_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
 ```
 
 ## panel B: xenium equiv, VMH types in VMH domain
+## set up cell type-color palettes for xenium plots
+```{r}
+vmhpal <- c("#8c63cf", "lightgray", "#6A0D53", "#AD260D")
+names(vmhpal) <- c("*SLC17A6*-*CRHR2*","Microglia","*FEZF1*-*LAMP5*-*NRGN*","*HCRT*-*SLC6A3*-*TAC1*")
+
+arcpal <- c("#5dd959","#296656","#09979B","#A997AB","#D0B")
+names(arcpal) <-  c("*AGRP*","*POMC*-Oligo","*GAL*-*TRH*-*GHRH*","*SLC17A7*-Glia","*TAC3*-*AR*-*ESR1*")
+
+```
+
+
 ## shit, now we need a four color VMH palette though...maybe just take the four most purple-oid colors from figure 1? 
 ```{r}
 xenvmhdeplt <- xenvmhde[cluster_annotated %in% grep(cluster_annotated,pattern="VMH",value=T)]
@@ -251,7 +268,10 @@ xenvmhdeplt[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*T
 
 
 p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
-    geom_point(size = 0.15) +
+    geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
+    scale_size_continuous(guide = "none",
+                          range = c(0.005,.35),
+                          breaks = seq(0.1,4,0.01)) +
     scale_color_manual(values=vmhpal) +
     geom_hline(yintercept = -log10(0.05),
         linetype = "dashed",
@@ -281,10 +301,10 @@ p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
 # rasterize
 p <- rasterize(p,layers="Points",dpi=450)
 
-# save
-pdf("manuscript_plots/Fig3/3B-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
-p
-dev.off()
+# this is currently part of figure 4 instead.
+# pdf("manuscript_plots/Fig3/3B-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
+# p
+# dev.off()
 
 # clean up
 rm(xenvmhdeplt,p)
@@ -299,7 +319,11 @@ xendomdeplt <- xendomde[domain %in% c("VMH")]
 xendomdeplt <- xendomdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
 
 p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) +
-    geom_point(size = 0.15,stroke=0.35) +
+    geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
+    scale_size_continuous(guide = "none",
+                          range = c(0.1,.5),
+                          breaks = seq(0.1,4,0.01)) +
+    scale_color_manual(values=vmhpal) +
     ggtitle("VMH (Xenium, All Cells)")+
     scale_color_manual(values=pal[1]) +
     geom_hline(yintercept = -log10(0.05),
@@ -329,7 +353,7 @@ p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) 
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
 # save
-pdf("manuscript_plots/Fig3/3Balt-Xenium VMH domain, all cells considered together.pdf",height=2,width=1.95)
+pdf("manuscript_plots/Fig3/3Balt-Xenium VMH domain, all cells considered together_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
 ```
@@ -337,11 +361,14 @@ dev.off()
 
 ## panel C alt: Visium ARC volcano plot
 ```{r}
-visdeplt <- visde[assay=="ARC"][gene_name %in% c("SHANK3","DCC","CHRM5","KCNMB2","RXRG"),label:=gene_name]
+visdeplt <- visde[assay=="ARC"][gene_name %in% c("SHANK3","DCC","CHRM5","KCNMB2","RDH10"),label:=gene_name]
 
 
 p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay,col=assay)) +
-    geom_point(size = 0.15,stroke=0.35) +
+    geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
+    scale_size_continuous(guide = "none",
+                          range = c(0.005,.35),
+                          breaks = seq(0.1,4,0.01)) +
     ggtitle("ARC (Visium)")+
     scale_color_manual(values=pal) +
     geom_hline(yintercept = -log10(0.05),
@@ -371,7 +398,7 @@ p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay,col=assay)) +
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
 # save
-pdf("manuscript_plots/Fig3/3Calt-Visium ARC Sex DE Volcano.pdf",height=2,width=1.95)
+pdf("manuscript_plots/Fig3/3Calt-Visium ARC Sex DE Volcano_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
 ```
@@ -381,10 +408,13 @@ dev.off()
 xendomdeplt <- xendomde[domain %in% c("ARC")]
 
 ## points to label
-xendomdeplt <- xendomdeplt[gene_name %in% c("SHANK3","DCC","RXRG"),label:=gene_name]
+xendomdeplt <- xendomdeplt[gene_name %in% c("SHANK3","DCC","RDH10"),label:=gene_name]
 
 p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) +
-    geom_point(size = 0.15,stroke=0.35) +
+    geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
+    scale_size_continuous(guide = "none",
+                          range = c(0.1,.5),
+                          breaks = seq(0.1,4,0.01)) +
     ggtitle("ARC (Xenium, All Cells)")+
     scale_color_manual(values=pal[2]) +
     geom_hline(yintercept = -log10(0.05),
@@ -411,14 +441,14 @@ p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) 
     guides(color="none")+
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
-pdf("manuscript_plots/Fig3/3Dalt-Xenium ARC domain, all cells considered together.pdf",height=2,width=1.95)
+pdf("manuscript_plots/Fig3/3Dalt-Xenium ARC domain, all cells considered together_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
 
 ```
 
 
-Panels D-E and F-G are our representative male sample from Figure 2 and a female sample (we haven't displayed one yet). showing a VMH and an ARC sex DE in spotplots on Visium. For the VMH gene, we'll use TAC1, and for ARC we'll use RXRG. First we need to define the polygonal outlines that'll trace VMH and ARC in the two samples (which we did previously, including removal of select spots in order to make the spotplots more readable).
+Panels D-E and F-G are our representative male sample from Figure 2 and a female sample (we haven't displayed one yet). showing a VMH and an ARC sex DE in spotplots on Visium. For the VMH gene, we'll use TAC1, and for ARC we'll use RDH10. First we need to define the polygonal outlines that'll trace VMH and ARC in the two samples (which we did previously, including removal of select spots in order to make the spotplots more readable).
 
 ## male polygons:
 ```{r}
@@ -555,49 +585,49 @@ rm(tac1F,p)
 ```
 
 
-# F/G: RXRG, log counts only shown in F as is shared legend
+# F/G: RDH10, log counts only shown in F as is shared legend
 ```{r}
-RXRGM <- hyp2["RXRG",hyp2$sample_id=="V12Y31-080_A1"]
-colData(RXRGM)$`log counts` <- logcounts(RXRGM)["RXRG",]
+RDH10M <- hyp2["RDH10",hyp2$sample_id=="V12Y31-080_A1"]
+colData(RDH10M)$`log counts` <- logcounts(RDH10M)["RDH10",]
 
 ### make spotplots
-p <- make_escheR(RXRGM)
+p <- make_escheR(RDH10M)
 p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 
-pdf("manuscript_plots/Fig3/3F-RXRG_Visium_Male.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig3/3F-RDH10_Visium_Male.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=pal)+
     geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
     scale_fill_gradient(low="white",high="black",limits=c(0,3.1))+
-    ggtitle("*RXRG* (Male)")+
+    ggtitle("*RDH10* (Male)")+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5,margin=margin(0,0,-0.05,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05+0.05,0.03,-0.15,0,unit = "in"))
     #theme(plot.title.position = "plot",plot.title = element_text(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = unit(0.125,"in"),legend.title=element_text(size=9),plot.margin = margin(-0.3,0,-0.1,0,unit = "in"))
 dev.off()
 
-rm(RXRGM,p)
+rm(RDH10M,p)
 
 ### 
-RXRGF <- hyp2["RXRG",hyp2$sample_id=="V12D05-348_D1"]
-colData(RXRGF)$`log counts` <- logcounts(RXRGF)["RXRG",]
+RDH10F <- hyp2["RDH10",hyp2$sample_id=="V12D05-348_D1"]
+colData(RDH10F)$`log counts` <- logcounts(RDH10F)["RDH10",]
 
 ### make spotplots
-p <- make_escheR(RXRGF)
+p <- make_escheR(RDH10F)
 p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 
-pdf("manuscript_plots/Fig3/3G-RXRG_Visium_female.pdf",height=1.75,width=1.6)
+pdf("manuscript_plots/Fig3/3G-RDH10_Visium_female.pdf",height=1.75,width=1.6)
 p+
     scale_color_manual(values=pal)+
     geom_path(data=femdompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
     scale_fill_gradient(low="white",high="black",limits=c(0,3.1))+
-    ggtitle("*RXRG* (Female)")+
+    ggtitle("*RDH10* (Female)")+
     guides(color="none",fill="none")+
     #labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
-rm(RXRGF,p)
+rm(RDH10F,p)
 ```
 
 for panels H-K, we want the respective donors' Xenium samples with the VMH/ARC boundaries displayed. so extract the two boundary sets 
@@ -690,14 +720,14 @@ dev.off()
 ```
 
 
-pan j/k: rxrg in same, legend only in j
+pan j/k: RDH10 in same, legend only in j
 
 ```{r}
-panj <- hypx["RXRG",hypx$sample_id=="X86_reg1"]
-pank <- hypx["RXRG",hypx$sample_id=="X97_reg3"]
+panj <- hypx["RDH10",hypx$sample_id=="X86_reg1"]
+pank <- hypx["RDH10",hypx$sample_id=="X97_reg3"]
 
-panj$`log counts` <- logcounts(panj)["RXRG",]
-pank$`log counts` <- logcounts(pank)["RXRG",]
+panj$`log counts` <- logcounts(panj)["RDH10",]
+pank$`log counts` <- logcounts(pank)["RDH10",]
 
 panj <- panj[,panj$`log counts`!=0]
 pank <- pank[,pank$`log counts`!=0]
@@ -710,13 +740,13 @@ p <- p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000",limits=c(0,5.02))+
     geom_path(data=dompolyh,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*RXRG* (Male)")+
+    ggtitle("*RDH10* (Male)")+
     guides(color="none")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.05,0,-0.05,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
 
 p <- rasterize(p,layer="Points",dpi=600)
 
-pdf("manuscript_plots/Fig3/3J-RXRG_Xenium_Male.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig3/3J-RDH10_Xenium_Male.pdf",height=1.75,width=2)
 p
 dev.off()
 
@@ -730,13 +760,13 @@ p <- p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000",limits=c(0,5.02))+
     geom_path(data=dompolyi,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*RXRG* (Female)")+
+    ggtitle("*RDH10* (Female)")+
     guides(color="none",fill="none")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.025,0,-0.08,0,"in")),legend.text = element_text(size=6),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7,vjust=0.5,hjust=0.5),plot.margin = margin(0,0,-0.09,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"),legend.box=element_blank(),legend.background=element_blank())
 
 p <- rasterize(p,layer="Points",dpi=600)
 
-pdf("manuscript_plots/Fig3/3K-RXRG_Xenium_female.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig3/3K-RDH10_Xenium_female.pdf",height=1.75,width=2)
 p
 dev.off()
 
@@ -930,17 +960,17 @@ attached base packages:
 
 other attached packages:
  [1] BiocParallel_1.38.0            parallelly_1.38.0             
- [3] colorout_1.3-0.2               sf_1.0-16                     
- [5] ggstance_0.3.7                 Polychrome_1.5.1              
- [7] viridis_0.6.5                  viridisLite_0.4.2             
- [9] escheR_1.4.0                   spatialLIBD_1.16.2            
-[11] SpatialFeatureExperiment_1.6.1 SpatialExperiment_1.14.0      
-[13] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
-[15] Biobase_2.64.0                 GenomicRanges_1.56.1          
-[17] GenomeInfoDb_1.40.1            IRanges_2.38.1                
-[19] S4Vectors_0.42.1               BiocGenerics_0.50.0           
-[21] MatrixGenerics_1.16.0          matrixStats_1.3.0             
-[23] ggrastr_1.0.2                  ggrepel_0.9.5                 
+ [3] ggstance_0.3.7                 ggrepel_0.9.5                 
+ [5] sf_1.0-16                      colorout_1.3-0.2              
+ [7] Polychrome_1.5.1               viridis_0.6.5                 
+ [9] viridisLite_0.4.2              escheR_1.4.0                  
+[11] spatialLIBD_1.16.2             SpatialFeatureExperiment_1.6.1
+[13] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
+[15] SummarizedExperiment_1.34.0    Biobase_2.64.0                
+[17] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
+[19] IRanges_2.38.1                 S4Vectors_0.42.1              
+[21] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
+[23] matrixStats_1.3.0              ggrastr_1.0.2                 
 [25] ggtext_0.1.2                   ggplot2_3.5.1                 
 [27] data.table_1.15.4              rlang_1.1.4                   
 
@@ -1013,7 +1043,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-28
+ date     2024-09-19
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
