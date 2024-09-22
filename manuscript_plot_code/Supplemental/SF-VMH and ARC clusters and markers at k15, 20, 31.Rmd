@@ -55,19 +55,20 @@ globalmk <- readRDS("spatial_HYP/processed-data/07-Marker_genes/01b-BSpace_allru
 globalmk <- globalmk[names(globalmk) %in% grep(names(globalmk),pattern="HARMONYlmbna_nnsvg10_60kiter$",value=T)]
 
 # this was only done for those three to begin with:
-intramk <- readRDS("spatial_HYP/processed-data/07-Marker_genes/05-IntraVMH-intraARC_1clus_vallother_clus_slibdEnrichment.RDS")
+intramk <- readRDS("spatial_HYP/processed-data/07-Marker_genes/05-IntraVMH-intraARC_1clus_vallother_clus_slibdEnrichment_full.RDS")
 
 sampleplotnames <- fread("standardized_sampleids_for_plotting.txt")
 ```
 
-## replace sample names for plotting
+## replace sample names for plotting. doing it once the manuscript_ids are in the SPE's coldata updates imgdata sample ids simultaneously.
 ```{r}
 tmpcd <- as.data.table(colData(hyp2),keep.rownames=T)
 tmpcd <- merge(tmpcd,sampleplotnames[,.(sample_id,manuscript_id)],by="sample_id",all.x=T)
-tmpcd[,sample_id:=manuscript_id]
-tmpcd[,manuscript_id:=NULL]
 tmpcd <- DataFrame(tmpcd,row.names = tmpcd$rn)[colnames(hyp2),]
 colData(hyp2) <- tmpcd
+
+## update colData and imgData
+hyp2$sample_id <- hyp2$manuscript_id
 ```
 
 ## prepare clustering tables for assignments to hyp2 as labels and (global) marker tables to use the same nomenclature
@@ -301,23 +302,28 @@ ng <- lapply(intramk,FUN=function(i){
 })
 
 intramk2 <- mapply(m=intramk,n=ng,SIMPLIFY=FALSE,FUN = function(m,n){
-    g <- lapply(m,FUN=function(d){
-            gx <- lapply(d,FUN=function(x){
-            setnames(x,c("rn","t","p","fdr","logFC","ens","symb"))
-            
-            y <- x[fdr<0.05&logFC>0]
-            if (nrow(y)==0){
-                y <- x[p<0.05&logFC>0]
-            }
-            y <- setorderv(y,"logFC",-1)
-            gout <- y[1:n,symb]
-            return(gout)
-        })
-        return(gx)
+  g <- lapply(m,FUN=function(d){
+    clusnames <- names(d)  
+    gx <- mapply(x=d,cl=names(d),SIMPLIFY=FALSE,FUN=function(x,cl){
+      if(length(clusnames)>2){
+        keepnames <- c("rn",paste0(c("t_stat_","p_value_","fdr_","logFC_"),cl),"ensembl","gene")
+        x <- x[,..keepnames]
+      }
+      setnames(x,c("rn","t","p","fdr","logFC","ens","symb"))
+      
+      y <- x[fdr<0.05&logFC>0]
+      if (nrow(y)==0){
+          y <- x[p<0.05&logFC>0]
+      }
+      y <- setorderv(y,"logFC",-1)
+      gout <- y[1:n,symb]
+      return(gout)
     })
-    g2 <- c(g[[1]],g[[2]])
-    names(g2) <- c(names(m[["vmh"]]),names(m[["arc"]]))
-    return(g2)
+    return(gx)
+  })
+  g2 <- c(g[[1]],g[[2]])
+  names(g2) <- c(names(m[["vmh"]]),names(m[["arc"]]))
+  return(g2)
 })
 
 intramkg <- lapply(intramk2,FUN=unlist)

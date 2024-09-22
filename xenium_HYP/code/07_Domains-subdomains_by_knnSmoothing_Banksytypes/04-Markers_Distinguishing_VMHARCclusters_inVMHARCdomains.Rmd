@@ -65,7 +65,7 @@ hypvmh <- hypx[,hypx$smoovedom=="VMH"&hypx$label %in% paste0("VMH_",c(1:3,"Later
 ```
 
 
-### run the marker analyses two ways: one vs "all" (i.e., other ARC or VMH types in the domain), aand pairwise. conveniently both are wrapped into spatialLIBD registration_wrapper calls
+### run the marker analyses two ways: one vs "all" (i.e., other ARC or VMH types in the domain), aand pairwise. conveniently both are wrapped into spatialLIBD registration_wrapper calls. note that this is different from how we set it up for Visium, collapsed other BayesSpace clusters together explicitly where we used the pairwise functions. 
 ```{r}
 arcdomclusmk <- registration_wrapper(sce = hyparc,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "ID",gene_name = "Symbol",min_ncells = 20)
 

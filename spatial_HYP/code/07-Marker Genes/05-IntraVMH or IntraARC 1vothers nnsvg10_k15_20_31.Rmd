@@ -76,7 +76,7 @@ bscls.dt[["k31"]][cl=="X22",cl:="ARC31_4"]
 
 ## Use spatialLIBD registration tools for pairwise markers.
 ```{r}
-## didn't work as an lapply for some reason, but can do this iteratively.
+## didn't work as an lapply for some reason, but can do this iteratively quite fast.
 select.vmharc.markers <- list()
 i<-1
 
@@ -86,20 +86,26 @@ for (i in c(1:length(bscls.dt))){
     vmhs <- grep(unique(b$cl),pattern="VMH",value=T)
     vmhres <- lapply(vmhs,FUN=function(v){
         btmp <- copy(b)
-        btmp[cl %in% vmhs & cl!=v,cl:="zotherVMHs"]
-        btmp <- btmp[cl %in% c(v,"zotherVMHs")]
+        btmp <- btmp[cl %in% vmhs]
         hyptmp <- hyp2[,hyp2$key %in% btmp$rn]
         btmp <- DataFrame(btmp,row.names = btmp$rn)[colnames(hyptmp),]
-        colLabels(hyptmp) <- btmp$cl
+        # make sure each cluster of interest is the lead in a comparison so we can process all stats for + logFC downstream. even though this is kinda redundant because for pairwise, depleted in one direction is enriched in the other. so there'll be duplicated output tables in what we save here, but fine.
+        colLabels(hyptmp) <- factor(btmp$cl,levels=c(v,vmhs[vmhs!=v]))
         
-        ## stepwise set up to run registration_pairwise
-        hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
-        mkmod <- registration_model(hyptmp.pb,var_registration = "label")
-        bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
-        
-        # run pairwise reg
-        mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
-        mkres <- as.data.table(mk,keep.rownames=T)
+        ## stepwise set up to run registration_pairwise if two clusters, simply using reigstration_wrapper for "one-vs-all"-like otherwise)
+        if(length(vmhs)==2){
+           hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
+           mkmod <- registration_model(hyptmp.pb,var_registration = "label")
+           bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
+           
+           # run pairwise reg
+           mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
+           mkres <- as.data.table(mk,keep.rownames=T)
+        } else{
+           
+           mk <- registration_wrapper(hyptmp,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_id",gene_name = "gene_name")
+           mkres <- as.data.table(mk[["enrichment"]],keep.rownames=T)
+        }
         return(mkres)
     })
     names(vmhres) <- vmhs
@@ -107,20 +113,26 @@ for (i in c(1:length(bscls.dt))){
     arcs <- grep(unique(b$cl),pattern="ARC",value=T)
     arcres <- lapply(arcs,FUN=function(v){
         btmp <- copy(b)
-        btmp[cl %in% arcs & cl!=v,cl:="zotherARCs"]
-        btmp <- btmp[cl %in% c(v,"zotherARCs")]
+        btmp <- btmp[cl %in% arcs]
         hyptmp <- hyp2[,hyp2$key %in% btmp$rn]
         btmp <- DataFrame(btmp,row.names = btmp$rn)[colnames(hyptmp),]
-        colLabels(hyptmp) <- btmp$cl
+        colLabels(hyptmp) <- factor(btmp$cl,levels=c(v,arcs[arcs!=v]))
         
         ## stepwise set up to run registration_pairwise
-        hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
-        mkmod <- registration_model(hyptmp.pb,var_registration = "label")
-        bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
-        
-        # run pairwise reg
-        mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
-        mkres <- as.data.table(mk,keep.rownames=T)
+        ## stepwise set up to run registration_pairwise if two clusters, simply using reigstration_wrapper for "one-vs-all"-like otherwise)
+        if(length(arcs)==2){
+           hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
+           mkmod <- registration_model(hyptmp.pb,var_registration = "label")
+           bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
+           
+           # run pairwise reg
+           mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
+           mkres <- as.data.table(mk,keep.rownames=T)
+        } else{
+           
+           mk <- registration_wrapper(hyptmp,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_id",gene_name = "gene_name")
+           mkres <- as.data.table(mk[["enrichment"]],keep.rownames=T)
+        }
         return(mkres)
     })
     names(arcres) <- arcs
@@ -136,11 +148,10 @@ for (i in c(1:length(bscls.dt))){
 names(select.vmharc.markers) <- names(bscls.dt)
 ```
 
-
-
+## save complete results
 ```{r}
-### save results as RDS
-saveRDS(select.vmharc.markers,file="processed-data/07-Marker_genes/05-IntraVMH-intraARC_1clus_vallother_clus_slibdEnrichment.RDS")
+### save complete results as RDS
+saveRDS(select.vmharc.markers,file="processed-data/07-Marker_genes/05-IntraVMH-intraARC_1clus_vallother_clus_slibdEnrichment_full.RDS")
 ```
 
 ```{r}
