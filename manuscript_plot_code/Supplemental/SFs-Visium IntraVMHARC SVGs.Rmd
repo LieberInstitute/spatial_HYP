@@ -68,7 +68,7 @@ colLabels(hyp2) <- bscl$cl
 hyp2 <- hyp2[,hyp2$label %in% c("VMH","ARC")]
 rownames(hyp2) <- rowData(hyp2)$gene_name
 
-pltg <- c("SST","PGR","GAL","NMU","IGFBP3","TAC3","GHRH","AGRP")
+pltg <- c("SST","PGR","GAL","NMU","IGFBP3","TAC3","GHRH","AGRP","DIRAS3")
 
 hyp2 <- hyp2[pltg,]
 
