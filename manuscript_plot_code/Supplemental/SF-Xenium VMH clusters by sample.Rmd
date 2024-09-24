@@ -1,0 +1,230 @@
+---
+title: "SF-Xenium VMH and ARC clusters by cluster by sample"
+output: html_document
+date: "2024-09-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table) # Preferred data manipulation package
+library(ggplot2) # Dependency for several plotting functions
+library(ggtext) # more character types in ggplots
+library(ggrastr) # avoid making raster images one can't even open
+library(SpatialExperiment) # Visium data framework
+library(SpatialFeatureExperiment) # Xenium data framework
+library(viridis) # palettes
+library(Polychrome) # better palettes
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.y = element_text(size = 8), axis.title.y = element_text(size =9), plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+### XENIUM setup ###
+```{r}
+## manuscript sample ids
+mscriptsampleids <- fread("standardized_sampleids_for_plotting.txt")
+
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bksmooth <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt") ## xenium domain assignments after smoothing, by xenium cell
+
+## but drop discarded cell clusters, too
+bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bkcl,2,"cl")
+
+bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+
+## drop sample-specific clusters, append cluster annotations 
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
+## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
+
+arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
+## simplify these by removing VMH/ARC and underscores; asterisk-ize so the gene names  can be italiczed in ggplot elements; remove vmh and arc from the names but add a temporary column here so we know they're VMH and ARC for mapping onto the de result sets
+arcvmhanno[,subclus_domain:=gsub(subclus_annot,pattern="^(VMH)_.*$",replacement="\\1")]
+arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="VMH_",replacement="")]
+
+arcvmhanno[subclus_domain!="VMH",subclus_domain:=gsub(subclus_annot,pattern="^(ARC)_.*$",replacement="\\1")]
+arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="ARC_",replacement="")]
+
+arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
+
+arcvmhanno[subclus_annot=="VMH-Glia-Mixed",subclus_annot:="VMH-Glia Mixed"]
+arcvmhanno[subclus_annot=="SLC17A6-CRHR2",subclus_annot:="*SLC17A6*-*CRHR2*"]
+arcvmhanno[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*NRGN*"]
+arcvmhanno[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
+arcvmhanno[subclus_annot=="AGRP",subclus_annot:="*AGRP*"]
+arcvmhanno[subclus_annot=="TAC3-AR-ESR1",subclus_annot:="*TAC3*-*AR*-*ESR1*"]
+arcvmhanno[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo Mixed"]
+arcvmhanno[subclus_annot=="Excit-SLC17A7-Glial-Mixed",subclus_annot:="*SLC17A7*-Glia Mixed"]
+arcvmhanno[subclus_annot=="GAL-TRH-GHRH",subclus_annot:="*GAL*-*TRH*-*GHRH*"]
+
+## append these to the other annots and replace bjm_annot with the ARC/VMH cell type labels where applicable
+bkanno <- merge.data.table(bkanno,arcvmhanno,by="bjm_annot",all.x=T)
+bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
+
+## this drops rows that were assigned one of the discarded types (ie no longer in the cell type annotations)
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+## and now we can drop excluded clusters from xenium spe
+hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
+
+## append cluster annots to xenium spe
+bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]
+bkcl$rn <- NULL
+hypx$banksyclus <- bkcl$bjm_annot
+
+## assign the domain labels to the xenium cells
+bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
+bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
+hypx$dom <- bksmooth$dualVMHARC4
+
+
+## we only need the VMH domain and VMH clusters or ARC domain and ARC clusters for these plots
+hypv <- hypx[,hypx$dom=="VMH"]
+hypv <- hypv[,hypv$banksyclus %in% arcvmhanno[subclus_domain=="VMH",subclus_annot]]
+stopifnot(length(unique(hypv$banksyclus))==nrow(arcvmhanno[subclus_domain=="VMH"]))
+
+hypa <- hypx[,hypx$dom=="ARC"]
+hypa <- hypa[,hypa$banksyclus %in% arcvmhanno[subclus_domain=="ARC",subclus_annot]]
+stopifnot(length(unique(hypa$banksyclus))==nrow(arcvmhanno[subclus_domain=="ARC"]))
+```
+
+
+```{r}
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+
+vmhpal <- pals[["XenVMH"]]
+stopifnot(sum(names(vmhpal)%in%unique(hypx$banksyclus))==length(names(vmhpal)))
+
+arcpal <- pals[["XenARC"]]
+stopifnot(sum(names(arcpal)%in%unique(hypx$banksyclus))==length(names(arcpal)))
+```
+
+
+## plot clusters in each sample, faceted by cluster for a sample. then arrange those into a grid. don't replot the legend every time; extract it once, pin it to the side after.
+
+helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+```{r}
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+```
+
+```{r}
+## order the clusters so that the HCRT one is last
+hypx$banksyclus <- factor(hypx$banksyclus,levels=c("*SLC17A6*-*CRHR2*","*FEZF1*-*LAMP5*-*NRGN*","VMH-Glia Mixed","*HCRT*-*SLC6A3*-*TAC1*"))
+
+## make a plot w legend to extract from
+
+pltspe <- hypx[,hypx$sample_id=="X86_reg1"]
+pltspe <- as.data.table(cbind(spatialCoords(pltspe),as.data.table(colData(pltspe))))[,.(sdimx,sdimy,banksyclus)]
+    
+tmplegplt <- ggplot(pltspe,aes(x=sdimx,y=sdimy,color=banksyclus))+
+    rasterize(geom_point(size=0.075,stroke=0.375),res=450,dev="cairo_png")+
+    scale_color_manual(values=vmhpal)+
+    guides(color=guide_legend(override.aes = list(size=1)))+
+    labs(color="Xenium VMH\nCluster")+
+    facet_wrap(~banksyclus)+
+    theme(axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.title.y=element_blank(),
+          axis.title.x=element_blank(),
+          axis.ticks = element_blank(),
+          legend.background = element_blank(),
+          legend.box=element_blank(),
+          #legend.margin=margin(0,0,0,-0.15,unit="in"),
+          #plot.margin = margin(0.01,0.02,0,0,unit="in"),
+          legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),
+          strip.background = element_blank(),
+          strip.text = element_text(size=10))
+
+leg.tmp <- extract_legend(tmplegplt)
+dev.off()
+rm(tmplegplt,pltspe)
+###
+
+## actual plots
+allplts <- lapply(unique(hypx$sample_id),FUN=function(s){
+    pltspe <- hypx[,hypx$sample_id==s]
+    pltspe <- as.data.table(cbind(spatialCoords(pltspe),as.data.table(colData(pltspe))))[,.(sdimx,sdimy,banksyclus)]
+    
+    samplts <- ggplot(pltspe,aes(x=sdimx,y=sdimy,color=banksyclus))+
+        rasterize(geom_point(size=0.075,stroke=0.375),res=450,dev="cairo_png")+
+        facet_wrap(~banksyclus)+
+        scale_color_manual(values = vmhpal)+
+        guides(color="none")+
+        ggtitle(mscriptsampleids[sample_id==s,manuscript_id])+
+        theme(axis.text.x=element_blank(),
+              axis.text.y=element_blank(),
+              axis.title.y=element_blank(),
+              axis.title.x=element_blank(),
+              axis.ticks = element_blank(),
+              legend.background = element_blank(),
+              legend.box=element_blank(),
+              panel.grid = element_blank(),
+              #legend.margin=margin(0,0,0,-0.15,unit="in"),
+              #plot.margin = margin(0.01,0.02,0,0,unit="in"),
+              legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),
+              strip.background = element_blank(),
+              strip.text = element_markdown(size=10),
+              )
+    
+    return(samplts)
+})
+
+
+
+
+### arrangeGrob() on the spotplot list --> constituting the "first column" of the parent; leg.tmp is an additional thing being plotted in the second column of the parent. width of the plot grid is set to 30, width of the second column (legend only) set to 2.
+pdf("manuscript_plots/Supplemental/SF-VMH_cluster_facets_allsamples.pdf",height=32,width=25)
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts,ncol=4),leg.tmp,ncol=2,widths=c(30,2)))
+dev.off()
+```
+
+
+
+
+## panj- VMH:
+```{r}
+panj <- hypx[,hypx$sample_id=="X99_1225A"&hypx$dom=="VMH"]
+panj <- as.data.table(cbind(spatialCoords(panj),as.data.table(colData(panj))))[,.(sdimx,sdimy,banksyclus)]
+
+panj <- panj[banksyclus %in% bkanno[subclus_domain=="VMH",bjm_annot]]
+
+pdf("manuscript_plots/Fig2/2J-VMH_celltypes_1225A.pdf",height=3.75,width=3.75)
+ggplot(panj[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
+    geom_point(size=0.075)+
+    scale_color_manual(values=vmhpal)+
+    guides(color=guide_legend(override.aes = list(size=1)))+
+    labs(color="VMH Cluster")+
+    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")))
+dev.off()
+
+
+rm(panj)
+```
