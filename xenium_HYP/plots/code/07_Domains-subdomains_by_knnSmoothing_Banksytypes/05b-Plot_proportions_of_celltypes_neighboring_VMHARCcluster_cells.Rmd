@@ -114,16 +114,16 @@ lapply(c(1:length(rads)),FUN=function(i){
     plts[[1]] <- ggplot(arccelldists3[[i]],aes(x=supercl,y=prop_supercl_neighboring_cell1))+
         geom_violin(aes(fill=supercl),scale="width",trim=FALSE)+
         geom_boxplot(width=0.1)+
-        theme(axis.text.x = element_text(size = 9,angle=90,vjust=0.5), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 12,hjust=0.5), strip.text = element_text(size=12), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),strip.background = element_blank())+
         facet_wrap(~label1,scales="free",nrow=5)+
-        ggtitle(paste("ARC clusters, ",rads[i]," unit radius"))
+        ggtitle(paste("ARC clusters, ",rads[i]," unit radius\nMean+-SD ",round(mean(arccelldists3[[i]]$total_cell1_neighbors))," +- ",round(sd(arccelldists3[[i]]$total_cell1_neighbors))," total neighbors"))+
+        theme(axis.text.x = element_text(size = 9,angle=90,vjust=0.5), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 18,hjust=0.5), strip.text = element_text(size=12), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),strip.background = element_blank())
+
     
     plts[[2]] <- ggplot(vmhcelldists3[[i]],aes(x=supercl,y=prop_supercl_neighboring_cell1))+
         geom_violin(aes(fill=supercl),scale="width",trim=FALSE)+
         geom_boxplot(width=0.1)+
         facet_wrap(~label1,scales="free",nrow = 4)+
-        ggtitle(paste("VMH cells, ",rads[i]," radius"))
-        theme(axis.text.x = element_text(size = 9,angle=90,vjust=0.5), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 12,hjust=0.5), strip.text = element_text(size=12), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),strip.background = element_blank())+
+        ggtitle(paste("VMH clusters, ",rads[i]," unit radius\nMean+-SD ",round(mean(vmhcelldists3[[i]]$total_cell1_neighbors))," +- ",round(sd(vmhcelldists3[[i]]$total_cell1_neighbors))," total neighbors"))+        theme(axis.text.x = element_text(size = 9,angle=90,vjust=0.5), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 18,hjust=0.5), strip.text = element_text(size=12), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),strip.background = element_blank())+
     
     pdf(paste0("plots/07_Domains-subdomains_by_knnSmoothing_Banksytypes/05b-Celltype_proportions_in_various_radii_from_eachARCVMH_clustertype/supercluster_props_in_",
                gsub(names(vmhcelldists3)[i],pattern="d(.*)",replacement="\\1"),
@@ -136,6 +136,39 @@ lapply(c(1:length(rads)),FUN=function(i){
 
 ```
 
+
+### make a second set faceted by neighboring cell type so that the x axis is all of the VMH or ARC clusters. this one can be a couple three plots wide per row.
+
+```{r}
+lapply(c(1:length(rads)),FUN=function(i){
+    plts <- list()
+    
+    plts[[1]] <- ggplot(arccelldists3[[i]],aes(x=label1,y=prop_supercl_neighboring_cell1))+
+        geom_violin(aes(fill=label1),scale="width",trim=FALSE)+
+        geom_boxplot(width=0.1)+
+        facet_wrap(~supercl,scales="free",ncol=3)+
+        ggtitle(paste("ARC clusters, ",rads[i]," unit radius\nMean+-SD ",round(mean(arccelldists3[[i]]$total_cell1_neighbors))," +- ",round(sd(arccelldists3[[i]]$total_cell1_neighbors))," total neighbors"))+
+        theme(axis.text.x = element_text(size = 9,angle=90,vjust=0.5), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 18,hjust=0.5), strip.text = element_text(size=12), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),strip.background = element_blank())
+    
+    plts[[2]] <- ggplot(vmhcelldists3[[i]],aes(x=label1,y=prop_supercl_neighboring_cell1))+
+        geom_violin(aes(fill=label1),scale="width",trim=FALSE)+
+        geom_boxplot(width=0.1)+
+        facet_wrap(~supercl,scales="free",ncol = 3)+
+        ggtitle(paste("VMH clusters, ",rads[i]," unit radius\nMean+-SD ",round(mean(vmhcelldists3[[i]]$total_cell1_neighbors))," +- ",round(sd(vmhcelldists3[[i]]$total_cell1_neighbors))," total neighbors"))+        theme(axis.text.x = element_text(size = 9,angle=90,vjust=0.5), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 18,hjust=0.5), strip.text = element_text(size=12), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),strip.background = element_blank())
+    
+    pdf(paste0("plots/07_Domains-subdomains_by_knnSmoothing_Banksytypes/05b-Celltype_proportions_in_various_radii_from_eachARCVMH_clustertype/supercluster_props_in_",
+               gsub(names(vmhcelldists3)[i],pattern="d(.*)",replacement="\\1"),
+               "unit_radius_by_neighbortype.pdf"),
+        height=40,width=15
+    )
+    do.call("grid.arrange",c(plts,nrow=2))
+    dev.off()
+})
+         
+
+
+
+```
 
 ```{r}
 sessionInfo()
@@ -156,53 +189,23 @@ time zone: America/Chicago
 tzcode source: internal
 
 attached base packages:
-[1] stats4    parallel  stats     graphics  grDevices utils     methods   base     
+[1] parallel  stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
- [1] sf_1.0-16                      SpatialFeatureExperiment_1.6.1
- [3] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
- [5] SummarizedExperiment_1.34.0    Biobase_2.64.0                
- [7] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
- [9] IRanges_2.38.1                 S4Vectors_0.42.1              
-[11] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
-[13] matrixStats_1.3.0              BiocParallel_1.38.0           
-[15] parallelly_1.38.0              colorout_1.3-0.2              
-[17] gridExtra_2.3                  ggplot2_3.5.1                 
-[19] data.table_1.15.4              rlang_1.1.4                   
+[1] BiocParallel_1.38.0 parallelly_1.38.0   colorout_1.3-0.2    gridExtra_2.3      
+[5] ggplot2_3.5.1       data.table_1.15.4   rlang_1.1.4        
 
 loaded via a namespace (and not attached):
- [1] DBI_1.2.3                 bitops_1.0-7              deldir_2.0-4             
- [4] s2_1.1.6                  magrittr_2.0.3            e1071_1.7-14             
- [7] compiler_4.4.1            DelayedMatrixStats_1.26.0 sfheaders_0.4.4          
-[10] png_0.1-8                 fftwtools_0.9-11          vctrs_0.6.5              
-[13] wk_0.9.2                  pkgconfig_2.0.3           crayon_1.5.3             
-[16] fastmap_1.2.0             magick_2.8.3              XVector_0.44.0           
-[19] labeling_0.4.3            scuttle_1.14.0            utf8_1.2.4               
-[22] rmarkdown_2.27            sessioninfo_1.2.2         UCSC.utils_1.0.0         
-[25] xfun_0.45                 zlibbioc_1.50.0           beachmat_2.20.0          
-[28] jsonlite_1.8.8            rhdf5filters_1.16.0       DelayedArray_0.30.1      
-[31] Rhdf5lib_1.26.0           terra_1.7-78              jpeg_0.1-10              
-[34] tiff_0.1-12               R6_2.5.1                  limma_3.60.3             
-[37] boot_1.3-30               Rcpp_1.0.13               knitr_1.48               
-[40] R.utils_2.12.3            Matrix_1.7-0              tidyselect_1.2.1         
-[43] rstudioapi_0.16.0         abind_1.4-5               yaml_2.3.9               
-[46] EBImage_4.46.0            codetools_0.2-20          lattice_0.22-6           
-[49] tibble_3.2.1              withr_3.0.0               evaluate_0.24.0          
-[52] spData_2.3.1              units_0.8-5               proxy_0.4-27             
-[55] pillar_1.9.0              KernSmooth_2.23-24        generics_0.1.3           
-[58] sp_2.1-4                  rprojroot_2.0.4           RCurl_1.98-1.14          
-[61] sparseMatrixStats_1.16.0  munsell_0.5.1             scales_1.3.0             
-[64] class_7.3-22              glue_1.7.0                tools_4.4.1              
-[67] BiocNeighbors_1.22.0      locfit_1.5-9.10           rhdf5_2.48.0             
-[70] grid_4.4.1                spdep_1.3-5               DropletUtils_1.24.0      
-[73] edgeR_4.2.0               colorspace_2.1-0          GenomeInfoDbData_1.2.12  
-[76] HDF5Array_1.32.0          cli_3.6.3                 fansi_1.0.6              
-[79] S4Arrays_1.4.1            dplyr_1.1.4               gtable_0.3.5             
-[82] R.methodsS3_1.8.2         zeallot_0.1.0             digest_0.6.36            
-[85] classInt_0.4-10           SparseArray_1.4.8         dqrng_0.4.1              
-[88] farver_2.1.2              rjson_0.2.21              htmlwidgets_1.6.4        
-[91] htmltools_0.5.8.1         R.oo_1.26.0               lifecycle_1.0.4          
-[94] httr_1.4.7                here_1.0.1                statmod_1.5.0            
+ [1] gtable_0.3.5      dplyr_1.1.4       compiler_4.4.1    tidyselect_1.2.1 
+ [5] scales_1.3.0      yaml_2.3.9        fastmap_1.2.0     here_1.0.1       
+ [9] R6_2.5.1          labeling_0.4.3    generics_0.1.3    knitr_1.48       
+[13] datasets_4.4.1    tibble_3.2.1      munsell_0.5.1     rprojroot_2.0.4  
+[17] pillar_1.9.0      utf8_1.2.4        xfun_0.45         cli_3.6.3        
+[21] withr_3.0.0       magrittr_2.0.3    digest_0.6.36     grid_4.4.1       
+[25] rstudioapi_0.16.0 lifecycle_1.0.4   vctrs_0.6.5       evaluate_0.24.0  
+[29] glue_1.7.0        farver_2.1.2      codetools_0.2-20  fansi_1.0.6      
+[33] colorspace_2.1-0  rmarkdown_2.27    tools_4.4.1       pkgconfig_2.0.3  
+[37] htmltools_0.5.8.1
 > sessioninfo::session_info()
 ─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
@@ -219,120 +222,48 @@ loaded via a namespace (and not attached):
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
 ─ Packages ───────────────────────────────────────────────────────────────────────
- ! package                  * version   date (UTC) lib source
-   abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
-   beachmat                   2.20.0    2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
-   Biobase                  * 2.64.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
-   BiocGenerics             * 0.50.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   BiocNeighbors              1.22.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   BiocParallel             * 1.38.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   bitops                     1.0-7     2021-04-24 [1] CRAN (R 4.4.0)
-   boot                       1.3-30    2024-02-26 [1] CRAN (R 4.4.1)
-   class                      7.3-22    2023-05-03 [1] CRAN (R 4.4.1)
-   classInt                   0.4-10    2023-09-05 [1] CRAN (R 4.4.0)
- P cli                        3.6.3     2024-06-21 [2] CRAN (R 4.4.0)
-   codetools                  0.2-20    2024-03-31 [1] CRAN (R 4.4.1)
-   colorout                 * 1.3-0.2   2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
-   colorspace                 2.1-0     2023-01-23 [1] CRAN (R 4.4.0)
-   crayon                     1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
-   data.table               * 1.15.4    2024-03-30 [2] CRAN (R 4.4.0)
-   DBI                        1.2.3     2024-06-02 [1] CRAN (R 4.4.0)
-   DelayedArray               0.30.1    2024-05-07 [1] Bioconductor 3.19 (R 4.4.0)
-   DelayedMatrixStats         1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   deldir                     2.0-4     2024-02-28 [1] CRAN (R 4.4.0)
-   digest                     0.6.36    2024-06-23 [1] CRAN (R 4.4.0)
-   dplyr                      1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
-   dqrng                      0.4.1     2024-05-28 [1] CRAN (R 4.4.0)
-   DropletUtils               1.24.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   e1071                      1.7-14    2023-12-06 [1] CRAN (R 4.4.0)
-   EBImage                    4.46.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   edgeR                      4.2.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   evaluate                   0.24.0    2024-06-10 [1] CRAN (R 4.4.0)
-   fansi                      1.0.6     2023-12-08 [1] CRAN (R 4.4.0)
-   farver                     2.1.2     2024-05-13 [1] CRAN (R 4.4.0)
-   fastmap                    1.2.0     2024-05-15 [1] CRAN (R 4.4.0)
-   fftwtools                  0.9-11    2021-03-01 [1] CRAN (R 4.4.0)
-   generics                   0.1.3     2022-07-05 [1] CRAN (R 4.4.0)
-   GenomeInfoDb             * 1.40.1    2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
-   GenomeInfoDbData           1.2.12    2024-05-01 [1] Bioconductor
-   GenomicRanges            * 1.56.1    2024-06-12 [1] Bioconductor 3.19 (R 4.4.1)
-   ggplot2                  * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
-   glue                       1.7.0     2024-01-09 [1] CRAN (R 4.4.0)
-   gridExtra                * 2.3       2017-09-09 [1] CRAN (R 4.4.0)
-   gtable                     0.3.5     2024-04-22 [1] CRAN (R 4.4.0)
-   HDF5Array                  1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   here                       1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
-   htmltools                  0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
-   htmlwidgets                1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
-   httr                       1.4.7     2023-08-15 [1] CRAN (R 4.4.0)
-   IRanges                  * 2.38.1    2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
-   jpeg                       0.1-10    2022-11-29 [1] CRAN (R 4.4.0)
-   jsonlite                   1.8.8     2023-12-04 [1] CRAN (R 4.4.0)
-   KernSmooth                 2.23-24   2024-05-17 [1] CRAN (R 4.4.1)
-   knitr                      1.48      2024-07-07 [1] CRAN (R 4.4.1)
-   labeling                   0.4.3     2023-08-29 [1] CRAN (R 4.4.0)
-   lattice                    0.22-6    2024-03-20 [1] CRAN (R 4.4.1)
-   lifecycle                  1.0.4     2023-11-07 [1] CRAN (R 4.4.0)
-   limma                      3.60.3    2024-06-16 [1] Bioconductor 3.19 (R 4.4.0)
-   locfit                     1.5-9.10  2024-06-24 [1] CRAN (R 4.4.0)
-   magick                     2.8.3     2024-02-18 [1] CRAN (R 4.4.0)
-   magrittr                   2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
-   Matrix                     1.7-0     2024-04-26 [1] CRAN (R 4.4.1)
-   MatrixGenerics           * 1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   matrixStats              * 1.3.0     2024-04-11 [1] CRAN (R 4.4.0)
-   munsell                    0.5.1     2024-04-01 [1] CRAN (R 4.4.0)
-   parallelly               * 1.38.0    2024-07-27 [1] CRAN (R 4.4.0)
-   pillar                     1.9.0     2023-03-22 [1] CRAN (R 4.4.0)
-   pkgconfig                  2.0.3     2019-09-22 [1] CRAN (R 4.4.0)
-   png                        0.1-8     2022-11-29 [1] CRAN (R 4.4.0)
-   proxy                      0.4-27    2022-06-09 [1] CRAN (R 4.4.0)
-   R.methodsS3                1.8.2     2022-06-13 [1] CRAN (R 4.4.0)
-   R.oo                       1.26.0    2024-01-24 [1] CRAN (R 4.4.0)
-   R.utils                    2.12.3    2023-11-18 [1] CRAN (R 4.4.0)
-   R6                         2.5.1     2021-08-19 [1] CRAN (R 4.4.0)
-   Rcpp                       1.0.13    2024-07-17 [1] CRAN (R 4.4.0)
-   RCurl                      1.98-1.14 2024-01-09 [1] CRAN (R 4.4.0)
-   rhdf5                      2.48.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   rhdf5filters               1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   Rhdf5lib                   1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   rjson                      0.2.21    2022-01-09 [1] CRAN (R 4.4.0)
- P rlang                    * 1.1.4     2024-06-04 [2] CRAN (R 4.4.1)
-   rmarkdown                  2.27      2024-05-17 [1] CRAN (R 4.4.0)
-   rprojroot                  2.0.4     2023-11-05 [1] CRAN (R 4.4.0)
-   rstudioapi                 0.16.0    2024-03-24 [1] CRAN (R 4.4.0)
-   s2                         1.1.6     2023-12-19 [1] CRAN (R 4.4.0)
-   S4Arrays                   1.4.1     2024-05-20 [1] Bioconductor 3.19 (R 4.4.0)
-   S4Vectors                * 0.42.1    2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
-   scales                     1.3.0     2023-11-28 [1] CRAN (R 4.4.0)
-   scuttle                    1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   sessioninfo                1.2.2     2021-12-06 [1] CRAN (R 4.4.0)
-   sf                       * 1.0-16    2024-03-24 [1] CRAN (R 4.4.0)
-   sfheaders                  0.4.4     2024-01-17 [1] CRAN (R 4.4.0)
-   SingleCellExperiment     * 1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   sp                         2.1-4     2024-04-30 [1] CRAN (R 4.4.0)
-   SparseArray                1.4.8     2024-05-30 [1] Bioconductor 3.19 (R 4.4.0)
-   sparseMatrixStats          1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   SpatialExperiment        * 1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   SpatialFeatureExperiment * 1.6.1     2024-05-15 [1] Bioconductor 3.19 (R 4.4.0)
-   spData                     2.3.1     2024-05-31 [1] CRAN (R 4.4.0)
-   spdep                      1.3-5     2024-06-10 [1] CRAN (R 4.4.0)
-   statmod                    1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
-   SummarizedExperiment     * 1.34.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   terra                      1.7-78    2024-05-22 [1] CRAN (R 4.4.0)
-   tibble                     3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
-   tidyselect                 1.2.1     2024-03-11 [1] CRAN (R 4.4.0)
-   tiff                       0.1-12    2023-11-28 [1] CRAN (R 4.4.0)
-   UCSC.utils                 1.0.0     2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
-   units                      0.8-5     2023-11-28 [1] CRAN (R 4.4.0)
-   utf8                       1.2.4     2023-10-22 [1] CRAN (R 4.4.0)
-   vctrs                      0.6.5     2023-12-01 [1] CRAN (R 4.4.0)
-   withr                      3.0.0     2024-01-16 [1] CRAN (R 4.4.0)
-   wk                         0.9.2     2024-07-09 [1] CRAN (R 4.4.0)
-   xfun                       0.45      2024-06-16 [1] CRAN (R 4.4.0)
-   XVector                    0.44.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   yaml                       2.3.9     2024-07-05 [1] CRAN (R 4.4.0)
-   zeallot                    0.1.0     2018-01-28 [1] CRAN (R 4.4.0)
-   zlibbioc                   1.50.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+ ! package      * version date (UTC) lib source
+   BiocParallel * 1.38.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+ P cli            3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
+   codetools      0.2-20  2024-03-31 [1] CRAN (R 4.4.1)
+   colorout     * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace     2.1-0   2023-01-23 [1] CRAN (R 4.4.0)
+   data.table   * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   digest         0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
+   dplyr          1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
+   evaluate       0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
+   fansi          1.0.6   2023-12-08 [1] CRAN (R 4.4.0)
+   farver         2.1.2   2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap        1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   generics       0.1.3   2022-07-05 [1] CRAN (R 4.4.0)
+   ggplot2      * 3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
+   glue           1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
+   gridExtra    * 2.3     2017-09-09 [1] CRAN (R 4.4.0)
+   gtable         0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
+   here           1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools      0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   knitr          1.48    2024-07-07 [1] CRAN (R 4.4.1)
+   labeling       0.4.3   2023-08-29 [1] CRAN (R 4.4.0)
+   lifecycle      1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
+   magrittr       2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
+   munsell        0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
+   parallelly   * 1.38.0  2024-07-27 [1] CRAN (R 4.4.0)
+   pillar         1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig      2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
+   R6             2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
+ P rlang        * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown      2.27    2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot      2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi     0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
+   scales         1.3.0   2023-11-28 [1] CRAN (R 4.4.0)
+   sessioninfo    1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   tibble         3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
+   tidyselect     1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
+   utf8           1.2.4   2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs          0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
+   withr          3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
+   xfun           0.45    2024-06-16 [1] CRAN (R 4.4.0)
+   yaml           2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
 
  [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
  [2] /Users/bmulvey/Library/R/arm64/4.4/library
