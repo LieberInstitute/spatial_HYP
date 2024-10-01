@@ -1,5 +1,5 @@
 ---
-title: "Fig4_Attributing_SexDE_to_celltypes"
+title: "Fig5_Attributing_SexDE_to_celltypes"
 output: html_document
 date: "2024-08-29"
 ---
@@ -223,7 +223,7 @@ p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
 p <- rasterize(p,layers="Points",dpi=450)
 
 # save
-pdf("manuscript_plots/Fig4/4A-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
+pdf("manuscript_plots/Fig5/5A-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
 p
 dev.off()
 
@@ -273,7 +273,7 @@ p <- ggplot(xenarcdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
 p <- rasterize(p,layers="Points",dpi=450)
 
 # save
-pdf("manuscript_plots/Fig4/4B-XeniumARCcelltypes_sexDE.pdf",height=2.5,width=2.3)
+pdf("manuscript_plots/Fig5/5B-XeniumARCcelltypes_sexDE.pdf",height=2.5,width=2.3)
 p
 dev.off()
 ```
@@ -300,7 +300,7 @@ setnames(vmhe.m,"celltype","Xenium Cluster")
 # make the gene names markdown'ed so they appear in italics
 vmhe.m[,rn:=paste0("*",rn,"*")]
 
-pdf("manuscript_plots/Fig4/4C-VMH_DEGs_boxplot.pdf",height=3,width=3.5)
+pdf("manuscript_plots/Fig5/5C-VMH_DEGs_boxplot.pdf",height=3,width=3.5)
 ggplot(vmhe.m,aes(x=`Xenium Cluster`,y=value,color=`Xenium Cluster`,fill = Sex))+
     geom_boxplot(outliers = FALSE,linewidth = 0.25)+
     geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
@@ -338,7 +338,7 @@ setnames(arce.m,"celltype","Xenium Cluster")
 # make the gene names markdown'ed so they appear in italics
 arce.m[,rn:=paste0("*",rn,"*")]
 
-pdf("manuscript_plots/Fig4/4D-ARC_DEGs_boxplot.pdf",height=3,width=4)
+pdf("manuscript_plots/Fig5/5D-ARC_DEGs_boxplot.pdf",height=3,width=4)
 ggplot(arce.m,aes(x=`Xenium Cluster`,y=value,color=`Xenium Cluster`,fill = Sex))+
     geom_boxplot(outliers = FALSE,linewidth = 0.25)+
     geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+

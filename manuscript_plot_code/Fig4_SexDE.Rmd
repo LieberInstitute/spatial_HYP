@@ -1,5 +1,5 @@
 ---
-title: "Fig3_SexDE"
+title: "Fig4_SexDE"
 output: html_document
 date: "2024-08-28"
 ---
@@ -181,7 +181,7 @@ p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay)) +
 p <- rasterize(p,layers="Points",dpi=450,dev="cairo_png")
 
 # save
-pdf("manuscript_plots/Fig3/3A-Visium Sex DE Volcano_ptsizeByP.pdf",height=2.5,width=2.3)
+pdf("manuscript_plots/Fig4/4A-Visium Sex DE Volcano_ptsizeByP.pdf",height=2.5,width=2.3)
 p
 dev.off()
 
@@ -230,7 +230,7 @@ p <- ggplot(visdeplt[assay=="VMH"], aes(y = -log10(P.Value), x = logFC,col=assay
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
 # save
-pdf("manuscript_plots/Fig3/3Aalt-Visium VMH Sex DE Volcano_sizeByP.pdf",height=2,width=1.95)
+pdf("manuscript_plots/Fig4/4Aalt-Visium VMH Sex DE Volcano_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
 ```
@@ -302,7 +302,7 @@ p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
 p <- rasterize(p,layers="Points",dpi=450)
 
 # this is currently part of figure 4 instead.
-# pdf("manuscript_plots/Fig3/3B-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
+# pdf("manuscript_plots/Fig4/4B-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
 # p
 # dev.off()
 
@@ -353,7 +353,7 @@ p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) 
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
 # save
-pdf("manuscript_plots/Fig3/3Balt-Xenium VMH domain, all cells considered together_sizeByP.pdf",height=2,width=1.95)
+pdf("manuscript_plots/Fig4/4Balt-Xenium VMH domain, all cells considered together_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
 ```
@@ -398,7 +398,7 @@ p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay,col=assay)) +
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
 # save
-pdf("manuscript_plots/Fig3/3Calt-Visium ARC Sex DE Volcano_sizeByP.pdf",height=2,width=1.95)
+pdf("manuscript_plots/Fig4/4Calt-Visium ARC Sex DE Volcano_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
 ```
@@ -441,7 +441,7 @@ p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) 
     guides(color="none")+
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
-pdf("manuscript_plots/Fig3/3Dalt-Xenium ARC domain, all cells considered together_sizeByP.pdf",height=2,width=1.95)
+pdf("manuscript_plots/Fig4/4Dalt-Xenium ARC domain, all cells considered together_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
 
@@ -550,7 +550,7 @@ p <- make_escheR(tac1M)
 p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 #p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
-pdf("manuscript_plots/Fig3/3D-TAC1_Visium_Male.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig4/4D-TAC1_Visium_Male.pdf",height=1.75,width=2)
 p+
     geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal)+
@@ -570,7 +570,7 @@ colData(tac1F)$`log counts` <- logcounts(tac1F)["TAC1",]
 p <- make_escheR(tac1F)
 p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 
-pdf("manuscript_plots/Fig3/3E-TAC1_Visium_Female.pdf",height=1.75,width=1.6)
+pdf("manuscript_plots/Fig4/4E-TAC1_Visium_Female.pdf",height=1.75,width=1.6)
 p+
     scale_color_manual(values=pal)+
     geom_path(data=femdompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
@@ -594,7 +594,7 @@ colData(RDH10M)$`log counts` <- logcounts(RDH10M)["RDH10",]
 p <- make_escheR(RDH10M)
 p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 
-pdf("manuscript_plots/Fig3/3F-RDH10_Visium_Male.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig4/4F-RDH10_Visium_Male.pdf",height=1.75,width=2)
 p+
     scale_color_manual(values=pal)+
     geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
@@ -616,7 +616,7 @@ colData(RDH10F)$`log counts` <- logcounts(RDH10F)["RDH10",]
 p <- make_escheR(RDH10F)
 p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 
-pdf("manuscript_plots/Fig3/3G-RDH10_Visium_female.pdf",height=1.75,width=1.6)
+pdf("manuscript_plots/Fig4/4G-RDH10_Visium_female.pdf",height=1.75,width=1.6)
 p+
     scale_color_manual(values=pal)+
     geom_path(data=femdompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,color=Visium.Domain),size=0.25)+
@@ -691,7 +691,7 @@ p <- p+
 
 p <- rasterize(p,layer="Points",dpi=600)
 
-pdf("manuscript_plots/Fig3/3H-TAC1_Xenium_Male.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig4/4H-TAC1_Xenium_Male.pdf",height=1.75,width=2)
 p
 dev.off()
 
@@ -712,7 +712,7 @@ p <- p+
 
 p <- rasterize(p,layer="Points",dpi=600)
 
-pdf("manuscript_plots/Fig3/3I-TAC1_Xenium_female.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig4/4I-TAC1_Xenium_female.pdf",height=1.75,width=2)
 p
 dev.off()
 
@@ -746,7 +746,7 @@ p <- p+
 
 p <- rasterize(p,layer="Points",dpi=600)
 
-pdf("manuscript_plots/Fig3/3J-RDH10_Xenium_Male.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig4/4J-RDH10_Xenium_Male.pdf",height=1.75,width=2)
 p
 dev.off()
 
@@ -766,7 +766,7 @@ p <- p+
 
 p <- rasterize(p,layer="Points",dpi=600)
 
-pdf("manuscript_plots/Fig3/3K-RDH10_Xenium_female.pdf",height=1.75,width=2)
+pdf("manuscript_plots/Fig4/4K-RDH10_Xenium_female.pdf",height=1.75,width=2)
 p
 dev.off()
 
@@ -897,7 +897,7 @@ shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks))
 breaks2 <- rep(breaks, 4)
 
 ### make plot
-pdf("manuscript_plots/Fig3/3L-Sex DEG TF GSEA.pdf",height=3,width=7)
+pdf("manuscript_plots/Fig4/4L-Sex DEG TF GSEA.pdf",height=3,width=7)
 
 ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
     geom_point(aes(col=sexreg,stroke=0,size=NES,shape=source,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+

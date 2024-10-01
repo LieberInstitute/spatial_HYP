@@ -1,7 +1,7 @@
 ---
 title: "11-Make_XeniumSPE_forSamui"
 output: html_document
-date: "2024-08-23"
+date: "2024-09-26"
 ---
 
 ```{r setup, include=FALSE}
@@ -33,9 +33,25 @@ unloadNamespace("datasets")
 ```
 
 ```{r}
-## load xenium SPE, main clustering results and their annots, and drop cells from sample-specific clusters
-hypx <- readRDS("processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+## load RAW xenium SPE (i.e., before the coordinates were transformed for banksy); load main clustering results and their annots, and drop cells from sample-specific clusters
+hypx <- readRDS("processed-data/03_make_SPE-SFE/01_sfe_raw.RDS")
 
+## drop control probes
+keeprn <- grep(rownames(hypx),pattern="Deprecated|Unassigned|NegControl",value=T,invert=T)
+
+hypx <- hypx[keeprn,]
+##
+
+## add manuscript sample ids
+mscriptids <- fread("../standardized_sampleids_for_plotting.txt")
+tmpcd <- as.data.table(colData(hypx),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,mscriptids[,.(sample_id,manuscript_id_wsex)],by.x="Sample",by.y="sample_id",all.x=T)
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(hypx),]
+tmpcd$rn <- NULL
+colData(hypx) <- tmpcd
+## 
+
+## append cell types, drop the sample-specific clusters, and add the Banksy clusters + labels
 bkcl <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
 setnames(bkcl,2,"cl")
 
@@ -49,10 +65,14 @@ bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
 ## drop clusters labeled for, well, dropping
 bkanno <- bkanno[!(bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T))]
 
-## subset the cellwise labels to these clusters, subset the xenium to these cells, and label those cells
+## subset the cellwise labels to these clusters,, and label those cells
 bkcl <- merge.data.table(bkcl,bkanno,by.y="clus",by.x="cl")
+
+hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
+
 bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]
-hypx$Banksy_M0lam0_kgeom6_clusters <- bkcl$bjm_annot
+
+hypx$Banksy_cluster <- bkcl$bjm_annot
 
 ### also add the domain labels from knn
 bknn <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
@@ -69,7 +89,8 @@ saveRDS(hypx,"processed-data/11-XeniumSPE_forSamui.RDS")
 ```{r}
 sessionInfo()
 sessioninfo::session_info()
-```R version 4.4.1 RC (2024-06-06 r86719)
+```
+R version 4.4.1 RC (2024-06-06 r86719)
 Platform: aarch64-apple-darwin20
 Running under: macOS Sonoma 14.5
 
@@ -126,7 +147,7 @@ loaded via a namespace (and not attached):
 [76] png_0.1-8                 class_7.3-22              Rcpp_1.0.13              
 [79] SparseArray_1.4.8         xfun_0.45                
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────────
+─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -136,11 +157,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-23
+ date     2024-09-26
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────────────
+─ Packages ───────────────────────────────────────────────────────────────────────
  ! package                  * version   date (UTC) lib source
    abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
    beachmat                   2.20.0    2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
@@ -242,4 +263,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-───────────────────────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,380 @@
+---
+title: "Fig3_Function_and_conservation"
+output: html_document
+date: "2024-10-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table) # Preferred data manipulation package
+library(ggplot2) # Dependency for several plotting functions
+library(ggtext) # more character types in ggplots
+library(ggrastr) # avoid making raster images one can't even open
+library(viridis) # palettes
+library(Polychrome) # better palettes
+library(ggstance) # for y axis dodge
+require(colorout) # Utility for RStudio
+library(ggbreak) # x axis breaks in ggplots
+ColorOut()
+
+# code reformatting in Rstudio
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+# set plotting defaults for ggplot
+theme_set(theme_bw() + theme(axis.text.x = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.y = element_text(size = 8), axis.title.y = element_text(size = 9), plot.title = element_blank(), strip.text = element_text(size = 10), legend.text = element_text(size = 8), legend.title = element_text(size = 8, hjust = 0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+Panel A: Visium marker GSEA for VMH, ARC
+(leave out glutamatergic synapse and just mention in text as an "as expected" finding for VMH -- stretches the x axis way out and ggbreak doesn't work quite as expected)
+### msigdb GSEA for arc and vmh ###
+```{r}
+mkres <- readRDS("spatial_HYP/processed-data/11-GSEA/01a-Marker msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
+mkres <- mkres[c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH")]
+mkres <- lapply(mkres,FUN=function(x){
+x[,spdom:=gsub(spdom,pattern="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_X(.*)",replacement="\\1")]})
+
+pltdat <- mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH"]][pathway %in% c(
+   #"GOCC_GLUTAMATERGIC_SYNAPSE",
+   "GOCC_GABA_ERGIC_SYNAPSE",
+   "HP_HYPERACTIVITY",
+   "HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",
+   "GOBP_FEEDING_BEHAVIOR",
+   "WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",
+   "KEGG_LONG_TERM_POTENTIATION",
+   "GOMF_HORMONE_ACTIVITY",
+   "GOBP_AXONEME_ASSEMBLY",
+   "GOCC_CILIARY_PLASM",
+   "GOBP_MOTILE_CILIUM_ASSEMBLY",
+   "GOCC_CILIARY_TRANSITION_ZONE",
+   "HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",
+   "GOBP_REGULATION_OF_INSULIN_SECRETION",
+   "GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")]
+pltdat <- rbind(pltdat,mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC"]][pathway %in% c(
+   #"GOCC_GLUTAMATERGIC_SYNAPSE",
+   "GOCC_GABA_ERGIC_SYNAPSE",
+   "HP_HYPERACTIVITY",
+   "HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",
+   "GOBP_FEEDING_BEHAVIOR",
+   "WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",
+   "KEGG_LONG_TERM_POTENTIATION",
+   "GOMF_HORMONE_ACTIVITY",
+   "GOBP_AXONEME_ASSEMBLY",
+   "GOCC_CILIARY_PLASM",
+   "GOBP_MOTILE_CILIUM_ASSEMBLY",
+   "GOCC_CILIARY_TRANSITION_ZONE",
+   "HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",
+   "GOBP_REGULATION_OF_INSULIN_SECRETION",
+   "GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")])
+
+### simplify terms and make separate column for data source to color by
+pltdat[,genesource:=gsub(pathway,pattern="^(GOCC)_.*$",replacement="GO CC")]
+pltdat[,genesource:=gsub(genesource,pattern="^(GOBP)_.*$",replacement="GO BP")]
+pltdat[,genesource:=gsub(genesource,pattern="^(GOMF)_.*$",replacement="GO MF")]
+pltdat[,genesource:=gsub(genesource,pattern="^(HP)_.*$",replacement="Human Phenotypes")]
+pltdat[,genesource:=gsub(genesource,pattern="^(WP)_.*$",replacement="Wikipathways")]
+pltdat[,genesource:=gsub(genesource,pattern="^(KEGG)_.*$",replacement="KEGG Pathways")]
+
+### Simplify terms themselves
+# pltdat[pathway=="GOCC_GLUTAMATERGIC_SYNAPSE",pathway:="Glutamatergic\nsynapse"]
+pltdat[pathway=="GOCC_GABA_ERGIC_SYNAPSE",pathway:="GABAergic synapse"]
+pltdat[pathway=="HP_HYPERACTIVITY",pathway:="Hyperactivity"]
+pltdat[pathway=="HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",pathway:="Aggressive/impulsive\nbehavior"]
+pltdat[pathway=="GOBP_FEEDING_BEHAVIOR",pathway:="Feeding behavior"]
+pltdat[pathway=="WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",pathway:="Kisspeptin receptor\nsystem (ovarian)"]
+pltdat[pathway=="KEGG_LONG_TERM_POTENTIATION",pathway:="Long-term\npotentiation"]
+pltdat[pathway=="GOMF_HORMONE_ACTIVITY",pathway:="Hormone activity"]
+pltdat[pathway=="GOBP_AXONEME_ASSEMBLY",pathway:="Axoneme assembly"]
+pltdat[pathway=="GOCC_CILIARY_PLASM",pathway:="Ciliary membrane"]
+pltdat[pathway=="GOBP_MOTILE_CILIUM_ASSEMBLY",pathway:="Cilium assembly"]
+pltdat[pathway=="GOCC_CILIARY_TRANSITION_ZONE",pathway:="Ciliary transition zone"]
+pltdat[pathway=="HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",pathway:="Secondary sex\ncharacteristics"]
+pltdat[pathway=="GOBP_REGULATION_OF_INSULIN_SECRETION",pathway:="Insulin secretion\nregulation"]
+pltdat[pathway=="GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY",pathway:="Neuropeptide signaling"]
+
+### q: omg Github copilot just paid for itself thank you!!
+# a: you're welcome
+
+### make domain a factor so we can match it to prior color schemes
+pltdat[,spdom:=paste0("v",spdom)]
+pltdat$spdom <- factor(pltdat$spdom,levels=c("vVMH","vARC"))
+pltdat$spdom
+
+### make enrichments a factor so they're grouped by source on the y axis
+pltdat$pathway <- factor(pltdat$pathway,levels=rev(c("Long-term\npotentiation","Neuropeptide signaling","GABAergic synapse","Insulin secretion\nregulation","Hormone activity","Kisspeptin receptor\nsystem (ovarian)","Axoneme assembly","Ciliary membrane","Cilium assembly","Ciliary transition zone","Hyperactivity","Aggressive/impulsive\nbehavior","Feeding behavior","Secondary sex\ncharacteristics")))
+
+pltdat[,log10fdr:=-log10(padj)]
+
+### plot:
+p <- ggplot(pltdat,aes(y=pathway,x=log10fdr))+
+    geom_point(aes(col=spdom,size=NES))+#,position = position_dodge2v(preserve = "single",height=0.75))+
+    ylab("Term")+
+    # scale_color_manual(values=wc2cols)+
+    xlab("-log10 (FDR)")+
+    #xlim(0,30)+
+    scale_size_continuous(range = c(0.75,3.5),transform = "exp")+
+    scale_color_manual(values=c("#8c63cf","#5dd959"),na.value = NA)+
+    labs(col="Domain")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.5)+
+    guides(col=guide_legend(byrow=T))+
+    # # ^ necess. to get spacing to work in theme
+    guides(col=guide_legend(override.aes=list(size=2.5)))+
+   #scale_x_break(12,25)+
+    # ^ make legend points bigger
+    theme(
+        axis.text.y = element_text(size = 8, margin = margin(0, 0, 0, -0.15, "in")),
+        axis.title.x = element_text(size = 9),
+        axis.title.y = element_text(size = 9, margin = margin(0, 0, 0, 0.2, unit = "in")),
+        axis.text.x = element_text(size = 8),
+        legend.text = element_text(size = 8, hjust = 0.5),
+        legend.title = element_text(size = 9, hjust = 0.5),
+        legend.spacing.y = ggplot2::unit(0.075, "in"),
+        plot.margin = margin(0.05, 0.01, 0, -0.1, unit = "in"),
+        legend.position = "bottom",
+        legend.direction = "vertical",
+        legend.box.margin = margin(0, -0.3, 0, 0, unit = "in"),
+        legend.spacing.x = ggplot2::unit(0.05, "in"),
+        legend.box.background = element_blank(),
+        legend.margin= margin(0,0.25,0,0,"in"),
+        legend.key = element_blank(),
+        panel.background = element_blank(),
+    )
+
+
+## this makes a weird second border with scales we don't want, and a second set of x axis tick labels along the top of the plot, so requires a little fixing in illustrator after the fact. but it'll do.
+pdf("manuscript_plots/Fig3/3A-msigdb_marker_GSEA.pdf",height=4.5,width=3.5)
+p
+dev.off()
+
+rm(mkres,pltdat)
+```
+
+panel b: TF-targ enrichments in visium
+```{r}
+tft <- readRDS("spatial_HYP/processed-data/11-GSEA/02a-Marker TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
+tft <- tft[c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH")]
+tft <- rbindlist(tft)
+tft[spdom=="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC",spdom:="vARC"]
+tft[spdom=="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH",spdom:="vVMH"]
+
+pltdat <- tft
+
+## extract TFs of note
+pltdat <- pltdat[pathway %in% c(
+    "PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",
+    "PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",
+    "RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",
+    "NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",
+    "EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",
+    "EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",
+    "PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",
+    "PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",
+    "PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors")]
+
+## add column for database source
+pltdat[pathway=="PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors",source:="Rummagene"]
+
+## fix source names to just TFs
+setnames(pltdat,"pathway","tf")
+
+pltdat[tf=="PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",tf:="RXRA"]
+pltdat[tf=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",tf:="MYT1L"]
+pltdat[tf=="PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",tf:="NR3C1"]
+pltdat[tf=="RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",tf:="RARA (KD Down)"]
+pltdat[tf=="NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",tf:="NR2F2 (KD Down)"]
+pltdat[tf=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",tf:="EGR1 (KO Down)"]
+pltdat[tf=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",tf:="EGR1 (KO Up)"]
+pltdat[tf=="PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",tf:="INSM1"]
+pltdat[tf=="PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",tf:="AR"]
+pltdat[tf=="PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors",tf:="AR (Activators)"]
+
+pltdat[source=="GEO TF Perturbations",source:="GEO TF\n Perturbations"]
+## make the plot
+breaks <- c(seq(-1, 1, 1),seq(1.5,2.5, 0.5))
+n_breaks <- length(breaks)
+labels <- c(breaks, rep("", n_breaks))
+shapes <- c(rep(16,n_breaks),rep(17,n_breaks))
+breaks2 <- rep(breaks, 2)
+## 
+pdf("manuscript_plots/Fig3/3B-marker_TFtargs_GSEA.pdf",height=3,width=4)
+ggplot(pltdat,aes(y=tf,x=-log10(padj)))+
+    geom_point(aes(col=spdom,size=NES,shape=source))+
+    ylab("Term")+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
+    xlab("-log10 (GSEA FDR)")+
+    labs(col="Domain",shape="Source Database")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.5)+
+    guides(col=guide_legend(byrow=T))+
+    # ^ necess. to get spacing to work in theme
+    guides(col=guide_legend(override.aes=list(size=2.5)),
+           shape=guide_legend(override.aes=list(size = 2.5)))+
+    # ^ make legend points bigger
+    scale_size_continuous(transform="exp",range=c(0.75,3),limits = c(-2,2.5),
+                          breaks = breaks2, 
+                          labels = labels,
+                          guide = guide_legend(ncol=2, nrow=n_breaks,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,direction="vertical",label.hjust=0.05,vjust=0))+
+    # ^ show both shapes plotted on the scale
+    theme(axis.text.y = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.x = element_text(size = 8), legend.text = element_text(size=8,hjust = 0.5), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.005, "in"),axis.title.y=element_text(size=9,margin=margin(0,0,0,0.02,"in")),legend.box.background = element_blank(),legend.margin = margin(0,0,0,-0.135,unit="in"),plot.margin = margin(0,-0.14,0,0.03))
+dev.off()
+
+```
+
+Panel C: sccoco results
+```{r}
+scc <- readRDS("spatial_HYP/processed-data/10-Spatial Registration/01b-scCoco query of top 150 markers per k15-20-31-collapsedK15 domain in ABA ms hyp CCF areas.RDS")
+scc <- as.data.table(scc[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]][["scores_per_leaf_region_all"]])
+
+setnames(scc,c(3:15),gsub(names(scc)[3:15],pattern="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_",replacement=""))
+
+scc.m <- melt(scc[,c(2:15)],id.vars = "name")
+
+## annotate the visium clusters as we did for fig 1:
+scc.m[variable=="X3",variable:="OT.1"]
+scc.m[variable=="X10",variable:="OT.2"]
+scc.m[variable=="X5",variable:="OT.3"]
+# others:
+scc.m[variable=="X1",variable:="GABA.1"]
+scc.m[variable=="X2",variable:="PeriVN"]
+scc.m[variable=="X9",variable:="Vascular"]
+scc.m[variable=="X8",variable:="SON"]
+scc.m[variable=="X13",variable:="Portal Vasc."]
+scc.m[variable=="X14",variable:="Astro"]
+scc.m[variable=="X15",variable:="GABA.2"]
+
+# subset to mouse regions with at least one mapping score of 0.7 or greater
+keepreg <- unique(scc.m[value>0.7,name])
+scc.m <- scc.m[name %in% keepreg]
+
+## shorten up the names
+scc.m[,name:=gsub(name,pattern="Periventricular hypothalamic nucleus",replacement="PeriVN")]
+scc.m[name=="Arcuate hypothalamic nucleus",name:="ARC"]
+scc.m[,name:=gsub(name,pattern="Dorsomedial nucleus of the hypothalamus, ",replacement="DMH (")]
+scc.m[,name:=gsub(name,pattern="Ventromedial hypothalamic nucleus, ",replacement="VMH (")]
+scc.m[,name:=gsub(name,pattern="Medial preoptic nucleus, ",replacement="MPO nu. (")]
+scc.m[name=="Median preoptic nucleus",name:="MPO nu."]
+scc.m[name=="Medial preoptic area",name:="MPOA"]
+scc.m[,name:=gsub(name,pattern="Anterior hypothalamic nucleus, ",replacement="AHN (")]
+scc.m[,name:=gsub(name,pattern="Paraventricular hypothalamic nucleus",replacement="ParaVN")]
+scc.m[name=="Posterior hypothalamic nucleus",name:="PHN"]
+scc.m[name=="Lateral preoptic area",name:="LPOA"]
+scc.m[name=="ParaVN, descending division, lateral parvicellular part",name:="Descending parvicellular ParaVN (lateral)"]
+scc.m[name=="ParaVN, magnocellular division, posterior magnocellular part, lateral zone",name:="Posterior magnocellular ParaVN (lateral)"]
+scc.m[name=="ParaVN, parvicellular division, medial parvicellular part, dorsal zone",name:="Medial parvicellular ParaVN (dorsal)"]
+scc.m[,name:=gsub(name,pattern="nucleus",replacement="nu.")]
+scc.m[,name:=gsub(name,pattern=", (.*) part$",replacement=" (\\1)")]
+scc.m[,name:=gsub(name,pattern=" \\((.*) part$",replacement=" (\\1)")]
+scc.m[name=="Lateral hypothalamic area",name:="LHA"]
+
+# get rid of MPO nu. as there are also subregions of it here
+scc.m <- scc.m[name!="MPO nu."]
+
+### order by anatomic region. leave that one to copilot after giving the levels possible here:
+# unique(scc.m$name)
+#  [1] "Ventral premammillary nu."                
+#  [2] "Median eminence"                          
+#  [3] "Supramammillary nu. (lateral)"            
+#  [4] "Supramammillary nu. (medial)"             
+#  [5] "PeriVN (posterior)"                       
+#  [6] "PeriVN (preoptic)"                        
+#  [7] "LHA"                
+#  [8] "Lateral mammillary nu."                   
+#  [9] "ARC"                                      
+# [10] "LPOA"                                     
+# [11] "Parasubthalamic nu."                      
+# [12] "MPO nu."                                  
+# [13] "Descending parvicellular ParaVN (lateral)"
+# [14] "Subthalamic nu."                          
+# [15] "Medial mammillary nu."                    
+# [16] "MPOA"                                     
+# [17] "Posterior magnocellular ParaVN (lateral)" 
+# [18] "DMH (anterior)"                           
+# [19] "DMH (posterior)"                          
+# [20] "DMH (ventral)"                            
+# [21] "AHN (central)"                            
+# [22] "AHN (posterior)"                          
+# [23] "MPO nu. (central)"                        
+# [24] "MPO nu. (medial)"                         
+# [25] "VMH (central)"                            
+# [26] "VMH (dorsomedial)"                        
+# [27] "VMH (ventrolateral)"                      
+# [28] "Dopaminergic A13 group"                   
+# [29] "Zona incerta"                             
+# [30] "Fields of Forel"                          
+# [31] "Medial parvicellular ParaVN (dorsal)"     
+# [32] "Posterodorsal preoptic nu."               
+# [33] "PHN"                       
+lvl <- c(
+    "VMH (central)",
+    "VMH (dorsomedial)",
+    "VMH (ventrolateral)",
+    "ARC",
+    "PeriVN (posterior)",
+    "Ventral premammillary nu.",
+    "Medial mammillary nu.",
+    "Supramammillary nu. (medial)",
+    "Lateral mammillary nu.",
+    "Supramammillary nu. (lateral)",
+    "LHA",
+    "AHN (central)",
+    "AHN (posterior)",
+    "DMH (anterior)",
+    "DMH (posterior)",
+    "DMH (ventral)",
+    "PHN",
+    "PeriVN (preoptic)",
+    "LPOA",
+    "MPOA",
+    "MPO nu. (central)",
+    "MPO nu. (medial)",
+    "Posterodorsal preoptic nu.",
+    "Parasubthalamic nu.",
+    "Subthalamic nu.",
+    "Descending parvicellular ParaVN (lateral)",
+    "Posterior magnocellular ParaVN (lateral)",
+    "Medial parvicellular ParaVN (dorsal)",
+    "Median eminence",
+    "Dopaminergic A13 group",
+    "Zona incerta",
+    "Fields of Forel"
+)
+
+stopifnot(length(lvl)==length(unique(scc.m$name)))
+scc.m[,name:=factor(name,levels=lvl)]
+
+#dcast with visium clusters to rows (so that rownames are unique for matrixing)
+scc.d <- dcast(scc.m,formula = variable~name,value.var = "value")
+
+# re-cast to matrix
+scc.p <- as.data.frame(scc.d)
+rownames(scc.p) <- scc.d$variable
+scc.p$variable <- NULL
+scc.pm <- as.matrix(scc.p)
+
+heatmap(scc.pm)
+```
+Panel D: registration-style using mouse atlas data
+
+
+
+### reprod info
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```

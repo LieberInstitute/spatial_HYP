@@ -1,5 +1,5 @@
 ---
-title: "Fig 5-Sex DE and Disease"
+title: "Fig 6-Sex DE and Disease"
 output: html_document
 date: "2024-09-23"
 ---
@@ -59,7 +59,7 @@ dmk[spdom=="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH",spdom:="VMH"]
 
 dmk[,pathway:=factor(pathway,levels=c("Lefthanded","BMI","Anorexia","Panic","PTSD","GAD","OCD","TS","ADHD","NDD","ASD","OUD","AUD","Cannabis","SCZ","BIP","MDD","AD"))]
 
-cairo_pdf("manuscript_plots/Fig5/5A-Marker_Dis_GSEA.pdf",height=4,width=2.75)
+cairo_pdf("manuscript_plots/Fig6/6A-Marker_Dis_GSEA.pdf",height=4,width=2.75)
 ggplot(dmk,aes(x=spdom,y=pathway,fill=NES))+
     geom_tile(linewidth = 0.25,colour = "black")+
     geom_text(label=ifelse(dmk$padj<0.05,"*",""),size = 5,nudge_y = -0.2)+
@@ -87,7 +87,7 @@ cmk[spdom=="k15_HARMONYlmbna_nnsvg10_60kiter_X12",spdom:="VMH.2"]
 
 cmk[,pathway:=factor(pathway,levels=c("Lefthanded","BMI","Anorexia","Panic","PTSD","GAD","OCD","TS","ADHD","NDD","ASD","OUD","AUD","Cannabis","SCZ","BIP","MDD","AD"))]
 
-cairo_pdf("manuscript_plots/Fig5/5B-SubclusMarker_Dis_GSEA.pdf",height=4,width=2.75)
+cairo_pdf("manuscript_plots/Fig6/6B-SubclusMarker_Dis_GSEA.pdf",height=4,width=2.75)
 ggplot(cmk,aes(x=spdom,y=pathway,fill=NES))+
     geom_tile(linewidth = 0.25,colour = "black")+
     geom_text(label=ifelse(cmk$padj<0.05,"*",""),size = 4,nudge_y = -0.2)+
@@ -126,7 +126,7 @@ zeropt <- -min(dsx$NES)/scalefact
 zero.to.zeropt.mid <- zeropt/2
 zeropt.to.one.mid <- zeropt*1.5
 
-cairo_pdf("manuscript_plots/Fig5/5C-DomainSexDE_Dis_GSEA.pdf",height=4,width=2.75)
+cairo_pdf("manuscript_plots/Fig6/6C-DomainSexDE_Dis_GSEA.pdf",height=4,width=2.75)
 ggplot(dsx,aes(x=spdom,y=pathway,fill=NES))+
     geom_tile(linewidth = 0.25,colour = "black")+
     geom_text(label=ifelse(dsx$padj<0.05,"*",""),size = 5,nudge_y = -0.2)+
@@ -161,7 +161,7 @@ zeropt <- -min(csx$NES)/scalefact
 zero.to.zeropt.mid <- zeropt/2
 zeropt.to.one.mid <- zeropt*1.5
 
-cairo_pdf("manuscript_plots/Fig5/5D-SubclusSexDE_Dis_GSEA.pdf",height=4,width=3.25)
+cairo_pdf("manuscript_plots/Fig6/6D-SubclusSexDE_Dis_GSEA.pdf",height=4,width=3.25)
 ggplot(csx,aes(x=spdom,y=pathway,fill=NES))+
     geom_tile(linewidth = 0.25,colour = "black")+
     geom_text(label=ifelse(csx$padj<0.05,"*",""),size = 4,nudge_y = -0.2)+

@@ -1,5 +1,5 @@
 ---
-title: "05b-Plot_proportions_of_celltypes_neighboring_VMHARCcluster_cells"
+title: "SF-proportions_of_celltypes_neighboring_VMHARCcluster_cells"
 output: html_document
 date: "2024-09-25"
 ---
@@ -38,9 +38,9 @@ unloadNamespace("datasets")
 
 load the RDS with number, proportion of neighboring cells falling into each given cluster for VMH clusters or ARC clusters (within respective domain boundaries only)
 ```{r}
-vmhcelldists <- readRDS("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/05b-VMHdomain_VMHcells_NandProp_pertype_within_100-500u_and_50u_radii.RDS")
+vmhcelldists <- readRDS("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/05b-VMHdomain_VMHcells_NandProp_pertype_within_100-500u_and_50u_radii.RDS")
 
-arccelldists <- readRDS("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/05b-ARCdomain_ARCcells_NandProp_pertype_within_100-500u_and_50u_radii.RDS")
+arccelldists <- readRDS("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/05b-ARCdomain_ARCcells_NandProp_pertype_within_100-500u_and_50u_radii.RDS")
 
 
 ### add 'cell group'-level info (e.g., all oligo clusters, all microglia clusters, etc)
@@ -95,6 +95,7 @@ arccelldists3 <- list()
 i<-1
 for (i in c(1:length(rads))){
     arccelldists3[[i]] <- rbindlist(lapply(arccelldists2,FUN=function(x){x[[i]]}))
+    arccelldists3[[i]][,label1:=gsub(label1,pattern="^ARC_(.*)",replacement=paste0("xARC.","\\1"))]
 }
 names(arccelldists3) <- rads
 
@@ -102,8 +103,17 @@ vmhcelldists3 <- list()
 i<-1
 for (i in c(1:length(rads))){
     vmhcelldists3[[i]] <- rbindlist(lapply(vmhcelldists2,FUN=function(x){x[[i]]}))
+    vmhcelldists3[[i]][,label1:=gsub(label1,pattern="^VMH_(.*)",replacement=paste0("xVMH.","\\1"))]
+    vmhcelldists3[[i]][,label1:=gsub(label1,pattern="^xVMH.Lateral_border",replacement="xVMH.LateralBorder")]
 }
 names(vmhcelldists3) <- rads
+
+## subset these to 50 and 100 unit radii for sup figs
+vmhcelldists3 <- vmhcelldists3[c(1:2)]
+arccelldists3 <- arccelldists3[c(1:2)]
+rads <- names(vmhcelldists3)
+
+rm(i)
 ```
 
 now make violin plots faceted on cell1 label with supercl on the x axis and proportion of neighbors on the y axis. one plot per radius per VMH/ARC.
@@ -138,7 +148,7 @@ lapply(c(1:length(rads)),FUN=function(i){
                        " total neighbors"))+
         theme(axis.text.x = element_text(size = 9,angle=90,vjust=0.5), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 18,hjust=0.5), strip.text = element_text(size=12), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),strip.background = element_blank())+
     
-    pdf(paste0("plots/07_Domains-subdomains_by_knnSmoothing_Banksytypes/05b-Celltype_proportions_in_various_radii_from_eachARCVMH_clustertype/supercluster_props_in_",
+    pdf(paste0("manuscript_plots/Supplemental/SFigparts-local_celltype_props_forVMHARCclusts/supercluster_props_in_",
                gsub(names(vmhcelldists3)[i],pattern="d(.*)",replacement="\\1"),
                "unit_radius.pdf"),
         height=40,width=15
@@ -182,7 +192,7 @@ lapply(c(1:length(rads)),FUN=function(i){
                        " total neighbors"))+
         theme(axis.text.x = element_text(size = 9,angle=90,vjust=0.5), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 18,hjust=0.5), strip.text = element_text(size=12), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),strip.background = element_blank())
     
-    pdf(paste0("plots/07_Domains-subdomains_by_knnSmoothing_Banksytypes/05b-Celltype_proportions_in_various_radii_from_eachARCVMH_clustertype/supercluster_props_in_",
+    pdf(paste0("manuscript_plots/Supplemental/SFigparts-local_celltype_props_forVMHARCclusts/supercluster_props_in_",
                gsub(names(vmhcelldists3)[i],pattern="d(.*)",replacement="\\1"),
                "unit_radius_by_neighbortype.pdf"),
         height=40,width=15

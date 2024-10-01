@@ -1,7 +1,7 @@
 ---
 title: "Fig1_Overview"
 author: "Bernard Mulvey"
-date: "2024-08-21"
+date: "2024-10-01"
 output: html_document
 ---
 
@@ -58,6 +58,8 @@ bscl[cl=="Vis13",cl:="Portal Vasc."]
 bscl[cl=="Vis14",cl:="Astro"]
 bscl[cl=="Vis15",cl:="GABA.2"]
 
+## Vis11 is a donor/sample-specific cluster, so remove that one for plotting here.
+bscl <- bscl[cl!="Vis11"]
 
 bscl[,dom:=cl]
 bscl[dom %in% c("VMH.1","VMH.2"),dom:="VMH"]
@@ -65,6 +67,10 @@ bscl[dom %in% c("ARC.1","ARC.2"),dom:="ARC"]
 bscl[dom %in% c("OT.1","OT.2","OT.3"),dom:="OT"]
 bscl[!(dom %in% c("VMH","ARC","OT")),dom:="Other"]
 
+# subset the visium obj to non-cluster 11 spots for plotting
+hyp2 <- hyp2[,colnames(hyp2) %in% bscl$rn]
+
+# append col labels to rest of visium data
 bscl<-DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
 hyp2$k15dom <- bscl$cl
 hyp2$`Visium Domain` <- factor(bscl$dom,levels=c("ARC","VMH","OT","Other"))
@@ -101,20 +107,15 @@ bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
 hypx$dom <- bksmooth$dualVMHARC4
 ```
 
-### previously made a working 15-color palette, so we can use this for both Xen/Vis VMH/ARC at subdomain/cluster levels (max 8 VM+ARC combined, in xenium) and for overarching domains (2 colors + a gray for other)
-
-that prior palette, with slots 2-3 for ARC, 1 and 4 for VMH, and 5-6 for WM or other, was: "#269422", "#169482", "#4a2881", "#6A0D53", "#3D4047", "#A9A7A9", "#F70022", "#551CFD", "#F59B26", "#00B3FD", "#FF0DF7", "#D193FE", "#D1CA1C", "#FB479F", "#AD260D"
 The colors slotted in 1 and 3 are also picked to have the same luminance so that gene expression coloration fill in escheR grayscale doesn't look falsely darker or lighter in one spot type vs. the other 
 ```{r}
-pal <- c("#8c63cf","#5dd959","#F59B26","#A9A7A9")
-names(pal) <- c("VMH","ARC","OT","Other")
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
 
-### also save the prior palette for quick loadup
-fullpal <- c("#8c63cf", "#169482" ,"#5dd959" , "#6A0D53","#F70022", "#F59B26", "#D1CA1C", "#551CFD", "#D193FE", "#3D4047", "#00B3FD", "#FF0DF7", "#A9A7A9", "#FB479F", "#AD260D")
-# saveRDS(fullpal,"manuscript_plots/15color_palette.RDS")
+pal <- pals[[1]]
 
-## the fifteenth color is not represented in our figure 1 sample, which doesn't have one of the domains; since fig 1 is the only place we're using this palette just make that 15th color label whatever 
-names(fullpal) <- c("VMH.1","ARC.1","ARC.2","VMH.2","OT.1","OT.2","OT.3","GABA.1","PeriVN","SON","Vascular","Astro","Portal Vasc.","GABA.2","NA")
+
+fullpal <- readRDS("manuscript_plot_code/14color_palette.RDS")
+
 #### set levels for the domain labels so they appear in the same order
 hyp2$k15dom <- factor(hyp2$k15dom,levels=c("VMH.1","VMH.2","ARC.1","ARC.2","OT.1","OT.2","OT.3","GABA.1","GABA.2","SON","Vascular","Astro","PeriVN","Portal Vasc."))
 ```
@@ -175,19 +176,6 @@ rastumap <- rastumap[key %in% bkcl$rn]
 rastumap <- merge.data.table(rastumap,bkcl,by.x="key",by.y="rn")
 
 
-### set up the palette accordingly 551CFD
-xenpal <- c("#8c63cf","#5dd959" , "#F59B26", "#D193FE","#FB479F","#E9DF00DF" ,"#A9A7A9","#00B3FD","#3D4047","#FF0DF7","#AD260D")
-names(xenpal) <- c("VMH (4)",
-                   "ARC (5)",
-                   "Oligo (4)",
-                   "PeriVN (Excitatory) (1)",
-                   "Other GABAergic Neurons (2)",
-                   "Astro (2)",
-                   "Tanycytes, Portal Vasc. (4)",
-                   "Vascular and Peripheral Immune (5)",
-                   "SON (2)",
-                   "Non-SON AVP+OXT+ (1)",
-                   "Microglia (3)")
 
 
 ### lastly, in the case of the xenium spotplot of all cell groups, we need to put them in a specific order for them to fit within the plot space alongside 1225B: VMH, ARC, SON, Astro, Oligo, Microglia, PeriVN, Non-SON AVP+OXT+, Tanycytes n portal, Other GABA, Vasc n periph
@@ -197,6 +185,9 @@ bkcl$supercl <- factor(bkcl$supercl,levels=c("VMH (4)","ARC (5)","SON (2)","Astr
 
 ### Panel D is possibly the xenium cluster UMAP, which we should re-generate here with matched palette components where possible.
 ```{r}
+xenpal <- pals[["xen_cellgroups"]]
+stopifnot(all(unique(bkcl$supercl) %in% names(xenpal)))
+
 p <- ggplot(rastumap,aes(x=UMAP1_CA,y=UMAP2_CA,color=supercl))+ 
    xlab("UMAP dim 1")+
    ylab("UMAP dim 2")+
@@ -527,8 +518,7 @@ rm(pani,p)
 
 ### xenium panels: no WM "domain" defined, so change the domain color palette to exclude WM. also remove the "other" category, since we only have VMH/ARC outlines colored. (expression is filled with grayscale.)
 ```{r}
-pal <- c("#8c63cf","#5dd959")
-names(pal) <- c("VMH","ARC")
+pal <- pal[1:2]
 ```
 
 ### The xenium expression panels (I, J,K) are going to be tricky -- there's so many spots we can't really use the line-color / fill heuristic. we'll have to add an outline around the domain instead.
@@ -561,7 +551,7 @@ rm(panja,panjv)
 colData(panj)$`log counts` <- as.numeric(logcounts(panj)["NR5A1",])
 
 p <- make_escheR(panj,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+p <- p |> add_fill("log counts",size=0.2,point_size = 0.225)
 
 pdf("manuscript_plots/Fig1/1J-X99_1225B_NR5A1.pdf",height=2,width=2)
 p+
@@ -584,7 +574,7 @@ pank <- hypx["POMC",hypx$sample_id=="X99_1225B"]
 colData(pank)$`log counts` <- as.numeric(logcounts(pank)["POMC",])
 
 p <- make_escheR(pank,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+p <- p |> add_fill("log counts",size=0.2,point_size = 0.225)
 
 pdf("manuscript_plots/Fig1/1K-X99_1225B_POMC.pdf",height=2,width=2)
 p+
@@ -606,7 +596,7 @@ panl <- hypx["KLK6",hypx$sample_id=="X99_1225B"]
 colData(panl)$`log counts` <- as.numeric(logcounts(panl)["KLK6",])
 
 p <- make_escheR(panl,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.175)
+p <- p |> add_fill("log counts",size=0.2,point_size = 0.225)
 
 pdf("manuscript_plots/Fig1/1L-X99_1225B_KLK6.pdf",height=2,width=2)
 p+
@@ -627,6 +617,21 @@ sessionInfo()
 sessioninfo::session_info()
 ```
 R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods   base     R version 4.4.1 RC (2024-06-06 r86719)
 Platform: aarch64-apple-darwin20
 Running under: macOS Sonoma 14.5
 
@@ -716,7 +721,7 @@ loaded via a namespace (and not attached):
 [166] gridtext_0.1.5            memoise_2.0.1             bslib_0.7.0              
 [169] benchmarkmeData_1.0.4     bit_4.0.5                
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────────
+─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -726,11 +731,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-09-19
+ date     2024-10-01
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────────────
+─ Packages ───────────────────────────────────────────────────────────────────────
  ! package                  * version   date (UTC) lib source
    abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
    AnnotationDbi              1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
@@ -928,4 +933,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-───────────────────────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────────────
