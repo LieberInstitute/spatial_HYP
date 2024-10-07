@@ -37,7 +37,7 @@ unloadNamespace("datasets")
 Here, we're going to have to re-run spotsweeper on the raw SPE and crank out the plots anew (we filtered the spots but didn't save info on which were which).
 ```{r}
 hyp2 <- readRDS("spatial_HYP/processed-data/02_build_spe/spe_n10.RDS")
-### for reference: already filtered to in-tissue, non-zero-count spots
+
 ```
 
 ## get chrM high-end outliers, sum umi low-end outliers, sum-gene low end outliers
@@ -98,6 +98,7 @@ umiplt <- lapply(unique(hyp2$sample_id),FUN=function(s){
     p <- p+
         scale_fill_gradient(low="white",high="black")+
         scale_y_reverse()+
+        labs(color="UMIs Filtering\nStep",fill="N UMIs")+
         scale_color_manual(values=c(NA,"red","blue"))+
         ggtitle(samplut[match(s,samplut$sample_id),manuscript_id])
     return(p)
@@ -111,6 +112,7 @@ geneplt <- lapply(unique(hyp2$sample_id),FUN=function(s){
     p <- p+
         scale_fill_gradient(low="white",high="black")+
         scale_y_reverse()+
+        labs(color="nGenes Filtering\nStep",fill="N Unique\nGenes")+
         scale_color_manual(values=c(NA,"red","blue"))+
         ggtitle(samplut[match(s,samplut$sample_id),manuscript_id])
     return(p)
@@ -127,6 +129,7 @@ chrMplt <- lapply(unique(hyp2$sample_id),FUN=function(s){
     p <- p+
         scale_fill_gradient(low="white",high="black")+
         scale_y_reverse()+
+        labs(color="chrM Filtering\nStep",fill="Mito Read %")+
         scale_color_manual(values=pal)+
         ggtitle(samplut[match(s,samplut$sample_id),manuscript_id])
     return(p)

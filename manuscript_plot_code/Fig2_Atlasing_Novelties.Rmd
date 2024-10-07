@@ -420,6 +420,17 @@ ggplot(pani[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
     theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")))
 dev.off()
 
+## save an alternative version with cell types faceted
+pdf("manuscript_plots/Fig2/2Ialt-ARC_celltypes_1225A_facet.pdf",height=3.75,width=3.75)
+ggplot(pani[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
+    geom_point(size=0.075,stroke=0.375)+
+    scale_color_manual(values=arcpal)+
+    facet_wrap(~banksyclus)+
+    #guides(color=guide_legend(override.aes = list(size=1)))+
+    guides(color="none")+
+    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),strip.text=element_markdown(size=8),strip.background=element_blank(),strip.background.x = element_blank(),strip.background.y=element_blank())
+dev.off()
+
 
 rm(pani)
 
@@ -440,6 +451,17 @@ ggplot(panj[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
     guides(color=guide_legend(override.aes = list(size=1)))+
     labs(color="VMH Cluster")+
     theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")))
+dev.off()
+
+## save an alternative version with cell types faceted
+pdf("manuscript_plots/Fig2/2Jalt-VMH_celltypes_1225A_facet.pdf",height=3.75,width=3.75)
+ggplot(panj[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
+    geom_point(size=0.075,stroke=0.375)+
+    scale_color_manual(values=vmhpal)+
+    facet_wrap(~banksyclus)+
+    #guides(color=guide_legend(override.aes = list(size=1)))+
+    guides(color="none")+
+    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),strip.text=element_markdown(size=8),strip.background=element_blank(),strip.background.x = element_blank(),strip.background.y=element_blank())
 dev.off()
 
 
@@ -780,7 +802,6 @@ dev.off()
 
 rm(mkres,pltdat)
 ```
-
 
 
 ### reprod info

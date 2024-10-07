@@ -46,6 +46,17 @@ unloadNamespace("datasets")
 ```{r}
 hypx <- readRDS("xenium_HYP/processed-data/04_general_QC_and_normalization/01b-sfe_controlOutliers_and_giantNuclei_filtered.RDS")
 
+## replace sample names with manuscript sample names
+mscriptids <- fread("standardized_sampleids_for_plotting.txt")
+tmpcd <- as.data.table(colData(hypx),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,mscriptids[,.(sample_id,manuscript_id)],by="sample_id",all.x=T)
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(hypx),]
+tmpcd$rn <- NULL
+
+colData(hypx) <- tmpcd
+hypx$sample_id <- hypx$manuscript_id
+
+### load domains, clusters, etc
 bksmooth <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt") ## xenium domain assignments after smoothing, by xenium cell
 
 ## we'll want two sets of data: one after filtering, before clustering, and another only with retained clusters. drop discarded cell clusters, too
@@ -57,27 +68,11 @@ bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 
 ## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
-arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
-## simplify these by removing VMH/ARC and underscores; asterisk-ize so the gene names  can be italiczed in ggplot elements; remove vmh and arc from the names but add a temporary column here so we know they're VMH and ARC for mapping onto the de result sets
-arcvmhanno[,subclus_domain:=gsub(subclus_annot,pattern="^(VMH)_.*$",replacement="\\1")]
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="VMH_",replacement="")]
-
-arcvmhanno[subclus_domain!="VMH",subclus_domain:=gsub(subclus_annot,pattern="^(ARC)_.*$",replacement="\\1")]
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="ARC_",replacement="")]
-
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
-arcvmhanno[subclus_annot=="SLC17A6-CRHR2",subclus_annot:="*SLC17A6*-*CRHR2*"]
-arcvmhanno[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*NRGN*"]
-arcvmhanno[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
-arcvmhanno[subclus_annot=="AGRP",subclus_annot:="*AGRP*"]
-arcvmhanno[subclus_annot=="TAC3-AR-ESR1",subclus_annot:="*TAC3*-*AR*-*ESR1*"]
-arcvmhanno[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo"]
-arcvmhanno[subclus_annot=="Excit-SLC17A7-Glial-Mixed",subclus_annot:="*SLC17A7*-Glia"]
-arcvmhanno[subclus_annot=="GAL-TRH-GHRH",subclus_annot:="*GAL*-*TRH*-*GHRH*"]
+arcvmhanno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
 
 ## append these to the other annots and replace bjm_annot with the ARC/VMH cell type labels where applicable
 bkanno <- merge.data.table(bkanno,arcvmhanno,by="bjm_annot",all.x=T)
-bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
+bkanno[!is.na(plotclusname),bjm_annot:=plotclusname]
 
 ## now merge the cluster assignments with annotations
 bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
@@ -126,7 +121,7 @@ xenqcplots[[1]] <- ggplot(meds,aes(x=1,y=V1))+
     scale_x_continuous(limits=c(0,2),expand=c(0,0))+
     facet_wrap(~variable,scales="free_y",nrow=1) +
     ylab("Sample Median (all cells)")+
-    theme(axis.text.x = element_blank(),axis.ticks.x=element_blank(),axis.title.x=element_blank())
+    theme(axis.text.x = element_blank(),strip.text=element_text(size=6),axis.ticks.x=element_blank(),axis.title.x=element_blank(),axis.title.y=element_text(size=8))
 
 rm(meds)
 ```
@@ -149,10 +144,10 @@ cellvals[variable=="deprecated_codeword_counts",variable:="Deprecated\nCodeword\
 # simplest approach is two violins: https://stackoverflow.com/questions/48936704/manual-specification-of-draw-quantile-argument-in-violin-plot-call-in-r
 
 xenqcplots[[2]] <- ggplot(cellvals[variable %in% c("Transcript\nCounts","Cell\nArea","Nucleus\nArea","Unique\nGenes")],aes(x=sample_id,y=value))+
-    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.1,0.9),linetype="dashed",linewidth=0.5)+
-    geom_violin(aes(fill=sample_id),show.legend=FALSE,draw_quantiles=0.5,linewidth=0.8,fill="transparent")+
+    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.25,0.75),linewidth=0.85)+
+    geom_violin(aes(fill=sample_id),show.legend=FALSE,draw_quantiles=0.5,linewidth=1,fill="transparent")+
     facet_wrap(~variable,scales="free_y",nrow = 1,)+
-    theme(strip.text = element_text(size=6),axis.text.x=element_text(angle=90),title = element_text(size=14),plot.title.position = "plot")+
+    theme(strip.text = element_text(size=6),axis.text.x=element_text(size=7,angle=45,hjust=1,vjust=1),title = element_text(size=14),plot.title.position = "plot",axis.title.y=element_text(size=8))+
     ylab("Cell Values (All 41 Banksy clusters)")+
     xlab("Sample ID")
 ```
@@ -205,7 +200,7 @@ xenqcplots[[3]] <- ggplot(meds,aes(x=1,y=V1))+
     scale_x_continuous(limits=c(0,2),expand=c(0,0))+
     facet_wrap(~variable,scales="free_y",nrow=1) +
     ylab("Sample Median (Cells in 33 Retained Clusters)")+
-    theme(axis.text.x = element_blank(),axis.ticks.x=element_blank(),axis.title.x=element_blank())
+    theme(axis.text.x = element_blank(),strip.text=element_text(size=6),axis.ticks.x=element_blank(),axis.title.x=element_blank(),axis.title.y=element_text(size=8))
 
 rm(meds)
 
@@ -222,10 +217,10 @@ retaincells[variable=="nucleus_area",variable:="Nucleus\nArea"]
 retaincells[variable=="nGenes",variable:="Unique\nGenes"]
                     
 xenqcplots[[4]] <- ggplot(retaincells[variable %in% c("Transcript\nCounts","Cell\nArea","Nucleus\nArea","Unique\nGenes")],aes(x=sample_id,y=value))+
-    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.1,0.9),linetype="dashed",linewidth=0.5)+
-    geom_violin(aes(fill=sample_id),show.legend=FALSE,draw_quantiles=0.5,linewidth=0.8,fill="transparent")+
+    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.25,0.75),linetype="dashed",linewidth=0.85)+
+    geom_violin(aes(fill=sample_id),show.legend=FALSE,draw_quantiles=0.5,linewidth=1,fill="transparent")+
     facet_wrap(~variable,scales="free_y",nrow = 1,)+
-    theme(strip.text = element_text(size=6),axis.text.x=element_text(angle=90),title = element_text(size=14),plot.title.position = "plot")+
+    theme(strip.text = element_text(size=6),axis.text.x=element_text(size=7,angle=45,hjust=1,vjust=1),title = element_text(size=14),plot.title.position = "plot",axis.title.y=element_text(size=8))+
     ylab("Cell Values (33 retained Banksy clusters)")+
     xlab("Sample ID")
 ```
@@ -233,25 +228,25 @@ xenqcplots[[4]] <- ggplot(retaincells[variable %in% c("Transcript\nCounts","Cell
 
 ### lastly, make violins per QC metric for cells in each VMH cluster and each ARC cluster, by sample. (we don't need to do this twice because the discarding is being done by cluster label, which doesnt involve any of these clusters).
 ```{r}
-vmhcellvals <- cellvals[variable %in% c("Transcript\nCounts","Cell\nArea","Nucleus\nArea","Unique\nGenes")&banksyclus %in% c("*FEZF1*-*LAMP5*-*NRGN*","Microglia","*HCRT*-*SLC6A3*-*TAC1*","*SLC17A6*-*CRHR2*")]
+vmhcellvals <- cellvals[variable %in% c("Transcript\nCounts","Cell\nArea","Nucleus\nArea","Unique\nGenes")&banksyclus %in% c("*LAMP5*","xVMH-Glia Mixed","*xVMH Lateral Border","*CRHR2*")]
 vmhcellvals[,banksyclus:=paste0("VMH ",banksyclus)]
 
 xenqcplots[[5]] <- ggplot(vmhcellvals,aes(x=sample_id,y=value))+
-    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.1,0.9),linetype="dashed",linewidth=0.5)+
-    geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=0.8,fill="transparent")+
+    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.25,0.75),linewidth=0.85)+
+    geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=1,fill="transparent")+
     facet_grid(variable~banksyclus,scales="free_y")+
-    theme(strip.text = element_markdown(size=6),axis.text.x=element_text(angle=90))+
+    theme(strip.text = element_markdown(size=6),axis.text.x=element_text(size=7,angle=45,hjust=1,vjust=1),axis.title.y=element_text(size=8))+
     ylab("Cell Values")+
     xlab("Sample ID")
 
-arccellvals <- cellvals[variable %in% c("Transcript\nCounts","Cell\nArea","Nucleus\nArea","Unique\nGenes")&banksyclus %in% arcvmhanno[subclus_domain=="ARC",subclus_annot]]
+arccellvals <- cellvals[variable %in% c("Transcript\nCounts","Cell\nArea","Nucleus\nArea","Unique\nGenes")&banksyclus %in% arcvmhanno[subclus_domain=="ARC",plotclusname]]
 arccellvals[,banksyclus:=paste0("ARC ",banksyclus)]
 
 xenqcplots[[6]] <- ggplot(arccellvals,aes(x=sample_id,y=value))+
-    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.1,0.9),linetype="dashed",linewidth=0.5)+
-    geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=0.8,fill="transparent")+
+    geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.25,0.75),linewidth=0.85)+
+    geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=1,fill="transparent")+
     facet_grid(variable~banksyclus,scales="free_y")+
-    theme(strip.text = element_markdown(size=6),axis.text.x=element_text(angle=90))+
+    theme(strip.text = element_markdown(size=6),axis.text.x=element_text(size=7,angle=45,hjust=1,vjust=1),axis.title.y=element_text(size=8))+
     ylab("Cell Values")+
     xlab("Sample ID")
 ```

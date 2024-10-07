@@ -33,6 +33,34 @@ data obtained from NeMO identifiers nemo:dat-kjseyhn and nemo:dat5ue6x8t and Bra
 bothhyp <- readRDS("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/bothdatasets_raw_asSCE.RDS")
 ```
 
+## get VMH and ARH subclass pseudobulk DE for plotting in the future if we want it
+```{r}
+## subclass (218 types); samples labeled by library label; unique donor mice by donor_label
+vasubc <- grep(unique(bothhyp$subclass),pattern="VMH|ARH",value=T)
+tmpsub <- bothhyp[,bothhyp$subclass %in% vasubc]
+tmp.subag <- aggregateToPseudoBulk(tmpsub,sample_id = "library_label.x",cluster_id = "subclass",assay = "counts",BPPARAM = sbp)
+
+## convert to expression with same parameters we're using for the DE analysis below
+tmp.subdif <- dreamlet::processAssays(tmp.subag,min.cells = 15,min.count = 1,min.samples = 20,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,formula = ~donor_sex+(1|donor_label),BPPARAM = sbp)
+
+## append donor label, donor sex to the resulting pseudobulk results
+metad <- as.data.table(cbind(colnames(tmp.subag),colData(tmp.subag)))
+setnames(metad,1,"sample_id")
+
+subcl.pb <- rbindlist(lapply(tmp.subdif,FUN=function(x){
+   y <- as.data.table(x$E,keep.rownames=T)
+   z <- melt(y,id.vars="rn")
+   z <- merge.data.table(z,metad,by.x="variable",by.y="sample_id")
+   return(z)
+}),idcol = "assay")
+
+## save
+saveRDS(subcl.pb,"processed-data/12-Mouse comparisons/02-VMHARH_subclass_pseudobulkexpr.RDS")
+
+rm(subcl.pb,metad,tmp.subag,tmp.subdif,vasubc,tmpsub)
+gc(full=T)
+```
+
 calculate sex diffs with random effect of donor (to account for multiple samples from same donor) for each subclass and supertype
 ```{r}
 sbp <- MulticoreParam(10)
@@ -43,6 +71,8 @@ subag <- aggregateToPseudoBulk(bothhyp,sample_id = "library_label.x",cluster_id 
 subdif <- dreamlet::processAssays(subag,min.cells = 15,min.count = 1,min.samples = 20,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,formula = ~donor_sex+(1|donor_label),BPPARAM = sbp)
 
 # Warning message: In dreamlet::processAssays(subag, min.cells = 15, min.count = 1,  : Not enough samples retained or model fit fails: x012_MEA_Slc17a7_Glut, x036_Vip_Gaba, x037_Sncg_Gaba, x038_RHP_COA_Ndnf_Gaba, x039_Lamp5_Gaba, x042_Pvalb_Gaba, x043_Sst_Gaba, x044_STR_Prox1_Lhx6_Gaba, x045_STRv_Lhx8_Gaba, x046_Sst_Chodl_Gaba, x047_NDB_SI_MA_STRv_Lhx8_Gaba, x048_GPe_Sox6_Cyp26b1_Gaba, x049_PAL_STR_Gaba_Chol, x050_OT_D3_Folh1_Gaba, x051_MSN_D1_Gaba, x052_MSN_D2_Gaba, x053_MSN_D1_Sema5a_Gaba, x054_STR_PAL_Chst9_Gaba, x055_IA_Mgp_Gaba, x056_NDB_SI_ant_Prdm12_Gaba, x057_LSX_Sall3_Pax6_Gaba, x058_LSX_Otx2_Gaba, x059_LSX_Nkx2_1_Gaba, x060_LSX_Prdm12_ve_Gaba, x061_LSX_Prdm12_do_Gaba, x063_MH_Tac2_Glut, x064_LH_Pou4f1_Sox1_Glut, x066_AV_Col27a1_Glut, x067_PVT_PT_Ntrk1_Glut, x068_CM_IAD_CL_PCN_Glut, x069_TH_Prkcd_Grin2c_Glut, x070_RE_Xi_Nox4_Glut, x071_MG_POL_SGN_Glut, x072_PF_Fzd5_Glut, x077_MOB_Eomes_Ms4a15_Glut, x078_BST_po_Glut, x079_TRS_Sln_Glut, x080_GPi_Skor1_Gaba_Glut, x081_RT_ZI_Gnb3_Gaba, x083_MEA_BST_Sox6_Gaba, x084_MEA_BST_Lhx6_Sp9_Gaba, x085_MEA_BST_Lhx6_Nr2e1_Gaba, [... truncated]
+
+# continue with sex DE analyses
 
 subdif <- dreamlet::dreamlet(subdif,BPPARAM = sbp,formula = ~donor_sex+(1|donor_label))
 
@@ -76,11 +106,17 @@ keeptypes <- merge.data.table(unique(keeptypes[!is.na(nmale),.(supertype,nmale)]
 
 
 keeptypes <- unique(keeptypes[Nmiceforclust>=12&nmale>=5&nfem>=5,supertype])
-## all 22 of these are represented in at least 5 of each sex for a total of 12 or more mice.
+## all 22 of these are represented in at least 5 of each sex and 12 or more total mice.
 
 
 ### samples labeled by library label; unique donor mice by donor_label
 subag <- aggregateToPseudoBulk(bothhyp[,bothhyp$supertype %in% keeptypes],sample_id = "library_label.x",cluster_id = "supertype",assay = "counts",BPPARAM = sbp)
+
+## save pseudobulk counts for future plotting if desired
+
+
+
+# continue with sex de modeling
 
 subdif <- dreamlet::processAssays(subag,min.cells = 15,min.count = 1,min.samples = 12,min.prop = 0.4,normalize.method = "TMM",useCountsWeights = T,formula = ~donor_sex+(1|donor_label),BPPARAM = sbp)
 

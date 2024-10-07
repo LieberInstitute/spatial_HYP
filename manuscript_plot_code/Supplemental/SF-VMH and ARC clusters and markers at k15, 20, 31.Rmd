@@ -1,7 +1,7 @@
 ---
 title: "SF-VMH and ARC clusters and markers at k15, 20, 31"
 output: html_document
-date: "2024-09-20"
+date: "2024-10-07"
 ---
 
 ```{r setup, include=FALSE}
@@ -507,7 +507,6 @@ mapply(x=bscls.dt,y=names(bscls.dt),SIMPLIFY=FALSE,FUN=function(x,y){
 sessionInfo()
 sessioninfo::session_info()
 ```
-
 R version 4.4.1 RC (2024-06-06 r86719)
 Platform: aarch64-apple-darwin20
 Running under: macOS Sonoma 14.5
@@ -523,24 +522,22 @@ time zone: America/Chicago
 tzcode source: internal
 
 attached base packages:
-[1] parallel  grid      stats4    stats     graphics  grDevices utils     methods  
-[9] base     
+[1] grid      stats4    stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
- [1] ggtext_0.1.2                viridis_0.6.5              
- [3] viridisLite_0.4.2           circlize_0.4.16            
- [5] Cairo_1.6-2                 ggrastr_1.0.2              
- [7] scran_1.32.0                scuttle_1.14.0             
- [9] BiocParallel_1.38.0         parallelly_1.38.0          
-[11] colorout_1.3-0.2            ComplexHeatmap_2.20.0      
-[13] spatialLIBD_1.16.2          SpatialExperiment_1.14.0   
-[15] SingleCellExperiment_1.26.0 SummarizedExperiment_1.34.0
-[17] Biobase_2.64.0              GenomicRanges_1.56.1       
-[19] GenomeInfoDb_1.40.1         IRanges_2.38.1             
-[21] S4Vectors_0.42.1            BiocGenerics_0.50.0        
-[23] MatrixGenerics_1.16.0       matrixStats_1.3.0          
-[25] gridExtra_2.3               ggplot2_3.5.1              
-[27] data.table_1.15.4           rlang_1.1.4                
+ [1] BiocParallel_1.38.0         parallelly_1.38.0          
+ [3] colorout_1.3-0.2            ggtext_0.1.2               
+ [5] viridis_0.6.5               viridisLite_0.4.2          
+ [7] circlize_0.4.16             Cairo_1.6-2                
+ [9] ggrastr_1.0.2               ComplexHeatmap_2.20.0      
+[11] spatialLIBD_1.16.2          SpatialExperiment_1.14.0   
+[13] SingleCellExperiment_1.26.0 SummarizedExperiment_1.34.0
+[15] Biobase_2.64.0              GenomicRanges_1.56.1       
+[17] GenomeInfoDb_1.40.1         IRanges_2.38.1             
+[19] S4Vectors_0.42.1            BiocGenerics_0.50.0        
+[21] MatrixGenerics_1.16.0       matrixStats_1.3.0          
+[23] gridExtra_2.3               ggplot2_3.5.1              
+[25] data.table_1.15.4           rlang_1.1.4                
 
 loaded via a namespace (and not attached):
   [1] later_1.3.2               BiocIO_1.14.0             bitops_1.0-7             
@@ -549,48 +546,47 @@ loaded via a namespace (and not attached):
  [10] doParallel_1.0.17         rprojroot_2.0.4           lattice_0.22-6           
  [13] magrittr_2.0.3            limma_3.60.3              plotly_4.10.4            
  [16] sass_0.4.9                rmarkdown_2.27            jquerylib_0.1.4          
- [19] yaml_2.3.9                metapod_1.12.0            httpuv_1.6.15            
- [22] spam_2.10-0               sessioninfo_1.2.2         cowplot_1.1.3            
- [25] DBI_1.2.3                 RColorBrewer_1.1-3        golem_0.4.1              
- [28] maps_3.4.2                abind_1.4-5               zlibbioc_1.50.0          
- [31] purrr_1.0.2               RCurl_1.98-1.14           rappdirs_0.3.3           
- [34] GenomeInfoDbData_1.2.12   ggrepel_0.9.5             irlba_2.3.5.1            
- [37] dqrng_0.4.1               DelayedMatrixStats_1.26.0 codetools_0.2-20         
- [40] DelayedArray_0.30.1       xml2_1.3.6                DT_0.33                  
- [43] shape_1.4.6.1             tidyselect_1.2.1          farver_2.1.2             
- [46] UCSC.utils_1.0.0          ScaledMatrix_1.12.0       shinyWidgets_0.8.6       
- [49] BiocFileCache_2.12.0      GenomicAlignments_1.40.0  jsonlite_1.8.8           
- [52] GetoptLong_1.0.5          BiocNeighbors_1.22.0      scater_1.32.0            
- [55] iterators_1.0.14          foreach_1.5.2             tools_4.4.1              
- [58] Rcpp_1.0.13               glue_1.7.0                SparseArray_1.4.8        
- [61] xfun_0.45                 here_1.0.1                dplyr_1.1.4              
- [64] withr_3.0.0               BiocManager_1.30.23       fastmap_1.2.0            
- [67] bluster_1.14.0            fansi_1.0.6               digest_0.6.36            
- [70] rsvd_1.0.5                R6_2.5.1                  mime_0.12                
- [73] colorspace_2.1-0          RSQLite_2.3.7             config_0.3.2             
- [76] utf8_1.2.4                tidyr_1.3.1               generics_0.1.3           
- [79] rtracklayer_1.64.0        httr_1.4.7                htmlwidgets_1.6.4        
- [82] S4Arrays_1.4.1            scatterplot3d_0.3-44      pkgconfig_2.0.3          
- [85] gtable_0.3.5              blob_1.2.4                XVector_0.44.0           
- [88] htmltools_0.5.8.1         dotCall64_1.1-1           clue_0.3-65              
- [91] scales_1.3.0              png_0.1-8                 attempt_0.3.1            
- [94] knitr_1.48                rstudioapi_0.16.0         rjson_0.2.21             
- [97] curl_5.2.1                cachem_1.1.0              GlobalOptions_0.1.2      
-[100] Polychrome_1.5.1          BiocVersion_3.19.1        vipor_0.4.7              
-[103] AnnotationDbi_1.66.0      restfulr_0.0.15           pillar_1.9.0             
-[106] vctrs_0.6.5               promises_1.3.0            BiocSingular_1.20.0      
-[109] dbplyr_2.5.0              beachmat_2.20.0           cluster_2.1.6            
-[112] xtable_1.8-4              beeswarm_0.4.0            paletteer_1.6.0          
-[115] evaluate_0.24.0           magick_2.8.3              cli_3.6.3                
-[118] locfit_1.5-9.10           compiler_4.4.1            Rsamtools_2.20.0         
-[121] crayon_1.5.3              labeling_0.4.3            rematch2_2.1.2           
-[124] ggbeeswarm_0.7.2          munsell_0.5.1             Biostrings_2.72.1        
-[127] tiff_0.1-12               lazyeval_0.2.2            Matrix_1.7-0             
-[130] ExperimentHub_2.12.0      benchmarkme_1.0.8         sparseMatrixStats_1.16.0 
-[133] bit64_4.0.5               KEGGREST_1.44.1           statmod_1.5.0            
-[136] shiny_1.8.1.1             AnnotationHub_3.12.0      gridtext_0.1.5           
-[139] igraph_2.0.3              memoise_2.0.1             bslib_0.7.0              
-[142] benchmarkmeData_1.0.4     bit_4.0.5                
+ [19] yaml_2.3.9                httpuv_1.6.15             spam_2.10-0              
+ [22] sessioninfo_1.2.2         cowplot_1.1.3             DBI_1.2.3                
+ [25] RColorBrewer_1.1-3        golem_0.4.1               maps_3.4.2               
+ [28] abind_1.4-5               zlibbioc_1.50.0           purrr_1.0.2              
+ [31] RCurl_1.98-1.14           rappdirs_0.3.3            GenomeInfoDbData_1.2.12  
+ [34] ggrepel_0.9.5             irlba_2.3.5.1             DelayedMatrixStats_1.26.0
+ [37] codetools_0.2-20          DelayedArray_0.30.1       xml2_1.3.6               
+ [40] DT_0.33                   scuttle_1.14.0            shape_1.4.6.1            
+ [43] tidyselect_1.2.1          farver_2.1.2              UCSC.utils_1.0.0         
+ [46] ScaledMatrix_1.12.0       shinyWidgets_0.8.6        BiocFileCache_2.12.0     
+ [49] GenomicAlignments_1.40.0  jsonlite_1.8.8            GetoptLong_1.0.5         
+ [52] BiocNeighbors_1.22.0      scater_1.32.0             iterators_1.0.14         
+ [55] foreach_1.5.2             tools_4.4.1               Rcpp_1.0.13              
+ [58] glue_1.7.0                SparseArray_1.4.8         xfun_0.45                
+ [61] here_1.0.1                dplyr_1.1.4               withr_3.0.0              
+ [64] BiocManager_1.30.23       fastmap_1.2.0             fansi_1.0.6              
+ [67] digest_0.6.36             rsvd_1.0.5                R6_2.5.1                 
+ [70] mime_0.12                 colorspace_2.1-0          RSQLite_2.3.7            
+ [73] config_0.3.2              utf8_1.2.4                tidyr_1.3.1              
+ [76] generics_0.1.3            rtracklayer_1.64.0        httr_1.4.7               
+ [79] htmlwidgets_1.6.4         S4Arrays_1.4.1            scatterplot3d_0.3-44     
+ [82] pkgconfig_2.0.3           gtable_0.3.5              blob_1.2.4               
+ [85] XVector_0.44.0            htmltools_0.5.8.1         dotCall64_1.1-1          
+ [88] clue_0.3-65               scales_1.3.0              png_0.1-8                
+ [91] attempt_0.3.1             knitr_1.48                rstudioapi_0.16.0        
+ [94] rjson_0.2.21              curl_5.2.1                cachem_1.1.0             
+ [97] GlobalOptions_0.1.2       Polychrome_1.5.1          BiocVersion_3.19.1       
+[100] parallel_4.4.1            vipor_0.4.7               AnnotationDbi_1.66.0     
+[103] restfulr_0.0.15           pillar_1.9.0              vctrs_0.6.5              
+[106] promises_1.3.0            BiocSingular_1.20.0       dbplyr_2.5.0             
+[109] beachmat_2.20.0           cluster_2.1.6             xtable_1.8-4             
+[112] beeswarm_0.4.0            paletteer_1.6.0           evaluate_0.24.0          
+[115] magick_2.8.3              cli_3.6.3                 locfit_1.5-9.10          
+[118] compiler_4.4.1            Rsamtools_2.20.0          crayon_1.5.3             
+[121] labeling_0.4.3            rematch2_2.1.2            ggbeeswarm_0.7.2         
+[124] munsell_0.5.1             Biostrings_2.72.1         tiff_0.1-12              
+[127] lazyeval_0.2.2            Matrix_1.7-0              ExperimentHub_2.12.0     
+[130] benchmarkme_1.0.8         sparseMatrixStats_1.16.0  bit64_4.0.5              
+[133] KEGGREST_1.44.1           statmod_1.5.0             shiny_1.8.1.1            
+[136] AnnotationHub_3.12.0      gridtext_0.1.5            memoise_2.0.1            
+[139] bslib_0.7.0               benchmarkmeData_1.0.4     bit_4.0.5                
 > sessioninfo::session_info()
 ─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
@@ -602,7 +598,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-09-21
+ date     2024-10-07
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
@@ -630,7 +626,6 @@ loaded via a namespace (and not attached):
    bit64                  4.0.5     2020-08-30 [1] CRAN (R 4.4.0)
    bitops                 1.0-7     2021-04-24 [1] CRAN (R 4.4.0)
    blob                   1.2.4     2023-03-17 [1] CRAN (R 4.4.0)
-   bluster                1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    bslib                  0.7.0     2024-03-29 [1] CRAN (R 4.4.0)
    cachem                 1.1.0     2024-05-16 [1] CRAN (R 4.4.0)
    Cairo                * 1.6-2     2023-11-28 [1] CRAN (R 4.4.0)
@@ -655,7 +650,6 @@ loaded via a namespace (and not attached):
    doParallel             1.0.17    2022-02-07 [1] CRAN (R 4.4.1)
    dotCall64              1.1-1     2023-11-28 [1] CRAN (R 4.4.0)
    dplyr                  1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
-   dqrng                  0.4.1     2024-05-28 [1] CRAN (R 4.4.0)
    DT                     0.33      2024-04-04 [1] CRAN (R 4.4.0)
    edgeR                  4.2.0     2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    evaluate               0.24.0    2024-06-10 [1] CRAN (R 4.4.0)
@@ -688,7 +682,6 @@ loaded via a namespace (and not attached):
    htmlwidgets            1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
    httpuv                 1.6.15    2024-03-26 [1] CRAN (R 4.4.0)
    httr                   1.4.7     2023-08-15 [1] CRAN (R 4.4.0)
-   igraph                 2.0.3     2024-03-13 [1] CRAN (R 4.4.0)
    IRanges              * 2.38.1    2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
    irlba                  2.3.5.1   2022-10-03 [1] CRAN (R 4.4.0)
    iterators              1.0.14    2022-02-05 [1] CRAN (R 4.4.0)
@@ -710,7 +703,6 @@ loaded via a namespace (and not attached):
    MatrixGenerics       * 1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    matrixStats          * 1.3.0     2024-04-11 [1] CRAN (R 4.4.0)
    memoise                2.0.1     2021-11-26 [1] CRAN (R 4.4.0)
-   metapod                1.12.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    mime                   0.12      2021-09-28 [1] CRAN (R 4.4.0)
    munsell                0.5.1     2024-04-01 [1] CRAN (R 4.4.0)
    paletteer              1.6.0     2024-01-21 [1] CRAN (R 4.4.0)
@@ -745,8 +737,7 @@ loaded via a namespace (and not attached):
    scales                 1.3.0     2023-11-28 [1] CRAN (R 4.4.0)
    scater                 1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    scatterplot3d          0.3-44    2023-05-05 [1] CRAN (R 4.4.0)
-   scran                * 1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   scuttle              * 1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   scuttle                1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    sessioninfo            1.2.2     2021-12-06 [1] CRAN (R 4.4.0)
    shape                  1.4.6.1   2024-02-23 [1] CRAN (R 4.4.0)
    shiny                  1.8.1.1   2024-04-02 [1] CRAN (R 4.4.0)

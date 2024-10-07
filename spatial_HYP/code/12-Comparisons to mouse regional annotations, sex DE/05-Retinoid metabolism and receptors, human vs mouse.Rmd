@@ -1,0 +1,331 @@
+---
+title: "05-Retinoid metabolism and receptors, human vs mouse"
+output: html_document
+date: "2024-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(orthogene)
+library(UniProt.ws)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+
+## retinoic acid (metabolism) genes: reactome https://reactome.org/PathwayBrowser/#/R-HSA-5362517&DTAB=MT
+## retinoic acid signaling genes: wikipathways https://www.wikipathways.org/pathways/WP5188
+```{r}
+ras <- fread("raw-data/WP5188-datanodes.tsv")
+ras <- ras[,.(Label,Type,Identifier)]
+setnames(ras,c("symb.hg","moltype","dbid"))
+ras <- ras[moltype=="Protein"]
+ras[,dbid:=gsub(dbid,pattern="^uniprot:(.*)$",replacement="\\1")]
+
+ram <- fread("raw-data/reactome_R-HSA-5362517_retinoids.tsv",sep="\t",header=T)
+setnames(ram,c("moltype","numericid","dbid","symb.hg"))
+ram[,numericid:=NULL]
+ram <- ram[moltype=="Proteins"]
+ram[,symb.hg:=gsub(dbid,pattern="^.* (.*)$",replacement="\\1")]
+ram[,dbid:=gsub(dbid,pattern="^UniProt:(.*) .*$",replacement="\\1")]
+
+## concatenate the two sets for uniprot lookup to get more gene info:
+ra <- unique(rbind(ram[,.(dbid,symb.hg)],ras[,.(dbid,symb.hg)]))
+rm(ram,ras)
+
+## UniProt.ws to fetch more comprehensive gene info. it looks like ENSG identifiers throughout time are represented here so we should be able to get these using the ENSG IDs regardless of what genome builds the Visium/mouse data use to relative to this lookup.
+prots <- ra$dbid
+
+ra.genenames <- as.data.table(mapUniProt(from="UniProtKB_AC-ID",to="Gene_Name",query=prots))
+setnames(ra.genenames,2,"symb.hg")
+
+ra.ensg <- as.data.table(mapUniProt(from="UniProtKB_AC-ID",to="Ensembl",query=prots))
+setnames(ra.ensg,2,"ensg")
+ra.ensg[,ensg:=gsub(ensg,pattern="^(.*)\\..*$",replacement="\\1")]
+rag <- merge.data.table(ra.genenames,ra.ensg,by="From",all.x=T,all.y=T)
+
+rm(ra,ra.ensg,ra.genenames)
+
+## get mouse orthologs, don't drop nonorths (human gained genes will be informative) and don't drop genes with multiple entries (this is a comprehensive LUT, ostensibly only one ENSG/ENSM per actual gene is going to map in the visium or mouse datasets in the end)
+rag.ms <- orthogene::convert_orthologs(rag,gene_input = "ensg",input_species = "human",output_species = "mouse",drop_nonorths = F,gene_output = "columns",non121_strategy = "keep_both_species")
+rag <- merge.data.table(rag,rag.ms,by.x="ensg",by.y="input_gene",all=T)
+## get ens mouse ids using map_genes
+msens <- as.data.table(map_genes(rag.ms$ortholog_gene,species = "mouse"))
+## concatenate this together; for mouse genes without an ortholog, bind those onto the resulting df
+rag.ms <- merge.data.table(rag[ortholog_gene!="N/A"],unique(msens[,.(input,target)]),by.x="ortholog_gene",by.y="input",all.x=T)
+rag2 <- rag[ortholog_gene=="N/A"]
+rag2[,target:=""]
+rag.ms <- rbind(rag.ms,rag2)
+
+## clean all this bullshit up
+rm(ra,ra.ensg,ra.genenames,rag2,rag,addnlsymbs,prots,lut,msens)
+```
+
+
+load Visium VMH, ARC pseudobulk data and mouse scseq pseudobulk data, and get the respective genes from the data. mouse only has symbols here unfortunately.
+```{r}
+pbxp <- readRDS("processed-data/09-Sex DE/01d-pseudobulkExpr_01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+
+pbxp <- pbxp[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH"]][assay %in% c("VMH","ARC")&(gene_id %in% rag.ms$ensg|gene_name %in% rag.ms$symb.hg|gene_name %in% rag.ms$external_gene_name)]
+## we get all of the genes using just ens identifiers here ( symbols don't return any further, but belt and suspenders that to make certain ^)
+
+# append the ortholog LUT to the pseudobulk data to join with mouse data for plotting
+pbxp <- merge.data.table(pbxp,rag.ms,by.x="gene_id",by.y="ensg")
+keephgname <- c("gene_id","symb.hg","ortholog_gene","assay",grep(names(pbxp),pattern="^V",value=T))
+pbxp <- pbxp[,..keephgname]
+pbxp <- melt(pbxp,id.vars=c("gene_id","symb.hg","ortholog_gene","assay"))
+setnames(pbxp,"value","expr")
+pbxp[,spp:="Human"]
+pbxp[,assay:=paste0("v",assay)]
+pbxp[,variable:=NULL] # don't need it for plotting
+
+## subset our gene ortholog LUT to the mapped IDs from human (since there's redundancies there right now, and mouse is symbols only)
+rag.ms <- rag.ms[ensg %in% pbxp$gene_id]
+
+## get the mouse pseudobulk data from allen scRNAseq 
+mspb <- readRDS("processed-data/12-Mouse comparisons/02-VMHARH_subclass_pseudobulkexpr.RDS")
+setnames(mspb,c("rn","variable","value"),c("ortholog_gene","sample_id","expr"))
+mspb <- mspb[ortholog_gene %in% rag.ms$ortholog_gene]
+
+## append ortholog LUT here as well
+mspb <- merge.data.table(mspb,rag.ms,by.x="ortholog_gene",by.y="ortholog_gene",allow.cartesian=T)
+
+keepmsname <- c("assay","expr","ensg","ortholog_gene","symb.hg")
+mspb <- mspb[,..keepmsname]
+mspb[,spp:="Mouse"]
+
+## set the names to match
+setnames(pbxp,c("gene_id"),"ensg")
+
+## VMH table
+mshgpb.v <- rbind(pbxp[assay=="vVMH"],mspb[assay %in% grep(assay,pattern="VMH",value=T)])
+mshgpb.v[ortholog_gene=="N/A",ortholog_gene:="no ortholog"]
+mshgpb.v[,gene:=paste0(symb.hg,"\n(",ortholog_gene,")")]
+mshgpb.v[assay=="x123_VMH_Fezf1_Glut",assay:="Ms VMH *Fezf1*"]
+mshgpb.v[assay=="x124_VMH_Nr5a1_Glut",assay:="Ms VMH *Nr5a1*"]
+## make assay a factor so human comes first
+mshgpb.v[,assay:=factor(assay,levels=c("vVMH","Ms VMH *Fezf1*","Ms VMH *Nr5a1*"))]
+
+## drop genes that don't have mouse orthologs after all
+mshgpb.v <- mshgpb.v[!grepl("no ortholog",gene)]
+
+## ARC table
+mshgpb.a <- rbind(pbxp[assay=="vARC"],mspb[assay %in% grep(assay,pattern="ARH",value=T)])
+mshgpb.a[ortholog_gene=="N/A",ortholog_gene:="no ortholog"]
+mshgpb.a[,gene:=paste0(symb.hg,"\n(",ortholog_gene,")")]
+mshgpb.a[assay=="x114_TU_ARH_Otp_Six6_Gaba",assay:="Ms ARC *Otp*-*Six6*\n(GABAergic)"]
+mshgpb.a[assay=="x120_ARH_PVp_Tbx3_Gaba",assay:="Ms ARC *Tbx3*\n(GABAergic)"]
+mshgpb.a[assay=="x121_ARH_PVp_Tbx3_Glut",assay:="Ms ARC *Tbx3*\n(Glutamatergic)"]
+mshgpb.a[assay=="x075_PVa_ARH_Six3_Dopa_Gaba",assay:="Ms ARC *Six3*\n(DA/GABAergic)"]
+
+## make assay a factor so human comes first
+mshgpb.a[,assay:=factor(assay,levels=c("vARC","Ms ARC *Otp*-*Six6*\n(GABAergic)","Ms ARC *Tbx3*\n(GABAergic)","Ms ARC *Tbx3*\n(Glutamatergic)","Ms ARC *Six3*\n(DA/GABAergic)"))]
+
+## drop genes that don't have mouse orthologs after all
+mshgpb.a <- mshgpb.a[!grepl("no ortholog",gene)]
+
+## save RDS for plotting
+mshgretgenes <- list(vmh=mshgpb.v,arc=mshgpb.a)
+saveRDS(mshgretgenes,"processed-data/12-Mouse comparisons/05-retinoid metabolism and receptor genes ABAmsScrnaseq23 and visium pseudobulk xprs.RDS")
+
+```
+
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+[1] ggplot2_3.5.1       colorout_1.3-0.2    UniProt.ws_2.44.0   RSQLite_2.3.7      
+[5] BiocGenerics_0.50.0 orthogene_1.10.0    data.table_1.15.4   rlang_1.1.4        
+
+loaded via a namespace (and not attached):
+  [1] bitops_1.0-7              DBI_1.2.3                 grr_0.9.5                
+  [4] httpcache_1.2.0           magrittr_2.0.3            compiler_4.4.1           
+  [7] png_0.1-8                 vctrs_0.6.5               gprofiler2_0.2.3         
+ [10] pkgconfig_2.0.3           crayon_1.5.3              fastmap_1.2.0            
+ [13] backports_1.5.0           dbplyr_2.5.0              XVector_0.44.0           
+ [16] labeling_0.4.3            utf8_1.2.4                sessioninfo_1.2.2        
+ [19] UCSC.utils_1.0.0          purrr_1.0.2               bit_4.0.5                
+ [22] xfun_0.45                 zlibbioc_1.50.0           cachem_1.1.0             
+ [25] aplot_0.2.3               GenomeInfoDb_1.40.1       jsonlite_1.8.8           
+ [28] progress_1.2.3            blob_1.2.4                broom_1.0.6              
+ [31] parallel_4.4.1            prettyunits_1.2.0         R6_2.5.1                 
+ [34] car_3.1-2                 Rcpp_1.0.13               knitr_1.48               
+ [37] IRanges_2.38.1            BiocBaseUtils_1.6.0       Matrix_1.7-0             
+ [40] tidyselect_1.2.1          rstudioapi_0.16.0         abind_1.4-5              
+ [43] curl_5.2.1                rjsoncons_1.3.1           lattice_0.22-6           
+ [46] tibble_3.2.1              withr_3.0.0               Biobase_2.64.0           
+ [49] treeio_1.28.0             KEGGREST_1.44.1           gridGraphics_0.5-1       
+ [52] BiocFileCache_2.12.0      Biostrings_2.72.1         pillar_1.9.0             
+ [55] ggtree_3.12.0             ggpubr_0.6.0              filelock_1.0.3           
+ [58] carData_3.0-5             stats4_4.4.1              ggfun_0.1.5              
+ [61] plotly_4.10.4             generics_0.1.3            RCurl_1.98-1.14          
+ [64] rprojroot_2.0.4           S4Vectors_0.42.1          hms_1.1.3                
+ [67] munsell_0.5.1             scales_1.3.0              tidytree_0.4.6           
+ [70] glue_1.7.0                lazyeval_0.2.2            tools_4.4.1              
+ [73] ggsignif_0.6.4            babelgene_22.9            fs_1.6.4                 
+ [76] grid_4.4.1                tidyr_1.3.1               ape_5.8                  
+ [79] AnnotationDbi_1.66.0      colorspace_2.1-0          nlme_3.1-165             
+ [82] GenomeInfoDbData_1.2.12   patchwork_1.2.0           homologene_1.4.68.19.3.27
+ [85] cli_3.6.3                 fansi_1.0.6               viridisLite_0.4.2        
+ [88] dplyr_1.1.4               gtable_0.3.5              rstatix_0.7.2            
+ [91] yulab.utils_0.1.4         digest_0.6.36             ggplotify_0.1.2          
+ [94] farver_2.1.2              htmlwidgets_1.6.4         memoise_2.0.1            
+ [97] htmltools_0.5.8.1         lifecycle_1.0.4           httr_1.4.7               
+[100] here_1.0.1                bit64_4.0.5              
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2024-10-01
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   NA
+
+─ Packages ───────────────────────────────────────────────────────────────────────
+ ! package          * version        date (UTC) lib source
+   abind              1.4-5          2016-07-21 [1] CRAN (R 4.4.0)
+   AnnotationDbi      1.66.0         2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
+   ape                5.8            2024-04-11 [1] CRAN (R 4.4.0)
+   aplot              0.2.3          2024-06-17 [1] CRAN (R 4.4.0)
+   babelgene          22.9           2022-09-29 [1] CRAN (R 4.4.0)
+   backports          1.5.0          2024-05-23 [1] CRAN (R 4.4.0)
+   Biobase            2.64.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
+   BiocBaseUtils      1.6.0          2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocFileCache      2.12.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   BiocGenerics     * 0.50.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   Biostrings         2.72.1         2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
+   bit                4.0.5          2022-11-15 [1] CRAN (R 4.4.0)
+   bit64              4.0.5          2020-08-30 [1] CRAN (R 4.4.0)
+   bitops             1.0-7          2021-04-24 [1] CRAN (R 4.4.0)
+   blob               1.2.4          2023-03-17 [1] CRAN (R 4.4.0)
+   broom              1.0.6          2024-05-17 [1] CRAN (R 4.4.0)
+   cachem             1.1.0          2024-05-16 [1] CRAN (R 4.4.0)
+   car                3.1-2          2023-03-30 [1] CRAN (R 4.4.0)
+   carData            3.0-5          2022-01-06 [1] CRAN (R 4.4.0)
+ P cli                3.6.3          2024-06-21 [2] CRAN (R 4.4.0)
+   colorout         * 1.3-0.2        2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace         2.1-0          2023-01-23 [1] CRAN (R 4.4.0)
+   crayon             1.5.3          2024-06-20 [1] CRAN (R 4.4.0)
+   curl               5.2.1          2024-03-01 [1] CRAN (R 4.4.0)
+   data.table       * 1.15.4         2024-03-30 [2] CRAN (R 4.4.0)
+   DBI                1.2.3          2024-06-02 [1] CRAN (R 4.4.0)
+   dbplyr             2.5.0          2024-03-19 [1] CRAN (R 4.4.0)
+   digest             0.6.36         2024-06-23 [1] CRAN (R 4.4.0)
+   dplyr              1.1.4          2023-11-17 [1] CRAN (R 4.4.0)
+   fansi              1.0.6          2023-12-08 [1] CRAN (R 4.4.0)
+   farver             2.1.2          2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap            1.2.0          2024-05-15 [1] CRAN (R 4.4.0)
+   filelock           1.0.3          2023-12-11 [1] CRAN (R 4.4.0)
+   fs                 1.6.4          2024-04-25 [1] CRAN (R 4.4.0)
+   generics           0.1.3          2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb       1.40.1         2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomeInfoDbData   1.2.12         2024-05-01 [1] Bioconductor
+   ggfun              0.1.5          2024-05-28 [1] CRAN (R 4.4.0)
+   ggplot2          * 3.5.1          2024-04-23 [1] CRAN (R 4.4.0)
+   ggplotify          0.1.2          2023-08-09 [1] CRAN (R 4.4.0)
+   ggpubr             0.6.0          2023-02-10 [1] CRAN (R 4.4.0)
+   ggsignif           0.6.4          2022-10-13 [1] CRAN (R 4.4.0)
+   ggtree             3.12.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   glue               1.7.0          2024-01-09 [1] CRAN (R 4.4.0)
+   gprofiler2         0.2.3          2024-02-23 [1] CRAN (R 4.4.0)
+   gridGraphics       0.5-1          2020-12-13 [1] CRAN (R 4.4.0)
+   grr                0.9.5          2016-08-26 [1] CRAN (R 4.4.0)
+   gtable             0.3.5          2024-04-22 [1] CRAN (R 4.4.0)
+   here               1.0.1          2020-12-13 [1] CRAN (R 4.4.0)
+   hms                1.1.3          2023-03-21 [1] CRAN (R 4.4.0)
+   homologene         1.4.68.19.3.27 2019-03-28 [1] CRAN (R 4.4.0)
+   htmltools          0.5.8.1        2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets        1.6.4          2023-12-06 [1] CRAN (R 4.4.0)
+   httpcache          1.2.0          2021-01-10 [1] CRAN (R 4.4.0)
+   httr               1.4.7          2023-08-15 [1] CRAN (R 4.4.0)
+   IRanges            2.38.1         2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
+   jsonlite           1.8.8          2023-12-04 [1] CRAN (R 4.4.0)
+   KEGGREST           1.44.1         2024-06-19 [1] Bioconductor 3.19 (R 4.4.0)
+   knitr              1.48           2024-07-07 [1] CRAN (R 4.4.1)
+   labeling           0.4.3          2023-08-29 [1] CRAN (R 4.4.0)
+   lattice            0.22-6         2024-03-20 [1] CRAN (R 4.4.1)
+   lazyeval           0.2.2          2019-03-15 [1] CRAN (R 4.4.0)
+   lifecycle          1.0.4          2023-11-07 [1] CRAN (R 4.4.0)
+   magrittr           2.0.3          2022-03-30 [1] CRAN (R 4.4.0)
+   Matrix             1.7-0          2024-04-26 [1] CRAN (R 4.4.1)
+   memoise            2.0.1          2021-11-26 [1] CRAN (R 4.4.0)
+   munsell            0.5.1          2024-04-01 [1] CRAN (R 4.4.0)
+   nlme               3.1-165        2024-06-06 [1] CRAN (R 4.4.0)
+   orthogene        * 1.10.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   patchwork          1.2.0          2024-01-08 [1] CRAN (R 4.4.0)
+   pillar             1.9.0          2023-03-22 [1] CRAN (R 4.4.0)
+   pkgconfig          2.0.3          2019-09-22 [1] CRAN (R 4.4.0)
+   plotly             4.10.4         2024-01-13 [1] CRAN (R 4.4.0)
+   png                0.1-8          2022-11-29 [1] CRAN (R 4.4.0)
+   prettyunits        1.2.0          2023-09-24 [1] CRAN (R 4.4.0)
+   progress           1.2.3          2023-12-06 [1] CRAN (R 4.4.0)
+   purrr              1.0.2          2023-08-10 [1] CRAN (R 4.4.0)
+   R6                 2.5.1          2021-08-19 [1] CRAN (R 4.4.0)
+   Rcpp               1.0.13         2024-07-17 [1] CRAN (R 4.4.0)
+   RCurl              1.98-1.14      2024-01-09 [1] CRAN (R 4.4.0)
+   rjsoncons          1.3.1          2024-07-07 [1] CRAN (R 4.4.0)
+ P rlang            * 1.1.4          2024-06-04 [2] CRAN (R 4.4.1)
+   rprojroot          2.0.4          2023-11-05 [1] CRAN (R 4.4.0)
+   RSQLite          * 2.3.7          2024-05-27 [1] CRAN (R 4.4.0)
+   rstatix            0.7.2          2023-02-01 [1] CRAN (R 4.4.0)
+   rstudioapi         0.16.0         2024-03-24 [1] CRAN (R 4.4.0)
+   S4Vectors          0.42.1         2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
+   scales             1.3.0          2023-11-28 [1] CRAN (R 4.4.0)
+   sessioninfo        1.2.2          2021-12-06 [1] CRAN (R 4.4.0)
+   tibble             3.2.1          2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr              1.3.1          2024-01-24 [1] CRAN (R 4.4.0)
+   tidyselect         1.2.1          2024-03-11 [1] CRAN (R 4.4.0)
+   tidytree           0.4.6          2023-12-12 [1] CRAN (R 4.4.0)
+   treeio             1.28.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   UCSC.utils         1.0.0          2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
+   UniProt.ws       * 2.44.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   utf8               1.2.4          2023-10-22 [1] CRAN (R 4.4.0)
+   vctrs              0.6.5          2023-12-01 [1] CRAN (R 4.4.0)
+   viridisLite        0.4.2          2023-05-02 [1] CRAN (R 4.4.0)
+   withr              3.0.0          2024-01-16 [1] CRAN (R 4.4.0)
+   xfun               0.45           2024-06-16 [1] CRAN (R 4.4.0)
+   XVector            0.44.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   yulab.utils        0.1.4          2024-01-28 [1] CRAN (R 4.4.0)
+   zlibbioc           1.50.0         2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+──────────────────────────────────────────────────────────────────────────────────
