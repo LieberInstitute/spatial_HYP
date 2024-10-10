@@ -18,10 +18,10 @@ names(pal) <- c("VMH","ARC","Other")
 
 # cell type palettes
 vmhpal <- c("#8c63cf", "darkgray", "#6A0D53", "#AD260D")
-names(vmhpal) <- c("*SLC17A6*-*CRHR2*","VMH-Glia Mixed","*FEZF1*-*LAMP5*-*NRGN*","*HCRT*-*SLC6A3*-*TAC1*")
+names(vmhpal) <- c("*CRHR2*","xVMH-Glia Mixed","*LAMP5*","xVMH Lateral Border")
 
 arcpal <- c("#5dd959","#296656","#09979B","#A997AB","#D0B")
-names(arcpal) <-  c("*AGRP*","*POMC*-Oligo Mixed","*GAL*-*TRH*-*GHRH*","*SLC17A7*-Glia Mixed","*TAC3*-*AR*-*ESR1*")
+names(arcpal) <-  c("*AGRP*","*POMC*-Oligo Mixed","*GAL*-*TRH*-*GHRH*","*SLC17A7*-Glia Mixed","*TAC3*-*ESR1*")
 
 pals[[1]] <- pal
 pals[[2]] <- vmhpal

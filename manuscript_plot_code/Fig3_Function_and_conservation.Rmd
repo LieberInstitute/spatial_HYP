@@ -1,7 +1,7 @@
 ---
 title: "Fig3_Function_and_conservation"
 output: html_document
-date: "2024-10-01"
+date: "2024-10-09"
 ---
 
 ```{r setup, include=FALSE}
@@ -13,10 +13,15 @@ library(data.table) # Preferred data manipulation package
 library(ggplot2) # Dependency for several plotting functions
 library(ggtext) # more character types in ggplots
 library(ggrastr) # avoid making raster images one can't even open
+library(SpatialExperiment) # Visium data framework
+library(SpatialFeatureExperiment) # Xenium data framework
+library(spatialLIBD) # one option for plotting cluster assignments, but breaks when the in-tissue portion of a visium area is very un-square.
+library(escheR) # alternative spotplotting function, at least for visium
 library(viridis) # palettes
 library(Polychrome) # better palettes
 library(ggstance) # for y axis dodge
 require(colorout) # Utility for RStudio
+library(sf) # define the polygonal boundaries of xenium domains
 library(ggbreak) # x axis breaks in ggplots
 ColorOut()
 
@@ -30,132 +35,476 @@ theme_set(theme_bw() + theme(axis.text.x = element_text(size = 8), axis.title.x 
 unloadNamespace("datasets")
 ```
 
-Panel A: Visium marker GSEA for VMH, ARC
-(leave out glutamatergic synapse and just mention in text as an "as expected" finding for VMH -- stretches the x axis way out and ggbreak doesn't work quite as expected)
-### msigdb GSEA for arc and vmh ###
+
+#### VISIUM setup ####
 ```{r}
-mkres <- readRDS("spatial_HYP/processed-data/11-GSEA/01a-Marker msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
 
-mkres <- mkres[c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH")]
-mkres <- lapply(mkres,FUN=function(x){
-x[,spdom:=gsub(spdom,pattern="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_X(.*)",replacement="\\1")]})
+bscl <- fread("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt") # main visium clustering (bs=bayesspace)
 
-pltdat <- mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH"]][pathway %in% c(
-   #"GOCC_GLUTAMATERGIC_SYNAPSE",
-   "GOCC_GABA_ERGIC_SYNAPSE",
-   "HP_HYPERACTIVITY",
-   "HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",
-   "GOBP_FEEDING_BEHAVIOR",
-   "WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",
-   "KEGG_LONG_TERM_POTENTIATION",
-   "GOMF_HORMONE_ACTIVITY",
-   "GOBP_AXONEME_ASSEMBLY",
-   "GOCC_CILIARY_PLASM",
-   "GOBP_MOTILE_CILIUM_ASSEMBLY",
-   "GOCC_CILIARY_TRANSITION_ZONE",
-   "HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",
-   "GOBP_REGULATION_OF_INSULIN_SECRETION",
-   "GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")]
-pltdat <- rbind(pltdat,mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC"]][pathway %in% c(
-   #"GOCC_GLUTAMATERGIC_SYNAPSE",
-   "GOCC_GABA_ERGIC_SYNAPSE",
-   "HP_HYPERACTIVITY",
-   "HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",
-   "GOBP_FEEDING_BEHAVIOR",
-   "WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",
-   "KEGG_LONG_TERM_POTENTIATION",
-   "GOMF_HORMONE_ACTIVITY",
-   "GOBP_AXONEME_ASSEMBLY",
-   "GOCC_CILIARY_PLASM",
-   "GOBP_MOTILE_CILIUM_ASSEMBLY",
-   "GOCC_CILIARY_TRANSITION_ZONE",
-   "HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",
-   "GOBP_REGULATION_OF_INSULIN_SECRETION",
-   "GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")])
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("Vis",cl)]
+bscl[cl=="Vis7",cl:="VMH.1"]
+bscl[cl=="Vis12",cl:="VMH.2"]
+bscl[cl=="Vis4",cl:="ARC.1"]
+bscl[cl=="Vis6",cl:="ARC.2"]
 
-### simplify terms and make separate column for data source to color by
-pltdat[,genesource:=gsub(pathway,pattern="^(GOCC)_.*$",replacement="GO CC")]
-pltdat[,genesource:=gsub(genesource,pattern="^(GOBP)_.*$",replacement="GO BP")]
-pltdat[,genesource:=gsub(genesource,pattern="^(GOMF)_.*$",replacement="GO MF")]
-pltdat[,genesource:=gsub(genesource,pattern="^(HP)_.*$",replacement="Human Phenotypes")]
-pltdat[,genesource:=gsub(genesource,pattern="^(WP)_.*$",replacement="Wikipathways")]
-pltdat[,genesource:=gsub(genesource,pattern="^(KEGG)_.*$",replacement="KEGG Pathways")]
+bscl[,dom:=cl]
+bscl[dom %in% c("VMH.1","VMH.2"),dom:="VMH"]
+bscl[dom %in% c("ARC.1","ARC.2"),dom:="ARC"]
+bscl[!(dom %in% c("VMH","ARC")),dom:="Other"]
 
-### Simplify terms themselves
-# pltdat[pathway=="GOCC_GLUTAMATERGIC_SYNAPSE",pathway:="Glutamatergic\nsynapse"]
-pltdat[pathway=="GOCC_GABA_ERGIC_SYNAPSE",pathway:="GABAergic synapse"]
-pltdat[pathway=="HP_HYPERACTIVITY",pathway:="Hyperactivity"]
-pltdat[pathway=="HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",pathway:="Aggressive/impulsive\nbehavior"]
-pltdat[pathway=="GOBP_FEEDING_BEHAVIOR",pathway:="Feeding behavior"]
-pltdat[pathway=="WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",pathway:="Kisspeptin receptor\nsystem (ovarian)"]
-pltdat[pathway=="KEGG_LONG_TERM_POTENTIATION",pathway:="Long-term\npotentiation"]
-pltdat[pathway=="GOMF_HORMONE_ACTIVITY",pathway:="Hormone activity"]
-pltdat[pathway=="GOBP_AXONEME_ASSEMBLY",pathway:="Axoneme assembly"]
-pltdat[pathway=="GOCC_CILIARY_PLASM",pathway:="Ciliary membrane"]
-pltdat[pathway=="GOBP_MOTILE_CILIUM_ASSEMBLY",pathway:="Cilium assembly"]
-pltdat[pathway=="GOCC_CILIARY_TRANSITION_ZONE",pathway:="Ciliary transition zone"]
-pltdat[pathway=="HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",pathway:="Secondary sex\ncharacteristics"]
-pltdat[pathway=="GOBP_REGULATION_OF_INSULIN_SECRETION",pathway:="Insulin secretion\nregulation"]
-pltdat[pathway=="GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY",pathway:="Neuropeptide signaling"]
-
-### q: omg Github copilot just paid for itself thank you!!
-# a: you're welcome
-
-### make domain a factor so we can match it to prior color schemes
-pltdat[,spdom:=paste0("v",spdom)]
-pltdat$spdom <- factor(pltdat$spdom,levels=c("vVMH","vARC"))
-pltdat$spdom
-
-### make enrichments a factor so they're grouped by source on the y axis
-pltdat$pathway <- factor(pltdat$pathway,levels=rev(c("Long-term\npotentiation","Neuropeptide signaling","GABAergic synapse","Insulin secretion\nregulation","Hormone activity","Kisspeptin receptor\nsystem (ovarian)","Axoneme assembly","Ciliary membrane","Cilium assembly","Ciliary transition zone","Hyperactivity","Aggressive/impulsive\nbehavior","Feeding behavior","Secondary sex\ncharacteristics")))
-
-pltdat[,log10fdr:=-log10(padj)]
-
-### plot:
-p <- ggplot(pltdat,aes(y=pathway,x=log10fdr))+
-    geom_point(aes(col=spdom,size=NES))+#,position = position_dodge2v(preserve = "single",height=0.75))+
-    ylab("Term")+
-    # scale_color_manual(values=wc2cols)+
-    xlab("-log10 (FDR)")+
-    #xlim(0,30)+
-    scale_size_continuous(range = c(0.75,3.5),transform = "exp")+
-    scale_color_manual(values=c("#8c63cf","#5dd959"),na.value = NA)+
-    labs(col="Domain")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.5)+
-    guides(col=guide_legend(byrow=T))+
-    # # ^ necess. to get spacing to work in theme
-    guides(col=guide_legend(override.aes=list(size=2.5)))+
-   #scale_x_break(12,25)+
-    # ^ make legend points bigger
-    theme(
-        axis.text.y = element_text(size = 8, margin = margin(0, 0, 0, -0.15, "in")),
-        axis.title.x = element_text(size = 9),
-        axis.title.y = element_text(size = 9, margin = margin(0, 0, 0, 0.2, unit = "in")),
-        axis.text.x = element_text(size = 8),
-        legend.text = element_text(size = 8, hjust = 0.5),
-        legend.title = element_text(size = 9, hjust = 0.5),
-        legend.spacing.y = ggplot2::unit(0.075, "in"),
-        plot.margin = margin(0.05, 0.01, 0, -0.1, unit = "in"),
-        legend.position = "bottom",
-        legend.direction = "vertical",
-        legend.box.margin = margin(0, -0.3, 0, 0, unit = "in"),
-        legend.spacing.x = ggplot2::unit(0.05, "in"),
-        legend.box.background = element_blank(),
-        legend.margin= margin(0,0.25,0,0,"in"),
-        legend.key = element_blank(),
-        panel.background = element_blank(),
-    )
-
-
-## this makes a weird second border with scales we don't want, and a second set of x axis tick labels along the top of the plot, so requires a little fixing in illustrator after the fact. but it'll do.
-pdf("manuscript_plots/Fig3/3A-msigdb_marker_GSEA.pdf",height=4.5,width=3.5)
-p
-dev.off()
-
-rm(mkres,pltdat)
+bscl<-DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
+hyp2$k15dom <- bscl$cl
+hyp2$`Visium Domain` <- factor(bscl$dom,levels=c("ARC","VMH","Other"))
 ```
 
-panel b: TF-targ enrichments in visium
+### XENIUM setup ###
+```{r}
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bksmooth <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt") ## xenium domain assignments after smoothing, by xenium cell
+
+## but drop discarded cell clusters, too
+bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bkcl,2,"cl")
+
+bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+
+## drop sample-specific clusters, append cluster annotations 
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
+
+## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
+arcvmhanno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+
+## append these to the other annots and replace bjm_annot with the ARC/VMH cell type labels where applicable
+bkanno <- merge.data.table(bkanno,arcvmhanno,by="bjm_annot",all.x=T)
+bkanno[!is.na(plotclusname),bjm_annot:=plotclusname]
+
+## this drops rows that were assigned one of the discarded types (ie no longer in the cell type annotations)
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+## and now we can drop excluded clusters from xenium spe
+hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
+
+## append cluster annots to xenium spe
+bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]
+bkcl$rn <- NULL
+hypx$banksyclus <- bkcl$bjm_annot
+
+## assign the domain labels to the xenium cells
+bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
+bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
+hypx$dom <- bksmooth$dualVMHARC4
+```
+
+## manuscript ids
+```{r}
+mscriptids <- fread("standardized_sampleids_for_plotting.txt")
+```
+
+## palette set up (shared)
+```{r}
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+
+pal <- pals[["Domains"]]
+vmhpal <- pals[["XenVMH"]]
+arcpal <- pals[["XenARC"]]
+
+stopifnot(sum(names(vmhpal)%in%unique(hypx$banksyclus))==length(names(vmhpal)))
+stopifnot(sum(names(arcpal)%in%unique(hypx$banksyclus))==length(names(arcpal)))
+```
+
+Panel A: registration-style using mouse atlas data
+```{r}
+## load the mouse-human correlation tables that we already generated, fetch the appropriate ones
+screg <- readRDS("spatial_HYP/processed-data/10-Spatial Registration/02g-sphyp-k15-20-31-15clps_ABAms-47subclass-47withVMHARCclps-VMHARCsupertypes.RDS")
+## er, there's triplets of every entry here? weird. the values are the same (but not identical because nonsense handling of decimals in R or something. look at entries 10-1, 11-1, 12-1 if you doubt this)
+
+screg <- screg[unique(names(screg))]
+screg <- screg[["sphypk15_collapsed"]]
+
+# this is a list with 9 entries, where we used different numbers of top visium markers for the correlation to their rodent ortholog's marker stats in the single cell data. use the top 250 (i.e. to account for the fact that several cell types well-marked by a couple-few dozen each might constitute one visium cluster)
+screg <- screg[["ABA23_HYP_subclass_to_sphypk15_collapsed_top_1000_sphypdomainmks"]]
+
+# again ,give the vis clusters informative names like we did for the other registration and get rid of X11 (sample specific)
+screg[sphyp_domain=="X1",sphyp_domain:="GABA.1"]
+screg[sphyp_domain=="X2",sphyp_domain:="PeriVN"]
+screg[sphyp_domain=="X3",sphyp_domain:="OT.1"]
+screg[sphyp_domain=="X5",sphyp_domain:="OT.3"]
+screg[sphyp_domain=="X8",sphyp_domain:="SON"]
+screg[sphyp_domain=="X9",sphyp_domain:="Vascular"]
+screg[sphyp_domain=="X10",sphyp_domain:="OT.2"]
+screg[sphyp_domain=="X13",sphyp_domain:="Portal Vasc."]
+screg[sphyp_domain=="X14",sphyp_domain:="Astro"]
+screg[sphyp_domain=="X15",sphyp_domain:="GABA.2"]
+
+# only keep VMH, ARC, and relevant comparators from visium
+screg <- screg[sphyp_domain %in% c("VMH","ARC",paste0("OT.",c(1:3)),"Astro")]
+
+## only keep VMH, ARC, and some comparator clusters from the mouse data
+keepcl <- c(grep(names(screg),pattern="ARH|VMH",value=T),
+            "x294_OPC_NN",
+            "x295_Oligo_NN",
+            "x286_Astro_NT_NN",
+            "sphyp_domain")
+screg <- screg[,..keepcl]
+```
+
+# Panel A continued: make a z-normalized plot and a raw reg stat plot 
+```{r}
+# ## define function to z-scale expression
+# z scale rows, from tony https://github.com/LieberInstitute/spatial_DG_lifespan/blob/9419eb91453cda1df494d93dc91156d819042c66/code/Pseudobulk/top_infant_DE_heatmap_enrichment.R#L106
+
+scale_rows <- function(x) {
+    m <- apply(x, 1, mean, na.rm = T)
+    s <- apply(x, 1, sd, na.rm = T)
+    return((x - m) / s)
+}
+
+### raw stat table:
+scregraw <- melt(screg,id.vars="sphyp_domain")
+scregraw[,variable:=as.character(variable)]
+
+### z scaled
+scregz <- as.data.frame(screg,row.names=screg$sphyp_domain)
+scregz$sphyp_domain <- NULL
+scregz <- scale_rows(scregz)
+scregz <- melt(as.data.table(scregz,keep.rownames=T),id.vars="rn")
+setnames(scregz,"rn","sphyp_domain")
+scregz[,variable:=as.character(variable)]
+
+## tidy these up identically using a list and lapply
+scregs <- list(raw=scregraw,z=scregz)
+scregs <- lapply(scregs,FUN=function(x){
+    y <- x
+    
+    # rename the mouse clusters for plotting. note that since we want to use ggtext::element_markdown to italicize genes (text between asterisks), stuffing a newline in uses <br> instead of \n
+    y[variable=="x294_OPC_NN",variable:="OPC"]
+    y[variable=="x295_Oligo_NN",variable:="Oligo"]
+    y[variable=="x286_Astro_NT_NN",variable:="Astro"]
+    y[variable=="x075_PVa_ARH_Six3_Dopa_Gaba",variable:="ARC *Six3*<br>(DA,GABAergic)"]
+    y[variable=="x114_TU_ARH_Otp_Six6_Gaba",variable:="ARC *Otp*-*Six6*<br>(GABAergic)"]
+    y[variable=="x120_ARH_PVp_Tbx3_Gaba",variable:="ARC *Tbx3*<br>(GABAergic)"]
+    y[variable=="x121_ARH_PVp_Tbx3_Glut",variable:="ARC *Tbx3*<br>(Glutamatergic)"]
+    y[variable=="x123_VMH_Fezf1_Glut",variable:="VMH *Fezf1*"]
+    y[variable=="x124_VMH_Nr5a1_Glut",variable:="VMH *Nr5a1*"]
+    
+    ## factor visium and sc clusters in order we'd like them to appear
+    y[,sphyp_domain:=factor(sphyp_domain,levels=c("VMH","ARC","OT.1","OT.2","OT.3","Astro"))]
+    
+    ## factor the mouse clusters as well.
+    y[,variable:=factor(as.character(variable),levels=c(
+    "Astro","Oligo","OPC","ARC *Six3*<br>(DA,GABAergic)","ARC *Otp*-*Six6*<br>(GABAergic)","ARC *Tbx3*<br>(GABAergic)","ARC *Tbx3*<br>(Glutamatergic)","VMH *Nr5a1*","VMH *Fezf1*"))]
+    return(y)
+})
+
+## plot em
+pdf("manuscript_plots/Fig3/3A-ABA23_singlecell_subclass_regist_rawscores.pdf",height=3,width=4)
+ggplot(scregs[[1]],aes(x=sphyp_domain,y=variable,fill=value))+
+    geom_tile()+
+    scale_fill_gradient2(low="white",mid="yellow",high="red",midpoint=quantile(scregs[[1]]$value,0.5),name = "Top 1k Visium<br>Markers: *t*-stat<br>correlation<br>(raw)")+
+    theme(axis.text.x = element_text(size = 9,angle = 90, hjust = 1))+
+    scale_x_discrete(expand = c(0,0))+
+    scale_y_discrete(expand=c(0,0))+
+    ylab("ABA Mouse scRNAseq Subclass")+
+    xlab("Visium Cluster or Domain")+
+    theme(axis.title.x = element_text(size = 10), axis.text.y = element_markdown(size = 9), axis.title.y = element_text(size=11),legend.title = element_markdown(size=9,hjust=0.5),legend.text=element_text(size=8))
+dev.off()
+
+pdf("manuscript_plots/Fig3/3A-ABA23_singlecell_subclass_regist_zscaled.pdf",height=3,width=4)
+ggplot(scregs[[2]],aes(x=sphyp_domain,y=variable,fill=value))+
+    geom_tile()+
+    scale_fill_gradient2(low="white",mid="yellow",high="red",midpoint=0,name = "Top 1k Visium<br>Markers: *t*-stat<br>correlation<br>(z-scaled)")+
+    scale_x_discrete(expand = c(0,0))+
+    scale_y_discrete(expand=c(0,0))+
+    ylab("ABA Mouse scRNAseq Subclass")+
+    xlab("Visium Cluster or Domain")+
+    theme(axis.title.x = element_text(size = 10), axis.text.y = element_markdown(size = 9), axis.title.y = element_text(size=11),axis.text.x=element_markdown(size=9,angle = 90, hjust = 1),legend.title = element_markdown(size=9,hjust=0.5),legend.text=element_text(size=8))
+dev.off()
+
+rm(scregz,scregraw,screg,screg2,keepcl)
+```
+
+the plan here is to have the top row be two novel markers each for VMH and ARC identified in Visium, their respective followup results in Xenium, then a row with LAMP5-SLC17A6-GAD-NR5A1 RNAscope, then a row with two Visium ARC SVGs that we subsequently examine in Xenium.
+
+To show the robustness of the dataset, a different sample will be used on a per-figure basis. So here, let's use the classic V12Y31-080_A1 and its xenium counterpart, X86 reg1.
+
+The last bit of setup we need to do here is to define the polygonal boundaries of the VMH and ARC in Xenium. the sf_concave_hull function actually works for this sample's ARC, mostly, so we can define this once pretty quickly and use it for all the xeniunm plots.
+```{r}
+lamp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+
+## attach the coordinate info to colData so we can subset to VMH points and wrap this gift. it'll take a bit
+tmpcoldata <- as.data.table(as.data.frame(cbind(colData(lamp),spatialCoords(lamp))))
+
+### these end up looking wacky without some stray spots removed, so we need to manually drop a handful of singletons
+tmpcoldata <- tmpcoldata[Visium.Domain %in% c("ARC","VMH")]
+
+# this will be easier to figure out using the array row/col values on a temporary plot with some lines overlaid to help pinpoint array coords to remove from the tracing. this doesn't account for the rotations or mirroring of the visium data, so grab a screenshot and rotate so that the x and y coords are not changed relative to the values we'll use to filter the table.
+ggplot(tmpcoldata,aes(x=array_col,y=array_row,color=Visium.Domain))+
+   geom_point(size=1.5)+
+   geom_vline(xintercept=seq(0,max(tmpcoldata$array_col),by=5))+
+   geom_hline(yintercept=seq(0,max(tmpcoldata$array_row),5))
+dev.off()
+# ok just a couple easy drops here: ARC: drop col 30, row 22; 81,27; anything past col 100; anything in array_col>80&array_row<45
+# VMH drop everything at row>35 & col > 78 and anything at array_col>90
+tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!((array_row==22&array_col==30)|(array_row==27&array_col==81)|array_col>100|(array_col>80&array_row<45))],
+                    tmpcoldata[Visium.Domain=="VMH"&!(array_col>90|(array_col>78&array_row>35))])
+
+## for plotting with geom_path, we need to add the first point at the end of the sequence as well. for vmh, we can use convex hull because..well, its a convex shape
+tmpcoldata.sf <- st_as_sf(tmpcoldata,coords=c("array_col","array_row"))
+vhull <- st_convex_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="VMH",]))
+vhull <- vhull[[1]][[1]]
+vhull <- rbind(vhull,vhull[1,])
+rownames(vhull) <- rownames(vhull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(vhull),by=1))
+vhull <- as.data.table(vhull,keep.rownames=T)
+
+ahull <- st_concave_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="ARC",]),ratio = 0.1)
+ahull <- ahull[[1]][[1]]
+ahull <- rbind(ahull,ahull[1,])
+rownames(ahull) <- rownames(ahull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(ahull),by=1))
+ahull <- as.data.table(ahull,keep.rownames=T)
+
+dompoly <- rbind(vhull,ahull)
+
+## get the pixel-resolution values corresponding to these spots as pixel res is what escher uses to plot
+dompoly2 <- merge.data.table(dompoly,tmpcoldata,by.x=c("V1","V2"),by.y=c("array_col","array_row"))
+dompoly2[,rn:=as.numeric(gsub(rn,pattern="pt",replacement=""))]
+setorderv(dompoly2,"rn")
+
+rm(vhull,ahull,dompoly,tmpcoldata)
+```
+
+
+Panel B: GABRE in visium ARC
+```{r}
+### extract sample to plot ###
+gabre <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(gabre) <- rowData(gabre)$gene_name
+colData(gabre)$`log counts` <- logcounts(gabre)["GABRE",]
+
+### make spotplots
+p <- make_escheR(gabre)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+
+pdf("manuscript_plots/Fig3/3B-GABRE_Visium.pdf",height=1.6,width=1.75)
+p+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_gradient(low="white",high="black")+
+    ggtitle(paste0("*GABRE* ",mscriptids[sample_id=="V12Y31-080_A1",manuscript_id]))+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+dev.off()
+
+rm(gabre,p)
+
+```
+
+Panel C: CYP26A1 in visium ARC
+```{r}
+### extract sample to plot ###
+cyp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(cyp) <- rowData(cyp)$gene_name
+colData(cyp)$`log counts` <- logcounts(cyp)["CYP26A1",]
+
+### make spotplots
+p <- make_escheR(cyp)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+#p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+
+pdf("manuscript_plots/Fig3/3C-CYP26A1_Visium.pdf",height=1.6,width=1.75)
+p+
+    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_gradient(low="white",high="black")+
+    ggtitle(paste0("*CYP26A1* ",mscriptids[sample_id=="V12Y31-080_A1",manuscript_id]))+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+dev.off()
+
+rm(cyp,p)
+
+```
+
+panel D: ankrd34b
+ANKRD34B in visium VMH
+```{r}
+### extract sample to plot ###
+ankrd <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(ankrd) <- rowData(ankrd)$gene_name
+colData(ankrd)$`log counts` <- logcounts(ankrd)["ANKRD34B",]
+
+### make spotplots
+p <- make_escheR(ankrd)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+
+pdf("manuscript_plots/Fig3/2D-ANKRD34B_Visium.pdf",height=1.6,width=1.75)
+p+
+      geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_gradient(low="white",high="black")+
+    ggtitle(paste0("*ANKRD34B* ",mscriptids[sample_id=="V12Y31-080_A1",manuscript_id]))+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+dev.off()
+
+rm(ankrd,p)
+
+```
+
+LAMP5 in visium VMH
+```{r}
+### extract sample to plot ###
+lamp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+rownames(lamp) <- rowData(lamp)$gene_name
+colData(lamp)$`log counts` <- logcounts(lamp)["LAMP5",]
+
+### make spotplots
+p <- make_escheR(lamp)
+p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
+# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
+
+pdf("manuscript_plots/Fig3/Fig3E-LAMP5_Visium.pdf",height=1.6,width=1.75)
+p+
+   geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_gradient(low="white",high="black")+
+    ggtitle(paste0("*LAMP5* ",mscriptids[sample_id=="V12Y31-080_A1",manuscript_id]))+
+    guides(color="none")+
+    labs(fill="log\ncounts")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
+dev.off()
+
+rm(lamp,p)
+
+```
+
+## then the same from the xenium data for B, C, D, E
+For Xenium panels (E-G), we want to again have just the polygonal boundaries of the VMH and ARC shown. we previously code this up in the code for making figure 1 panels. we only need to do determine the points forming this polygon once to make all the panels.
+```{r}
+pane <- hypx["LAMP5",hypx$sample_id=="X86_reg1"]
+# 
+## attach the coordinate info to colData so we can make an sf object out of this for hull extraction. see well-annotated code from DE benchmarking of domain boundaries in xenium_HYP/code/07/03c-DE benchmarks...
+tmpcoldata <- cbind(colData(pane),spatialCoords(pane))
+panev <- st_as_sf(as.data.frame(tmpcoldata[tmpcoldata$dom=="VMH",]),coords = c("sdimx","sdimy"))
+panev <- st_convex_hull(st_union(panev))
+
+panea <- st_as_sf(as.data.frame(tmpcoldata[tmpcoldata$dom=="ARC",]),coords=c("sdimx","sdimy"))
+panea <- st_concave_hull(st_union(panea),ratio = 0.1)
+
+## create the data table we will use for overlaying the boundary polygons
+dompoly <- cbind(panev[[1]][[1]],rep("VMH",nrow(panev[[1]][[1]])))
+dompoly <- rbind(dompoly,cbind(panea[[1]][[1]],rep("ARC",nrow(panea[[1]][[1]]))))
+dompoly <- as.data.table(dompoly)
+setnames(dompoly,c("xpol","ypol","dompol"))
+dompoly[,xpol:=as.numeric(xpol)]
+dompoly[,ypol:=as.numeric(ypol)]
+
+rm(panea,panev)
+```
+
+### panel B-xenium GABRE
+GABRE
+```{r}
+panb <- hypx["GABRE",hypx$sample_id=="X86_reg1"]
+colData(panb)$`log counts` <- as.numeric(logcounts(panb)["GABRE",])
+
+p <- make_escheR(panb,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+pdf("manuscript_plots/Fig3/3B-X86_reg1_GABRE.pdf",height=1.6,width=1.75)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle(paste0("*GABRE* ",mscriptids[sample_id=="X86_reg1",manuscript_id]))+
+    guides(color="none")+
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
+
+dev.off()
+
+rm(panb,p)
+```
+
+C-xenium CYP26A1
+CYP26A1
+```{r}
+panc <- hypx["CYP26A1",hypx$sample_id=="X86_reg1"]
+colData(panc)$`log counts` <- as.numeric(logcounts(panc)["CYP26A1",])
+
+p <- make_escheR(panc,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+pdf("manuscript_plots/Fig3/3C-X86_reg1_CYP26A1.pdf",height=1.6,width=1.75)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle(paste0("*CYP26A1* ",mscriptids[sample_id=="X86_reg1",manuscript_id]))+
+    guides(color="none")+
+    #labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
+dev.off()
+
+rm(panc,p)
+```
+
+xenium ankrd34b
+ ankrd34b
+```{r}
+pand <- hypx["ANKRD34B",hypx$sample_id=="X86_reg1"]
+colData(pand)$`log counts` <- as.numeric(logcounts(pand)["ANKRD34B",])
+
+p <- make_escheR(pand,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+pdf("manuscript_plots/Fig3/3D-X86_reg1_ANKRD34B.pdf",height=1.6,width=1.75)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle(paste0("*ANKRD34B* ",mscriptids[sample_id=="X86_reg1",manuscript_id]))+
+    guides(color="none")+
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
+
+dev.off()
+
+rm(pand,p)
+```
+
+panel E lamp5 xenium
+
+```{r}
+colData(pane)$`log counts` <- as.numeric(logcounts(pane)["LAMP5",])
+
+p <- make_escheR(pane,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+
+pdf("manuscript_plots/Fig3/3E-X86_reg1_LAMP5.pdf",height=1.6,width=1.75)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle(paste0("*LAMP5* ",mscriptids[sample_id=="X86_reg1",manuscript_id]))+
+    guides(color="none")+
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=8,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
+
+dev.off()
+
+rm(pane,p)
+```
+panel F: lamp5 rnascope
+
+panel G:
+TF-targ enrichments in visium
 ```{r}
 tft <- readRDS("spatial_HYP/processed-data/11-GSEA/02a-Marker TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
@@ -213,7 +562,7 @@ labels <- c(breaks, rep("", n_breaks))
 shapes <- c(rep(16,n_breaks),rep(17,n_breaks))
 breaks2 <- rep(breaks, 2)
 ## 
-pdf("manuscript_plots/Fig3/3B-marker_TFtargs_GSEA.pdf",height=3,width=4)
+pdf("manuscript_plots/Fig3/3G-marker_TFtargs_GSEA.pdf",height=3,width=4)
 ggplot(pltdat,aes(y=tf,x=-log10(padj)))+
     geom_point(aes(col=spdom,size=NES,shape=source))+
     ylab("Term")+
@@ -231,264 +580,12 @@ ggplot(pltdat,aes(y=tf,x=-log10(padj)))+
                           labels = labels,
                           guide = guide_legend(ncol=2, nrow=n_breaks,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,direction="vertical",label.hjust=0.05,vjust=0))+
     # ^ show both shapes plotted on the scale
-    theme(axis.text.y = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.x = element_text(size = 8), legend.text = element_text(size=8,hjust = 0.5), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = unit(0.005, "in"),axis.title.y=element_text(size=9,margin=margin(0,0,0,0.02,"in")),legend.box.background = element_blank(),legend.margin = margin(0,0,0,-0.135,unit="in"),plot.margin = margin(0,-0.14,0,0.03))
+    theme(axis.text.y = element_text(size = 8), axis.title.x = element_text(size = 9), axis.text.x = element_text(size = 8), legend.text = element_text(size=8,hjust = 0.5), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = ggplot2::unit(0.005, "in"),axis.title.y=element_text(size=9,margin=margin(0,0,0,0.02,"in")),legend.box.background = element_blank(),legend.margin = margin(0,0,0,-0.135,unit="in"),plot.margin = margin(0,-0.14,0,0.03))
 dev.off()
 
 ```
 
-Panel C: sccoco results
-```{r}
-scc <- readRDS("spatial_HYP/processed-data/10-Spatial Registration/01b-scCoco query of top 150 markers per k15-20-31-collapsedK15 domain in ABA ms hyp CCF areas.RDS")
-scc <- as.data.table(scc[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]][["scores_per_leaf_region_all"]])
-
-setnames(scc,c(3:ncol(scc)),gsub(names(scc)[3:ncol(scc)],pattern="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_",replacement=""))
-
-scc.m <- melt(scc[,c(2:ncol(scc)),with=FALSE],id.vars = "name")
-
-## annotate the visium clusters as we did for fig 1:
-scc.m[variable=="X3",variable:="OT.1"]
-scc.m[variable=="X10",variable:="OT.2"]
-scc.m[variable=="X5",variable:="OT.3"]
-# others:
-scc.m[variable=="X1",variable:="GABA.1"]
-scc.m[variable=="X2",variable:="PeriVN"]
-scc.m[variable=="X9",variable:="Vascular"]
-scc.m[variable=="X8",variable:="SON"]
-scc.m[variable=="X13",variable:="Portal Vasc."]
-scc.m[variable=="X14",variable:="Astro"]
-scc.m[variable=="X15",variable:="GABA.2"]
-
-## remove X11 -- a donor specific cluster; remove OT clusters as that was not in the areas queried with sccoco
-scc.m <- scc.m[!(variable %in% c("X11",paste0("OT.",c(1:3))))]
-
-
-# subset to mouse regions with at least one mapping score of 0.7 or greater
-keepreg <- unique(scc.m[value>0.7,name])
-scc.m <- scc.m[name %in% keepreg]
-
-## shorten up the names
-scc.m[,name:=gsub(name,pattern="Periventricular hypothalamic nucleus",replacement="PeriVN")]
-scc.m[name=="Arcuate hypothalamic nucleus",name:="ARC"]
-scc.m[,name:=gsub(name,pattern="Dorsomedial nucleus of the hypothalamus, ",replacement="DMH (")]
-scc.m[,name:=gsub(name,pattern="Ventromedial hypothalamic nucleus, ",replacement="VMH (")]
-scc.m[,name:=gsub(name,pattern="Medial preoptic nucleus, ",replacement="MPO nu. (")]
-scc.m[name=="Median preoptic nucleus",name:="MPO nu."]
-scc.m[name=="Medial preoptic area",name:="MPOA"]
-scc.m[,name:=gsub(name,pattern="Anterior hypothalamic nucleus, ",replacement="AHN (")]
-scc.m[,name:=gsub(name,pattern="Paraventricular hypothalamic nucleus",replacement="ParaVN")]
-scc.m[name=="Posterior hypothalamic nucleus",name:="PHN"]
-scc.m[name=="ParaVN, descending division, lateral parvicellular part",name:="Descending parvicellular ParaVN (lateral)"]
-scc.m[name=="ParaVN, magnocellular division, posterior magnocellular part, lateral zone",name:="Posterior magnocellular ParaVN (lateral)"]
-scc.m[name=="ParaVN, parvicellular division, medial parvicellular part, dorsal zone",name:="Medial parvicellular ParaVN (dorsal)"]
-scc.m[,name:=gsub(name,pattern="nucleus",replacement="nu.")]
-scc.m[,name:=gsub(name,pattern=", (.*) part$",replacement=" (\\1)")]
-scc.m[,name:=gsub(name,pattern=" \\((.*) part$",replacement=" (\\1)")]
-scc.m[name=="Lateral hypothalamic area",name:="LHA"]
-
-# get rid of MPO nu. as there are also subregions of it here
-scc.m <- scc.m[name!="MPO nu."]
-
-### order by anatomic region. leave that one to copilot after giving the levels possible here:
-# unique(scc.m$name)
-#  [1] "Ventral premammillary nu."                
-#  [2] "Median eminence"                          
-#  [3] "Supramammillary nu. (lateral)"            
-#  [4] "Supramammillary nu. (medial)"             
-#  [5] "PeriVN (posterior)"                       
-#  [6] "PeriVN (preoptic)"                        
-#  [7] "LHA"                                      
-#  [8] "Lateral mammillary nu."                   
-#  [9] "ARC"                                      
-# [10] "Descending parvicellular ParaVN (lateral)"
-# [11] "Medial mammillary nu."                    
-# [12] "MPOA"                                     
-# [13] "Posterior magnocellular ParaVN (lateral)" 
-# [14] "DMH (anterior)"                           
-# [15] "DMH (posterior)"                          
-# [16] "DMH (ventral)"                            
-# [17] "AHN (central)"                            
-# [18] "AHN (posterior)"                          
-# [19] "MPO nu. (central)"                        
-# [20] "MPO nu. (medial)"                         
-# [21] "VMH (central)"                            
-# [22] "VMH (dorsomedial)"                        
-# [23] "VMH (ventrolateral)"                      
-# [24] "Dopaminergic A13 group"                   
-# [25] "Zona incerta"                             
-# [26] "Medial parvicellular ParaVN (dorsal)"     
-# [27] "Posterodorsal preoptic nu."               
-# [28] "PHN"   
-
-# incidental finding: X11 is the only cluster registering to lateral POA above 0.7 -- suggesting we got some of that in the one sample. now that we drop X11, it's not in this set of areas.
-
-lvl <- c(
-    "VMH (central)",
-    "VMH (dorsomedial)",
-    "VMH (ventrolateral)",
-    "ARC",
-    "PeriVN (posterior)",
-    "Ventral premammillary nu.",
-    "Medial mammillary nu.",
-    "Supramammillary nu. (medial)",
-    "Lateral mammillary nu.",
-    "Supramammillary nu. (lateral)",
-    "LHA",
-    "AHN (central)",
-    "AHN (posterior)",
-    "DMH (anterior)",
-    "DMH (posterior)",
-    "DMH (ventral)",
-    "PHN",
-    "PeriVN (preoptic)",
-    "MPOA",
-    "MPO nu. (central)",
-    "MPO nu. (medial)",
-    "Posterodorsal preoptic nu.",
-    "Descending parvicellular ParaVN (lateral)",
-    "Posterior magnocellular ParaVN (lateral)",
-    "Medial parvicellular ParaVN (dorsal)",
-    "Median eminence",
-    "Dopaminergic A13 group",
-    "Zona incerta"
-)
-# ugh this is backwards, flip that
-lvl <- rev(lvl)
-
-stopifnot(length(lvl)==length(unique(scc.m$name)))
-scc.m[,name:=factor(name,levels=lvl)]
-
-## arrange levels rationally for Visium as well. melting makes a table with a bunch of the original labels (X1, etc) so switch to character then refactorize
-scc.m[,variable:=as.character(variable)]
-scc.m[,variable:=factor(variable,levels=c("VMH","ARC","PeriVN","GABA.1","GABA.2","SON","Astro","Vascular","Portal Vasc."))]
-
-pdf("manuscript_plots/Fig3/sccoco_visreg.pdf",height=4,width=3.5)
-ggplot(scc.m,aes(x=variable,y=name,fill=value))+
-    geom_tile()+
-    scale_fill_gradient2(low="white",mid="yellow",high="red",midpoint=0.5,name = "scCoco Score (top\n150 Visium Markers)")+
-    theme(axis.text.x = element_text(size = 9,angle = 90, hjust = 1))+
-    scale_x_discrete(expand = c(0,0))+
-    scale_y_discrete(expand=c(0,0))+
-    ylab("Allen Mouse Atlas Region Name")+
-    xlab("Visium Domain")+
-    theme(axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size=11),legend.title = element_text(size=10,hjust=0.5),legend.text=element_text(size=9))
-dev.off()
-```
-
-
-Panel D: registration-style using mouse atlas data
-```{r}
-## load the mouse-human correlation tables that we already generated, fetch the appropriate ones
-screg <- readRDS("spatial_HYP/processed-data/10-Spatial Registration/02g-sphyp-k15-20-31-15clps_ABAms-47subclass-47withVMHARCclps-VMHARCsupertypes.RDS")
-## er, there's triplets of every entry here? weird. the values are the same (but not identical because nonsense handling of decimals in R or something. look at entries 10-1, 11-1, 12-1 if you doubt this)
-
-screg <- screg[unique(names(screg))]
-screg <- screg[["sphypk15_collapsed"]]
-
-# this is a list with 9 entries, where we used different numbers of top visium markers for the correlation to their rodent ortholog's marker stats in the single cell data. use the top 250 (i.e. to account for the fact that several cell types well-marked by a couple-few dozen each might constitute one visium cluster)
-screg <- screg[["ABA23_HYP_subclass_to_sphypk15_collapsed_top_1000_sphypdomainmks"]]
-
-# again ,give the vis clusters informative names like we did for the other registration and get rid of X11 (sample specific)
-screg[sphyp_domain=="X1",sphyp_domain:="GABA.1"]
-screg[sphyp_domain=="X2",sphyp_domain:="PeriVN"]
-screg[sphyp_domain=="X3",sphyp_domain:="OT.1"]
-screg[sphyp_domain=="X5",sphyp_domain:="OT.3"]
-screg[sphyp_domain=="X8",sphyp_domain:="SON"]
-screg[sphyp_domain=="X9",sphyp_domain:="Vascular"]
-screg[sphyp_domain=="X10",sphyp_domain:="OT.2"]
-screg[sphyp_domain=="X13",sphyp_domain:="Portal Vasc."]
-screg[sphyp_domain=="X14",sphyp_domain:="Astro"]
-screg[sphyp_domain=="X15",sphyp_domain:="GABA.2"]
-
-# only keep VMH, ARC, and relevant comparators from visium
-screg <- screg[sphyp_domain %in% c("VMH","ARC",paste0("OT.",c(1:3)),"Astro")]
-
-## only keep VMH, ARC, and some comparator clusters from the mouse data
-keepcl <- c(grep(names(screg),pattern="ARH|VMH",value=T),
-            "x294_OPC_NN",
-            "x295_Oligo_NN",
-            "x286_Astro_NT_NN",
-            "sphyp_domain")
-screg <- screg[,..keepcl]
-```
-
-# Panel D continued: make a z-normalized plot and a raw reg stat plot 
-```{r}
-# ## define function to z-scale expression
-# z scale rows, from tony https://github.com/LieberInstitute/spatial_DG_lifespan/blob/9419eb91453cda1df494d93dc91156d819042c66/code/Pseudobulk/top_infant_DE_heatmap_enrichment.R#L106
-
-scale_rows <- function(x) {
-    m <- apply(x, 1, mean, na.rm = T)
-    s <- apply(x, 1, sd, na.rm = T)
-    return((x - m) / s)
-}
-
-### raw stat table:
-scregraw <- melt(screg,id.vars="sphyp_domain")
-scregraw[,variable:=as.character(variable)]
-
-### z scaled
-scregz <- as.data.frame(screg,row.names=screg$sphyp_domain)
-scregz$sphyp_domain <- NULL
-scregz <- scale_rows(scregz)
-scregz <- melt(as.data.table(scregz,keep.rownames=T),id.vars="rn")
-setnames(scregz,"rn","sphyp_domain")
-scregz[,variable:=as.character(variable)]
-
-## tidy these up identically using a list and lapply
-scregs <- list(raw=scregraw,z=scregz)
-scregs <- lapply(scregs,FUN=function(x){
-    y <- x
-    
-    # rename the mouse clusters for plotting. note that since we want to use ggtext::element_markdown to italicize genes (text between asterisks), stuffing a newline in uses <br> instead of \n
-    y[variable=="x294_OPC_NN",variable:="OPC"]
-    y[variable=="x295_Oligo_NN",variable:="Oligo"]
-    y[variable=="x286_Astro_NT_NN",variable:="Astro"]
-    y[variable=="x075_PVa_ARH_Six3_Dopa_Gaba",variable:="ARC *Six3*<br>(DA,GABAergic)"]
-    y[variable=="x114_TU_ARH_Otp_Six6_Gaba",variable:="ARC *Otp*-*Six6*<br>(GABAergic)"]
-    y[variable=="x120_ARH_PVp_Tbx3_Gaba",variable:="ARC *Tbx3*<br>(GABAergic)"]
-    y[variable=="x121_ARH_PVp_Tbx3_Glut",variable:="ARC *Tbx3*<br>(Glutamatergic)"]
-    y[variable=="x123_VMH_Fezf1_Glut",variable:="VMH *Fezf1*"]
-    y[variable=="x124_VMH_Nr5a1_Glut",variable:="VMH *Nr5a1*"]
-    
-    ## factor visium and sc clusters in order we'd like them to appear
-    y[,sphyp_domain:=factor(sphyp_domain,levels=c("VMH","ARC","OT.1","OT.2","OT.3","Astro"))]
-    
-    ## factor the mouse clusters as well.
-    y[,variable:=factor(as.character(variable),levels=c(
-    "Astro","Oligo","OPC","ARC *Six3*<br>(DA,GABAergic)","ARC *Otp*-*Six6*<br>(GABAergic)","ARC *Tbx3*<br>(GABAergic)","ARC *Tbx3*<br>(Glutamatergic)","VMH *Nr5a1*","VMH *Fezf1*"))]
-    return(y)
-})
-
-## plot em
-pdf("manuscript_plots/Fig3/3D-ABA23_singlecell_subclass_regist_rawscores.pdf",height=3,width=4)
-ggplot(scregs[[1]],aes(x=sphyp_domain,y=variable,fill=value))+
-    geom_tile()+
-    scale_fill_gradient2(low="white",mid="yellow",high="red",midpoint=quantile(scregs[[1]]$value,0.5),name = "Top 1k Visium<br>Markers: *t*-stat<br>correlation<br>(raw)")+
-    theme(axis.text.x = element_text(size = 9,angle = 90, hjust = 1))+
-    scale_x_discrete(expand = c(0,0))+
-    scale_y_discrete(expand=c(0,0))+
-    ylab("ABA Mouse scRNAseq Subclass")+
-    xlab("Visium Cluster or Domain")+
-    theme(axis.title.x = element_text(size = 10), axis.text.y = element_markdown(size = 9), axis.title.y = element_text(size=11),legend.title = element_markdown(size=9,hjust=0.5),legend.text=element_text(size=8))
-dev.off()
-
-pdf("manuscript_plots/Fig3/3D-ABA23_singlecell_subclass_regist_zscaled.pdf",height=3,width=4)
-ggplot(scregs[[2]],aes(x=sphyp_domain,y=variable,fill=value))+
-    geom_tile()+
-    scale_fill_gradient2(low="white",mid="yellow",high="red",midpoint=0,name = "Top 1k Visium<br>Markers: *t*-stat<br>correlation<br>(z-scaled)")+
-    scale_x_discrete(expand = c(0,0))+
-    scale_y_discrete(expand=c(0,0))+
-    ylab("ABA Mouse scRNAseq Subclass")+
-    xlab("Visium Cluster or Domain")+
-    theme(axis.title.x = element_text(size = 10), axis.text.y = element_markdown(size = 9), axis.title.y = element_text(size=11),axis.text.x=element_markdown(size=9,angle = 90, hjust = 1),legend.title = element_markdown(size=9,hjust=0.5),legend.text=element_text(size=8))
-dev.off()
-
-rm(scregz,scregraw,screg,screg2,keepcl)
-```
-
-panel E+F: retinoid receptor and metabolism expression in human, mouse
-retinoid pseudobulk expression: mouse single cell subclasses vs. human visium domains. already processed to be plot-ready.
-
+3H+I: retRs and CYP26A1 in VMH/ARC mouse / human
 ```{r}
 retr <- readRDS("spatial_HYP/processed-data/12-Mouse comparisons/05-retinoid metabolism and receptor genes ABAmsScrnaseq23 and visium pseudobulk xprs.RDS")
 
@@ -513,7 +610,7 @@ retr.plt <- lapply(retr.plt,FUN=function(x){x[,gene:=paste0("*",symb.hg,"*<br>(*
 # saving a bunch of text here using paste0 to list the gene names out in the order i want (easy), and tack on the markdown language and mouse ortholog for plotting. makes this kind of unreadable. apologies.
 
 # vmh:
-vord <- c("RARA","RXRA","RXRB","RXRG","CYP26A1","CYP26B1","FABP5","PDHA1","PDHB","PDHX","PDK1","PDK2","PDK3","DHRS3","DLAT","DLD","PPARD",paste0("RDH",c(10,11,13:14)))
+vord <- c("CYP26A1","RARA","RXRA","RXRB","RXRG")#,"CYP26B1","FABP5","PDHA1","PDHB","PDHX","PDK1","PDK2","PDK3","DHRS3","DLAT","DLD","PPARD",paste0("RDH",c(10,11,13:14)))
 vgns <- as.data.frame(unique(retr.plt[["vmh"]][,.(symb.hg,ortholog_gene)]))
 
 v.retlvl <- unique(paste0(
@@ -525,10 +622,11 @@ v.retlvl <- unique(paste0(
 )
 
 stopifnot(all(v.retlvl %in% retr.plt[["vmh"]]$gene))
+retr.plt[["vmh"]] <- retr.plt[["vmh"]][gene %in% v.retlvl]
 retr.plt[["vmh"]][,gene:=factor(gene,levels=v.retlvl)]
 
 # arc:
-aord <- c("RARA","RXRA","RXRB","RXRG","CYP26A1","CYP26B1","CRABP1","CRABP2","FABP5","PDHA1","PDHB","PDHX","PDK1","PDK2","PDK3","DHRS3","DHRS4","DLAT","DLD","PPARD",paste0("RDH",c(10,11,13:14)))
+aord <- c("CYP26A1","RARA","RXRA","RXRB","RXRG")#,"CYP26B1","CRABP1","CRABP2","FABP5","PDHA1","PDHB","PDHX","PDK1","PDK2","PDK3","DHRS3","DHRS4","DLAT","DLD","PPARD",paste0("RDH",c(10,11,13:14)))
 agns <- as.data.frame(unique(retr.plt[["arc"]][,.(symb.hg,ortholog_gene)]))
 
 a.retlvl <- unique(paste0(
@@ -540,6 +638,7 @@ a.retlvl <- unique(paste0(
 )
 
 stopifnot(all(a.retlvl %in% retr.plt[["arc"]]$gene))
+retr.plt[["arc"]] <- retr.plt[["arc"]][gene %in% a.retlvl]
 retr.plt[["arc"]][,gene:=factor(gene,levels=a.retlvl)]
 
 
@@ -563,52 +662,94 @@ retr.plt[["arc"]][,assay:=factor(assay,levels=c(
 ```
 
 save plots
+### for the ARC one, we have to go to obnoxious lengths to keep the keys from stretching to be the same height as the text.
+https://stackoverflow.com/questions/65812949/set-standard-legend-key-size-with-long-label-names-ggplot
+
 ```{r}
-pdf("manuscript_plots/Fig3/3E-retinoidgenes_mmHg_VMH.pdf",width=7.5,height=3)
+library(grid)
+library(rlang)
+draw_square <- function(data, params, size) {
+  if (is.null(data$size)) {
+    data$size <- 0.5
+  }
+  lwd <- min(data$size, min(size) /4)
+  grid::rectGrob(
+    width  = unit(1, "snpc") - ggplot2::unit(lwd, "mm"),
+    height = unit(1, "snpc") - ggplot2::unit(lwd, "mm"),
+    gp = gpar(
+      col = data$colour %||% NA,
+      fill = alpha(data$fill %||% "grey20", data$alpha),
+      lty = data$linetype %||% 1,
+      lwd = lwd * .pt,
+      linejoin = params$linejoin %||% "mitre",
+      lineend = if (identical(params$linejoin, "round")) "round" else "square"
+    )
+  )
+}
+```
+
+## so for consistency, use this ^ in both plots
+```{r}
+pdf("manuscript_plots/Fig3/3E-retinoidgenes_mmHg_VMH.pdf",width=3.2,height=1.45)
 ggplot(retr.plt[["vmh"]],aes(y=expr,x=assay,fill=assay))+
-    geom_violin(position=position_dodge(width=0.9),linewidth = 0.1)+
-    labs(fill="VMH Domain (human)/\nCell Subclass\n (mouse)")+
+    geom_violin(position=position_dodge(width=0.9),linewidth = 0.1,key_glyph=draw_square)+
+    labs(fill="VMH Domain\nMouse Cell\nSubclass")+
+    guides(fill=guide_legend(nrow=1))+
     theme_minimal()+
-    facet_wrap(~gene,nrow=2)+
+    facet_wrap(~gene,nrow=1)+
     # Add vertical lines between each gene
     geom_vline(xintercept = as.numeric(unique(retr.plt[["vmh"]]$gene)) + 0.5,
                color = "black",
                linetype = "solid",
                linewidth = 0.2)+
+    ylab("Pseudobulk Expression")+
     theme(axis.text.x=element_blank(),
           strip.background = element_blank(),
           axis.text.y=element_text(size=7),
-          axis.title.x=element_text(size=9),
-          axis.title.y=element_text(size=9),
-          legend.text=element_markdown(size=7),
+          axis.title.x=element_blank(),
+          axis.title.y=element_text(size=8),
+          legend.text=element_markdown(size=6.5,vjust=0.5),
           legend.title=element_text(size=8,hjust=0.5),
-          strip.text = element_markdown(size=7,hjust=0.5))
+          strip.text = element_markdown(size=7,hjust=0.5,margin=margin(0.025,0,0,0,"in")),
+          plot.margin = margin(0,0,-0.125,0.01,unit="in"),
+          legend.position="bottom",
+          legend.margin = margin(-0.15,0,0,-0.05,unit="in"),
+          legend.key.size = ggplot2::unit(0.125,"in"))
 dev.off()
-    
-pdf("manuscript_plots/Fig3/3F-retinoidgenes_mmHg_ARC.pdf",width=7.5,height=3)
+
+pdf("manuscript_plots/Fig3/3F-retinoidgenes_mmHg_ARC.pdf",width=3.2,height=2.05)
 ggplot(retr.plt[["arc"]],aes(y=expr,x=assay,fill=assay))+
-    geom_violin(position=position_dodge(width=0.9),linewidth = 0.1)+
-    labs(fill="ARC Domain (human)/\nCell Subclass\n (mouse)")+
+    geom_violin(position=position_dodge(width=0.9),linewidth = 0.1,key_glyph=draw_square)+
+    labs(fill="ARC Domain\nMouse Cell\nSubclass")+
+    guides(fill=guide_legend(nrow = 2,byrow=TRUE))+
     theme_minimal()+
-    facet_wrap(~gene,nrow=2)+
+    facet_wrap(~gene,nrow=1)+
     # Add vertical lines between each gene
     geom_vline(xintercept = as.numeric(unique(retr.plt[["arc"]]$gene)) + 0.5,
                color = "black",
                linetype = "solid",
                linewidth = 0.2)+
+    ylab("Pseudobulk Expression")+
     theme(axis.text.x=element_blank(),
           strip.background = element_blank(),
           axis.text.y=element_text(size=7),
-          axis.title.x=element_text(size=9),
-          axis.title.y=element_text(size=9),
-          legend.text=element_markdown(size=7),
+          axis.title.x=element_blank(),
+          axis.title.y=element_text(size=8),
+          legend.text=element_markdown(size=6.5,vjust=0.5),
           legend.title=element_text(size=8,hjust=0.5),
-          strip.text = element_markdown(size=7,hjust=0.5))
+          strip.text = element_markdown(size=7,hjust=0.5,margin=margin(0.025,0,0,0,"in")),
+          plot.margin = margin(0,0,-0.1,0.01,unit="in"),
+          legend.position="bottom",
+          legend.margin = margin(-0.175,0,0,-0.125,unit="in"),
+          legend.key.spacing.x=ggplot2::unit(0.01,"in"),
+          legend.key.spacing.y=ggplot2::unit(0.01,"in"),
+          legend.key=element_blank(),
+          legend.key.size = ggplot2::unit(0.125,"in"))
 dev.off()
 
 ```
 
-### reprod info
+reprod
 ```{r}
 sessionInfo()
 sessioninfo::session_info()
@@ -628,20 +769,20 @@ time zone: America/Chicago
 tzcode source: internal
 
 attached base packages:
-[1] stats4    stats     graphics  grDevices utils     methods   base     
+[1] grid      stats4    stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
- [1] ggbreak_0.1.2                  sf_1.0-16                     
- [3] colorout_1.3-0.2               ggstance_0.3.7                
- [5] Polychrome_1.5.1               viridis_0.6.5                 
- [7] viridisLite_0.4.2              escheR_1.4.0                  
- [9] spatialLIBD_1.16.2             SpatialFeatureExperiment_1.6.1
-[11] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
-[13] SummarizedExperiment_1.34.0    Biobase_2.64.0                
-[15] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
-[17] IRanges_2.38.1                 S4Vectors_0.42.1              
-[19] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
-[21] matrixStats_1.3.0              ggrastr_1.0.2                 
+ [1] sf_1.0-16                      escheR_1.4.0                  
+ [3] spatialLIBD_1.16.2             SpatialFeatureExperiment_1.6.1
+ [5] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
+ [7] SummarizedExperiment_1.34.0    Biobase_2.64.0                
+ [9] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
+[11] IRanges_2.38.1                 S4Vectors_0.42.1              
+[13] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
+[15] matrixStats_1.3.0              ggbreak_0.1.2                 
+[17] colorout_1.3-0.2               ggstance_0.3.7                
+[19] Polychrome_1.5.1               viridis_0.6.5                 
+[21] viridisLite_0.4.2              ggrastr_1.0.2                 
 [23] ggtext_0.1.2                   ggplot2_3.5.1                 
 [25] data.table_1.15.4              rlang_1.1.4                   
 
@@ -662,50 +803,49 @@ loaded via a namespace (and not attached):
  [40] abind_1.4-5               R.methodsS3_1.8.2         terra_1.7-78             
  [43] lifecycle_1.0.4           scatterplot3d_0.3-44      yaml_2.3.9               
  [46] edgeR_4.2.0               rhdf5_2.48.0              SparseArray_1.4.8        
- [49] BiocFileCache_2.12.0      paletteer_1.6.0           grid_4.4.1               
- [52] blob_1.2.4                promises_1.3.0            dqrng_0.4.1              
- [55] ExperimentHub_2.12.0      crayon_1.5.3              lattice_0.22-6           
- [58] beachmat_2.20.0           cowplot_1.1.3             KEGGREST_1.44.1          
- [61] magick_2.8.3              zeallot_0.1.0             pillar_1.9.0             
- [64] knitr_1.48                rjson_0.2.21              boot_1.3-30              
- [67] codetools_0.2-20          wk_0.9.2                  glue_1.7.0               
- [70] ggfun_0.1.5               vctrs_0.6.5               png_0.1-8                
- [73] spam_2.10-0               gtable_0.3.5              rematch2_2.1.2           
- [76] cachem_1.1.0              xfun_0.45                 S4Arrays_1.4.1           
- [79] mime_0.12                 DropletUtils_1.24.0       sfheaders_0.4.4          
- [82] iterators_1.0.14          units_0.8-5               fields_16.2              
- [85] statmod_1.5.0             bit64_4.0.5               filelock_1.0.3           
- [88] rprojroot_2.0.4           bslib_0.7.0               irlba_2.3.5.1            
- [91] vipor_0.4.7               KernSmooth_2.23-24        colorspace_2.1-0         
- [94] spData_2.3.1              DBI_1.2.3                 tidyselect_1.2.1         
- [97] bit_4.0.5                 compiler_4.4.1            curl_5.2.1               
-[100] BiocNeighbors_1.22.0      xml2_1.3.6                DelayedArray_0.30.1      
-[103] plotly_4.10.4             rtracklayer_1.64.0        scales_1.3.0             
-[106] classInt_0.4-10           rappdirs_0.3.3            stringr_1.5.1            
-[109] tiff_0.1-12               digest_0.6.36             fftwtools_0.9-11         
-[112] rmarkdown_2.27            benchmarkmeData_1.0.4     XVector_0.44.0           
-[115] htmltools_0.5.8.1         pkgconfig_2.0.3           jpeg_0.1-10              
-[118] sparseMatrixStats_1.16.0  dbplyr_2.5.0              fastmap_1.2.0            
-[121] htmlwidgets_1.6.4         UCSC.utils_1.0.0          shiny_1.8.1.1            
-[124] DelayedMatrixStats_1.26.0 farver_2.1.2              jquerylib_0.1.4          
-[127] jsonlite_1.8.8            BiocParallel_1.38.0       config_0.3.2             
-[130] R.oo_1.26.0               BiocSingular_1.20.0       RCurl_1.98-1.14          
-[133] magrittr_2.0.3            scuttle_1.14.0            GenomeInfoDbData_1.2.12  
-[136] ggplotify_0.1.2           s2_1.1.6                  dotCall64_1.1-1          
-[139] patchwork_1.2.0           Rhdf5lib_1.26.0           munsell_0.5.1            
-[142] Rcpp_1.0.13               stringi_1.8.4             zlibbioc_1.50.0          
-[145] plyr_1.8.9                AnnotationHub_3.12.0      parallel_4.4.1           
-[148] ggrepel_0.9.5             deldir_2.0-4              Biostrings_2.72.1        
-[151] gridtext_0.1.5            locfit_1.5-9.10           markdown_1.13            
-[154] reshape2_1.4.4            ScaledMatrix_1.12.0       BiocVersion_3.19.1       
-[157] XML_3.99-0.17             evaluate_0.24.0           golem_0.4.1              
-[160] BiocManager_1.30.23       foreach_1.5.2             httpuv_1.6.15            
-[163] tidyr_1.3.1               purrr_1.0.2               benchmarkme_1.0.8        
-[166] rsvd_1.0.5                xtable_1.8-4              restfulr_0.0.15          
-[169] e1071_1.7-14              later_1.3.2               class_7.3-22             
-[172] tibble_3.2.1              aplot_0.2.3               memoise_2.0.1            
-[175] beeswarm_0.4.0            AnnotationDbi_1.66.0      GenomicAlignments_1.40.0 
-[178] shinyWidgets_0.8.6        here_1.0.1               
+ [49] BiocFileCache_2.12.0      paletteer_1.6.0           blob_1.2.4               
+ [52] promises_1.3.0            dqrng_0.4.1               ExperimentHub_2.12.0     
+ [55] crayon_1.5.3              lattice_0.22-6            beachmat_2.20.0          
+ [58] cowplot_1.1.3             KEGGREST_1.44.1           magick_2.8.3             
+ [61] zeallot_0.1.0             pillar_1.9.0              knitr_1.48               
+ [64] rjson_0.2.21              boot_1.3-30               codetools_0.2-20         
+ [67] wk_0.9.2                  glue_1.7.0                ggfun_0.1.5              
+ [70] vctrs_0.6.5               png_0.1-8                 spam_2.10-0              
+ [73] gtable_0.3.5              rematch2_2.1.2            cachem_1.1.0             
+ [76] xfun_0.45                 S4Arrays_1.4.1            mime_0.12                
+ [79] DropletUtils_1.24.0       sfheaders_0.4.4           iterators_1.0.14         
+ [82] units_0.8-5               fields_16.2               statmod_1.5.0            
+ [85] bit64_4.0.5               filelock_1.0.3            rprojroot_2.0.4          
+ [88] bslib_0.7.0               irlba_2.3.5.1             vipor_0.4.7              
+ [91] KernSmooth_2.23-24        colorspace_2.1-0          spData_2.3.1             
+ [94] DBI_1.2.3                 tidyselect_1.2.1          bit_4.0.5                
+ [97] compiler_4.4.1            curl_5.2.1                BiocNeighbors_1.22.0     
+[100] xml2_1.3.6                DelayedArray_0.30.1       plotly_4.10.4            
+[103] rtracklayer_1.64.0        scales_1.3.0              classInt_0.4-10          
+[106] rappdirs_0.3.3            stringr_1.5.1             tiff_0.1-12              
+[109] digest_0.6.36             fftwtools_0.9-11          rmarkdown_2.27           
+[112] benchmarkmeData_1.0.4     XVector_0.44.0            htmltools_0.5.8.1        
+[115] pkgconfig_2.0.3           jpeg_0.1-10               sparseMatrixStats_1.16.0 
+[118] dbplyr_2.5.0              fastmap_1.2.0             htmlwidgets_1.6.4        
+[121] UCSC.utils_1.0.0          shiny_1.8.1.1             DelayedMatrixStats_1.26.0
+[124] farver_2.1.2              jquerylib_0.1.4           jsonlite_1.8.8           
+[127] BiocParallel_1.38.0       config_0.3.2              R.oo_1.26.0              
+[130] BiocSingular_1.20.0       RCurl_1.98-1.14           magrittr_2.0.3           
+[133] scuttle_1.14.0            GenomeInfoDbData_1.2.12   ggplotify_0.1.2          
+[136] s2_1.1.6                  dotCall64_1.1-1           patchwork_1.2.0          
+[139] Rhdf5lib_1.26.0           munsell_0.5.1             Rcpp_1.0.13              
+[142] stringi_1.8.4             zlibbioc_1.50.0           AnnotationHub_3.12.0     
+[145] parallel_4.4.1            ggrepel_0.9.5             deldir_2.0-4             
+[148] Biostrings_2.72.1         gridtext_0.1.5            locfit_1.5-9.10          
+[151] markdown_1.13             ScaledMatrix_1.12.0       BiocVersion_3.19.1       
+[154] XML_3.99-0.17             evaluate_0.24.0           golem_0.4.1              
+[157] BiocManager_1.30.23       foreach_1.5.2             httpuv_1.6.15            
+[160] tidyr_1.3.1               purrr_1.0.2               benchmarkme_1.0.8        
+[163] rsvd_1.0.5                xtable_1.8-4              restfulr_0.0.15          
+[166] e1071_1.7-14              later_1.3.2               class_7.3-22             
+[169] tibble_3.2.1              aplot_0.2.3               memoise_2.0.1            
+[172] beeswarm_0.4.0            AnnotationDbi_1.66.0      GenomicAlignments_1.40.0 
+[175] shinyWidgets_0.8.6        here_1.0.1               
 > sessioninfo::session_info()
 ─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
@@ -717,7 +857,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-10-03
+ date     2024-10-08
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
@@ -844,7 +984,6 @@ loaded via a namespace (and not attached):
    pillar                     1.9.0     2023-03-22 [1] CRAN (R 4.4.0)
    pkgconfig                  2.0.3     2019-09-22 [1] CRAN (R 4.4.0)
    plotly                     4.10.4    2024-01-13 [1] CRAN (R 4.4.0)
-   plyr                       1.8.9     2023-10-02 [1] CRAN (R 4.4.0)
    png                        0.1-8     2022-11-29 [1] CRAN (R 4.4.0)
    Polychrome               * 1.5.1     2022-05-03 [1] CRAN (R 4.4.0)
    promises                   1.3.0     2024-04-05 [1] CRAN (R 4.4.0)
@@ -859,7 +998,6 @@ loaded via a namespace (and not attached):
    Rcpp                       1.0.13    2024-07-17 [1] CRAN (R 4.4.0)
    RCurl                      1.98-1.14 2024-01-09 [1] CRAN (R 4.4.0)
    rematch2                   2.1.2     2020-05-01 [1] CRAN (R 4.4.0)
-   reshape2                   1.4.4     2020-04-09 [1] CRAN (R 4.4.0)
    restfulr                   0.0.15    2022-06-16 [1] CRAN (R 4.4.0)
    rhdf5                      2.48.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    rhdf5filters               1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)

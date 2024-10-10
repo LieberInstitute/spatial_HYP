@@ -241,3 +241,105 @@ p+
 dev.off()
 ```
 
+
+### Set up the xenium palette for cell groups for the next panel.
+```{r}
+rastumap <- fread("xenium_HYP/processed-data/04_general_QC_and_normalization/02a-genetarg-lctUMAP_rawctCAandUMAP_w_metadata.txt.gz")
+
+
+
+## create supercluster labels to group related cell types together
+bkcl <- as.data.table(bkcl,keep.rownames=T)
+bkcl[,supercl:="ifthisisplottedigoofed"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="VMH",value=T),supercl:="VMH (4)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="ARC",value=T),supercl:="ARC (5)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Tanyc|Alar",value=T),supercl:="Tanycytes, Portal Vasc. (4)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Oligo",value=T),supercl:="Oligo (4)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Astro",value=T),supercl:="Astro (2)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Microg",value=T),supercl:="Microglia (3)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Supraopt",value=T),supercl:="SON (2)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Unsure_AVP",value=T),supercl:="Non-SON AVP+OXT+ (1)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Macrop|Periph|Vascul|Endothel",value=T),supercl:="Vascular and Peripheral Immune (5)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="GABA",value=T),supercl:="Other GABAergic Neurons (2)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Periven",value=T),supercl:="PeriVN (Excitatory) (1)"]
+### the parenthetical numbers add up to 33, so we're good.
+
+# key is a field from the colData slot of the SPE that was exported, and is identical to the rownames in case they are lost during switches between d.t. and d.f elsewhere
+rastumap <- rastumap[key %in% bkcl$rn]
+rastumap <- merge.data.table(rastumap,bkcl,by.x="key",by.y="rn")
+
+
+
+
+### lastly, in the case of the xenium spotplot of all cell groups, we need to put them in a specific order for them to fit within the plot space alongside 1225B: VMH, ARC, SON, Astro, Oligo, Microglia, PeriVN, Non-SON AVP+OXT+, Tanycytes n portal, Other GABA, Vasc n periph
+bkcl$supercl <- factor(bkcl$supercl,levels=c("VMH (4)","ARC (5)","SON (2)","Astro (2)","Oligo (4)","Microglia (3)","PeriVN (Excitatory) (1)","Non-SON AVP+OXT+ (1)","Tanycytes, Portal Vasc. (4)","Other GABAergic Neurons (2)","Vascular and Peripheral Immune (5)"))
+```
+
+
+### Panel D is possibly the xenium cluster UMAP, which we should re-generate here with matched palette components where possible.
+```{r}
+xenpal <- pals[["xen_cellgroups"]]
+stopifnot(all(unique(bkcl$supercl) %in% names(xenpal)))
+
+p <- ggplot(rastumap,aes(x=UMAP1_CA,y=UMAP2_CA,color=supercl))+ 
+   xlab("UMAP dim 1")+
+   ylab("UMAP dim 2")+
+   labs(color="Cell group (N clusters)")+
+   scale_color_manual(values=xenpal)+
+   guides(color=guide_legend(ncol=2,override.aes=list(size=1.5)))+
+   theme(legend.position = "bottom",legend.direction="vertical",title = element_blank(),axis.title = element_text(size=32),axis.text=element_blank(),legend.title = element_text(size=24),legend.text = element_text(size=20),legend.background = element_blank(),legend.box.margin = margin(0,0.25,0,-0.5,unit = "in"))+
+   rasterize(geom_point(size=0.1),dpi=450,dev = "cairo_png")
+
+
+pdf("manuscript_plots/Fig1/1D-Xenium_cellgroup_UMAP.pdf",width=9,height=9)
+p
+dev.off()
+```
+
+
+Panel were not including for now is Visium expression of a WM marker, KLK6. (Our options for those are somewhat limited on the xenium side).
+```{r}
+## for escheR, we put the assay value into the colData for it to use
+panh <- hyp2["KLK6",hyp2$sample_id=="V13Y24-346_C1"]
+colData(panh)$`log counts` <- as.numeric(logcounts(panh)["KLK6",])
+
+p <- make_escheR(panh)
+p <- p |> add_fill("log counts",size=0.25,point_size = 0.5)
+p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.5)
+
+#pdf("manuscript_plots/Fig1/1H-V12D05_350_C1_KLK6.pdf",height=2,width=2)
+p+
+    scale_color_manual(values=pal,na.value = NA)+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    #scale_fill_grey()+
+    ggtitle("*KLK6* ",mscriptids[sample_id=="V13Y24-346_C1",manuscript_id])+
+    guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+    labs(color="Visium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"),legend.margin = margin(0,0,0,-0.14,"in"))
+dev.off()
+
+rm(p,panh)
+```
+
+
+1L: KLK6 in xenium X99_1225B
+```{r}
+panl <- hypx["KLK6",hypx$sample_id=="X99_1225B"]
+colData(panl)$`log counts` <- as.numeric(logcounts(panl)["KLK6",])
+
+p <- make_escheR(panl,y_reverse=FALSE)
+p <- p |> add_fill("log counts",size=0.2,point_size = 0.225)
+
+pdf("manuscript_plots/Fig1/1L-X99_1225B_KLK6.pdf",height=2,width=2)
+p+
+    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
+    scale_color_manual(values=pal,na.value = NA)+
+    ggtitle(paste0("*KLK6*",mscriptids[sample_id=="X99_1225B",manuscript_id]))+
+    guides(color="none")+
+    # labs(col="Xenium\nDomain")+
+    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.12,0,-0.12,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.11,-0.4,-0.12,-0.4,unit = "in"),legend.margin=margin(0,-0.2,0,0,"in"),legend.background = element_blank(),legend.box = element_blank(),legend.key = element_blank())
+dev.off()
+
+rm(panl,p)
+```

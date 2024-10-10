@@ -10,10 +10,13 @@ knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
 knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
+library(SpatialExperiment)
+library(escheR)
 library(ggplot2)
 library(gridExtra)
 library(ggtext)
 library(Cairo)
+library(ggrastr)
 
 ## rstudio GUI tweaks
 require(colorout)
@@ -174,4 +177,121 @@ ggplot(csx,aes(x=spdom,y=pathway,fill=NES))+
     ylab("Disease / Trait\nGene Set") +
     theme(plot.background = element_blank(),axis.text.x = element_text(size=9,angle=90,vjust=0.5),axis.text.y=element_text(size=9),axis.title.x=element_text(size=10,hjust=0.5),axis.title.y=element_text(size=10,vjust=0.5,margin=margin(0,-0.15,0,0,"in")),legend.title = element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin=margin(0,0,0,-0.1,"in"))
 dev.off()
+```
+
+
+## looking at the overlap between leadingEdge genes driving male ASD enrichment in ARC with genes on Xenium, MYT1L, an obesity+ASD syndrome, is nominally sex DE in ARC_4 and much more weakly so in ARC_5. let's take a look at this warlock
+
+```{r}
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+
+bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+fineanno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+fineanno[plotclusname=="*POMC*-Oligo",plotclusname:="*POMC*-Oligo Mixed"]
+
+smoove <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
+
+setnames(bkcl,2,"cl")
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+
+# drop DISCARDS
+bkanno <- bkanno[!(bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T))]
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+bkcl <- merge.data.table(bkcl,fineanno[,.(bjm_annot,dom.clus,plotclusname)],by="bjm_annot",all.x=T)
+bkcl[!is.na(plotclusname),bjm_annot:=plotclusname]
+
+# add clusters and smoothed domains
+hypx$dom <- DataFrame(smoove[,.(rn,dualVMHARC4)],row.names=smoove$rn)[colnames(hypx),"dualVMHARC4"]
+
+hypx$bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),"bjm_annot"]
+
+```
+
+load cell type palettes
+```{r}
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+
+xenarcpal <- pals[[3]]
+names(xenarcpal)[5] <- "*TAC3*-*ESR1*"
+
+
+stopifnot(names(xenarcpal) %in% unique(bkcl[dom.clus %in% grep(dom.clus,pattern="ARC",value=T),plotclusname]))
+```
+
+### LEFT OFF HERE ### 
+
+### plot MYT1L in two male, two female samples showing ARC_4 and ARC_5 (TAC3-ESR1 and POMC-Oligo Mixed). append manuscript sample ids
+```{r}
+mytx <- hypx["MYT1L"]
+mytx <- mytx[,mytx$dom=="ARC"]
+mytx <- mytx[,mytx$bkcl %in% c("*TAC3*-*ESR1*","*POMC*-Oligo Mixed")]
+
+# add manuscript identifiers
+mscriptid <- fread("standardized_sampleids_for_plotting.txt")
+tmpcd <- as.data.table(colData(mytx),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,mscriptid[,.(sample_id,manuscript_id)],all.x=T,by="sample_id")
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(mytx),]
+tmpcd$rn <- NULL
+colData(mytx) <- tmpcd
+mytx$sample_id <- mytx$manuscript_id
+
+mytxa <- mytx[,mytx$sample_id %in% c("x1735C_M","x1225B_M","x8741C_F","x6588C_F")]
+mytxa$`log counts` <- logcounts(mytxa)["MYT1L",]
+
+mytx.m1 <- mytxa[,mytxa$sample_id=="x1735C_M"]
+
+mytx.m2 <- mytxa[,mytxa$sample_id=="x1225B_M"]
+
+mytx.f1 <- mytxa[,mytxa$sample_id=="x8741C_F"]
+
+mytx.f2 <-  mytxa[,mytxa$sample_id=="x6588C_F"]
+
+mytxs <- list(mytx.m1,mytx.m2,mytx.f1,mytx.f2)
+
+mytxplt <- lapply(mytxs,FUN=function(m){
+    # m <- m[,m$bkcl=="*TAC3*-*ESR1*"]
+    colData(m)$`log counts` <- logcounts(m)["MYT1L",]
+    p <- as.data.table(cbind(spatialCoords(m),m$`log counts`,m$bkcl))
+    setnames(p,c("sdimx","sdimy","log counts","bkcl"))
+    p[,sdimx:=as.numeric(sdimx)]
+    p[,sdimy:=as.numeric(sdimy)]
+    p[,`log counts`:=as.numeric(`log counts`)]
+    #p <- p |> add_ground("bkcl",stroke = 0.35,point_size = 0.875)
+    #p <- p |> add_fill("log counts",size=0.875,point_size = 0.875)
+    p2 <- ggplot(p,aes(x=bkcl,y=`log counts`,col=bkcl,fill=`log counts`))+
+        #gbeeswarm::geom_beeswarm(size=1.25,stroke =0.45,shape=21,corral.width = 0.1,)+
+        rasterize(geom_quasirandom(dodge.width=1.5,size=0.67,stroke =0.225,shape=21),dpi = 600,dev="cairo_png")+
+        scale_color_manual(values=xenarcpal)+
+        scale_fill_gradient(low="white",high="black",limits=c(min(mytxa$`log counts`),max(mytxa$`log counts`)))+
+        ggtitle(paste0("*MYT1L* ",unique(m$sample_id)))+
+        labs(fill="log counts",color="xARC Cluster")+
+        theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.x=element_blank(),axis.title.y=element_blank(),axis.ticks.x = element_blank(),axis.ticks.y=element_blank())
+    return(p2)
+})
+
+### helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+#####
+
+leg.tmp <- extract_legend(mytxplt[[1]])
+dev.off()
+
+mytxplt<- lapply(mytxplt,FUN=function(x){x+guides(fill="none")+guides(color="none")})
+```
+
+```{r}
+pdf("manuscript_plots/Fig6/6E-MYT1L beeswarms.pdf",height=4,width=8)
+do.call("grid.arrange",list(arrangeGrob(grobs=mytxplt,nrow=1),leg.tmp,ncol=2,widths=c(6.75,1.25)))
+dev.off()
+
+
+
+
 ```

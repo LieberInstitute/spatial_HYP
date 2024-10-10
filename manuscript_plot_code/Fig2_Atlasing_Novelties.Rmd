@@ -1,7 +1,7 @@
 ---
 title: "Fig2_Atlasing_Novelties"
 output: html_document
-date: "2024-08-22"
+date: "2024-10-08"
 ---
 
 ```{r setup, include=FALSE}
@@ -75,29 +75,11 @@ bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
 
 ## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
-arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
-## simplify these by removing VMH/ARC and underscores; asterisk-ize so the gene names  can be italiczed in ggplot elements; remove vmh and arc from the names but add a temporary column here so we know they're VMH and ARC for mapping onto the de result sets
-arcvmhanno[,subclus_domain:=gsub(subclus_annot,pattern="^(VMH)_.*$",replacement="\\1")]
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="VMH_",replacement="")]
-
-arcvmhanno[subclus_domain!="VMH",subclus_domain:=gsub(subclus_annot,pattern="^(ARC)_.*$",replacement="\\1")]
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="ARC_",replacement="")]
-
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
-
-arcvmhanno[subclus_annot=="VMH-Glia-Mixed",subclus_annot:="VMH-Glia Mixed"]
-arcvmhanno[subclus_annot=="SLC17A6-CRHR2",subclus_annot:="*SLC17A6*-*CRHR2*"]
-arcvmhanno[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*NRGN*"]
-arcvmhanno[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
-arcvmhanno[subclus_annot=="AGRP",subclus_annot:="*AGRP*"]
-arcvmhanno[subclus_annot=="TAC3-AR-ESR1",subclus_annot:="*TAC3*-*AR*-*ESR1*"]
-arcvmhanno[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo Mixed"]
-arcvmhanno[subclus_annot=="Excit-SLC17A7-Glial-Mixed",subclus_annot:="*SLC17A7*-Glia Mixed"]
-arcvmhanno[subclus_annot=="GAL-TRH-GHRH",subclus_annot:="*GAL*-*TRH*-*GHRH*"]
+arcvmhanno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
 
 ## append these to the other annots and replace bjm_annot with the ARC/VMH cell type labels where applicable
 bkanno <- merge.data.table(bkanno,arcvmhanno,by="bjm_annot",all.x=T)
-bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
+bkanno[!is.na(plotclusname),bjm_annot:=plotclusname]
 
 ## this drops rows that were assigned one of the discarded types (ie no longer in the cell type annotations)
 bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
@@ -113,6 +95,9 @@ hypx$banksyclus <- bkcl$bjm_annot
 bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
 bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
 hypx$dom <- bksmooth$dualVMHARC4
+
+## load manuscript sample ids
+mscriptids <- fread("standardized_sampleids_for_plotting.txt")
 ```
 
 ## palette set up (shared)
@@ -127,15 +112,11 @@ stopifnot(sum(names(vmhpal)%in%unique(hypx$banksyclus))==length(names(vmhpal)))
 stopifnot(sum(names(arcpal)%in%unique(hypx$banksyclus))==length(names(arcpal)))
 ```
 
-
-
-Tentatively, the plan here is to have the top row be two novel markers each for VMH and ARC identified in Visium, their respective followup results in Xenium, then a row with LAMP5-SLC17A6-GAD-NR5A1 RNAscope, then a row with two Visium ARC SVGs that we subsequently examine in Xenium.
-
 To show the robustness of the dataset, a different sample will be used on a per-figure basis. So here, let's use the classic V12Y31-080_A1 and its xenium counterpart, X86 reg1.
 
 The last bit of setup we need to do here is to define the polygonal boundaries of the VMH and ARC in Xenium. the sf_concave_hull function actually works for this sample's ARC, mostly, so we can define this once pretty quickly and use it for all the visium plots.
 ```{r}
-lamp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
+lamp <- hyp2[,hyp2$sample_id=="V12D05-348_D1"]
 
 ## attach the coordinate info to colData so we can subset to VMH points and wrap this gift. it'll take a bit
 tmpcoldata <- as.data.table(as.data.frame(cbind(colData(lamp),spatialCoords(lamp))))
@@ -149,10 +130,9 @@ ggplot(tmpcoldata,aes(x=array_col,y=array_row,color=Visium.Domain))+
    geom_vline(xintercept=seq(0,max(tmpcoldata$array_col),by=5))+
    geom_hline(yintercept=seq(0,max(tmpcoldata$array_row),5))
 dev.off()
-# ok just a couple easy drops here: ARC: drop col 30, row 22; 81,27; anything past col 100; anything in array_col>80&array_row<45
-# VMH drop everything at row>35 & col > 78 and anything at array_col>90
-tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!((array_row==22&array_col==30)|(array_row==27&array_col==81)|array_col>100|(array_col>80&array_row<45))],
-                    tmpcoldata[Visium.Domain=="VMH"&!(array_col>90|(array_col>78&array_row>35))])
+# ok just a couple easy drops here: ARC: array_col>35&array_row>50
+tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!((array_col>35&array_row>50))],
+                    tmpcoldata[Visium.Domain=="VMH"])
 
 ## for plotting with geom_path, we need to add the first point at the end of the sequence as well. for vmh, we can use convex hull because..well, its a convex shape
 tmpcoldata.sf <- st_as_sf(tmpcoldata,coords=c("array_col","array_row"))
@@ -178,335 +158,37 @@ setorderv(dompoly2,"rn")
 rm(vhull,ahull,dompoly,tmpcoldata)
 ```
 
-
-Panel A: LAMP5 in visium VMH
+Panel A: Visium GHRH
 ```{r}
-### extract sample to plot ###
-lamp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(lamp) <- rowData(lamp)$gene_name
-colData(lamp)$`log counts` <- logcounts(lamp)["LAMP5",]
+pana <- hyp2[,hyp2$sample_id=="V12D05-348_D1"]
+rownames(pana) <- rowData(pana)$gene_name
+colData(pana)$`log counts` <- as.numeric(logcounts(pana)["GHRH",])
 
-### make spotplots
-p <- make_escheR(lamp)
-p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
-# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
-
-pdf("manuscript_plots/Fig2/2A-LAMP5_Visium.pdf",height=1.6,width=1.75)
-p+
-   geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
-    scale_color_manual(values=pal,na.value = NA)+
-    scale_fill_gradient(low="white",high="black")+
-    ggtitle("*LAMP5* (Visium)")+
-    guides(color="none")+
-    labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
-dev.off()
-
-rm(lamp,p)
-
-```
-
-Panel B: ANKRD34B in visium VMH
-```{r}
-### extract sample to plot ###
-ankrd <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(ankrd) <- rowData(ankrd)$gene_name
-colData(ankrd)$`log counts` <- logcounts(ankrd)["ANKRD34B",]
-
-### make spotplots
-p <- make_escheR(ankrd)
-p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
-# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
-
-pdf("manuscript_plots/Fig2/2B-ANKRD34B_Visium.pdf",height=1.6,width=1.75)
-p+
-      geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
-    scale_color_manual(values=pal,na.value = NA)+
-    scale_fill_gradient(low="white",high="black")+
-    ggtitle("*ANKRD34B* (Visium)")+
-    guides(color="none")+
-    labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
-dev.off()
-
-rm(ankrd,p)
-
-```
-
-Panel C: GABRE in visium ARC
-```{r}
-### extract sample to plot ###
-gabre <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(gabre) <- rowData(gabre)$gene_name
-colData(gabre)$`log counts` <- logcounts(gabre)["GABRE",]
-
-### make spotplots
-p <- make_escheR(gabre)
-p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
-# p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
-
-pdf("manuscript_plots/Fig2/2C-GABRE_Visium.pdf",height=1.6,width=1.75)
-p+
-    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
-    scale_color_manual(values=pal,na.value = NA)+
-    scale_fill_gradient(low="white",high="black")+
-    ggtitle("*GABRE* (Visium)")+
-    guides(color="none")+
-    labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
-dev.off()
-
-rm(gabre,p)
-
-```
-
-
-Panel D: CYP26A1 in visium ARC
-```{r}
-### extract sample to plot ###
-cyp <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(cyp) <- rowData(cyp)$gene_name
-colData(cyp)$`log counts` <- logcounts(cyp)["CYP26A1",]
-
-### make spotplots
-p <- make_escheR(cyp)
+p <- make_escheR(pana)
 p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 #p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
-pdf("manuscript_plots/Fig2/2D-CYP26A1_Visium.pdf",height=1.6,width=1.75)
+pdf("manuscript_plots/Fig2/2A-GHRH_visium.pdf",height=1.6,width=1.75)
 p+
     geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*CYP26A1* (Visium)")+
-    guides(color="none")+
-    labs(fill="log\ncounts")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=8),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=9,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
-dev.off()
-
-rm(cyp,p)
-
-```
-
-For Xenium panels (E-G), we want to again have just the polygonal boundaries of the VMH and ARC shown. we previously code this up in the code for making figure 1 panels. we only need to do determine the points forming this polygon once to make all the panels.
-```{r}
-pane <- hypx["LAMP5",hypx$sample_id=="X86_reg1"]
-# 
-## attach the coordinate info to colData so we can make an sf object out of this for hull extraction. see well-annotated code from DE benchmarking of domain boundaries in xenium_HYP/code/07/03c-DE benchmarks...
-tmpcoldata <- cbind(colData(pane),spatialCoords(pane))
-panev <- st_as_sf(as.data.frame(tmpcoldata[tmpcoldata$dom=="VMH",]),coords = c("sdimx","sdimy"))
-panev <- st_convex_hull(st_union(panev))
-
-panea <- st_as_sf(as.data.frame(tmpcoldata[tmpcoldata$dom=="ARC",]),coords=c("sdimx","sdimy"))
-panea <- st_concave_hull(st_union(panea),ratio = 0.1)
-
-## create the data table we will use for overlaying the boundary polygons
-dompoly <- cbind(panev[[1]][[1]],rep("VMH",nrow(panev[[1]][[1]])))
-dompoly <- rbind(dompoly,cbind(panea[[1]][[1]],rep("ARC",nrow(panea[[1]][[1]]))))
-dompoly <- as.data.table(dompoly)
-setnames(dompoly,c("xpol","ypol","dompol"))
-dompoly[,xpol:=as.numeric(xpol)]
-dompoly[,ypol:=as.numeric(ypol)]
-
-rm(panea,panev)
-```
-
-### Make the Xenium panels
-```{r}
-colData(pane)$`log counts` <- as.numeric(logcounts(pane)["LAMP5",])
-
-p <- make_escheR(pane,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
-
-pdf("manuscript_plots/Fig2/2E-X86_reg1_LAMP5.pdf",height=1.6,width=1.75)
-p+
-    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
-    scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*LAMP5*")+
-    guides(color="none")+
-    # labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
-
-dev.off()
-
-rm(pane,p)
-```
-
-panel F: ankrd34b
-```{r}
-panf <- hypx["ANKRD34B",hypx$sample_id=="X86_reg1"]
-colData(panf)$`log counts` <- as.numeric(logcounts(panf)["ANKRD34B",])
-
-p <- make_escheR(panf,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
-
-pdf("manuscript_plots/Fig2/2F-X86_reg1_ANKRD34B.pdf",height=1.6,width=1.75)
-p+
-    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
-    scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*ANKRD34B*")+
-    guides(color="none")+
-    # labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
-
-dev.off()
-
-rm(panf,p)
-```
-
-
-panel G: GABRE
-```{r}
-pang <- hypx["GABRE",hypx$sample_id=="X86_reg1"]
-colData(pang)$`log counts` <- as.numeric(logcounts(pang)["GABRE",])
-
-p <- make_escheR(pang,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
-
-pdf("manuscript_plots/Fig2/2G-X86_reg1_GABRE.pdf",height=1.6,width=1.75)
-p+
-    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
-    scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*GABRE*")+
-    guides(color="none")+
-    # labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.125,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,-0.0825,-0.07,-0.0625,unit = "in"),legend.margin=margin(0,0.08,0,-0.1625,"in"))
-
-dev.off()
-
-rm(pang,p)
-```
-
-panel H: CYP26A1
-```{r}
-panh <- hypx["CYP26A1",hypx$sample_id=="X86_reg1"]
-colData(panh)$`log counts` <- as.numeric(logcounts(panh)["CYP26A1",])
-
-p <- make_escheR(panh,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
-
-pdf("manuscript_plots/Fig2/2H-X86_reg1_CYP26A1.pdf",height=1.6,width=1.75)
-p+
-    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
-    scale_color_manual(values=pal,na.value = NA)+
-    ggtitle("*CYP26A1*")+
-    guides(color="none")+
-    #labs(col="Xenium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
-dev.off()
-
-rm(panh,p)
-```
-
-
-#### Then: the cell types in VMH and ARC.
-## pani - ARC:
-```{r}
-pani <- hypx[,hypx$sample_id=="X86_reg1"&hypx$dom=="ARC"]
-pani <- as.data.table(cbind(spatialCoords(pani),as.data.table(colData(pani))))[,.(sdimx,sdimy,banksyclus)]
-
-pani <- pani[banksyclus %in% bkanno[subclus_domain=="ARC",bjm_annot]]
-
-pdf("manuscript_plots/Fig2/2I-ARC_celltypes_1225A.pdf",height=3.75,width=3.75)
-ggplot(pani[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
-    geom_point(size=0.075,stroke=0.375)+
-    scale_color_manual(values=arcpal)+
-    guides(color=guide_legend(override.aes = list(size=1)))+
-    labs(color="ARC Cluster")+
-    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")))
-dev.off()
-
-## save an alternative version with cell types faceted
-pdf("manuscript_plots/Fig2/2Ialt-ARC_celltypes_1225A_facet.pdf",height=3.75,width=3.75)
-ggplot(pani[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
-    geom_point(size=0.075,stroke=0.375)+
-    scale_color_manual(values=arcpal)+
-    facet_wrap(~banksyclus)+
-    #guides(color=guide_legend(override.aes = list(size=1)))+
-    guides(color="none")+
-    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),strip.text=element_markdown(size=8),strip.background=element_blank(),strip.background.x = element_blank(),strip.background.y=element_blank())
-dev.off()
-
-
-rm(pani)
-
-
-```
-
-## panj- VMH:
-```{r}
-panj <- hypx[,hypx$sample_id=="X99_1225A"&hypx$dom=="VMH"]
-panj <- as.data.table(cbind(spatialCoords(panj),as.data.table(colData(panj))))[,.(sdimx,sdimy,banksyclus)]
-
-panj <- panj[banksyclus %in% bkanno[subclus_domain=="VMH",bjm_annot]]
-
-pdf("manuscript_plots/Fig2/2J-VMH_celltypes_1225A.pdf",height=3.75,width=3.75)
-ggplot(panj[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
-    geom_point(size=0.075)+
-    scale_color_manual(values=vmhpal)+
-    guides(color=guide_legend(override.aes = list(size=1)))+
-    labs(color="VMH Cluster")+
-    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")))
-dev.off()
-
-## save an alternative version with cell types faceted
-pdf("manuscript_plots/Fig2/2Jalt-VMH_celltypes_1225A_facet.pdf",height=3.75,width=3.75)
-ggplot(panj[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
-    geom_point(size=0.075,stroke=0.375)+
-    scale_color_manual(values=vmhpal)+
-    facet_wrap(~banksyclus)+
-    #guides(color=guide_legend(override.aes = list(size=1)))+
-    guides(color="none")+
-    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),strip.text=element_markdown(size=8),strip.background=element_blank(),strip.background.x = element_blank(),strip.background.y=element_blank())
-dev.off()
-
-
-rm(panj)
-```
-
-
-
-Then: RNAscope.
-
-N: Visium ARC svg #1: GHRH
-O: Visium ARC svg #2: TAC3
-P: dual plot of the two on xenium?
-
-Panel N: Visium GHRH
-```{r}
-pann <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(pann) <- rowData(pann)$gene_name
-colData(pann)$`log counts` <- as.numeric(logcounts(pann)["GHRH",])
-
-p <- make_escheR(pann)
-p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
-#p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
-
-pdf("manuscript_plots/Fig2/2N-GHRH_visium.pdf",height=1.6,width=1.75)
-p+
-    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
-    scale_color_manual(values=pal,na.value = NA)+
-    scale_fill_gradient(low="white",high="black")+
-    ggtitle("*GHRH*")+
+    ggtitle(paste0("*GHRH* ",mscriptids[sample_id=="V12D05-348_D1",manuscript_id]))+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
-rm(pann,p)
+rm(pana,p)
 ```
 
-Panel O: Visium TAC3
+Panel B: Visium TAC3
 ```{r}
-pano <- hyp2[,hyp2$sample_id=="V12Y31-080_A1"]
-rownames(pano) <- rowData(pano)$gene_name
-colData(pano)$`log counts` <- as.numeric(logcounts(pano)["TAC3",])
+panb <- hyp2[,hyp2$sample_id=="V12D05-348_D1"]
+rownames(panb) <- rowData(panb)$gene_name
+colData(panb)$`log counts` <- as.numeric(logcounts(panb)["TAC3",])
 
-p <- make_escheR(pano)
+p <- make_escheR(panb)
 p <- p |> add_fill("log counts",size=0.64,point_size = 0.64)
 # p <- p |> add_ground(var = "Visium Domain",stroke=0.15,point_size = 0.6)
 
@@ -515,131 +197,67 @@ p+
     geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,group=Visium.Domain,col=Visium.Domain),size=0.25)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_gradient(low="white",high="black")+
-    ggtitle("*TAC3*")+
+    ggtitle(paste0("*TAC3* ",mscriptids[sample_id=="V12D05-348_D1",manuscript_id]))+
     guides(color="none")+
     labs(fill="log\ncounts")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.05,0.03,-0.05,0,unit = "in"))
 dev.off()
 
-rm(pano,p)
+rm(panb,p)
 ```
 
-
-Let's see if we can plot both in Xenium in one panel.
+for xenium panels: need domain boundaries
 ```{r}
-# pano <- hypx[c("GHRH","TAC3"),hypx$sample_id=="X86_reg1"]
-# colData(pano)$`log counts GHRH` <- as.numeric(logcounts(pano)[c("GHRH"),])
-# colData(pano)$`log counts TAC3` <- as.numeric(logcounts(pano)[c("TAC3"),])
-# 
-# ### adapting code from Boyi Guo/the "bivariate colorizer" code sandbox
-# RBG_norm_GHRH <- scales::rescale(
-# logcounts(pano)["GHRH", ] |>
-#   base::scale(center = TRUE, scale = FALSE) |>
-#   sapply(max, 0.2),
-# to = c(0.2,1)
-# )
-# RBG_norm_TAC3 <- scales::rescale(
-# logcounts(pano)["TAC3", ] |>
-#   base::scale(center = TRUE, scale = FALSE) |>
-#   sapply(max, 0.2),
-# to = c(0.2, 1)
-# )
-# 
-# ### assign each cell a single color based on its combo of these features
-# pano$rbg_val <- rgb(
-# red = RBG_norm_GHRH,
-# green = 0,
-# blue= RBG_norm_TAC3
-# )
-# 
-# ### find the color corresponding to most spots and blank those out
-# as.data.table(pano$rbg_val)[,.N,by="V1"][max(N)] # #330033
-# pano$rbg_val[which(pano$rbg_val=="#330033")] <- NA
-# ####
-# 
-# p <- make_escheR(pano,y_reverse=FALSE)
-# p <- p |> add_fill("rbg_val",size=0.125,point_size = 0.125)
-# 
-# p <- p+
-#     scale_fill_identity()+
-#     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+scale_color_manual(values=pal,na.value = NA)+
-#     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.07,0,-0.07,-0.1,unit = "in"),legend.margin=margin(0,0,0,-0.15,"in"))
-# 
-# pdf("manuscript_plots/Fig2/2P-X86_reg1_GHRH-TAC3.pdf",height=1.6,width=1.75)
-# p
-# dev.off()
-# 
-# 
-# 
-# dev.off()
-# 
-# rm(pano,p)
+panc <- hypx[,hypx$sample_id=="X97_reg3"]
+## attach the coordinate info to colData so we can make an sf object out of this for hull extraction. see well-annotated code from DE benchmarking of domain boundaries in xenium_HYP/code/07/03c-DE benchmarks...
+tmpcoldata <- cbind(colData(panc),spatialCoords(panc))
+pancv <- st_as_sf(as.data.frame(tmpcoldata[tmpcoldata$dom=="VMH",]),coords = c("sdimx","sdimy"))
+pancv <- st_convex_hull(st_union(pancv))
+
+panca <- st_as_sf(as.data.frame(tmpcoldata[tmpcoldata$dom=="ARC",]),coords=c("sdimx","sdimy"))
+panca <- st_concave_hull(st_union(panca),ratio = 0.1)
+
+## create the data table we will use for overlaying the boundary polygons
+dompoly <- cbind(pancv[[1]][[1]],rep("VMH",nrow(pancv[[1]][[1]])))
+dompoly <- rbind(dompoly,cbind(panca[[1]][[1]],rep("ARC",nrow(panca[[1]][[1]]))))
+dompoly <- as.data.table(dompoly)
+setnames(dompoly,c("xpol","ypol","dompol"))
+dompoly[,xpol:=as.numeric(xpol)]
+dompoly[,ypol:=as.numeric(ypol)]
+
+rm(panca,pancv)
 ```
 
-panel P, option 1: GHRH and TAC3 clusters in different colors
+panel C: xenium GHRH, TAC3, and dual-positive cells color coded
 ```{r}
-panp <- hypx[,hypx$sample_id=="X86_reg1"&hypx$dom=="ARC"]
-tmpcd <- as.data.table(colData(panp),keep.rownames=T)
-tmpcd[!(banksyclus %in% c("ARC_GAL-TRH-GHRH","ARC_TAC3-AR-ESR1")),banksyclus:=NA]
-tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(panp),]
-colData(panp) <- tmpcd
+panc <- panc[,panc$dom=="ARC"]
+tmpcd <- as.data.table(colData(panc),keep.rownames=T)
+tmpcd[!(banksyclus %in% c("*GAL*-*TRH*-*GHRH*","*TAC3*-*ESR1*")),banksyclus:=NA]
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(panc),]
+colData(panc) <- tmpcd
 
-panp$banksyclus <- gsub(panp$banksyclus,pattern="_",replacement=" ")
 
-p <- make_escheR(panp,y_reverse=FALSE)
-p <- p |> add_fill("banksyclus",size=.25,point_size = .25)
+panc$ghrhpos <- ifelse(counts(panc["GHRH",])>0,1,0)
+panc$tacpos <- ifelse(counts(panc["TAC3",])>0,1,0)
+panc$bothpos <- ifelse(panc$ghrhpos+panc$tacpos==2,1,0)
+panc$mkxpr <- ifelse(panc$bothpos==1,"Both","Neither")
+panc$mkxpr <- ifelse(panc$bothpos==0&panc$ghrhpos==1,"*GHRH*",panc$mkxpr)
+panc$mkxpr <- ifelse(panc$bothpos==0&panc$ghrhpos==0&panc$tacpos==1,"*TAC3*",panc$mkxpr)
+panc$mkxpr <- factor(panc$mkxpr,levels=c("*GHRH*","Neither","*TAC3*","Both"))
 
-## at 1.6h x 1.75w with the various point size settings margins etc below, the NA gets chopped off the legend perfectly. 
-panppal <- c("#09979B","#F0B",NA)
-names(panppal) <- c("ARC GAL-TRH-GHRH","ARC TAC3-AR-ESR1","NA")
-
-tmpdompoly <- dompoly[dompol=="ARC"]
-
-p <- p+
-   geom_path(data=tmpdompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
-   scale_color_manual(values=pal["ARC"],na.value = NA)+
-   scale_fill_manual(values=panppal,na.value=NA)+
-   guides(color="none",fill=guide_legend(override.aes = list(size=2)))+
-   labs(fill="Xenium Cluster")+
-   theme(plot.title.position = "plot",
-         plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.15,0,-0.15,0,"in")),
-         legend.text = element_text(size=7),
-         legend.key.size = ggplot2::unit(0.125,"in"),
-         legend.title=element_text(size=7.5,hjust=0.5),
-         plot.margin = margin(-0.07,0,-0.17,-0.05,unit = "in"),
-         legend.margin=margin(-0.1,0,0,0,"in"),
-         legend.position="bottom",legend.direction = "vertical")
-
-pdf("manuscript_plots/Fig2/2Popt1-X86_reg1_GHRH-TAC3_clusters.pdf",height=1.6,width=1.75)
-p
-dev.off()
-
-rm(p)
-```
-
-panel P, option 2: GHRH, TAC3, and dual-positive cells color coded
-```{r}
-panp$ghrhpos <- ifelse(counts(panp["GHRH",])>0,1,0)
-panp$tacpos <- ifelse(counts(panp["TAC3",])>0,1,0)
-panp$bothpos <- ifelse(panp$ghrhpos+panp$tacpos==2,1,0)
-panp$mkxpr <- ifelse(panp$bothpos==1,"Both","Neither")
-panp$mkxpr <- ifelse(panp$bothpos==0&panp$ghrhpos==1,"*GHRH*",panp$mkxpr)
-panp$mkxpr <- ifelse(panp$bothpos==0&panp$ghrhpos==0&panp$tacpos==1,"*TAC3*",panp$mkxpr)
-panp$mkxpr <- factor(panp$mkxpr,levels=c("*GHRH*","Neither","*TAC3*","Both"))
-
-p <- make_escheR(panp,y_reverse=FALSE)
+p <- make_escheR(panc,y_reverse=FALSE)
 p <- p |> add_fill("mkxpr",size=.25,point_size = .25)
 
 ## at 1.6h x 1.75w with the various point size settings margins etc below, the NA gets chopped off the legend perfectly. 
-panppal <- c("#09979B","gray","#F0B","darkorange")
-names(panppal) <- c("*GHRH*","Neither","*TAC3*","Both")
+pancpal <- c("#09979B","gray","#F0B","darkorange")
+names(pancpal) <- c("*GHRH*","Neither","*TAC3*","Both")
 
 tmpdompoly <- dompoly[dompol=="ARC"]
 
 p <- p+
    geom_path(data=tmpdompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
    scale_color_manual(values=pal["ARC"],na.value = NA)+
-   scale_fill_manual(values=panppal,na.value=NA)+
+   scale_fill_manual(values=pancpal,na.value=NA)+
    guides(color="none",fill=guide_legend(ncol=2,override.aes = list(size=2)))+
    labs(fill="Counts >0 for")+
    theme(plot.title.position = "plot",
@@ -651,257 +269,73 @@ p <- p+
          legend.margin=margin(-0.075,0,0,0,"in"),
          legend.position="bottom",legend.direction = "vertical")
 
-pdf("manuscript_plots/Fig2/2Popt2-X86_reg1_GHRH-TAC3_detection.pdf",height=1.6,width=1.75)
+pdf("manuscript_plots/Fig2/2C-X97_reg3_GHRH-TAC3_detection.pdf",height=1.6,width=1.75)
 p
 dev.off()
 
 rm(p)
 ```
 
-Option 3 / supp: scatter plot by GHRH, TAC3 counts
+
+#### Then: the cell types in VMH and ARC.
+
+## pand- VMH:
 ```{r}
-panp3 <- logcounts(hypx[c("GHRH","TAC3"),])
-panp3 <- as.data.table(t(as.matrix(panp3)),keep.rownames=T)
-# make a dummy variable to force jitterdodge to work
-panp3$mkxpr <- "mk"
+pand <- hypx[,hypx$sample_id=="X97_reg3"&hypx$dom=="VMH"]
+pand <- as.data.table(cbind(spatialCoords(pand),as.data.table(colData(pand))))[,.(sdimx,sdimy,banksyclus)]
 
-panp3[is.infinite(GHRH),GHRH:=0]
-panp3[is.infinite(TAC3),TAC3:=0]
+pand <- pand[banksyclus %in% bkanno[subclus_domain=="VMH",bjm_annot]]
 
-pdf("manuscript_plots/Fig2/2Popt3orsupp-alldata_GHRH-TAC3_logcountscatter.pdf",height=7,width=7)
-ggplot(panp3,aes(x=GHRH,y=TAC3,color="mkxpr"))+
-   rasterize(geom_jitter(size=0.05,position=position_jitterdodge(jitter.width = 0.35,jitter.height=0.35)),dev="cairo_png",dpi=300)+
-   scale_color_manual(values="black")+
-   guides(color="none")+
-   geom_abline(intercept = 0,slope = 1,linetype="dashed",color="red")+
-   scale_x_continuous(limits=c(-0.36,6.25),expand=c(0,0))+
-   scale_y_continuous(limits=c(-0.36,6.25),expand=c(0,0))
-dev.off()
-```
-
-Panel Q: Visium marker GSEA for VMH, ARC
-(leave out glutamatergic synapse and just mention in text as an "as expected" finding for VMH -- stretches the x axis way out and ggbreak doesn't work quite as expected)
-### msigdb GSEA for arc and vmh ###
-```{r}
-mkres <- readRDS("spatial_HYP/processed-data/11-GSEA/01a-Marker msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
-
-mkres <- mkres[c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH")]
-mkres <- lapply(mkres,FUN=function(x){
-x[,spdom:=gsub(spdom,pattern="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_X(.*)",replacement="\\1")]})
-
-pltdat <- mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH"]][pathway %in% c(
-   #"GOCC_GLUTAMATERGIC_SYNAPSE",
-   "GOCC_GABA_ERGIC_SYNAPSE",
-   "HP_HYPERACTIVITY",
-   "HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",
-   "GOBP_FEEDING_BEHAVIOR",
-   "WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",
-   "KEGG_LONG_TERM_POTENTIATION",
-   "GOMF_HORMONE_ACTIVITY",
-   "GOBP_AXONEME_ASSEMBLY",
-   "GOCC_CILIARY_PLASM",
-   "GOBP_MOTILE_CILIUM_ASSEMBLY",
-   "GOCC_CILIARY_TRANSITION_ZONE",
-   "HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",
-   "GOBP_REGULATION_OF_INSULIN_SECRETION",
-   "GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")]
-pltdat <- rbind(pltdat,mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC"]][pathway %in% c(
-   #"GOCC_GLUTAMATERGIC_SYNAPSE",
-   "GOCC_GABA_ERGIC_SYNAPSE",
-   "HP_HYPERACTIVITY",
-   "HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",
-   "GOBP_FEEDING_BEHAVIOR",
-   "WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",
-   "KEGG_LONG_TERM_POTENTIATION",
-   "GOMF_HORMONE_ACTIVITY",
-   "GOBP_AXONEME_ASSEMBLY",
-   "GOCC_CILIARY_PLASM",
-   "GOBP_MOTILE_CILIUM_ASSEMBLY",
-   "GOCC_CILIARY_TRANSITION_ZONE",
-   "HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",
-   "GOBP_REGULATION_OF_INSULIN_SECRETION",
-   "GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")])
-
-### simplify terms and make separate column for data source to color by
-pltdat[,genesource:=gsub(pathway,pattern="^(GOCC)_.*$",replacement="GO CC")]
-pltdat[,genesource:=gsub(genesource,pattern="^(GOBP)_.*$",replacement="GO BP")]
-pltdat[,genesource:=gsub(genesource,pattern="^(GOMF)_.*$",replacement="GO MF")]
-pltdat[,genesource:=gsub(genesource,pattern="^(HP)_.*$",replacement="Human Phenotypes")]
-pltdat[,genesource:=gsub(genesource,pattern="^(WP)_.*$",replacement="Wikipathways")]
-pltdat[,genesource:=gsub(genesource,pattern="^(KEGG)_.*$",replacement="KEGG Pathways")]
-
-### Simplify terms themselves
-# pltdat[pathway=="GOCC_GLUTAMATERGIC_SYNAPSE",pathway:="Glutamatergic\nsynapse"]
-pltdat[pathway=="GOCC_GABA_ERGIC_SYNAPSE",pathway:="GABAergic synapse"]
-pltdat[pathway=="HP_HYPERACTIVITY",pathway:="Hyperactivity"]
-pltdat[pathway=="HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",pathway:="Aggressive/impulsive\nbehavior"]
-pltdat[pathway=="GOBP_FEEDING_BEHAVIOR",pathway:="Feeding behavior"]
-pltdat[pathway=="WP_KISSPEPTINKISSPEPTIN_RECEPTOR_SYSTEM_IN_THE_OVARY",pathway:="Kisspeptin receptor\nsystem (ovarian)"]
-pltdat[pathway=="KEGG_LONG_TERM_POTENTIATION",pathway:="Long-term\npotentiation"]
-pltdat[pathway=="GOMF_HORMONE_ACTIVITY",pathway:="Hormone activity"]
-pltdat[pathway=="GOBP_AXONEME_ASSEMBLY",pathway:="Axoneme assembly"]
-pltdat[pathway=="GOCC_CILIARY_PLASM",pathway:="Ciliary membrane"]
-pltdat[pathway=="GOBP_MOTILE_CILIUM_ASSEMBLY",pathway:="Cilium assembly"]
-pltdat[pathway=="GOCC_CILIARY_TRANSITION_ZONE",pathway:="Ciliary transition zone"]
-pltdat[pathway=="HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",pathway:="Secondary sex\ncharacteristics"]
-pltdat[pathway=="GOBP_REGULATION_OF_INSULIN_SECRETION",pathway:="Insulin secretion\nregulation"]
-pltdat[pathway=="GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY",pathway:="Neuropeptide signaling"]
-
-### q: omg Github copilot just paid for itself thank you!!
-# a: you're welcome
-
-### make domain a factor so we can match it to prior color schemes
-pltdat$spdom <- factor(pltdat$spdom,levels=c("VMH","ARC"))
-pltdat$spdom
-
-### make enrichments a factor so they're grouped by source on the y axis
-pltdat$pathway <- factor(pltdat$pathway,levels=rev(c("Long-term\npotentiation","Neuropeptide signaling","GABAergic synapse","Insulin secretion\nregulation","Hormone activity","Kisspeptin receptor\nsystem (ovarian)","Axoneme assembly","Ciliary membrane","Cilium assembly","Ciliary transition zone","Hyperactivity","Aggressive/impulsive\nbehavior","Feeding behavior","Secondary sex\ncharacteristics")))
-
-pltdat[,log10fdr:=-log10(padj)]
-
-### plot:
-p <- ggplot(pltdat,aes(y=pathway,x=log10fdr))+
-    geom_point(aes(col=spdom,size=NES))+#,position = position_dodge2v(preserve = "single",height=0.75))+
-    ylab("Term")+
-    # scale_color_manual(values=wc2cols)+
-    xlab("-log10 (FDR)")+
-    #xlim(0,30)+
-    scale_size_continuous(range = c(0.75,3.5))+
-    scale_color_manual(values=c("#8c63cf","#5dd959"),na.value = NA)+
-    labs(col="Domain")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.5)+
-    guides(col=guide_legend(byrow=T))+
-    # # ^ necess. to get spacing to work in theme
-    guides(col=guide_legend(override.aes=list(size=2.5)))+
-   #scale_x_break(12,25)+
-    # ^ make legend points bigger
-    theme(
-        axis.text.y = element_text(size = 8, margin = margin(0, 0, 0, -0.15, "in")),
-        axis.title.x = element_text(size = 9),
-        axis.title.y = element_text(size = 9, margin = margin(0, 0, 0, 0.2, unit = "in")),
-        axis.text.x = element_text(size = 8),
-        legend.text = element_text(size = 8, hjust = 0.5),
-        legend.title = element_text(size = 9, hjust = 0.5),
-        legend.spacing.y = ggplot2::unit(0.075, "in"),
-        plot.margin = margin(0.05, 0.01, 0, -0.1, unit = "in"),
-        legend.position = "bottom",
-        legend.direction = "vertical",
-        legend.box.margin = margin(0, -0.3, 0, 0, unit = "in"),
-        legend.spacing.x = ggplot2::unit(0.05, "in"),
-        legend.box.background = element_blank(),
-        legend.margin= margin(0,0.25,0,0,"in"),
-        legend.key = element_blank(),
-        panel.background = element_blank(),
-    )
-
-
-## this makes a weird second border with scales we don't want, and a second set of x axis tick labels along the top of the plot, so requires a little fixing in illustrator after the fact. but it'll do.
-pdf("manuscript_plots/Fig2/2Q-msigdb_marker_GSEA.pdf",height=4.5,width=3.5)
-p
+## save an with cell types faceted
+pdf("manuscript_plots/Fig2/2D-VMH_celltypes_x6588C_facet.pdf",height=1.85,width=7.45)
+ggplot(pand[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
+    geom_point(size=0.075,stroke=0.375)+
+    scale_color_manual(values=vmhpal)+
+    facet_wrap(~banksyclus,nrow=1)+
+    #guides(color=guide_legend(override.aes = list(size=1)))+
+    guides(color="none")+
+    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),strip.text=element_markdown(size=8),strip.background=element_blank(),strip.background.x = element_blank(),strip.background.y=element_blank())
 dev.off()
 
-rm(mkres,pltdat)
+
+rm(pand)
 ```
 
+## pane - ARC:
+```{r}
+pane <- hypx[,hypx$sample_id=="X97_reg3"&hypx$dom=="ARC"]
+pane <- as.data.table(cbind(spatialCoords(pane),as.data.table(colData(pane))))[,.(sdimx,sdimy,banksyclus)]
 
-### reprod info
+pane <- pane[banksyclus %in% bkanno[subclus_domain=="ARC",bjm_annot]]
+
+## put TAC3-ESR1 first in the order
+pane[,banksyclus:=factor(banksyclus,levels=c("*TAC3*-*ESR1*",unique(pane[banksyclus!="*TAC3*-*ESR1*",banksyclus])))]
+
+## with cell types faceted
+pdf("manuscript_plots/Fig2/2E-ARC_celltypes_x6588C_facet.pdf",height=1.85,width=7.45)
+ggplot(pane[sdimy<6500],aes(x=sdimx,y=sdimy,color=banksyclus))+
+    geom_point(size=0.075,stroke=0.375)+
+    scale_color_manual(values=arcpal)+
+    facet_wrap(~banksyclus,nrow=1)+
+    #guides(color=guide_legend(override.aes = list(size=1)))+
+    guides(color="none")+
+    theme(axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),axis.title.x=element_blank(),axis.ticks = element_blank(),legend.background = element_blank(),legend.box=element_blank(),legend.margin=margin(0,0,0,-0.15,unit="in"),plot.margin = margin(0.01,0.02,0,0,unit="in"),legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),strip.text=element_markdown(size=8),strip.background=element_blank(),strip.background.x = element_blank(),strip.background.y=element_blank())
+dev.off()
+
+
+rm(pane)
+```
+
+panel F: kiss1 rnascopes.
+
+# reprod info
 ```{r}
 sessionInfo()
 sessioninfo::session_info()
 ```
-R version 4.4.1 RC (2024-06-06 r86719)
-Platform: aarch64-apple-darwin20
-Running under: macOS Sonoma 14.5
 
-Matrix products: default
-BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
-LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
-
-locale:
-[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
-
-time zone: America/Chicago
-tzcode source: internal
-
-attached base packages:
-[1] stats4    stats     graphics  grDevices utils     methods   base     
-
-other attached packages:
- [1] ggbreak_0.1.2                  sf_1.0-16                     
- [3] colorout_1.3-0.2               ggstance_0.3.7                
- [5] Polychrome_1.5.1               viridis_0.6.5                 
- [7] viridisLite_0.4.2              escheR_1.4.0                  
- [9] spatialLIBD_1.16.2             SpatialFeatureExperiment_1.6.1
-[11] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
-[13] SummarizedExperiment_1.34.0    Biobase_2.64.0                
-[15] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
-[17] IRanges_2.38.1                 S4Vectors_0.42.1              
-[19] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
-[21] matrixStats_1.3.0              ggrastr_1.0.2                 
-[23] ggtext_0.1.2                   ggplot2_3.5.1                 
-[25] data.table_1.15.4              rlang_1.1.4                   
-
-loaded via a namespace (and not attached):
-  [1] fs_1.6.4                  bitops_1.0-7              EBImage_4.46.0           
-  [4] httr_1.4.7                RColorBrewer_1.1-3        doParallel_1.0.17        
-  [7] tools_4.4.1               utf8_1.2.4                R6_2.5.1                 
- [10] DT_0.33                   HDF5Array_1.32.0          lazyeval_0.2.2           
- [13] rhdf5filters_1.16.0       withr_3.0.0               sp_2.1-4                 
- [16] gridExtra_2.3             cli_3.6.3                 labeling_0.4.3           
- [19] sass_0.4.9                proxy_0.4-27              yulab.utils_0.1.4        
- [22] Rsamtools_2.20.0          R.utils_2.12.3            scater_1.32.0            
- [25] sessioninfo_1.2.2         attempt_0.3.1             maps_3.4.2               
- [28] limma_3.60.3              rstudioapi_0.16.0         RSQLite_2.3.7            
- [31] generics_0.1.3            gridGraphics_0.5-1        BiocIO_1.14.0            
- [34] spdep_1.3-5               dplyr_1.1.4               Matrix_1.7-0             
- [37] ggbeeswarm_0.7.2          fansi_1.0.6               abind_1.4-5              
- [40] R.methodsS3_1.8.2         terra_1.7-78              lifecycle_1.0.4          
- [43] scatterplot3d_0.3-44      yaml_2.3.9                edgeR_4.2.0              
- [46] rhdf5_2.48.0              SparseArray_1.4.8         BiocFileCache_2.12.0     
- [49] paletteer_1.6.0           grid_4.4.1                blob_1.2.4               
- [52] promises_1.3.0            dqrng_0.4.1               ExperimentHub_2.12.0     
- [55] crayon_1.5.3              lattice_0.22-6            beachmat_2.20.0          
- [58] cowplot_1.1.3             KEGGREST_1.44.1           magick_2.8.3             
- [61] zeallot_0.1.0             pillar_1.9.0              knitr_1.48               
- [64] rjson_0.2.21              boot_1.3-30               codetools_0.2-20         
- [67] wk_0.9.2                  glue_1.7.0                ggfun_0.1.5              
- [70] vctrs_0.6.5               png_0.1-8                 spam_2.10-0              
- [73] gtable_0.3.5              rematch2_2.1.2            cachem_1.1.0             
- [76] xfun_0.45                 S4Arrays_1.4.1            mime_0.12                
- [79] DropletUtils_1.24.0       sfheaders_0.4.4           iterators_1.0.14         
- [82] units_0.8-5               fields_16.2               statmod_1.5.0            
- [85] bit64_4.0.5               filelock_1.0.3            rprojroot_2.0.4          
- [88] bslib_0.7.0               irlba_2.3.5.1             vipor_0.4.7              
- [91] KernSmooth_2.23-24        colorspace_2.1-0          spData_2.3.1             
- [94] DBI_1.2.3                 tidyselect_1.2.1          bit_4.0.5                
- [97] compiler_4.4.1            curl_5.2.1                BiocNeighbors_1.22.0     
-[100] xml2_1.3.6                DelayedArray_0.30.1       plotly_4.10.4            
-[103] rtracklayer_1.64.0        scales_1.3.0              classInt_0.4-10          
-[106] rappdirs_0.3.3            tiff_0.1-12               digest_0.6.36            
-[109] fftwtools_0.9-11          rmarkdown_2.27            benchmarkmeData_1.0.4    
-[112] XVector_0.44.0            htmltools_0.5.8.1         pkgconfig_2.0.3          
-[115] jpeg_0.1-10               sparseMatrixStats_1.16.0  dbplyr_2.5.0             
-[118] fastmap_1.2.0             htmlwidgets_1.6.4         UCSC.utils_1.0.0         
-[121] shiny_1.8.1.1             DelayedMatrixStats_1.26.0 farver_2.1.2             
-[124] jquerylib_0.1.4           jsonlite_1.8.8            BiocParallel_1.38.0      
-[127] config_0.3.2              R.oo_1.26.0               BiocSingular_1.20.0      
-[130] RCurl_1.98-1.14           magrittr_2.0.3            scuttle_1.14.0           
-[133] GenomeInfoDbData_1.2.12   ggplotify_0.1.2           s2_1.1.6                 
-[136] dotCall64_1.1-1           patchwork_1.2.0           Rhdf5lib_1.26.0          
-[139] munsell_0.5.1             Rcpp_1.0.13               zlibbioc_1.50.0          
-[142] AnnotationHub_3.12.0      parallel_4.4.1            ggrepel_0.9.5            
-[145] deldir_2.0-4              Biostrings_2.72.1         gridtext_0.1.5           
-[148] locfit_1.5-9.10           ScaledMatrix_1.12.0       BiocVersion_3.19.1       
-[151] XML_3.99-0.17             evaluate_0.24.0           golem_0.4.1              
-[154] BiocManager_1.30.23       foreach_1.5.2             httpuv_1.6.15            
-[157] tidyr_1.3.1               purrr_1.0.2               benchmarkme_1.0.8        
-[160] rsvd_1.0.5                xtable_1.8-4              restfulr_0.0.15          
-[163] e1071_1.7-14              later_1.3.2               class_7.3-22             
-[166] tibble_3.2.1              aplot_0.2.3               memoise_2.0.1            
-[169] beeswarm_0.4.0            AnnotationDbi_1.66.0      GenomicAlignments_1.40.0 
-[172] shinyWidgets_0.8.6        here_1.0.1               
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────────
+─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -911,11 +345,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-27
+ date     2024-10-08
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────────────
+─ Packages ───────────────────────────────────────────────────────────────────────
  ! package                  * version   date (UTC) lib source
    abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
    AnnotationDbi              1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
@@ -949,6 +383,7 @@ loaded via a namespace (and not attached):
    codetools                  0.2-20    2024-03-31 [1] CRAN (R 4.4.1)
    colorout                 * 1.3-0.2   2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
    colorspace                 2.1-0     2023-01-23 [1] CRAN (R 4.4.0)
+   commonmark                 1.9.1     2024-01-30 [1] CRAN (R 4.4.0)
    config                     0.3.2     2023-08-30 [1] CRAN (R 4.4.0)
    cowplot                    1.1.3     2024-01-22 [1] CRAN (R 4.4.0)
    crayon                     1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
@@ -1025,6 +460,7 @@ loaded via a namespace (and not attached):
    magick                     2.8.3     2024-02-18 [1] CRAN (R 4.4.0)
    magrittr                   2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
    maps                       3.4.2     2023-12-15 [1] CRAN (R 4.4.0)
+   markdown                   1.13      2024-06-04 [1] CRAN (R 4.4.0)
    Matrix                     1.7-0     2024-04-26 [1] CRAN (R 4.4.1)
    MatrixGenerics           * 1.16.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    matrixStats              * 1.3.0     2024-04-11 [1] CRAN (R 4.4.0)
@@ -1088,6 +524,8 @@ loaded via a namespace (and not attached):
    spData                     2.3.1     2024-05-31 [1] CRAN (R 4.4.0)
    spdep                      1.3-5     2024-06-10 [1] CRAN (R 4.4.0)
    statmod                    1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
+   stringi                    1.8.4     2024-05-06 [1] CRAN (R 4.4.0)
+   stringr                    1.5.1     2023-11-14 [1] CRAN (R 4.4.0)
    SummarizedExperiment     * 1.34.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    terra                      1.7-78    2024-05-22 [1] CRAN (R 4.4.0)
    tibble                     3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
@@ -1118,4 +556,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-───────────────────────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────────────
