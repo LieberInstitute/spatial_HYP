@@ -1,0 +1,41 @@
+date: Wed Oct  9 09:10:18 AM EDT 2024
+**** JHPCE info ****
+User: rmiller
+Job id: 10073935
+Job name: samui
+Hostname: 
+Task id: 6
+Loading LIBD SLURM module for samui/1.0.0-next.45
+/jhpce/shared/libd/core/samui/1.0.0-next.45/samui_env/lib/python3.10/site-packages/pydantic/_internal/_config.py:261: UserWarning: Valid config keys have changed in V2:
+* 'allow_mutation' has been removed
+  warnings.warn(message, UserWarning)
+Using 30352 genes as features.
+[09:10:58] INFO     Transforming                                    logger.py:27
+                    /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
+                    tial_HYP/spatial_HYP/code/14-samui/../../../spa             
+                    tial_HYP/processed-data/14-samui/visium/V12D05-             
+                    350_D1/V12D05-350_D1.tif to COG.                            
+           INFO     'V12D05-350_D1' Executing queued functions      logger.py:27
+           INFO     V12D05-350_D1 Adding coords 'coords'            logger.py:27
+[09:10:59] INFO     Writing uncompressed GeoTIFF                    logger.py:27
+                    /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
+                    tial_HYP/spatial_HYP/code/14-samui/../../../spa             
+                    tial_HYP/processed-data/14-samui/visium/V12D05-             
+                    350_D1/V12D05-350_D1.tif                                    
+[09:11:04] INFO     Writing COG                                     logger.py:27
+                    /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
+                    tial_HYP/spatial_HYP/code/14-samui/../../../spa             
+                    tial_HYP/processed-data/14-samui/visium/V12D05-             
+                    350_D1/V12D05-350_D1.tif                                    
+[09:11:13] INFO     V12D05-350_D1 Adding chunked feature 'Genes'    logger.py:27
+[09:20:32] INFO     V12D05-350_D1 Concatenating and compressing     logger.py:27
+                    chunks                                                      
+[09:22:03] INFO     Writing compressed chunks for Genes: 17471203   logger.py:27
+                    bytes                                                       
+           INFO     'V12D05-350_D1' written to                      logger.py:27
+                    /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
+                    tial_HYP/spatial_HYP/code/14-samui/../../../spa             
+                    tial_HYP/processed-data/14-samui/visium/V12D05-             
+                    350_D1                                                      
+**** Job ends ****
+Wed Oct  9 09:22:03 AM EDT 2024
