@@ -51,7 +51,7 @@ colData(hypx)$banksy_m0l0kg6_res2 <- bcl$banksy_m0l0kg6_res2
 rm(bcl)
 ```
 
-make a table of x-y coordinates and ARC (yes/no) assignment. only use the THREE clusters that are predominantly in ARC and are found across the donors (X15,  X31, X33); X23 is dense throughout periV across samples (X19 has some as well but is densest in ARC proper, where we want to get the domain smoothed). in order to perform smoothing on each sample individually, split the resulting table into a list of tables, one table per sample.
+make a table of x-y coordinates and ARC (yes/no) assignment. only use the FOUR clusters that are predominantly in ARC and are found across the donors (X15, X19 X31, X33); X23 is dense throughout periV across samples (X19 has some as well but is densest in ARC proper, where we want to get the domain smoothed). in order to perform smoothing on each sample individually, split the resulting table into a list of tables, one table per sample.
 
 we'll use all three data-wide VMH clusters for the VMH part: X12, X18, X30
 ```{r}
