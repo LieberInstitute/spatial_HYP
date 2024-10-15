@@ -88,33 +88,33 @@ bscls.dt <- lapply(bscls,FUN = function(b){
 
 names(bscls.dt) <- c("k15","k20","k31")
 
-bscls.dt[["k15"]][cl=="X4",cl:="ARC1"]
-bscls.dt[["k15"]][cl=="X6",cl:="ARC2"]
-bscls.dt[["k15"]][cl=="X7",cl:="VMH1"]
-bscls.dt[["k15"]][cl=="X12",cl:="VMH2"]
-bscls.dt[["k15"]][cl=="X3",cl:="WM1"]
-bscls.dt[["k15"]][cl=="X10",cl:="WM2"]
+bscls.dt[["k15"]][cl=="X4",cl:="ARC.1"]
+bscls.dt[["k15"]][cl=="X6",cl:="ARC.2"]
+bscls.dt[["k15"]][cl=="X7",cl:="VMH.1"]
+bscls.dt[["k15"]][cl=="X12",cl:="VMH.2"]
+bscls.dt[["k15"]][cl=="X3",cl:="WM.1"]
+bscls.dt[["k15"]][cl=="X10",cl:="WM.2"]
 
-bscls.dt[["k20"]][cl=="X2",cl:="VMH20_1"]
-bscls.dt[["k20"]][cl=="X3",cl:="VMH20_2"]
-bscls.dt[["k20"]][cl=="X1",cl:="ARC20_1"]
-bscls.dt[["k20"]][cl=="X4",cl:="ARC20_2"]
-bscls.dt[["k20"]][cl=="X15",cl:="WM1"]
-bscls.dt[["k20"]][cl=="X17",cl:="WM2"]
+bscls.dt[["k20"]][cl=="X2",cl:="VMH20.1"]
+bscls.dt[["k20"]][cl=="X3",cl:="VMH20.2"]
+bscls.dt[["k20"]][cl=="X1",cl:="ARC20.1"]
+bscls.dt[["k20"]][cl=="X4",cl:="ARC20.2"]
+bscls.dt[["k20"]][cl=="X15",cl:="WM20.1"]
+bscls.dt[["k20"]][cl=="X17",cl:="WM20.2"]
 
 # k31: x6 21 25 26 31 = VMH; 2,4,11,22 ARC
-bscls.dt[["k31"]][cl=="X6",cl:="VMH31_1"]
-bscls.dt[["k31"]][cl=="X21",cl:="VMH31_2"]
-bscls.dt[["k31"]][cl=="X25",cl:="VMH31_3"]
-bscls.dt[["k31"]][cl=="X26",cl:="VMH31_4"]
-bscls.dt[["k31"]][cl=="X31",cl:="VMH31_5"]
-bscls.dt[["k31"]][cl=="X2",cl:="ARC31_1"]
-bscls.dt[["k31"]][cl=="X4",cl:="ARC31_2"]
-bscls.dt[["k31"]][cl=="X11",cl:="ARC31_3"]
-bscls.dt[["k31"]][cl=="X22",cl:="ARC31_4"]
-bscls.dt[["k31"]][cl=="X7",cl:="WM1"]
-bscls.dt[["k31"]][cl=="X15",cl:="WM2"]
-bscls.dt[["k31"]][cl=="X23",cl:="WM3"]
+bscls.dt[["k31"]][cl=="X6",cl:="VMH31.1"]
+bscls.dt[["k31"]][cl=="X21",cl:="VMH31.2"]
+bscls.dt[["k31"]][cl=="X25",cl:="VMH31.3"]
+bscls.dt[["k31"]][cl=="X26",cl:="VMH31.4"]
+bscls.dt[["k31"]][cl=="X31",cl:="VMH31.5"]
+bscls.dt[["k31"]][cl=="X2",cl:="ARC31.1"]
+bscls.dt[["k31"]][cl=="X4",cl:="ARC31.2"]
+bscls.dt[["k31"]][cl=="X11",cl:="ARC31.3"]
+bscls.dt[["k31"]][cl=="X22",cl:="ARC31.4"]
+bscls.dt[["k31"]][cl=="X7",cl:="WM31.1"]
+bscls.dt[["k31"]][cl=="X15",cl:="WM31.2"]
+bscls.dt[["k31"]][cl=="X23",cl:="WM31.3"]
 
 ## global markers pt 1: melts and list names to match bscls.dt
 globalmk2 <- lapply(globalmk,FUN = function(g){
@@ -141,34 +141,55 @@ names(globalmk2) <- c("k15","k20","k31")
 # 20: WM is predom  x15, X17
 # 31: WM is predom X7, X15, X23
 
-globalmk2[["k15"]][clus=="X4",clus:="ARC1"]
-globalmk2[["k15"]][clus=="X6",clus:="ARC2"]
-globalmk2[["k15"]][clus=="X7",clus:="VMH1"]
-globalmk2[["k15"]][clus=="X12",clus:="VMH2"]
-globalmk2[["k15"]][clus=="X3",clus:="WM1"]
-globalmk2[["k15"]][clus=="X10",clus:="WM2"]
+globalmk2[["k15"]][clus=="X4",clus:="ARC.1"]
+globalmk2[["k15"]][clus=="X6",clus:="ARC.2"]
+globalmk2[["k15"]][clus=="X7",clus:="VMH.1"]
+globalmk2[["k15"]][clus=="X12",clus:="VMH.2"]
+globalmk2[["k15"]][clus=="X3",clus:="WM.1"]
+globalmk2[["k15"]][clus=="X10",clus:="WM.2"]
 
-globalmk2[["k20"]][clus=="X2",clus:="VMH20_1"]
-globalmk2[["k20"]][clus=="X3",clus:="VMH20_2"]
-globalmk2[["k20"]][clus=="X1",clus:="ARC20_1"]
-globalmk2[["k20"]][clus=="X4",clus:="ARC20_2"]
-globalmk2[["k20"]][clus=="X15",clus:="WM1"]
-globalmk2[["k20"]][clus=="X17",clus:="WM2"]
+globalmk2[["k20"]][clus=="X2",clus:="VMH20.1"]
+globalmk2[["k20"]][clus=="X3",clus:="VMH20.2"]
+globalmk2[["k20"]][clus=="X1",clus:="ARC20.1"]
+globalmk2[["k20"]][clus=="X4",clus:="ARC20.2"]
+globalmk2[["k20"]][clus=="X15",clus:="WM20.1"]
+globalmk2[["k20"]][clus=="X17",clus:="WM20.2"]
 
 # k31: x6 21 25 26 31 = VMH; 2,4,11,22 ARC
-globalmk2[["k31"]][clus=="X6",clus:="VMH31_1"]
-globalmk2[["k31"]][clus=="X21",clus:="VMH31_2"]
-globalmk2[["k31"]][clus=="X25",clus:="VMH31_3"]
-globalmk2[["k31"]][clus=="X26",clus:="VMH31_4"]
-globalmk2[["k31"]][clus=="X31",clus:="VMH31_5"]
-globalmk2[["k31"]][clus=="X2",clus:="ARC31_1"]
-globalmk2[["k31"]][clus=="X4",clus:="ARC31_2"]
-globalmk2[["k31"]][clus=="X11",clus:="ARC31_3"]
-globalmk2[["k31"]][clus=="X22",clus:="ARC31_4"]
-globalmk2[["k31"]][clus=="X7",clus:="WM1"]
-globalmk2[["k31"]][clus=="X15",clus:="WM2"]
-globalmk2[["k31"]][clus=="X23",clus:="WM3"]
+globalmk2[["k31"]][clus=="X6",clus:="VMH31.1"]
+globalmk2[["k31"]][clus=="X21",clus:="VMH31.2"]
+globalmk2[["k31"]][clus=="X25",clus:="VMH31.3"]
+globalmk2[["k31"]][clus=="X26",clus:="VMH31.4"]
+globalmk2[["k31"]][clus=="X31",clus:="VMH31.5"]
+globalmk2[["k31"]][clus=="X2",clus:="ARC31.1"]
+globalmk2[["k31"]][clus=="X4",clus:="ARC31.2"]
+globalmk2[["k31"]][clus=="X11",clus:="ARC31.3"]
+globalmk2[["k31"]][clus=="X22",clus:="ARC31.4"]
+globalmk2[["k31"]][clus=="X7",clus:="WM31.1"]
+globalmk2[["k31"]][clus=="X15",clus:="WM31.2"]
+globalmk2[["k31"]][clus=="X23",clus:="WM31.3"]
 
+# set other cluster IDs to "Other"
+bscls.dt <- lapply(bscls.dt,FUN=function(x){x[cl %in% grep(cl,pattern="VMH|ARC|WM",value=T,invert=T),cl:="Other"]})
+globalmk2 <- lapply(globalmk2,FUN=function(x){x[clus %in% grep(clus,pattern="VMH|ARC|WM",value=T,invert=T),clus:="Other"]})
+
+```
+
+## use the xenium palettes for VMH/ARC visium clusters for consistency
+```{r}
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+vmhpal <- pals[["XenVMH"]]
+arcpal <- pals[["XenARC"]]
+# we have 5 VMH clusters max and 4 ARC max here, plus 3 max WM, so move one of the colors (#09979B) to VMH here; replace VMH gray with "#FA260D"; replace ARC grayish with #9F09E0; use blues for WM
+vmhpal <- c(vmhpal,"#09979B")
+arcpal <- arcpal[c(1,2,4,5)]
+arcpal[which(arcpal=="#A997AB")] <- "#9F09E0"
+
+# reorder VMH pal so puke orange is only in the highest clustering config
+vmhpal[which(vmhpal=="darkgray")] <- "#a3690D"
+vmhpal <- vmhpal[c(1,3,4,5,2)]
+
+wmpal <- c("#ADD8E6","#0000FF","#00008B")
 ```
 
 ## prepare expression matrices for each set of global, domain markers
@@ -219,7 +240,7 @@ globalmkxpr <- mapply(g=globalmkgn,b=bscls.dt,SIMPLIFY=FALSE,FUN=function(g,b){
     vmhs <- grep(unique(b$cl),pattern="VMH",value=T)
     wms <- grep(unique(b$cl),pattern="WM",value=T)
 
-    hyptmp$label <- factor(hyptmp$label,levels=c(arcs,vmhs,wms))
+    hyptmp$label <- factor(hyptmp$label,levels=c(arcs,vmhs,wms,"Other"))
 
         
    # make a subsetted spe with reordering of the columns to be in the order of the domains we want plotted, then disable column clustering in the heatmap. (thatll make the plotting quicker too).
@@ -247,17 +268,29 @@ globalmkxpr <- mapply(g=globalmkgn,b=bscls.dt,SIMPLIFY=FALSE,FUN=function(g,b){
 ## make global heatmaps (we'll arrange these with SPEs + intra-domain mk heatmaps on the illustrator side).
 ```{r}
 mapply(n=names(globalmkxpr),x=globalmkxpr,SIMPLIFY=FALSE,FUN=function(x,n){
-    nclus <- length(unique(x[[1]]$label))
     
-    pal <- Polychrome::createPalette(N=nclus+1,seedcolors="#02740F")[2:(nclus+1)]
-    names(pal) <- unique(x[[1]]$label)
+    arcs <- unique(grep(x[[1]]$label,pattern="ARC",value=T))
+    narc <- length(arcs)
+    vmhs <- unique(grep(x[[1]]$label,pattern="VMH",value=T))
+    nvmh <- length(vmhs)
+    wms <- unique(grep(x[[1]]$label,pattern="WM",value=T))
+    nwm <- length(wms)
+    
+    # nclusts <- length(unique(b[, 2]))
+    
+    # pal <- Polychrome::palette36.colors(n = (nclusts+2))[c(3:(nclusts+2))]
+    pal <- c(arcpal[1:narc],
+             vmhpal[1:nvmh],
+             wmpal[1:nwm])
+    
+    names(pal) <- c(arcs,vmhs,wms)
     
     htmap <- ComplexHeatmap::Heatmap(
         x[[2]],
         top_annotation = HeatmapAnnotation(
-            Domain = x[[1]]$label,
+            `BayesSpace cluster` = x[[1]]$label,
             gap = 0,
-            col = list(Domain=pal),
+            col = list(`BayesSpace cluster`=pal),
             gp = gpar(alpha = 1)
         ),
         show_column_names = FALSE,
@@ -370,10 +403,15 @@ intramkxpr <- mapply(g=intramkg,b=bscls.dt,SIMPLIFY=FALSE,FUN=function(g,b){
 })
 
 mapply(n=names(intramkxpr),x=intramkxpr,SIMPLIFY=FALSE,FUN=function(x,n){
-    nclus <- length(unique(x[[1]]$label))
+    arcs <- unique(grep(x[[1]]$label,pattern="ARC",value=T))
+    narc <- length(arcs)
+    vmhs <- unique(grep(x[[1]]$label,pattern="VMH",value=T))
+    nvmh <- length(vmhs)
+   
+    pal <- c(arcpal[1:narc],
+             vmhpal[1:nvmh])
     
-    pal <- Polychrome::createPalette(N=nclus+1,seedcolors="#02740F")[2:(nclus+1)]
-    names(pal) <- unique(x[[1]]$label)
+    names(pal) <- c(arcs,vmhs)
     
     htmap <- ComplexHeatmap::Heatmap(
         x[[2]],
@@ -443,13 +481,29 @@ colData(hyp2) <- tmpcd
 
 hyp2$sample_id <- hyp2$manuscript_id
 
+
 ### make the plots
 mapply(x=bscls.dt,y=names(bscls.dt),SIMPLIFY=FALSE,FUN=function(x,y){
+    arcs <- unique(x[cl %in% grep(cl,pattern="ARC",value=T),cl])
+    narc <- length(arcs)
+    vmhs <- unique(x[cl %in% grep(cl,pattern="VMH",value=T),cl])
+    nvmh <- length(vmhs)
+    wms <- unique(x[cl %in% grep(cl,pattern="WM",value=T),cl])
+    nwm <- length(wms)
+    
     b <- DataFrame(x,row.names=x$rn)[colnames(hyp2),]
     
-    nclusts <- length(unique(b[, 2]))
-    colLabels(hyp2) <- factor(b$cl)
-    pal <- Polychrome::palette36.colors(n = (nclusts+2))[c(3:(nclusts+2))]
+    # nclusts <- length(unique(b[, 2]))
+    
+    # pal <- Polychrome::palette36.colors(n = (nclusts+2))[c(3:(nclusts+2))]
+    pal <- c(arcpal[1:narc],
+             vmhpal[1:nvmh],
+             wmpal[1:nwm],
+             "gray")
+    
+    names(pal) <- c(arcs,vmhs,wms,"Other")
+    
+    colLabels(hyp2) <- factor(b$cl,levels=c(arcs,vmhs,wms,"Other"))
     # next line is needed for consistency in color-cluster assignments between libdspatial and the generated legend below
     names(pal) <- levels(hyp2$label)
     

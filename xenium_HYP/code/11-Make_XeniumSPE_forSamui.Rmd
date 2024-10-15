@@ -1,7 +1,7 @@
 ---
 title: "11-Make_XeniumSPE_forSamui"
 output: html_document
-date: "2024-09-26"
+date: "2024-10-12"
 ---
 
 ```{r setup, include=FALSE}
@@ -58,9 +58,10 @@ setnames(bkcl,2,"cl")
 bkanno <- fread("processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
 bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 
-vmharccellanno <- fread("processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
+vmharccellanno <- fread("../manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+vmharccellanno[,dom.clus:=paste0("x",dom.clus)]
 bkanno <- merge.data.table(bkanno,vmharccellanno,by="bjm_annot",all.x=T)
-bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
+bkanno[!is.na(dom.clus),bjm_annot:=dom.clus]
 
 ## drop clusters labeled for, well, dropping
 bkanno <- bkanno[!(bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T))]
@@ -83,6 +84,12 @@ hypx$domain_of_cell <- bknn$dualVMHARC4
 
 saveRDS(hypx,"processed-data/11-XeniumSPE_forSamui.RDS")
 ```
+
+save just X97_reg3 SPE as a one-sample test SPE for ryan to test xenium-samui interplay.
+```{r}
+saveRDS(hypx[,hypx$sample_id=="X97_reg3"],"processed-data/11tmp-XeniumSPE_onesample_test/X97reg3_only_testSPE.RDS")
+```
+
 
 
 ### reprod inf
@@ -157,7 +164,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-09-26
+ date     2024-10-12
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 

@@ -77,14 +77,45 @@ hypv <- hyp2[c("SST","PGR"),]
 hypa <- hyp2[pltg[3:length(pltg)],]
 ```
 
+## so that we can label samples with specific spatial variation, load the samplewise SVG results from VMH and ARC
+```{r}
+vmhsvgres <- fread("spatial_HYP/processed-data/08-Nucleus-specific SVGs/01b-VMH nnSVG nomsig genes and ranks per sample.txt")
+arcsvgres <- fread("spatial_HYP/processed-data/08-Nucleus-specific SVGs/02b-ARC nnSVG nomsig genes and ranks per sample.txt")
 
-### make plots
+
+vmhsvgres <- vmhsvgres[gene_name %in% c("SST","PGR")]
+vmhsvgres <- vmhsvgres[,c("gene_id","nsigsamps","meanrank"):=NULL]
+vmhsvgres <- melt.data.table(vmhsvgres,id.vars="gene_name")
+vmhsvgres[,nomsig:=ifelse(is.na(value),yes=" (n.s.)",no=" (p<0.05)")]
+
+arcsvgres <- arcsvgres[gene_name %in% c("GAL","NMU","IGFBP3","TAC3","GHRH","AGRP","DIRAS3")]
+arcsvgres <- arcsvgres[,c("gene_id","nsigsamps","meanrank"):=NULL]
+arcsvgres <- melt.data.table(arcsvgres,id.vars="gene_name")
+arcsvgres[,nomsig:=ifelse(is.na(value),yes=" (n.s.)",no=" (p<0.05)")]
+
+vmhsvgres <- merge.data.table(vmhsvgres,mscriptsampleids[,.(sample_id,manuscript_id)],by.x="variable",by.y="sample_id")
+arcsvgres <- merge.data.table(arcsvgres,mscriptsampleids[,.(sample_id,manuscript_id)],by.x="variable",by.y="sample_id")
+
+```
+
+
+### make plots -- exclude samples that weren't analyzed at all. 
 ```{r}
 lapply(rownames(hypv),FUN=function(g){
-    plts <- spatialLIBD::vis_grid_gene(hypv[,hypv$label=="VMH"],geneid=g,return_plots=T,spatial=F,viridis=T,auto_crop = T,point_size=0.975,na_color = "darkgray")
+   ## append significance info to sample ids, drop samples that weren't analyzed
+   hypv2 <- hypv[,hypv$sample_id %in% vmhsvgres$manuscript_id]
+   tmpcd <- as.data.table(colData(hypv2))
+   tmpcd <- merge.data.table(tmpcd[],vmhsvgres[gene_name==g,.(manuscript_id,nomsig)],by.x="sample_id",by.y="manuscript_id",all.x=T)
+   
+   tmpcd <- DataFrame(tmpcd,row.names=tmpcd$key)[colnames(hypv2),]
+   colData(hypv2) <- tmpcd
+
+   plts <- spatialLIBD::vis_grid_gene(hypv2[,hypv2$label=="VMH"],geneid=g,return_plots=T,spatial=F,viridis=T,auto_crop = T,point_size=0.975,na_color = "darkgray")
     
     plts <- lapply(plts,FUN=function(p){
-        p2 <- p+
+       pt <- paste0(unique(p$data$sample_id)," ", g,unique(p$data$nomsig))
+       p2 <- p+
+            ggtitle(label=pt)+
             theme(
                 plot.title = element_text(size = 11, hjust = 0.5),
                 strip.text = element_text(size = 10),
@@ -98,11 +129,23 @@ lapply(rownames(hypv),FUN=function(g){
     dev.off()
 })
 
+###
+
 lapply(rownames(hypa),FUN=function(g){
-    plts <- spatialLIBD::vis_grid_gene(hypa[,hypa$label=="ARC"],geneid=g,return_plots=T,spatial=F,viridis=T,auto_crop = T,point_size=0.975,na_color = "darkgray")
+   ## append significance info to sample ids, drop samples that weren't analyzed
+   hypa2 <- hypa[,hypa$sample_id %in% arcsvgres$manuscript_id]
+   tmpcd <- as.data.table(colData(hypa2))
+   tmpcd <- merge.data.table(tmpcd[],arcsvgres[gene_name==g,.(manuscript_id,nomsig)],by.x="sample_id",by.y="manuscript_id",all.x=T)
+   
+   tmpcd <- DataFrame(tmpcd,row.names=tmpcd$key)[colnames(hypa2),]
+   colData(hypa2) <- tmpcd
+
+   plts <- spatialLIBD::vis_grid_gene(hypa2[,hypa2$label=="ARC"],geneid=g,return_plots=T,spatial=F,viridis=T,auto_crop = T,point_size=0.975,na_color = "darkgray")
     
     plts <- lapply(plts,FUN=function(p){
-        p2 <- p+
+       pt <- paste0(unique(p$data$sample_id)," ", g,unique(p$data$nomsig))
+       p2 <- p+
+            ggtitle(label=pt)+
             theme(
                 plot.title = element_text(size = 11, hjust = 0.5),
                 strip.text = element_text(size = 10),
@@ -123,83 +166,7 @@ rep inf
 sessionInfo()
 sessioninfo::session_info()
 ```
-R version 4.4.1 RC (2024-06-06 r86719)
-Platform: aarch64-apple-darwin20
-Running under: macOS Sonoma 14.5
-
-Matrix products: default
-BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
-LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
-
-locale:
-[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
-
-time zone: America/Chicago
-tzcode source: internal
-
-attached base packages:
-[1] stats4    stats     graphics  grDevices utils     methods   base     
-
-other attached packages:
- [1] BiocParallel_1.38.0         parallelly_1.38.0          
- [3] colorout_1.3-0.2            spatialLIBD_1.16.2         
- [5] SpatialExperiment_1.14.0    SingleCellExperiment_1.26.0
- [7] SummarizedExperiment_1.34.0 Biobase_2.64.0             
- [9] GenomicRanges_1.56.1        GenomeInfoDb_1.40.1        
-[11] IRanges_2.38.1              S4Vectors_0.42.1           
-[13] BiocGenerics_0.50.0         MatrixGenerics_1.16.0      
-[15] matrixStats_1.3.0           gridExtra_2.3              
-[17] ggplot2_3.5.1               data.table_1.15.4          
-[19] rlang_1.1.4                
-
-loaded via a namespace (and not attached):
-  [1] later_1.3.2               BiocIO_1.14.0             bitops_1.0-7             
-  [4] filelock_1.0.3            fields_16.2               tibble_3.2.1             
-  [7] XML_3.99-0.17             lifecycle_1.0.4           edgeR_4.2.0              
- [10] doParallel_1.0.17         rprojroot_2.0.4           lattice_0.22-6           
- [13] magrittr_2.0.3            limma_3.60.3              plotly_4.10.4            
- [16] sass_0.4.9                rmarkdown_2.27            jquerylib_0.1.4          
- [19] yaml_2.3.9                httpuv_1.6.15             spam_2.10-0              
- [22] sessioninfo_1.2.2         cowplot_1.1.3             DBI_1.2.3                
- [25] RColorBrewer_1.1-3        golem_0.4.1               maps_3.4.2               
- [28] abind_1.4-5               zlibbioc_1.50.0           purrr_1.0.2              
- [31] RCurl_1.98-1.14           rappdirs_0.3.3            GenomeInfoDbData_1.2.12  
- [34] ggrepel_0.9.5             irlba_2.3.5.1             DelayedMatrixStats_1.26.0
- [37] codetools_0.2-20          DelayedArray_0.30.1       DT_0.33                  
- [40] scuttle_1.14.0            tidyselect_1.2.1          UCSC.utils_1.0.0         
- [43] farver_2.1.2              ScaledMatrix_1.12.0       viridis_0.6.5            
- [46] shinyWidgets_0.8.6        BiocFileCache_2.12.0      GenomicAlignments_1.40.0 
- [49] jsonlite_1.8.8            BiocNeighbors_1.22.0      scater_1.32.0            
- [52] iterators_1.0.14          foreach_1.5.2             tools_4.4.1              
- [55] Rcpp_1.0.13               glue_1.7.0                SparseArray_1.4.8        
- [58] xfun_0.45                 here_1.0.1                dplyr_1.1.4              
- [61] withr_3.0.0               BiocManager_1.30.23       fastmap_1.2.0            
- [64] fansi_1.0.6               digest_0.6.36             rsvd_1.0.5               
- [67] R6_2.5.1                  mime_0.12                 colorspace_2.1-0         
- [70] RSQLite_2.3.7             config_0.3.2              utf8_1.2.4               
- [73] tidyr_1.3.1               generics_0.1.3            rtracklayer_1.64.0       
- [76] httr_1.4.7                htmlwidgets_1.6.4         S4Arrays_1.4.1           
- [79] pkgconfig_2.0.3           gtable_0.3.5              blob_1.2.4               
- [82] XVector_0.44.0            htmltools_0.5.8.1         dotCall64_1.1-1          
- [85] scales_1.3.0              png_0.1-8                 attempt_0.3.1            
- [88] knitr_1.48                rstudioapi_0.16.0         rjson_0.2.21             
- [91] curl_5.2.1                cachem_1.1.0              BiocVersion_3.19.1       
- [94] parallel_4.4.1            vipor_0.4.7               AnnotationDbi_1.66.0     
- [97] restfulr_0.0.15           pillar_1.9.0              grid_4.4.1               
-[100] vctrs_0.6.5               promises_1.3.0            BiocSingular_1.20.0      
-[103] dbplyr_2.5.0              beachmat_2.20.0           xtable_1.8-4             
-[106] beeswarm_0.4.0            paletteer_1.6.0           evaluate_0.24.0          
-[109] magick_2.8.3              cli_3.6.3                 locfit_1.5-9.10          
-[112] compiler_4.4.1            Rsamtools_2.20.0          crayon_1.5.3             
-[115] labeling_0.4.3            rematch2_2.1.2            ggbeeswarm_0.7.2         
-[118] viridisLite_0.4.2         munsell_0.5.1             Biostrings_2.72.1        
-[121] lazyeval_0.2.2            Matrix_1.7-0              ExperimentHub_2.12.0     
-[124] benchmarkme_1.0.8         sparseMatrixStats_1.16.0  bit64_4.0.5              
-[127] KEGGREST_1.44.1           statmod_1.5.0             shiny_1.8.1.1            
-[130] AnnotationHub_3.12.0      memoise_2.0.1             bslib_0.7.0              
-[133] benchmarkmeData_1.0.4     bit_4.0.5                
-> sessioninfo::session_info()
-─ Session info ───────────────────────────────────────────────────────────────────
+─ Session info ──────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -209,11 +176,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-09-21
+ date     2024-10-11
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ───────────────────────────────────────────────────────────────────────
+─ Packages ──────────────────────────────────────────────────────────────────────
  ! package              * version   date (UTC) lib source
    abind                  1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
    AnnotationDbi          1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
@@ -370,20 +337,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-──────────────────────────────────────────────────────────────────────────────────
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```
+─────────────────────────────────────────────────────────────────────────────────
