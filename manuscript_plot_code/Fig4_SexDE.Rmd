@@ -125,6 +125,12 @@ setnames(xendomde,"logFC_MvF","logFC_Xenium")
 
 xendomdecor <- merge.data.table(xendomde[,.(domain,gene_name,logFC_Xenium)],vistmp[,.(assay,gene_name,logFC_Visium)],by.x=c("domain","gene_name"),by.y=c("assay","gene_name"))
 
+### lastly, we need the pseudobulk expression tables for making plots of that stuff
+xpb <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/04b-4typeARC-VMH_domainAllCells_pseudobulkxprs.RDS")
+vpb <- readRDS("spatial_HYP/processed-data/09-Sex DE/01d-pseudobulkExpr_01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+vpb <- vpb[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH"]]
+vpb <- vpb[assay %in% c("VMH","ARC")]
+
 ## clean up
 rm(genelut,vistmp)
 ```
@@ -771,6 +777,70 @@ p
 dev.off()
 
 # m(pank,p,dompolyi)
+```
+
+## to squeeze between visium/xenium panels for each gene: pseudobulk xpr boxplots in domain of interest
+```{r}
+vpb <- vpb[gene_name %in% c("TAC1","RDH10")]
+vpb[,gene_id:=NULL]
+setnames(vpb,"assay","domain")
+vpb <- merge.data.table(vpb,mscriptids,by.x="variable",by.y="sample_id")
+vpb[,Sex:=gsub(manuscript_id,pattern="^.*_(.*)$",replacement="\\1")]
+
+xpb <- rbindlist(xpb,idcol = "domain")
+xpb <- xpb[rn %in% c("TAC1","RDH10")]
+setnames(xpb,"rn","gene_name")
+xpb <- merge.data.table(xpb,mscriptids[,.(sample_id,manuscript_id)],by.x="variable",by.y="sample_id")
+xpb[,Sex:=gsub(manuscript_id,pattern="^.*_(.*)$",replacement="\\1")]
+
+vpb <- melt(vpb,id.vars=c("domain","gene_name"))
+xpb <- melt(xpb,id.vars=c("domain","gene_name"))
+
+
+### plots
+pdf("manuscript_plots/Fig4/vVMH_TAC1_pbulks.pdf",height=1,width=0.6)
+ggplot(vpb[gene_name=="TAC1"&domain=="VMH"],aes(x=Sex,y=value,col=domain,fill=Sex))+
+  geom_boxplot(outliers = FALSE)+
+  scale_color_manual(values=pal)+
+  ylab("Pseudobulk Expr.")+
+  scale_fill_manual(values=c("#FFFFFF","#000000"))+
+  guides(col="none",fill="none")+
+  geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
+  theme(axis.text.x=element_text(size=7),axis.text.y=element_blank(),axis.title.y=element_text(size=7),axis.title.x=element_blank())
+dev.off()
+
+pdf("manuscript_plots/Fig4/xVMH_TAC1_pbulks.pdf",height=1,width=0.6)
+ggplot(xpb[gene_name=="TAC1"&domain=="VMH"],aes(x=Sex,y=value,col=domain,fill=Sex))+
+  geom_boxplot(outliers = FALSE)+
+  scale_color_manual(values=pal)+
+  ylab("Pseudobulk Expr.")+
+  scale_fill_manual(values=c("#FFFFFF","#000000"))+
+  guides(col="none",fill="none")+
+  geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
+  theme(axis.text.x=element_text(size=7),axis.text.y=element_blank(),axis.title.y=element_text(size=7),axis.title.x=element_blank())
+dev.off()
+
+pdf("manuscript_plots/Fig4/vARC_RDH10_pbulks.pdf",height=1,width=0.6)
+ggplot(vpb[gene_name=="RDH10"&domain=="ARC"],aes(x=Sex,y=value,col=domain,fill=Sex))+
+  geom_boxplot(outliers = FALSE)+
+  scale_color_manual(values=pal)+
+  ylab("Pseudobulk Expr.")+
+  scale_fill_manual(values=c("#FFFFFF","#000000"))+
+  guides(col="none",fill="none")+
+  geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
+  theme(axis.text.x=element_text(size=7),axis.text.y=element_blank(),axis.title.y=element_text(size=7),axis.title.x=element_blank())
+dev.off()
+
+pdf("manuscript_plots/Fig4/xARC_RDH10_pbulks.pdf",height=1,width=0.6)
+ggplot(xpb[gene_name=="RDH10"&domain=="ARC"],aes(x=Sex,y=value,col=domain,fill=Sex))+
+  geom_boxplot(outliers = FALSE)+
+  scale_color_manual(values=pal)+
+  ylab("Pseudobulk Expr.")+
+  scale_fill_manual(values=c("#FFFFFF","#000000"))+
+  guides(col="none",fill="none")+
+  geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
+  theme(axis.text.x=element_text(size=7),axis.text.y=element_blank(),axis.title.y=element_text(size=7),axis.title.x=element_blank())
+dev.off()
 ```
 
 ## panel L: fGSEA results for TF-target 

@@ -145,7 +145,7 @@ vhull <- as.data.table(vhull,keep.rownames=T)
 ahull <- st_concave_hull(st_union(tmpcoldata.sf[tmpcoldata.sf$Visium.Domain=="ARC",]),ratio = 0.1)
 ahull <- ahull[[1]][[1]]
 ahull <- rbind(ahull,ahull[1,])
-rownames(ahull) <- rownames(ahull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(ahull),by=1))
+rownames(ahull) <- paste0("pt",seq((1+nrow(vhull)),nrow(vhull)+nrow(ahull),by=1))
 ahull <- as.data.table(ahull,keep.rownames=T)
 
 dompoly <- rbind(vhull,ahull)
