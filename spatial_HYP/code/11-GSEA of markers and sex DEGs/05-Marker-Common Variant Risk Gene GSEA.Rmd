@@ -12,11 +12,9 @@ knitr::opts_chunk$set(fig.width=7,fig.height=10)
 knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
-library(Biostrings)
-library(BiocParallel)
-library(parallel)
-library(parallelly)
+library(clusterProfiler) ## appears necessary for parallelization to work
 library(fgsea)
+
 require(colorout)
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
@@ -25,16 +23,18 @@ options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 library(default)
 default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
 
-## for multicore in Rstudio
 ## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc
+library(parallel)
 options(parallelly.supportsMulticore.disableOn="")
 options(parallelly.fork.enable=TRUE)
+library(parallelly)
 options(bphost="localhost")
+library(BiocParallel)
 ```
 
 ### load aggregated disease-gene lists and reformat
 ```{r}
-gwas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/gwassets.txt")
+gwas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/gwassets.txt",header=T)
 twas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/twassets.txt")
 dgn <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/disgenet_curated_genes.txt")
 setnames(dgn,"gene_symbol","symbol")
@@ -104,17 +104,18 @@ rm(i,mks)
 ```
 
 ```{r}
-### loop through each domain and modality-disease gene set (each run is very fast with 10 cpus in biocparallel, so just serially run 10cpu GSEA for each cluster)
+### loop through each domain and modality-disease gene set (each run is very fast with 10 cpus, so just serially run 10cpu GSEA for each cluster)
+
 dissets.res <- list()
-sbp <- MulticoreParam(8)
-register(sbp)
+setDTthreads(1,restore_after_fork = FALSE)
 
 i<-1
 for (i in c(1:length(dissets))){
     cursets <- copy(dissets[[i]])
     mkres <- mapply(X=mklist,Y=names(mklist),SIMPLIFY=FALSE,FUN=function(X,Y){
         # max size for dis gene sets is BMI at 8100-some, so set max size to 8200 
-        z<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,BPPARAM = sbp,nPermSimple = 50000)
+        register(MulticoreParam())
+        z<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,nPermSimple = 50000,nproc=8)
         # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
         z$leadingEdge <- as.character(z$leadingEdge)
         z$leadingEdge <- gsub(z$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
@@ -125,7 +126,7 @@ for (i in c(1:length(dissets))){
     })
     dissets.res[[i]] <- mkres
     names(dissets.res)[i] <- names(dissets)[i]
-    rm(cursets)
+    rm(cursets,mkres)
 }
 rm(i)
 ```

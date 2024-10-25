@@ -12,8 +12,9 @@ knitr::opts_chunk$set(fig.width=7,fig.height=10)
 knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
-library(Biostrings)
+library(clusterProfiler) ## appears necessary for parallelization to work
 library(fgsea)
+
 require(colorout)
 ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
@@ -22,22 +23,20 @@ options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 library(default)
 default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
 
-## for multicore in Rstudio
 ## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc
 library(parallel)
-library(parallelly)
 options(parallelly.supportsMulticore.disableOn="")
 options(parallelly.fork.enable=TRUE)
-library(BiocParallel)
+library(parallelly)
 options(bphost="localhost")
-
+library(BiocParallel)
 ```
 
 ### load aggregated disease-gene lists and reformat
 ```{r}
 setDTthreads(1,restore_after_fork=FALSE)
 
-gwas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/gwassets.txt")
+gwas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/gwassets.txt",header=T)
 twas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/twassets.txt")
 dgn <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/disgenet_curated_genes.txt")
 setnames(dgn,"gene_symbol","symbol")
