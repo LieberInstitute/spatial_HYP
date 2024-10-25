@@ -1,7 +1,7 @@
 ---
 title: "Fig1_Overview"
 author: "Bernard Mulvey"
-date: "2024-10-01"
+date: "2024-10-25"
 output: html_document
 ---
 
@@ -113,7 +113,6 @@ pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAM
 
 pal <- pals[[1]]
 
-
 fullpal <- readRDS("manuscript_plot_code/14color_palette.RDS")
 
 #### set levels for the domain labels so they appear in the same order
@@ -142,10 +141,13 @@ p <- p |> add_fill("k15dom",size=0.25,point_size = 0.7)
 pdf("manuscript_plots/Fig1/1C-V13Y24-346_C1_Visdomains.pdf",height=2,width=2)
 p+
     scale_fill_manual(values=fullpal,na.value = NA)+
-    ggtitle(mscriptids[sample_id==unique(panc$sample_id),manuscript_id])+
+    # ggtitle(mscriptids[sample_id==unique(panc$sample_id),manuscript_id])+
     guides(color="none",fill=guide_legend(override.aes=list(size=1.5)))+
     labs(fill="Visium\nDomain")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"),legend.margin = margin(0,0,0,-0.14,"in"),legend.text=element_text(size=6))
+    theme(
+       #plot.title.position = "plot",
+       #plot.title = element_markdown(size=9,hjust=0.5),
+       legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"),legend.margin = margin(0,0,0,-0.14,"in"),legend.text=element_text(size=6))
 dev.off()
 
 rm(panc,p)
@@ -153,76 +155,128 @@ rm(panc,p)
 
 ### Set up the xenium palette for cell groups for the next panel.
 ```{r}
-rastumap <- fread("xenium_HYP/processed-data/04_general_QC_and_normalization/02a-genetarg-lctUMAP_rawctCAandUMAP_w_metadata.txt.gz")
-
-
-
 ## create supercluster labels to group related cell types together
 bkcl <- as.data.table(bkcl,keep.rownames=T)
 bkcl[,supercl:="ifthisisplottedigoofed"]
 bkcl[bjm_annot %in% grep(bjm_annot,pattern="VMH",value=T),supercl:="VMH (4)"]
 bkcl[bjm_annot %in% grep(bjm_annot,pattern="ARC",value=T),supercl:="ARC (5)"]
-bkcl[bjm_annot %in% grep(bjm_annot,pattern="Tanyc|Alar",value=T),supercl:="Tanycytes, Portal Vasc. (4)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Tanyc|Alar",value=T),supercl:="Tanycytes,<br>Portal Vasc. (4)"]
 bkcl[bjm_annot %in% grep(bjm_annot,pattern="Oligo",value=T),supercl:="Oligo (4)"]
 bkcl[bjm_annot %in% grep(bjm_annot,pattern="Astro",value=T),supercl:="Astro (2)"]
 bkcl[bjm_annot %in% grep(bjm_annot,pattern="Microg",value=T),supercl:="Microglia (3)"]
 bkcl[bjm_annot %in% grep(bjm_annot,pattern="Supraopt",value=T),supercl:="SON (2)"]
-bkcl[bjm_annot %in% grep(bjm_annot,pattern="Unsure_AVP",value=T),supercl:="Non-SON AVP+OXT+ (1)"]
-bkcl[bjm_annot %in% grep(bjm_annot,pattern="Macrop|Periph|Vascul|Endothel",value=T),supercl:="Vascular and Peripheral Immune (5)"]
-bkcl[bjm_annot %in% grep(bjm_annot,pattern="GABA",value=T),supercl:="Other GABAergic Neurons (2)"]
-bkcl[bjm_annot %in% grep(bjm_annot,pattern="Periven",value=T),supercl:="PeriVN (Excitatory) (1)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Unsure_AVP",value=T),supercl:="Non-SON<br>*AVP*+*OXT*+ (1)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Macrop|Periph|Vascul|Endothel",value=T),supercl:="Vascular, Periph.<br>Immune (5)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="GABA",value=T),supercl:="Other GABAergic (2)"]
+bkcl[bjm_annot %in% grep(bjm_annot,pattern="Periven",value=T),supercl:="PeriVN<br>(Excitatory) (1)"]
 ### the parenthetical numbers add up to 33, so we're good.
-
-# key is a field from the colData slot of the SPE that was exported, and is identical to the rownames in case they are lost during switches between d.t. and d.f elsewhere
-rastumap <- rastumap[key %in% bkcl$rn]
-rastumap <- merge.data.table(rastumap,bkcl,by.x="key",by.y="rn")
-
-
 
 
 ### lastly, in the case of the xenium spotplot of all cell groups, we need to put them in a specific order for them to fit within the plot space alongside 1225B: VMH, ARC, SON, Astro, Oligo, Microglia, PeriVN, Non-SON AVP+OXT+, Tanycytes n portal, Other GABA, Vasc n periph
-bkcl$supercl <- factor(bkcl$supercl,levels=c("VMH (4)","ARC (5)","SON (2)","Astro (2)","Oligo (4)","Microglia (3)","PeriVN (Excitatory) (1)","Non-SON AVP+OXT+ (1)","Tanycytes, Portal Vasc. (4)","Other GABAergic Neurons (2)","Vascular and Peripheral Immune (5)"))
+levs <- c("VMH (4)","ARC (5)","SON (2)","Astro (2)","Oligo (4)","Microglia (3)","PeriVN<br>(Excitatory) (1)","Non-SON<br>*AVP*+*OXT*+ (1)","Tanycytes,<br>Portal Vasc. (4)","Other GABAergic (2)","Vascular, Periph.<br>Immune (5)")
+stopifnot(all(levs %in% unique(bkcl$supercl)))
+
+bkcl$supercl <- factor(bkcl$supercl,levels=c("VMH (4)","ARC (5)","SON (2)","Astro (2)","Oligo (4)","Microglia (3)","PeriVN<br>(Excitatory) (1)","Non-SON<br>*AVP*+*OXT*+ (1)","Tanycytes,<br>Portal Vasc. (4)","Other GABAergic (2)","Vascular, Periph.<br>Immune (5)"))
 ```
 
-hypothetical UMAP alternative: xenium "spot"plot with superclusters labeled
+1E previous code to plot usign data.table (results in skewed dimensions; implemented a fix for it here but then switched to escher for consistency with other panels in this figure anyhow.)
 ```{r}
+## make plotting table of spatial coords, super cluster assignments
+# panealt <- as.data.table(cbind(colData(hypx[,hypx$sample_id=="X99_1225B"]),spatialCoords(hypx[,hypx$sample_id=="X99_1225B"])))
+
+## zero-base the coordinates
+# panealt[,sdimx:=0.1+sdimx-(min(sdimx))]
+# panealt[,sdimy:=0.1+sdimy-(min(sdimy))]
+# stopifnot(nrow(panealt[sdimx>0&sdimy>0])==nrow(panealt))
+
+# factor supercl here to match the leveling from the source SPE 
+# panealt[,supercl:=factor(supercl,levels=levs)]
+
+# to plot appropriately, need x and y axes to be same range. since this section is taller than wide, get the difference to tack onto the coordinate limits so that the tissue spots fall in the center of the plot area along the x axis
+# halfdiff <- (8000-max(panealt$sdimy))/2
+
+# pdf("manuscript_plots/Fig1/1Ealt-Xenium cell group spotplot.pdf",height=2,width=3.25)
+# ggplot(panealt[sdimy<8000],aes(x=sdimx,y=sdimy,col=supercl))+
+#    #guides(color="none")+
+#    labs(color="Cell group\n(N clusters)")+
+#    ggtitle(mscriptids[sample_id=="X99_1225B",manuscript_id])+
+#    guides(color=guide_legend(override.aes=list(size=1.5)))+
+#    scale_color_manual(values=xenpal)+
+#    #scale_x_continuous(limits=c(halfdiff,max(panealt$sdimx)+abs(halfdiff)),expand=c(0,0))+
+#    # scale_y_continuous(limits=c(0,8000,expand=c(0,0)))+
+#    theme(panel.grid = element_blank(),
+#          axis.text.x=element_blank(),
+#          axis.text.y=element_blank(),
+#          axis.title.x=element_blank(),
+#          axis.title.y=element_blank(),
+#          axis.ticks = element_blank(),
+#          legend.text = element_markdown(size=6,margin=margin(0,0,0,0,"in")),
+#          legend.key.size = ggplot2::unit(0.075,"in"),
+#          legend.title=element_text(size=7,hjust=0.5),
+#          legend.background = element_blank(),
+#          # legend.title=element_text(size=7,margin=margin(0,0,0.0525,-0.65,"in"),hjust=0.5),
+#          legend.box = element_blank(),
+#          legend.box.spacing = ggplot2::unit(0,"in"),
+#          legend.key = element_blank(),
+#          legend.key.height=ggplot2::unit(0.0125,"in"),
+#          legend.key.width=ggplot2::unit(0.0125,"in"),
+#          legend.key.spacing.y = ggplot2::unit(0.05,"in"))+
+#          # legend.position.inside = c(0.19,0.165),
+#          # legend.position="inside")+
+#    rasterize(geom_point(size=0.2,stroke=0),layers="Points",dpi=900,dev="cairo_png")
+```
+
+1E continued: xenium "spot"plot with superclusters labeled. fix the palette names to match the tweaked names above (done to keep legend from taking up too much width)
+```{r}
+## make palette names match tweaks from previous block
+xenpal <- pals$xen_cellgroups
+names(xenpal)[names(xenpal)=="PeriVN (Excitatory) (1)"] <- "PeriVN<br>(Excitatory) (1)"
+names(xenpal)[names(xenpal)=="Non-SON AVP+OXT+ (1)"] <- "Non-SON<br>*AVP*+*OXT*+ (1)"
+names(xenpal)[names(xenpal)=="Tanycytes, Portal Vasc. (4)"] <- "Tanycytes,<br>Portal Vasc. (4)"
+names(xenpal)[names(xenpal)=="Vascular and Peripheral Immune (5)"] <- "Vascular, Periph.<br>Immune (5)"
+names(xenpal)[names(xenpal)=="Other GABAergic Neurons (2)"] <- "Other GABAergic (2)"
+
+stopifnot(all(names(xenpal) %in% unique(bkcl$supercl)))
+
+## assign superclusters to SPE
 hypx$supercl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]$supercl
 
-panealt <- as.data.table(cbind(colData(hypx[,hypx$sample_id=="X99_1225B"]),spatialCoords(hypx[,hypx$sample_id=="X99_1225B"])))
+# get sample
+panealt <- hypx[,hypx$sample_id=="X99_1225B"]
 
-panealt[,supercl:=factor(supercl,levels=c("VMH (4)","ARC (5)","SON (2)","Astro (2)","Oligo (4)","Microglia (3)","PeriVN (Excitatory) (1)","Other GABAergic Neurons (2)","Non-SON AVP+OXT+ (1)","Tanycytes, Portal Vasc. (4)","Vascular and Peripheral Immune (5)"))]
 
-pdf("manuscript_plots/Fig1/1Ealt-Xenium cell group spotplot.pdf",height=3.25,width=3.25)
-ggplot(panealt,aes(x=sdimx,y=sdimy,col=supercl))+
-   #guides(color="none")+
-   labs(color="Cell group\n(N clusters)")+
-   ggtitle(mscriptids[sample_id=="X99_1225B",manuscript_id])+
-   guides(color=guide_legend(override.aes=list(size=1.5)))+
-   scale_color_manual(values=xenpal)+
-   theme(axis.text.x=element_blank(),
+pane <- make_escheR(panealt,y_reverse=FALSE)
+pane <- pane |> add_fill("supercl",size=0.2,point_size = 0.2)
+
+pdf("manuscript_plots/Fig1/1Ealt-Xenium cell group spotplot.pdf",height=2,width=3.25)
+pane+   #guides(color="none")+
+   labs(fill="Cell group\n(N clusters)")+
+   # ggtitle(mscriptids[sample_id=="X99_1225B",manuscript_id])+
+   guides(fill=guide_legend(override.aes=list(size=1.5)))+
+   scale_fill_manual(values=xenpal)+
+   #scale_x_continuous(limits=c(halfdiff,max(panealt$sdimx)+abs(halfdiff)),expand=c(0,0))+
+   # scale_y_continuous(limits=c(0,8000,expand=c(0,0)))+
+   theme(panel.grid = element_blank(),
+         axis.text.x=element_blank(),
          axis.text.y=element_blank(),
          axis.title.x=element_blank(),
          axis.title.y=element_blank(),
          axis.ticks = element_blank(),
-         legend.text = element_text(size=5,margin=margin(0,0,0,0,"in")),
+         legend.text = element_markdown(size=6,margin=margin(0,0,0,0,"in")),
+         legend.key.size = ggplot2::unit(0.075,"in"),
+         legend.title=element_text(size=7,hjust=0.5),
          legend.background = element_blank(),
-         legend.title=element_text(size=7,margin=margin(0,0,0.0525,-0.65,"in"),hjust=0.5),
+         # legend.title=element_text(size=7,margin=margin(0,0,0.0525,-0.65,"in"),hjust=0.5),
          legend.box = element_blank(),
          legend.box.spacing = ggplot2::unit(0,"in"),
          legend.key = element_blank(),
          legend.key.height=ggplot2::unit(0.0125,"in"),
          legend.key.width=ggplot2::unit(0.0125,"in"),
-         legend.position.inside = c(0.19,0.165),
-         legend.position="inside")+
-   rasterize(geom_point(size=0.35,stroke=0),layers="Points",dpi=900,dev="cairo_png")
-
-# 
+         legend.key.spacing.y = ggplot2::unit(0.04,"in"))
+         # legend.position.inside = c(0.19,0.165),
+         # legend.position="inside")
 
 dev.off()
-
-
-
-
 ```
 
 ## Panel d: Visium with key domains labeled. Don't show OT.
@@ -238,14 +292,14 @@ p <- p |> add_fill("Visium Domain",size=0.8,point_size = 0.8)
 pdf("manuscript_plots/Fig1/1D-V13Y24-346_C1_keydomains.pdf",height=2,width=2)
 p+
     scale_fill_manual(values=pal,na.value = NA)+
-    ggtitle(mscriptids[sample_id=="V13Y24-346_C1",manuscript_id])+
+    # ggtitle(mscriptids[sample_id=="V13Y24-346_C1",manuscript_id])+
     # guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
     guides(fill="none")+
     # labs(color="Visium\nDomain")+
     theme(legend.text = element_text(size=7),
-          plot.title.position = "plot",
+          # plot.title.position = "plot",
           # plot.title = element_markdown(size=9,hjust=0.5),
-          plot.title = element_text(size=9,hjust=0.5),
+          # plot.title = element_text(size=9,hjust=0.5),
           # legend.key.size = ggplot2::unit(0.075,"in"),
           # legend.title=element_text(size=7.5,hjust=0.5),
           plot.margin = margin(0,0,0,0,unit = "in"))
@@ -406,7 +460,7 @@ p+
    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,color=Visium.Domain,group=Visium.Domain),size=0.4)+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    ggtitle(paste0("*NR5A1* ",mscriptids[sample_id=="V13Y24-346_C1",manuscript_id]))+
+    ggtitle("*NR5A1*")+
     # guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
     # labs(color="Visium\nDomain")+
     guides(color="none")+
@@ -436,7 +490,7 @@ p+
     scale_color_manual(values=pal,na.value = NA)+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     #scale_fill_grey()+
-    ggtitle(paste0("*POMC* ",mscriptids[sample_id=="V13Y24-346_C1",manuscript_id]))+
+    ggtitle("*POMC*")+
     # guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
     # labs(color="Visium\nDomain")+
     guides(color="none")+
@@ -446,7 +500,7 @@ dev.off()
 rm(p,pang)
 ```
 
-Panel I is the xenium domains in the same donor (Br1225 , sample X99_1225V).
+Panel I is the xenium domains in the same donor (Br1225 , sample X99_1225B).
 
 ### Panel I: xenium counterpart to C (X99_1225B)
 ```{r}
@@ -459,7 +513,7 @@ p <- p |> add_fill("dom",size=0.05,point_size = 0.2)
 pdf("manuscript_plots/Fig1/1I-X99_1225B_Xendomains.pdf",height=2,width=2)
 p+
     scale_fill_manual(values=pal,na.value = NA)+
-    ggtitle(mscriptids[sample_id=="X99_1225B",manuscript_id])+
+    # ggtitle(mscriptids[sample_id=="X99_1225B",manuscript_id])+
     # guides(color="none",fill=guide_legend(override.aes=list(size=1.5)))+
     # labs(fill="Xenium\nDomain")+
    guides(color="none",fill="none")+
@@ -513,7 +567,7 @@ p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle(paste0("*NR5A1* ",mscriptids[sample_id=="X99_1225B",manuscript_id]))+
+    ggtitle("*NR5A1*")+
     guides(color="none")+
     # labs(col="Xenium\nDomain")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.12,0,-0.12,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.11,-0.4,-0.12,-0.4,unit = "in"),legend.margin=margin(0,-0.2,0,0,"in"),legend.background = element_blank(),legend.box = element_blank(),legend.key = element_blank())
@@ -536,7 +590,7 @@ p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
     geom_path(data=dompoly,aes(x=xpol,y=ypol,group=dompol,col=dompol),linewidth = 0.25)+
     scale_color_manual(values=pal,na.value = NA)+
-    ggtitle(paste0("*POMC*",mscriptids[sample_id=="X99_1225B",manuscript_id]))+
+    ggtitle("*POMC*")+
     guides(color="none")+
     # labs(col="Xenium\nDomain")+
     theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5,margin=margin(0.12,0,-0.12,0,"in")),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.125,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(-0.11,-0.4,-0.12,-0.4,unit = "in"),legend.margin=margin(0,-0.2,0,0,"in"),legend.background = element_blank(),legend.box = element_blank(),legend.key = element_blank())
@@ -639,7 +693,7 @@ loaded via a namespace (and not attached):
 [166] gridtext_0.1.5            memoise_2.0.1             bslib_0.7.0              
 [169] benchmarkmeData_1.0.4     bit_4.0.5                
 > sessioninfo::session_info()
-─ Session info ───────────────────────────────────────────────────────────────────
+─ Session info ──────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -649,11 +703,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-10-08
+ date     2024-10-25
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ───────────────────────────────────────────────────────────────────────
+─ Packages ──────────────────────────────────────────────────────────────────────
  ! package                  * version   date (UTC) lib source
    abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
    AnnotationDbi              1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
@@ -851,4 +905,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-──────────────────────────────────────────────────────────────────────────────────
+─────────────────────────────────────────────────────────────────────────────────
