@@ -98,13 +98,15 @@ arcvmhanno[subclus_domain!="VMH",subclus_domain:=gsub(subclus_annot,pattern="^(A
 arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="ARC_",replacement="")]
 
 arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
-arcvmhanno[subclus_annot=="SLC17A6-CRHR2",subclus_annot:="*SLC17A6*-*CRHR2*"]
-arcvmhanno[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*NRGN*"]
-arcvmhanno[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
+arcvmhanno[subclus_annot=="CRHR2",subclus_annot:="*CRHR2*"]
+arcvmhanno[subclus_annot=="LAMP5",subclus_annot:="*LAMP5*"]
+arcvmhanno[subclus_annot=="xVMH-Glia-Mixed",subclus_annot:="xVMH-Glia Mixed"]
+arcvmhanno[subclus_annot=="Lateral-Border",subclus_annot:="xVMH Lateral Border"]
+
 arcvmhanno[subclus_annot=="AGRP",subclus_annot:="*AGRP*"]
-arcvmhanno[subclus_annot=="TAC3-AR-ESR1",subclus_annot:="*TAC3*-*AR*-*ESR1*"]
-arcvmhanno[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo"]
-arcvmhanno[subclus_annot=="Excit-SLC17A7-Glial-Mixed",subclus_annot:="*SLC17A7*-Glia"]
+arcvmhanno[subclus_annot=="TAC3-ESR1",subclus_annot:="*TAC3*-*ESR1*"]
+arcvmhanno[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo Mixed"]
+arcvmhanno[subclus_annot=="SLC17A7-Glia-Mixed",subclus_annot:="*SLC17A7*-Glia Mixed"]
 arcvmhanno[subclus_annot=="GAL-TRH-GHRH",subclus_annot:="*GAL*-*TRH*-*GHRH*"]
 
 ## append these to the other annots and replace bjm_annot with the ARC/VMH cell type labels where applicable
@@ -167,20 +169,16 @@ names(vmhelist) <-  bkanno[match(names(vmhelist),bkanno$clus),bjm_annot]
 names(arcelist) <-  bkanno[match(names(arcelist),bkanno$clus),bjm_annot]
 ```
 
-cell types palettes
+palettes
 ```{r}
-vmhpal <- c("#8c63cf", "lightgray", "#6A0D53", "#AD260D")
-names(vmhpal) <- c("*SLC17A6*-*CRHR2*","Microglia","*FEZF1*-*LAMP5*-*NRGN*","*HCRT*-*SLC6A3*-*TAC1*")
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
 
-arcpal <- c("#5dd959","#296656","#09979B","#A997AB","#D0B")
-names(arcpal) <-  c("*AGRP*","*POMC*-Oligo","*GAL*-*TRH*-*GHRH*","*SLC17A7*-Glia","*TAC3*-*AR*-*ESR1*")
+pal <- pals[["Domains"]]
 
-```
-
-## palette set up (shared)
-```{r}
-pal <- c("#8c63cf","#5dd959","#A9A7A9")
-names(pal) <- c("VMH","ARC","Other")
+vmhpal <- pals[["XenVMH"]]
+arcpal <- pals[["XenARC"]]
+stopifnot(all(names(vmhpal) %in% unique(bkcl$bjm_annot)))
+stopifnot(all(names(arcpal) %in% unique(bkcl$bjm_annot)))
 ```
 
 ## panel A: xenium volcano, VMH types in VMH domain
@@ -189,7 +187,7 @@ xenvmhdeplt <- xenvmhde[cluster_annotated %in% grep(cluster_annotated,pattern="V
 
 xenvmhdeplt <- merge.data.table(xenvmhdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
 
-xenvmhdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
+xenvmhdeplt[gene_name %in% c("MYT1L","TAC1","MC4R","CYP26A1","TMEM233","EGR1","ESR1","PGR")&P.Value<0.025,label:=gene_name]
 
 p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
     geom_point(size = 0.15) +
@@ -217,7 +215,9 @@ p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
     xlab("logFC (M:F)")+
     ylab("-log10 (P-value)")+
     labs(color="VMH Cell Type")+
-    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.21,0.9),legend.position = "inside",legend.text=element_markdown(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
+    scale_x_continuous(ra)
+       c(min(xenvmhdeplt$logFC_MvF),max(xenvmhdeplt$logFC_MvF)),expand = c(0.01,0.01))+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.19,0.9),legend.position = "inside",legend.text=element_markdown(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
 
 # rasterize
 p <- rasterize(p,layers="Points",dpi=450)
@@ -236,7 +236,7 @@ Panel B: ARC sex DE volcano by cell type.
 ```{r}
 xenarcdeplt <- xenarcde[cluster_annotated %in% grep(cluster_annotated,pattern="ARC",value=T)]
 
-xenarcdeplt[gene_name %in% c("SHANK3","DCC","RXRG"),label:=gene_name]
+xenarcdeplt[gene_name %in% c("MYT1L","TAC1","MC4R","CYP26A1","TMEM233","EGR1","ESR1","PGR")&FDR<0.2,label:=gene_name]
 
 ## replace names with informative cell type labels for plot, and thus in palette
 xenarcdeplt <- merge.data.table(xenarcdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
@@ -259,6 +259,7 @@ p <- ggplot(xenarcdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
         size = 0.9,
         show.legend=FALSE,
         nudge_x=1.25*sign(xenarcdeplt$logFC_MvF),
+        nudge_y=0.25,
         seed=10403,
         max.iter=100000,
         max.overlaps=10000,
@@ -267,7 +268,9 @@ p <- ggplot(xenarcdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
     xlab("logFC (M:F)")+
     ylab("-log10 (P-value)")+
     labs(color="ARC Cell Type")+
-    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.1675,0.88),legend.position = "inside",legend.text=element_markdown(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
+    scale_x_continuous(limits = c(min(xenarcdeplt$logFC_MvF),max(xenarcdeplt$logFC_MvF)),
+                       expand=c(0.175,0.175))+
+    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.805,0.119),legend.position = "inside",legend.text=element_markdown(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")),legend.box.background = element_blank(),legend.key=element_blank())
 
 # rasterize
 p <- rasterize(p,layers="Points",dpi=450)
@@ -282,6 +285,13 @@ dev.off()
 Panel C: Show a DEG per VMH cluster, shown for all VMH xenium clusters in a violin plot datawide (at the level of pseudobulked samples). VMH_1: MC4R, VMH_2 (and 3): TAC1, VMH_3: TMEM233
 ```{r}
 vmhe <- rbindlist(vmhelist,idcol = "celltype",fill=T)
+## fix pseudobulk data cell types to match palette
+unique(vmhe$celltype)
+vmhe[celltype=="CRHR2",celltype:="*CRHR2*"]
+vmhe[celltype=="LAMP5",celltype:="*LAMP5*"]
+vmhe[celltype=="xVMH-Glia-Mixed",celltype:="xVMH-Glia Mixed"]
+vmhe[celltype=="Lateral-Border",celltype:="xVMH Lateral Border"]
+
 # removing leading "elist." from colnames
 setnames(vmhe,gsub(names(vmhe),pattern="^elist\\.",replacement=""))
 
@@ -295,13 +305,13 @@ vmhe.m[,Sex:=gsub(Sex,pattern="^(.).*$",replacement="\\1")]
 ## tidy up for plotting -- also do this for the palette or they won't match up
 vmhe.m[,celltype:=gsub(celltype,pattern="_",replacement=" ")]
 names(vmhpal) <- gsub(names(vmhpal),pattern="_",replacement=" ")
-setnames(vmhe.m,"celltype","Xenium Cluster")
+setnames(vmhe.m,"celltype","xVMH Neuron Cluster")
 
 # make the gene names markdown'ed so they appear in italics
 vmhe.m[,rn:=paste0("*",rn,"*")]
 
 pdf("manuscript_plots/Fig5/5C-VMH_DEGs_boxplot.pdf",height=3,width=3.5)
-ggplot(vmhe.m,aes(x=`Xenium Cluster`,y=value,color=`Xenium Cluster`,fill = Sex))+
+ggplot(vmhe.m,aes(x=`xVMH Neuron Cluster`,y=value,color=`xVMH Neuron Cluster`,fill = Sex))+
     geom_boxplot(outliers = FALSE,linewidth = 0.25)+
     geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
     scale_fill_manual(values=c("#FFFFFF","#000000"))+
@@ -320,6 +330,13 @@ rm(vmhe.m,vmhe)
 ## for panel D, we want to do the same for three ARC genes of interest. For ARC_4 we have the pick of the litter--we'll go with CDH13, which has known associations to weight. For ARC_3, RXRG is pretty high up there signif wise. And ARC_1 has signif CYP26A1 DE.  
 ```{r}
 arce <- rbindlist(arcelist,idcol = "celltype",fill=T)
+# fix cell types to match palette
+# unique(arce$celltype)
+arce[celltype=="AGRP",celltype:="*AGRP*"]
+arce[celltype=="TAC3-ESR1",celltype:="*TAC3*-*ESR1*"]
+arce[celltype=="*POMC*-Oligo",celltype:="*POMC*-Oligo Mixed"]
+arce[celltype=="SLC17A7-Glia-Mixed",celltype:="*SLC17A7*-Glia Mixed"]
+
 # removing leading "elist." from colnames
 setnames(arce,gsub(names(arce),pattern="^elist\\.",replacement=""))
 
@@ -333,13 +350,13 @@ arce.m[,Sex:=gsub(Sex,pattern="^(.).*$",replacement="\\1")]
 ## tidy up for plotting -- also do this for the palette or they won't match up
 arce.m[,celltype:=gsub(celltype,pattern="_",replacement=" ")]
 names(arcpal) <- gsub(names(arcpal),pattern="_",replacement=" ")
-setnames(arce.m,"celltype","Xenium Cluster")
+setnames(arce.m,"celltype","xARC Neuron Cluster")
 
 # make the gene names markdown'ed so they appear in italics
 arce.m[,rn:=paste0("*",rn,"*")]
 
-pdf("manuscript_plots/Fig5/5D-ARC_DEGs_boxplot.pdf",height=3,width=4)
-ggplot(arce.m,aes(x=`Xenium Cluster`,y=value,color=`Xenium Cluster`,fill = Sex))+
+pdf("manuscript_plots/Fig5/5D-ARC_DEGs_boxplot.pdf",height=3,width=3.5)
+ggplot(arce.m,aes(x=`xARC Neuron Cluster`,y=value,color=`xARC Neuron Cluster`,fill = Sex))+
     geom_boxplot(outliers = FALSE,linewidth = 0.25)+
     geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
     scale_fill_manual(values=c("#FFFFFF","#000000"))+
@@ -379,17 +396,17 @@ attached base packages:
 
 other attached packages:
  [1] BiocParallel_1.38.0            parallelly_1.38.0             
- [3] ggrepel_0.9.5                  sf_1.0-16                     
- [5] colorout_1.3-0.2               ggstance_0.3.7                
- [7] Polychrome_1.5.1               viridis_0.6.5                 
- [9] viridisLite_0.4.2              escheR_1.4.0                  
-[11] spatialLIBD_1.16.2             SpatialFeatureExperiment_1.6.1
-[13] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
-[15] SummarizedExperiment_1.34.0    Biobase_2.64.0                
-[17] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
-[19] IRanges_2.38.1                 S4Vectors_0.42.1              
-[21] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
-[23] matrixStats_1.3.0              ggrastr_1.0.2                 
+ [3] colorout_1.3-0.2               sf_1.0-16                     
+ [5] ggstance_0.3.7                 Polychrome_1.5.1              
+ [7] viridis_0.6.5                  viridisLite_0.4.2             
+ [9] escheR_1.4.0                   spatialLIBD_1.16.2            
+[11] SpatialFeatureExperiment_1.6.1 SpatialExperiment_1.14.0      
+[13] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
+[15] Biobase_2.64.0                 GenomicRanges_1.56.1          
+[17] GenomeInfoDb_1.40.1            IRanges_2.38.1                
+[19] S4Vectors_0.42.1               BiocGenerics_0.50.0           
+[21] MatrixGenerics_1.16.0          matrixStats_1.3.0             
+[23] ggrastr_1.0.2                  ggrepel_0.9.5                 
 [25] ggtext_0.1.2                   ggplot2_3.5.1                 
 [27] data.table_1.15.4              rlang_1.1.4                   
 
@@ -399,60 +416,59 @@ loaded via a namespace (and not attached):
   [7] utf8_1.2.4                R6_2.5.1                  DT_0.33                  
  [10] HDF5Array_1.32.0          lazyeval_0.2.2            rhdf5filters_1.16.0      
  [13] withr_3.0.0               sp_2.1-4                  gridExtra_2.3            
- [16] cli_3.6.3                 Cairo_1.6-2               labeling_0.4.3           
- [19] sass_0.4.9                proxy_0.4-27              Rsamtools_2.20.0         
- [22] commonmark_1.9.1          R.utils_2.12.3            scater_1.32.0            
- [25] sessioninfo_1.2.2         attempt_0.3.1             maps_3.4.2               
- [28] limma_3.60.3              rstudioapi_0.16.0         RSQLite_2.3.7            
- [31] generics_0.1.3            BiocIO_1.14.0             spdep_1.3-5              
- [34] dplyr_1.1.4               Matrix_1.7-0              ggbeeswarm_0.7.2         
- [37] fansi_1.0.6               abind_1.4-5               R.methodsS3_1.8.2        
- [40] terra_1.7-78              lifecycle_1.0.4           scatterplot3d_0.3-44     
- [43] yaml_2.3.9                edgeR_4.2.0               rhdf5_2.48.0             
- [46] SparseArray_1.4.8         BiocFileCache_2.12.0      paletteer_1.6.0          
- [49] grid_4.4.1                blob_1.2.4                promises_1.3.0           
- [52] dqrng_0.4.1               ExperimentHub_2.12.0      crayon_1.5.3             
- [55] lattice_0.22-6            beachmat_2.20.0           cowplot_1.1.3            
- [58] KEGGREST_1.44.1           magick_2.8.3              zeallot_0.1.0            
- [61] pillar_1.9.0              knitr_1.48                rjson_0.2.21             
- [64] boot_1.3-30               codetools_0.2-20          wk_0.9.2                 
- [67] glue_1.7.0                vctrs_0.6.5               png_0.1-8                
- [70] spam_2.10-0               gtable_0.3.5              rematch2_2.1.2           
- [73] cachem_1.1.0              xfun_0.45                 S4Arrays_1.4.1           
- [76] mime_0.12                 DropletUtils_1.24.0       sfheaders_0.4.4          
- [79] iterators_1.0.14          units_0.8-5               fields_16.2              
- [82] statmod_1.5.0             bit64_4.0.5               filelock_1.0.3           
- [85] rprojroot_2.0.4           bslib_0.7.0               irlba_2.3.5.1            
- [88] vipor_0.4.7               KernSmooth_2.23-24        colorspace_2.1-0         
- [91] spData_2.3.1              DBI_1.2.3                 tidyselect_1.2.1         
- [94] bit_4.0.5                 compiler_4.4.1            curl_5.2.1               
- [97] BiocNeighbors_1.22.0      xml2_1.3.6                DelayedArray_0.30.1      
-[100] plotly_4.10.4             rtracklayer_1.64.0        scales_1.3.0             
-[103] classInt_0.4-10           rappdirs_0.3.3            tiff_0.1-12              
-[106] stringr_1.5.1             digest_0.6.36             fftwtools_0.9-11         
-[109] rmarkdown_2.27            benchmarkmeData_1.0.4     XVector_0.44.0           
-[112] htmltools_0.5.8.1         pkgconfig_2.0.3           jpeg_0.1-10              
-[115] sparseMatrixStats_1.16.0  dbplyr_2.5.0              fastmap_1.2.0            
-[118] htmlwidgets_1.6.4         UCSC.utils_1.0.0          shiny_1.8.1.1            
-[121] DelayedMatrixStats_1.26.0 farver_2.1.2              jquerylib_0.1.4          
-[124] jsonlite_1.8.8            config_0.3.2              R.oo_1.26.0              
-[127] BiocSingular_1.20.0       RCurl_1.98-1.14           magrittr_2.0.3           
-[130] scuttle_1.14.0            GenomeInfoDbData_1.2.12   s2_1.1.6                 
-[133] dotCall64_1.1-1           Rhdf5lib_1.26.0           munsell_0.5.1            
-[136] Rcpp_1.0.13               stringi_1.8.4             zlibbioc_1.50.0          
-[139] AnnotationHub_3.12.0      parallel_4.4.1            deldir_2.0-4             
-[142] Biostrings_2.72.1         gridtext_0.1.5            locfit_1.5-9.10          
-[145] markdown_1.13             ScaledMatrix_1.12.0       BiocVersion_3.19.1       
-[148] XML_3.99-0.17             evaluate_0.24.0           golem_0.4.1              
-[151] BiocManager_1.30.23       foreach_1.5.2             httpuv_1.6.15            
-[154] tidyr_1.3.1               purrr_1.0.2               benchmarkme_1.0.8        
-[157] rsvd_1.0.5                xtable_1.8-4              restfulr_0.0.15          
-[160] e1071_1.7-14              later_1.3.2               class_7.3-22             
-[163] tibble_3.2.1              memoise_2.0.1             beeswarm_0.4.0           
-[166] AnnotationDbi_1.66.0      GenomicAlignments_1.40.0  shinyWidgets_0.8.6       
-[169] here_1.0.1               
+ [16] cli_3.6.3                 labeling_0.4.3            sass_0.4.9               
+ [19] proxy_0.4-27              Rsamtools_2.20.0          commonmark_1.9.1         
+ [22] R.utils_2.12.3            scater_1.32.0             sessioninfo_1.2.2        
+ [25] attempt_0.3.1             maps_3.4.2                limma_3.60.3             
+ [28] rstudioapi_0.16.0         RSQLite_2.3.7             generics_0.1.3           
+ [31] BiocIO_1.14.0             spdep_1.3-5               dplyr_1.1.4              
+ [34] Matrix_1.7-0              ggbeeswarm_0.7.2          fansi_1.0.6              
+ [37] abind_1.4-5               R.methodsS3_1.8.2         terra_1.7-78             
+ [40] lifecycle_1.0.4           scatterplot3d_0.3-44      yaml_2.3.9               
+ [43] edgeR_4.2.0               rhdf5_2.48.0              SparseArray_1.4.8        
+ [46] BiocFileCache_2.12.0      paletteer_1.6.0           grid_4.4.1               
+ [49] blob_1.2.4                promises_1.3.0            dqrng_0.4.1              
+ [52] ExperimentHub_2.12.0      crayon_1.5.3              lattice_0.22-6           
+ [55] beachmat_2.20.0           cowplot_1.1.3             KEGGREST_1.44.1          
+ [58] magick_2.8.3              zeallot_0.1.0             pillar_1.9.0             
+ [61] knitr_1.48                rjson_0.2.21              boot_1.3-30              
+ [64] codetools_0.2-20          wk_0.9.2                  glue_1.7.0               
+ [67] vctrs_0.6.5               png_0.1-8                 spam_2.10-0              
+ [70] gtable_0.3.5              rematch2_2.1.2            cachem_1.1.0             
+ [73] xfun_0.45                 S4Arrays_1.4.1            mime_0.12                
+ [76] DropletUtils_1.24.0       sfheaders_0.4.4           iterators_1.0.14         
+ [79] units_0.8-5               fields_16.2               statmod_1.5.0            
+ [82] bit64_4.0.5               filelock_1.0.3            rprojroot_2.0.4          
+ [85] bslib_0.7.0               irlba_2.3.5.1             vipor_0.4.7              
+ [88] KernSmooth_2.23-24        colorspace_2.1-0          spData_2.3.1             
+ [91] DBI_1.2.3                 tidyselect_1.2.1          bit_4.0.5                
+ [94] compiler_4.4.1            curl_5.2.1                BiocNeighbors_1.22.0     
+ [97] xml2_1.3.6                DelayedArray_0.30.1       plotly_4.10.4            
+[100] rtracklayer_1.64.0        scales_1.3.0              classInt_0.4-10          
+[103] rappdirs_0.3.3            tiff_0.1-12               stringr_1.5.1            
+[106] digest_0.6.36             fftwtools_0.9-11          rmarkdown_2.27           
+[109] benchmarkmeData_1.0.4     XVector_0.44.0            htmltools_0.5.8.1        
+[112] pkgconfig_2.0.3           jpeg_0.1-10               sparseMatrixStats_1.16.0 
+[115] dbplyr_2.5.0              fastmap_1.2.0             htmlwidgets_1.6.4        
+[118] UCSC.utils_1.0.0          shiny_1.8.1.1             DelayedMatrixStats_1.26.0
+[121] farver_2.1.2              jquerylib_0.1.4           jsonlite_1.8.8           
+[124] config_0.3.2              R.oo_1.26.0               BiocSingular_1.20.0      
+[127] RCurl_1.98-1.14           magrittr_2.0.3            scuttle_1.14.0           
+[130] GenomeInfoDbData_1.2.12   s2_1.1.6                  dotCall64_1.1-1          
+[133] Rhdf5lib_1.26.0           munsell_0.5.1             Rcpp_1.0.13              
+[136] stringi_1.8.4             zlibbioc_1.50.0           AnnotationHub_3.12.0     
+[139] parallel_4.4.1            deldir_2.0-4              Biostrings_2.72.1        
+[142] gridtext_0.1.5            locfit_1.5-9.10           markdown_1.13            
+[145] ScaledMatrix_1.12.0       BiocVersion_3.19.1        XML_3.99-0.17            
+[148] evaluate_0.24.0           golem_0.4.1               BiocManager_1.30.23      
+[151] foreach_1.5.2             httpuv_1.6.15             tidyr_1.3.1              
+[154] purrr_1.0.2               benchmarkme_1.0.8         rsvd_1.0.5               
+[157] xtable_1.8-4              restfulr_0.0.15           e1071_1.7-14             
+[160] later_1.3.2               class_7.3-22              tibble_3.2.1             
+[163] memoise_2.0.1             beeswarm_0.4.0            AnnotationDbi_1.66.0     
+[166] GenomicAlignments_1.40.0  shinyWidgets_0.8.6        here_1.0.1               
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────────
+─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -462,11 +478,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-08-17
+ date     2024-10-27
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────────────
+─ Packages ───────────────────────────────────────────────────────────────────────
  ! package                  * version   date (UTC) lib source
    abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
    AnnotationDbi              1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
@@ -493,7 +509,6 @@ loaded via a namespace (and not attached):
    boot                       1.3-30    2024-02-26 [1] CRAN (R 4.4.1)
    bslib                      0.7.0     2024-03-29 [1] CRAN (R 4.4.0)
    cachem                     1.1.0     2024-05-16 [1] CRAN (R 4.4.0)
-   Cairo                      1.6-2     2023-11-28 [1] CRAN (R 4.4.0)
    class                      7.3-22    2023-05-03 [1] CRAN (R 4.4.1)
    classInt                   0.4-10    2023-09-05 [1] CRAN (R 4.4.0)
  P cli                        3.6.3     2024-06-21 [2] CRAN (R 4.4.0)
@@ -667,4 +682,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-───────────────────────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────────────

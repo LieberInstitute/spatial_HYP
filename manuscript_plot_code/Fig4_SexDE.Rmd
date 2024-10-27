@@ -99,6 +99,8 @@ hypx$banksyclus <- bkcl$bjm_annot
 bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
 bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
 hypx$dom <- bksmooth$dualVMHARC4
+
+mscriptids <- fread("standardized_sampleids_for_plotting.txt")
 ```
 
 ### sex DE results
@@ -137,8 +139,9 @@ rm(genelut,vistmp)
 
 ## palette set up (shared)
 ```{r}
-pal <- c("#8c63cf","#5dd959","#A9A7A9")
-names(pal) <- c("VMH","ARC","Other")
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+
+pal <- pals[["Domains"]]
 ```
 
 
@@ -146,8 +149,8 @@ names(pal) <- c("VMH","ARC","Other")
 ```{r}
 visdeplt <- visde[assay %in% c("ARC","VMH")]
 ## points to label
-visdeplt <- visdeplt[assay=="VMH"&gene_name %in% c("PTGDS","TAC1","SHANK3","SDHD","BTBD1"),label:=gene_name]
-visdeplt[assay=="ARC"&gene_name %in% c("SHANK3","DCC","CHRM5","KCNMB2","RDH10"),label:=gene_name]
+visdeplt <- visdeplt[assay=="VMH"&gene_name %in% c("MYT1L","TAC1","MC4R","TMEM233","CYP26A1","EGR1","ESR1","PGR"),label:=gene_name]
+visdeplt[assay=="ARC"&gene_name %in% c("MYT1L","RDH10","RXRG","CDH13","CYP26A1","EGR1","ESR1","PGR","KCNMB2","SOCS1"),label:=gene_name]
 
 p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay)) +
     geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
@@ -199,9 +202,14 @@ Panel A, option 2: Visium VMH volcano
 ```{r}
 visdeplt <- visde[assay=="VMH"]
 ## points to label
-visdeplt <- visdeplt[assay=="VMH"&gene_name %in% c("PTGDS","TAC1","SHANK3","SDHD","BTBD1"),label:=gene_name]
+visdeplt <- visdeplt[assay=="VMH"&gene_name %in% c("MYT1L","TAC1","MC4R","CYP26A1","TMEM233","EGR1","ESR1","PGR"),label:=gene_name]
 
 ## no fdr sig genes here; min FDR 0.07 and corresponding p value is 6.904826e-05, so conveniently we can approximate FDR ~= p*10^-3 at this range, and use p 5e-05 to draw the line
+
+# additionally, we want all the lines labeling points with genes to be pointing from the right on lfc + or left on LFC -, EXCEPT for CYP26A1, which is negative but we want to the right. so pull out the LFC vector we'll use to draw the lines with a value flip for CYP26A1
+nudges <- visdeplt[,.(gene_name,logFC)]
+nudges[gene_name=="CYP26A1",logFC:=-logFC]
+
 p <- ggplot(visdeplt[assay=="VMH"], aes(y = -log10(P.Value), x = logFC,col=assay))+
     geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
     scale_size_continuous(guide = "none",
@@ -223,98 +231,26 @@ p <- ggplot(visdeplt[assay=="VMH"], aes(y = -log10(P.Value), x = logFC,col=assay
         min.segment.length = 0,
         size = 1.5,
         show.legend=FALSE,
-        nudge_x=1.25*sign(visdeplt$logFC),
+        nudge_x=1.25*sign(nudges$logFC),
         #seed=10403, 
         max.iter=100000,
         max.overlaps=10000,
         max.time=3,
         segment.size=0.125)+
-    scale_x_continuous(limits=c(-4,2.5),expand=c(0,0))+
+    scale_x_continuous(limits=c(min(visdeplt$logFC),max(visdeplt$logFC)),expand=c(0.025,0.025))+
     xlab("logFC (M:F)")+
     ylab("-log10 (P-value)")+
     guides(color="none")+
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
+p <- rasterize(p,layers="Points",dpi=450,dev="cairo_png")
+
 # save
 pdf("manuscript_plots/Fig4/4Aalt-Visium VMH Sex DE Volcano_sizeByP.pdf",height=2,width=1.95)
 p
 dev.off()
-```
 
-## panel B: xenium equiv, VMH types in VMH domain
-## set up cell type-color palettes for xenium plots
-```{r}
-vmhpal <- c("#8c63cf", "lightgray", "#6A0D53", "#AD260D")
-names(vmhpal) <- c("*SLC17A6*-*CRHR2*","Microglia","*FEZF1*-*LAMP5*-*NRGN*","*HCRT*-*SLC6A3*-*TAC1*")
-
-arcpal <- c("#5dd959","#296656","#09979B","#A997AB","#D0B")
-names(arcpal) <-  c("*AGRP*","*POMC*-Oligo","*GAL*-*TRH*-*GHRH*","*SLC17A7*-Glia","*TAC3*-*AR*-*ESR1*")
-
-```
-
-
-## shit, now we need a four color VMH palette though...maybe just take the four most purple-oid colors from figure 1? 
-```{r}
-xenvmhdeplt <- xenvmhde[cluster_annotated %in% grep(cluster_annotated,pattern="VMH",value=T)]
-
-xenvmhdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
-
-## replace names with informative cell type labels for plot, and thus in palette
-arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
-xenvmhdeplt <- merge.data.table(xenvmhdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
-
-# remove "VMH_" from cluster ids since its redundant with legend title; remove other underscores from cluster ids
-xenvmhdeplt[,subclus_annot:=gsub(subclus_annot,pattern="VMH_",replacement="")]
-xenvmhdeplt[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
-
-# flank each gene in the cluster ids with asterisks so that they can be italicized with ggtext element_markdown in the legend
-xenvmhdeplt[subclus_annot=="SLC17A6-CRHR2",subclus_annot:="*SLC17A6*-*CRHR2*"]
-xenvmhdeplt[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*NRGN*"]
-xenvmhdeplt[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
-
-
-p <- ggplot(xenvmhdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_annot)) +
-    geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
-    scale_size_continuous(guide = "none",
-                          range = c(0.005,.35),
-                          breaks = seq(0.1,4,0.01)) +
-    scale_color_manual(values=vmhpal) +
-    geom_hline(yintercept = -log10(0.05),
-        linetype = "dashed",
-        color = "black",
-        linewidth=0.25) +
-    geom_hline(yintercept = -log10(max(xenvmhdeplt[FDR<0.05,P.Value])),
-        linetype = "dashed",
-        color = "red",
-        linewidth=0.25) +
-    geom_text_repel(aes(y = -log10(P.Value),
-            x = logFC_MvF,
-            label = ifelse(is.na(label), "", label),size=),
-        min.segment.length = 0,
-        size = 0.9,
-        show.legend=FALSE,
-        nudge_x=1.25*sign(xenvmhdeplt$logFC_MvF),
-        seed=10403,
-        max.iter=100000,
-        max.overlaps=10000,
-        max.time=3,
-        segment.size=0.125)+
-    xlab("logFC (M:F)")+
-    ylab("-log10 (P-value)")+
-    labs(color="VMH Cell Type")+
-    theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),legend.key.height = ggplot2::unit(0.075,"in"),legend.key.width=ggplot2::unit(0.04,"in"),legend.position.inside = c(0.21,0.9),legend.position = "inside",legend.text=element_markdown(size=5,margin=margin(0,0,0,0,"in")),legend.box=element_blank(),legend.background=element_blank(),legend.title = element_text(size=6,vjust=0.5,margin=margin(0,0,0.01,0,"in")))
-
-# rasterize
-p <- rasterize(p,layers="Points",dpi=450)
-
-# this is currently part of figure 4 instead.
-# pdf("manuscript_plots/Fig4/4B-XeniumVMHcelltypes_sexDE.pdf",height=2.5,width=2.3)
-# p
-# dev.off()
-
-# clean up
-rm(xenvmhdeplt,p)
-
+rm(nudges)
 ```
 
 Panel B alt: xenium VMH domain-allcells DE
@@ -322,14 +258,13 @@ Panel B alt: xenium VMH domain-allcells DE
 xendomdeplt <- xendomde[domain %in% c("VMH")]
 
 ## points to label
-xendomdeplt <- xendomdeplt[gene_name %in% c("PTGDS","SHANK3","TAC1"),label:=gene_name]
+xendomdeplt <- xendomdeplt[gene_name %in% c("MYT1L","TAC1","MC4R","CYP26A1","TMEM233","EGR1","ESR1","PGR"),label:=gene_name]
 
 p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) +
     geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
     scale_size_continuous(guide = "none",
                           range = c(0.1,.5),
                           breaks = seq(0.1,4,0.01)) +
-    scale_color_manual(values=vmhpal) +
     ggtitle("VMH (Xenium, All Cells)")+
     scale_color_manual(values=pal[1]) +
     geom_hline(yintercept = -log10(0.05),
@@ -358,6 +293,9 @@ p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) 
     guides(color="none")+
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
+p <- rasterize(p,layers="Points",dpi=450,dev="cairo_png")
+
+
 # save
 pdf("manuscript_plots/Fig4/4Balt-Xenium VMH domain, all cells considered together_sizeByP.pdf",height=2,width=1.95)
 p
@@ -367,10 +305,10 @@ dev.off()
 
 ## panel C alt: Visium ARC volcano plot
 ```{r}
-visdeplt <- visde[assay=="ARC"][gene_name %in% c("SHANK3","DCC","CHRM5","KCNMB2","RDH10"),label:=gene_name]
+visdeplt <- visde[assay=="ARC"][gene_name %in% c("MYT1L","RDH10","RXRG","CDH13","CYP26A1","EGR1","ESR1","PGR","KCNMB2","SOCS1"),label:=gene_name]
 
 
-p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay,col=assay)) +
+p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay)) +
     geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
     scale_size_continuous(guide = "none",
                           range = c(0.005,.35),
@@ -403,6 +341,9 @@ p <- ggplot(visdeplt, aes(y = -log10(P.Value), x = logFC,col=assay,col=assay)) +
     guides(color="none")+
     theme(axis.text=element_text(size=7),axis.title=element_text(size=7.5),plot.title=element_text(size=9,hjust=0.5,margin = margin(0,0,0.025,0,"in")))
 
+# rasterize
+p <- rasterize(p,layers="Points",dpi=450,dev="cairo_png")
+
 # save
 pdf("manuscript_plots/Fig4/4Calt-Visium ARC Sex DE Volcano_sizeByP.pdf",height=2,width=1.95)
 p
@@ -414,7 +355,7 @@ dev.off()
 xendomdeplt <- xendomde[domain %in% c("ARC")]
 
 ## points to label
-xendomdeplt <- xendomdeplt[gene_name %in% c("SHANK3","DCC","RDH10"),label:=gene_name]
+xendomdeplt <- xendomdeplt[gene_name %in% c("MYT1L","RDH10","RXRG","CDH13","CYP26A1","EGR1","ESR1","PGR","KCNMB2","SOCS1"),label:=gene_name]
 
 p <- ggplot(xendomdeplt, aes(y = -log10(P.Value), x = logFC_Xenium,col=domain)) +
     geom_point(aes(size = -log10(P.Value),stroke=0.1*-log10(P.Value))) +
@@ -784,18 +725,16 @@ dev.off()
 vpb <- vpb[gene_name %in% c("TAC1","RDH10")]
 vpb[,gene_id:=NULL]
 setnames(vpb,"assay","domain")
+vpb <- melt(vpb,id.vars=c("domain","gene_name"))
 vpb <- merge.data.table(vpb,mscriptids,by.x="variable",by.y="sample_id")
 vpb[,Sex:=gsub(manuscript_id,pattern="^.*_(.*)$",replacement="\\1")]
 
 xpb <- rbindlist(xpb,idcol = "domain")
 xpb <- xpb[rn %in% c("TAC1","RDH10")]
 setnames(xpb,"rn","gene_name")
+xpb <- melt(xpb,id.vars=c("domain","gene_name"))
 xpb <- merge.data.table(xpb,mscriptids[,.(sample_id,manuscript_id)],by.x="variable",by.y="sample_id")
 xpb[,Sex:=gsub(manuscript_id,pattern="^.*_(.*)$",replacement="\\1")]
-
-vpb <- melt(vpb,id.vars=c("domain","gene_name"))
-xpb <- melt(xpb,id.vars=c("domain","gene_name"))
-
 
 ### plots
 pdf("manuscript_plots/Fig4/vVMH_TAC1_pbulks.pdf",height=1,width=0.6)
@@ -843,168 +782,7 @@ ggplot(xpb[gene_name=="RDH10"&domain=="ARC"],aes(x=Sex,y=value,col=domain,fill=S
 dev.off()
 ```
 
-## panel L: fGSEA results for TF-target 
-
-Male both:
-MYT1L: PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors
-
-
-VMH ~UNIQUE Male (FDR 10E-8 vs 0.04):
-TCF20 (rare LOF NDD gene Vetrini '19): PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors
-
-
-VMH UNIQUE Fem:
-PPARA: PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression, PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression
-
-PPARG: PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression, PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression
-
-
-VMH shared-ish
-ESR1 (KD-down, female; ESR1 (targets, interactors male): ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression, 	
-PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors
-
-AR (KD-bidir DE, female; targets male): AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022, AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression, AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression
-
-
-ARC unique male:
-LIN28B (growth phenos): PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors
-
-ASH1L (ID/ASD in mice https://www.nature.com/articles/s42003-021-02282-z ): PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors
-
-
-ARC unique female:
-VDR (KO-bidir DE): VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression, VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression
-
-ESR1 (KO-bidir DE): ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression, ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression
-
-ARC general: 
-STAT3 (required for hypothalamic response to leptin Buettner 06): PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors, STAT3_human_TRRUST_Transcription_Factors_2019
-```{r}
-tfres <- readRDS("spatial_HYP/processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
-tfres <- tfres[names(tfres) %in% c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH","BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC")]
-tfres <- rbindlist(tfres)
-
-# remove the leadingedge column, which is a list and doesn't play nice with table format
-tfres[,leadingEdge:=NULL]
-
-## clean up domain name
-tfres[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
-
-## define a palette for region-sex
-sexregpal <- c("VMH Fem. Up"="#8c63cf","VMH Male Up"="#6A0D53","ARC Fem. Up"="#5dd959","ARC Male Up"="#053b05")
-
-
-## subset to TF sets of interest, clean names up
-tfres <- tfres[pathway %in% c(
-    "PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",
-    "PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors",
-    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression",
-    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression",
-    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression",
-    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression",
-    "ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression",
-    "PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors",
-    "AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022",
-    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression",
-    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression",
-    "PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors",
-    "PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors",
-    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression",
-    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression",
-    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
-    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression",
-    "PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors"),]
-
-## data sourcesr
-tfres[pathway %in% grep(pathway,pattern="Rummagene",value=T),source:="Rummagene"]
-tfres[pathway %in% grep(pathway,pattern="TRRUST",value=T),source:="TRRUST"]
-tfres[pathway %in% grep(pathway,pattern="CREEDSID|_GSE",value=T),source:="GEO TF\nPerturbations"]
-tfres[pathway %in% grep(pathway,pattern="ChEA",value=T),source:="ChEA 2022"]
-
-## TF specifics where applicable
-tfres[pathway %in% c("PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression",
-    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression"),tf:="PPARA (KO DE)"]
-tfres[pathway %in% c("PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression",
-    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="PPARG (OE DE)"]
-tfres[pathway=="ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression",tf:="ESR1 (KD Down)"]
-tfres[pathway=="PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors",tf:="ESR1 (Interactors)"]
-tfres[pathway %in% c("AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression",
-    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression"),tf:="AR (KD DE)"]
-tfres[pathway %in% c("VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression",
-    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="VDR (KO DE)"]
-tfres[pathway %in% c(
-    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
-     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="ESR1 (KO DE)"]
-
-
-tfres[pathway %in% c("PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors","STAT3_human_TRRUST_Transcription_Factors_2019"),tf:="STAT3"]
-tfres[pathway=="PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors",tf:="LIN28B"]
-tfres[pathway=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors",tf:="ASH1L"]
-tfres[pathway=="PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors",tf:="TCF20"]
-tfres[pathway=="AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022",tf:="AR"]
-tfres[pathway=="PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",tf:="MYT1L"]
-
-
-
-### group by sex•region, flip all NES to positive
-tfres[NES<0&spdom=="ARC",sexreg:="ARC Fem. Up"]
-tfres[NES>0&spdom=="ARC",sexreg:="ARC Male Up"]
-tfres[NES<0&spdom=="VMH",sexreg:="VMH Fem. Up"]
-tfres[NES>0&spdom=="VMH",sexreg:="VMH Male Up"]
-tfres[,NES:=abs(NES)]
-```
-
-Panel L continued:
-
-### for this to work, we have to manually make a double legend kinda clunkily. modified slightly from https://stackoverflow.com/questions/62541720/ggplot2-show-multiple-keys-shapes-in-size-legend -- speciifically, defining these variables below and then the scale_size_manual call.
-
-## get the breaks based on generating the plot once quick, then get a vector of the same values to feed into the legend override
-```{r}
-breaks <- seq(1.5,2.5,0.5)
-n_breaks <- length(breaks)
-labels <- c(c(rep("",n_breaks),breaks,rep("",2*n_breaks)))
-shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks))
-breaks2 <- rep(breaks, 4)
-
-### make plot
-pdf("manuscript_plots/Fig4/4L-Sex DEG TF GSEA.pdf",height=3,width=7)
-
-ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
-    geom_point(aes(col=sexreg,stroke=0,size=NES,shape=source,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
-    ylab("TF")+
-    scale_color_manual(values=sexregpal)+
-    xlab("-log10 (FDR)")+
-    labs(shape="Source Database",col="DE Gene Set")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
-    scale_shape_manual(values=c("Rummagene"=16,"TRRUST"=15,"GEO TF\nPerturbations"=18,"ChEA 2022"=17))+
-    #add minor gridlines between TFs to contain jittered points
-    geom_hline(yintercept = seq(0.5,length(unique(tfres$tf))-0.5),color="grey",linewidth=.25)+
-    #guides(size="none")+
-    # ^ necess. to get spacing to work in theme
-    guides(shape=guide_legend(override.aes=list(size = 2)))+
-    # ^ make legend points bigger
-    scale_size_continuous(range = c(0.5,4),breaks = breaks2, labels = labels, guide = guide_legend(ncol=4, nrow=3,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,label.hjust=0.5,direction="vertical"))+
-    guides(col=guide_legend(override.aes=list(stroke = 0,size=3.5)))+
-    labs(size="Normalized Enrichment Score")+
-    # ^ make size legend with all point types
-    theme(axis.text.y = element_text(size = 8),
-          axis.title.y=element_text(size=9,margin=margin(0,-0.175,0,0,"in")),
-          axis.title.x = element_text(size = 9),
-          axis.text.x = element_text(size = 8), 
-          legend.text = element_text(size=6), 
-          legend.title = element_text(size=7,hjust=0.5,vjust=0.5),
-          legend.key.height = ggplot2::unit(0.15,"in"),
-          legend.margin = margin(t = 0.1,0,0,-0.1,unit="in"),
-          panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),
-          panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),
-          panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),
-          panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),
-          axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),
-          axis.ticks.y=element_line(color = "#595959",linewidth = 0.25),
-          legend.spacing.x = ggplot2::unit(-0.015,"in"))
-
-dev.off()
-```
+## previousyl, fGSEA results sex DE TF-target -- MOVED TO FIG 6
 
 reprod info
 ```{r}
@@ -1030,17 +808,17 @@ attached base packages:
 
 other attached packages:
  [1] BiocParallel_1.38.0            parallelly_1.38.0             
- [3] ggstance_0.3.7                 ggrepel_0.9.5                 
- [5] sf_1.0-16                      colorout_1.3-0.2              
- [7] Polychrome_1.5.1               viridis_0.6.5                 
- [9] viridisLite_0.4.2              escheR_1.4.0                  
-[11] spatialLIBD_1.16.2             SpatialFeatureExperiment_1.6.1
-[13] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
-[15] SummarizedExperiment_1.34.0    Biobase_2.64.0                
-[17] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
-[19] IRanges_2.38.1                 S4Vectors_0.42.1              
-[21] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
-[23] matrixStats_1.3.0              ggrastr_1.0.2                 
+ [3] colorout_1.3-0.2               sf_1.0-16                     
+ [5] ggstance_0.3.7                 Polychrome_1.5.1              
+ [7] viridis_0.6.5                  viridisLite_0.4.2             
+ [9] escheR_1.4.0                   spatialLIBD_1.16.2            
+[11] SpatialFeatureExperiment_1.6.1 SpatialExperiment_1.14.0      
+[13] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
+[15] Biobase_2.64.0                 GenomicRanges_1.56.1          
+[17] GenomeInfoDb_1.40.1            IRanges_2.38.1                
+[19] S4Vectors_0.42.1               BiocGenerics_0.50.0           
+[21] MatrixGenerics_1.16.0          matrixStats_1.3.0             
+[23] ggrastr_1.0.2                  ggrepel_0.9.5                 
 [25] ggtext_0.1.2                   ggplot2_3.5.1                 
 [27] data.table_1.15.4              rlang_1.1.4                   
 
@@ -1103,7 +881,7 @@ loaded via a namespace (and not attached):
 [166] AnnotationDbi_1.66.0      GenomicAlignments_1.40.0  shinyWidgets_0.8.6       
 [169] here_1.0.1               
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────────
+─ Session info ──────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -1113,11 +891,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-09-19
+ date     2024-10-27
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────────────
+─ Packages ──────────────────────────────────────────────────────────────────────
  ! package                  * version   date (UTC) lib source
    abind                      1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
    AnnotationDbi              1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
@@ -1318,4 +1096,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-───────────────────────────────────────────────────────────────────────────────────
+─────────────────────────────────────────────────────────────────────────────────
