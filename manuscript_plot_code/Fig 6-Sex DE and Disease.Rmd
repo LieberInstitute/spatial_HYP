@@ -1,7 +1,7 @@
 ---
 title: "Fig 6-Sex DE and Disease"
 output: html_document
-date: "2024-09-23"
+date: "2024-10-28"
 ---
 
 ```{r setup, include=FALSE}
@@ -11,6 +11,7 @@ knitr::opts_knit$set(root.dir = here::here())
 
 library(data.table)
 library(SpatialExperiment)
+library(SpatialFeatureExperiment)
 library(escheR)
 library(ggplot2)
 library(gridExtra)
@@ -18,6 +19,7 @@ library(ggtext)
 library(Cairo)
 library(ggrastr)
 library(ggbeeswarm)
+library(ggstance) # vertical dodge
 
 ## rstudio GUI tweaks
 require(colorout)
@@ -77,10 +79,10 @@ ggplot(dmk,aes(y=spdom,x=pathway,fill=NES))+
     theme(plot.background = element_blank(),axis.text.x = element_text(size=9,angle=90,vjust=0.5),axis.text.y=element_text(size=9),axis.title.x=element_text(size=10,hjust=0.5),axis.title.y=element_text(size=10,vjust=0.5,margin=margin(0,0.05,0,0,"in")),legend.title = element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin=margin(0,0,0,-0.1,"in"))
 dev.off()
 
-rm(dmk)
+rm(dmk,mkgs)
 ```
 
-panel B: sex DE, collapsed domains
+panel B: sex DE domain-level
 ```{r}
 dsx <- sxgs[spdom %in% c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC","BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH")]
 
@@ -111,12 +113,70 @@ ggplot(dsx,aes(y=spdom,x=pathway,fill=NES))+
     theme(plot.background = element_blank(),axis.text.x = element_text(size=9,angle=90,vjust=0.5),axis.text.y=element_text(size=9),axis.title.x=element_text(size=10,hjust=0.5),axis.title.y=element_text(size=10,vjust=0.5,margin=margin(0,0.05,0,0,"in")),legend.title = element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin=margin(0,0,0,-0.1,"in"))
 dev.off()
 
-rm(dsx)
+rm(dsx,zeropt,zero.to.zeropt.mid,zeropt.to.one.mid,scalefact)
 ```
 
 
-6C-sex de GSEA - TFs
+6C+6D: sex de GSEA for msigdb and TF targets -- with shared legend and combined output plot.
+## define a palette for region-sex
+```{r}
+sexregpal <- c("vVMH Fem. Up"="#8c63cf","vVMH Male Up"="#6A0D53","vARC Fem. Up"="#5dd959","vARC Male Up"="#053b05")
+```
 
+6C- Sex DE msigdb GSEA
+```{r}
+sexreslist <- readRDS("spatial_HYP/processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
+vmhs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH"]][pathway %in% c("HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR", "GOMF_CHROMATIN_BINDING","HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS", "YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17","GABRIELY_MIR21_TARGETS", "MIR30A_3P","MCLACHLAN_DENTAL_CARIES_UP", "FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2")]
+
+arcs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC"]][pathway %in% c("HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR", "GOMF_CHROMATIN_BINDING","HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS", "YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17","GABRIELY_MIR21_TARGETS", "MIR30A_3P","MCLACHLAN_DENTAL_CARIES_UP", "FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2")]
+
+msigpltdat <- rbind(vmhs,arcs)
+msigpltdat[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)",replacement="\\1")]
+msigpltdat[spdom=="VMH",sexreg:=ifelse(NES>0,yes="vVMH Male Up",no="vVMH Fem. Up")]
+msigpltdat[spdom=="ARC",sexreg:=ifelse(NES>0,yes="vARC Male Up",no="vARC Fem. Up")]
+rm(vmhs,arcs)
+### extract pathway source db
+
+i<-1
+for (i in c(1:nrow(msigpltdat))){
+    if(i==1){gsrc <- unlist(strsplit(msigpltdat[i,pathway],"_"))[1]}
+    else{gsrc <- c(gsrc,
+                    unlist(strsplit(msigpltdat[i,pathway],"_"))[1])}
+}
+
+## tidy gene sources
+msigpltdat$genesource <- gsrc
+msigpltdat[genesource %in% c("FAN","GABRIELY","MCLACHLAN","YAO"),genesource:="Literature-Curated"]
+msigpltdat[genesource=="GOMF",genesource:="GO Mol. Fxn"]
+msigpltdat[genesource=="HP",genesource:="Human Phenotypes"]
+msigpltdat[genesource=="MIR30A",genesource:="miRNA Targets"]
+
+rm(i,gsrc)
+
+### simplify pathways
+msigpltdat[pathway=="HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",pathway:="Aggressive/im-\npulsive behavior"]
+msigpltdat[pathway=="GOMF_CHROMATIN_BINDING",pathway:="Chromatin binding"]
+msigpltdat[pathway=="HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS",pathway:="Acid-base ab-\nnormality"]
+msigpltdat[pathway=="YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17",pathway:="Temporal progest-\nerone response"]
+msigpltdat[pathway=="GABRIELY_MIR21_TARGETS",pathway:="miR-21"]
+msigpltdat[pathway=="MIR30A_3P",pathway:="miR-30a_3P"]
+msigpltdat[pathway=="MCLACHLAN_DENTAL_CARIES_UP",pathway:="Dental caries"]
+msigpltdat[pathway=="FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2",pathway:="Thecal cell of ovary\n(early atretic follicle)"]
+
+### flip sign on negative NES scores
+msigpltdat[NES<0,NES:=-1*NES]
+
+## change source info slightly so we can have msigdb and non-msigdb stuff in one legend
+msigpltdat[genesource=="MSigDB Literature-Curated",source:="Literature-Curated"]
+msigpltdat[genesource=="MSigDB Human Phenotypes",source:="Human Phenotypes"]
+msigpltdat[genesource=="MSigDB miRNA Targets",source:="miRNA Targets"]
+
+
+# pause here to get the TF-targ table made so we can make the shared NES scale+legend for it.
+```
+
+## 6D - TFs ##
 Male both:
 MYT1L: PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors
 
@@ -162,8 +222,6 @@ tfres[,leadingEdge:=NULL]
 ## clean up domain name
 tfres[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
 
-## define a palette for region-sex
-sexregpal <- c("VMH Fem. Up"="#8c63cf","VMH Male Up"="#6A0D53","ARC Fem. Up"="#5dd959","ARC Male Up"="#053b05")
 
 
 ## subset to TF sets of interest, clean names up
@@ -185,11 +243,15 @@ tfres <- tfres[pathway %in% c(
     "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression",
     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression",
-    "PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors"),]
+    "PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors",
+    "ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",
+    "ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_DOWN_TF_Perturbations_Followed_by_Expression")]
+
+
 
 ## data sourcesr
-tfres[pathway %in% grep(pathway,pattern="Rummagene",value=T),source:="Rummagene"]
-tfres[pathway %in% grep(pathway,pattern="TRRUST",value=T),source:="TRRUST"]
+tfres[pathway %in% grep(pathway,pattern="Rummagene",value=T),source:="Rummagene TFs"]
+# tfres[pathway %in% grep(pathway,pattern="TRRUST",value=T),source:="TRRUST"]
 tfres[pathway %in% grep(pathway,pattern="CREEDSID|_GSE",value=T),source:="GEO TF\nPerturbations"]
 tfres[pathway %in% grep(pathway,pattern="ChEA",value=T),source:="ChEA 2022"]
 
@@ -207,8 +269,8 @@ tfres[pathway %in% c("VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbation
 tfres[pathway %in% c(
     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
      "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="ESR1 (KO DE)"]
-
-
+tfres[pathway=="ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",tf:="ZNF142 (KD Up)"]
+tfres[pathway=="ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_DOWN_TF_Perturbations_Followed_by_Expression",tf:="ZNF142 (KD Down)"]
 tfres[pathway %in% c("PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors","STAT3_human_TRRUST_Transcription_Factors_2019"),tf:="STAT3"]
 tfres[pathway=="PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors",tf:="LIN28B"]
 tfres[pathway=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors",tf:="ASH1L"]
@@ -219,54 +281,108 @@ tfres[pathway=="PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_
 
 
 ### group by sex•region, flip all NES to positive
-tfres[NES<0&spdom=="ARC",sexreg:="ARC Fem. Up"]
-tfres[NES>0&spdom=="ARC",sexreg:="ARC Male Up"]
-tfres[NES<0&spdom=="VMH",sexreg:="VMH Fem. Up"]
-tfres[NES>0&spdom=="VMH",sexreg:="VMH Male Up"]
+tfres[NES<0&spdom=="ARC",sexreg:="vARC Fem. Up"]
+tfres[NES>0&spdom=="ARC",sexreg:="vARC Male Up"]
+tfres[NES<0&spdom=="VMH",sexreg:="vVMH Fem. Up"]
+tfres[NES>0&spdom=="VMH",sexreg:="vVMH Male Up"]
 tfres[,NES:=abs(NES)]
-```
 
-Panel L continued:
+### make data source name consistent across the two result tables
+setnames(tfres,"source","genesource")
+```
 
 ### for this to work, we have to manually make a double legend kinda clunkily. modified slightly from https://stackoverflow.com/questions/62541720/ggplot2-show-multiple-keys-shapes-in-size-legend -- speciifically, defining these variables below and then the scale_size_manual call.
 
-## get the breaks based on generating the plot once quick, then get a vector of the same values to feed into the legend override
+we also need to extract just one legend from a not-actually-used plot where the two analyses are strung together for purposes of axis scaling, using this to grab said legend to pass back later to gridExtra:
 ```{r}
-breaks <- seq(1.5,2.5,0.5)
+### helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+extract_legend <- function(my_ggp) {
+    step1 <- ggplot_gtable(ggplot_build(my_ggp))
+    step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+    step3 <- step1$grobs[[step2]]
+    return(step3)
+}
+
+## 
+tmpt <- copy(tfres)
+tmpt[,pathway:=tf]
+
+legdat <- rbind(tmpt[,.(pathway,pval,padj,NES,spdom,sexreg,genesource)],msigpltdat[,.(pathway,pval,padj,NES,spdom,sexreg,genesource)])
+
+## get the breaks based on generating the plot once quick, then get a vector of the same values to feed into the legend override
+
+breaks <- seq(min(legdat$NES),(ceiling(max(legdat$NES))-0.5),0.5)
 n_breaks <- length(breaks)
 labels <- c(c(rep("",n_breaks),breaks,rep("",2*n_breaks)))
-shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks))
-breaks2 <- rep(breaks, 4)
+## need 8 shapes: use 16 17 18 15 23 25 7 9 or 16-18 15 7 9 10 14
+shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks),rep(7,n_breaks),rep(9,n_breaks),rep(23,n_breaks),rep(25,n_breaks))
+breaks2 <- rep(breaks, length(unique(shapes)))
 
-### make plot
-pdf("manuscript_plots/Fig4/4L-Sex DEG TF GSEA.pdf",height=3,width=7)
+## order source as a factor so the first plots' sets are all the first entries in the legend
+legdat[,genesource:=factor(genesource,levels=c("Literature-Curated","GO Mol. Fxn","Human Phenotypes","miRNA Targets","Rummagene TFs","GEO TF\nPerturbations","ChEA 2022"))]
 
-ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
-    geom_point(aes(col=sexreg,stroke=0,size=NES,shape=source,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
-    ylab("TF")+
-    scale_color_manual(values=sexregpal)+
-    xlab("-log10 (FDR)")+
-    labs(shape="Source Database",col="DE Gene Set")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
-    scale_shape_manual(values=c("Rummagene"=16,"TRRUST"=15,"GEO TF\nPerturbations"=18,"ChEA 2022"=17))+
-    #add minor gridlines between TFs to contain jittered points
-    geom_hline(yintercept = seq(0.5,length(unique(tfres$tf))-0.5),color="grey",linewidth=.25)+
-    #guides(size="none")+
-    # ^ necess. to get spacing to work in theme
-    guides(shape=guide_legend(override.aes=list(size = 2)))+
-    # ^ make legend points bigger
-    scale_size_continuous(range = c(0.5,4),breaks = breaks2, labels = labels, guide = guide_legend(ncol=4, nrow=3,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,label.hjust=0.5,direction="vertical"))+
-    guides(col=guide_legend(override.aes=list(stroke = 0,size=3.5)))+
-    labs(size="Normalized Enrichment Score")+
+shapelabs <- c("Literature-Curated"=7,"GO Mol. Fxn"=9,"Human Phenotypes"=10,"miRNA Targets"=14,"Rummagene TFs"=16,"GEO TF\nPerturbations"=18,"ChEA 2022"=17)
+
+shapelabs <- shapelabs[levels(legdat$genesource)]
+
+legplt <- ggplot(legdat,aes(x=-log10(padj),y=pathway,size=NES))+
+   geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=pathway),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
+   scale_color_manual(values=sexregpal)+
+   scale_shape_manual(values=shapelabs)+
+   guides(col=guide_legend(override.aes=list(stroke = 0,size=3.5)))+
+   labs(size="NES",shape="Geneset Source",col="DE Gene Set",fill="DE Gene Set")+
     # ^ make size legend with all point types
+    theme(legend.text = element_text(size=6), 
+          legend.title = element_text(size=7,hjust=0.5,vjust=0.5,margin=margin(0,0,-0.01,0,"in")),
+          legend.key.height = ggplot2::unit(0.15,"in"),
+          legend.spacing.x = ggplot2::unit(-0.015,"in"),
+          legend.spacing.y = ggplot2::unit(0.05,"in"),
+          legend.background=element_blank(),
+          legend.key=element_blank(),
+          legend.box.background = element_blank(),
+          legend.frame = element_blank(),
+          legend.margin = margin(0,0,0,-0.05,"in"))
+   
+
+### extract and hold onto legend
+legcd <- extract_legend(legplt)
+dev.off()
+
+rm(tmpt,legplt,legdat)
+```
+
+### now make the two plots as entries in a list using the same breaks for NES, same shape palette, etc. arrangegrob with the legend into a single row of panels
+```{r}
+fig6cd <- list()
+
+## make sure the extracted legend and the actual plot shapes are consistent as follows:
+tfres[,genesource:=factor(genesource,levels=c("Rummagene TFs","GEO TF\nPerturbations","ChEA 2022"))]
+msigpltdat[,genesource:=factor(genesource,levels=c("Literature-Curated","GO Mol. Fxn","Human Phenotypes","miRNA Targets"))]
+
+tfshapes <- shapelabs[levels(tfres$genesource)]
+msigshapes <- shapelabs[levels(msigpltdat$genesource)]
+
+
+
+#### 6C: MSigDB results
+msigpltdat[,pathway:=factor(pathway,levels=c("Aggressive/im-\npulsive behavior","Dental caries","Acid-base ab-\nnormality","miR-21","miR-30a_3P","Chromatin binding","Thecal cell of ovary\n(early atretic follicle)","Temporal progest-\nerone response"))]
+
+fig6cd[[1]] <- ggplot(msigpltdat,aes(y=pathway,x=-log10(padj),size=NES))+
+    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=pathway),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
+    ylab("MSigDB Set")+
+    scale_color_manual(values=sexregpal)+
+    xlab("-log10 (*p*-value)")+
+    labs(shape="none",col="none",fill="none",size="none")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
+    scale_shape_manual(values=msigshapes)+
+    #add minor gridlines between TFs to contain jittered points
+    geom_hline(yintercept = seq(0.5,length(unique(msigpltdat$pathway))-0.5),color="grey",linewidth=.25)+
+    scale_size_continuous(range = c(breaks[1],breaks[length(breaks)]),breaks = rep(breaks,length(msigshapes)))+
+    guides(col="none",size="none",shape="none",fill="none")+
     theme(axis.text.y = element_text(size = 8),
           axis.title.y=element_text(size=9,margin=margin(0,-0.175,0,0,"in")),
-          axis.title.x = element_text(size = 9),
+          axis.title.x = element_markdown(size = 9),
           axis.text.x = element_text(size = 8), 
-          legend.text = element_text(size=6), 
-          legend.title = element_text(size=7,hjust=0.5,vjust=0.5),
-          legend.key.height = ggplot2::unit(0.15,"in"),
-          legend.margin = margin(t = 0.1,0,0,-0.1,unit="in"),
           panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),
           panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),
           panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),
@@ -275,11 +391,47 @@ ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
           axis.ticks.y=element_line(color = "#595959",linewidth = 0.25),
           legend.spacing.x = ggplot2::unit(-0.015,"in"))
 
+
+#### 6D: TF results #### 
+
+## reorder tfs as factor so TFs are in vaguely functionally-related groups
+tfres[,tf:=factor(tf,levels=c("AR", "AR (KD DE)", "ESR1 (KD Down)", "ESR1 (KO DE)", "ESR1 (Interactors)", "PPARA (KO DE)", "PPARG (OE DE)", "LIN28B", "STAT3", "VDR (KO DE)", "TCF20", "ASH1L", "ZNF142 (KD Down)", "ZNF142 (KD Up)", "MYT1L"))]
+
+
+fig6cd[[2]] <- ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
+    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
+    ylab("TF")+
+    scale_color_manual(values=sexregpal)+
+    xlab("-log10 (*p*-value)")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
+    scale_shape_manual(values=tfshapes)+
+    #add minor gridlines between TFs to contain jittered points
+    geom_hline(yintercept = seq(0.5,length(unique(tfres$tf))-0.5),color="grey",linewidth=.25)+
+    scale_size_continuous(range = c(breaks[1],breaks[length(breaks)]),breaks = rep(breaks,length(tfshapes)))+
+    guides(col="none",size="none",shape="none",fill="none")+
+    theme(axis.text.y = element_text(size = 8),
+          axis.title.y=element_text(size=9,margin=margin(0,-0.125,0,0,"in")),
+          axis.title.x = element_markdown(size = 9),
+          axis.text.x = element_text(size = 8), 
+          panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),
+          panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),
+          panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),
+          panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),
+          axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),
+          axis.ticks.y=element_line(color = "#595959",linewidth = 0.25))
+
+```
+
+## save 6C-D combined
+```{r}
+pdf("manuscript_plots/Fig6/6CandD-sexDE_msigdb_and_TFtargGSEAs.pdf",width=7.5,height=3,onefile = FALSE)
+do.call("grid.arrange",list(arrangeGrob(grobs=fig6cd,nrow=1,widths=c(3.25,3.25)),legcd,ncol=2,widths=c(6.5,1)))
 dev.off()
+
 ```
 
 
-## 6D: looking at the overlap between leadingEdge genes driving male ASD enrichment in ARC with genes on Xenium, MYT1L, an obesity+ASD syndrome, is nominally sex DE in ARC_4 and much more weakly so in ARC_5. let's take a look at this warlock
+## 6E: looking at the overlap between leadingEdge genes driving male ASD enrichment in ARC with genes on Xenium, MYT1L, an obesity+ASD syndrome, is nominally sex DE in ARC_4 and much more weakly so in ARC_5. let's take a look at this warlock
 
 ```{r}
 hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
@@ -363,7 +515,7 @@ mytxplt <- lapply(mytxs,FUN=function(m){
     #p <- p |> add_fill("log counts",size=0.875,point_size = 0.875)
     p2 <- ggplot(p,aes(x=bkcl,y=`log counts`,col=bkcl,fill=`log counts`))+
         #gbeeswarm::geom_beeswarm(size=1.25,stroke =0.45,shape=21,corral.width = 0.1,)+
-        rasterize(geom_quasirandom(dodge.width=1.5,size=0.67,stroke =0.225,shape=21),dpi = 600,dev="cairo_png")+
+        rasterize(geom_quasirandom(dodge.width=1.5,size=0.67,stroke =0.225,shape=21),layers="Points",dpi = 600,dev="cairo_png")+
         scale_color_manual(values=xenarcpal)+
         scale_fill_gradient(low="white",high="black",limits=c(min(mytxa$`log counts`),max(mytxa$`log counts`)))+
         ggtitle(paste0("*MYT1L* ",unique(m$sample_id)))+
@@ -372,15 +524,6 @@ mytxplt <- lapply(mytxs,FUN=function(m){
     return(p2)
 })
 
-### helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
-extract_legend <- function(my_ggp) {
-  step1 <- ggplot_gtable(ggplot_build(my_ggp))
-  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
-  step3 <- step1$grobs[[step2]]
-  return(step3)
-}
-#####
-
 leg.tmp <- extract_legend(mytxplt[[1]])
 dev.off()
 
@@ -388,78 +531,10 @@ mytxplt<- lapply(mytxplt,FUN=function(x){x+guides(fill="none")+guides(color="non
 ```
 
 ```{r}
-pdf("manuscript_plots/Fig6/6D-MYT1L beeswarms.pdf",height=4,width=8)
-do.call("grid.arrange",list(arrangeGrob(grobs=mytxplt,nrow=1),leg.tmp,ncol=2,widths=c(6.75,1.25)))
+pdf("manuscript_plots/Fig6/6E-MYT1L beeswarms.pdf",height=2.75,width=7.5,onefile = FALSE)
+do.call("grid.arrange",list(arrangeGrob(grobs=mytxplt,nrow=1),leg.tmp,ncol=2,widths=c(6.5,1)))
 dev.off()
 
-```
-
-
-6E- Sex DE GSEA
-```{r}
-sexreslist <- readRDS("spatial_HYP/processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
-
-vmhs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH"]][pathway %in% c("HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR", "GOMF_CHROMATIN_BINDING","HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS", "YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17","GABRIELY_MIR21_TARGETS", "MIR30A_3P","MCLACHLAN_DENTAL_CARIES_UP", "FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2")]
-
-arcs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC"]][pathway %in% c("HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR", "GOMF_CHROMATIN_BINDING","HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS", "YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17","GABRIELY_MIR21_TARGETS", "MIR30A_3P","MCLACHLAN_DENTAL_CARIES_UP", "FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2")]
-
-pltdat <- rbind(vmhs,arcs)
-pltdat[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)",replacement="\\1")]
-pltdat[spdom=="VMH",sexreg:=ifelse(NES>0,yes="vVMH Male Up",no="vVMH Fem. Up")]
-pltdat[spdom=="ARC",sexreg:=ifelse(NES>0,yes="vARC Male Up",no="vARC Fem. Up")]
-rm(vmhs,arcs)
-### extract pathway source db
-
-i<-1
-for (i in c(1:nrow(pltdat))){
-    if(i==1){gsrc <- unlist(strsplit(pltdat[i,pathway],"_"))[1]}
-    else{gsrc <- c(gsrc,
-                    unlist(strsplit(pltdat[i,pathway],"_"))[1])}
-}
-
-## tidy gene sources; will note publications for published sets in legend.
-pltdat$genesource <- gsrc
-pltdat[genesource %in% c("FAN","GABRIELY","MCLACHLAN","YAO"),genesource:="MSigDB Literature-Curated"]
-pltdat[genesource=="GOMF",genesource:="GO Mol. Fxn"]
-pltdat[genesource=="HP",genesource:="Human Phenotypes"]
-pltdat[genesource=="MIR30A",genesource:="MSigDB miRNA Targets"]
-
-
-rm(i,gsrc)
-### simplify pathways
-pltdat[pathway=="HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",pathway:="Aggressive/impulsive behavior"]
-pltdat[pathway=="GOMF_CHROMATIN_BINDING",pathway:="Chromatin binding"]
-pltdat[pathway=="HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS",pathway:="Acid-base abnormality"]
-pltdat[pathway=="YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17",pathway:="Temporal progesterone response"]
-pltdat[pathway=="GABRIELY_MIR21_TARGETS",pathway:="miR-21 targets"]
-pltdat[pathway=="MIR30A_3P",pathway:="miR-30a_3P targets"]
-pltdat[pathway=="MCLACHLAN_DENTAL_CARIES_UP",pathway:="Dental caries"]
-pltdat[pathway=="FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2",pathway:="Thecal cell of ovary\n(early atretic follicle)"]
-
-### flip sign on negative NES scores
-pltdat[NES<0,NES:=-1*NES]
-
-pdf("manuscript_plots/Fig6/6D-Sex DEG msigdb GSEA.pdf",height=2.5,width=4.5)
-ggplot(pltdat,aes(y=pathway,x=-log10(padj)))+
-    geom_point(aes(col=sexreg,size=NES))+#,shape=genesource))+
-    ylab("Term")+
-    #Amplify the scaling by NES by 2x for better visualization
-    scale_radius(range = c(min(pltdat$NES),2*max(pltdat$NES)),trans = "identity",guide="none")+
-    scale_color_manual(values=sexregpal)+
-    xlab("-log10 (FDR)")+
-    labs(col="DE Gene Set")+
-    geom_vline(xintercept=-log10(0.05),linetype="dashed")+
-    #scale_shape_manual(values=c("MSigDB Literature-Curated"=16,"GO Mol. Fxn"=15,"Human Phenotypes"=18,"MSigDB miRNA Targets"=17))+
-    guides(col=guide_legend(byrow=T))+
-    # ^ necess. to get spacing to work in theme
-    guides(col=guide_legend(override.aes=list(size=2.5)),
-           #shape=guide_legend(override.aes=list(size = 2.5)),
-           )+
-    # ^ make legend points bigger
-    theme(axis.text.y = element_text(size = 9),axis.title.y=element_text(size=10,margin=margin(0,-0.2,0,0,unit="in")), axis.title.x = element_text(size = 10), axis.text.x = element_text(size = 9), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = ggplot2::unit(0.125, "in"),legend.margin = margin(0,0,0,-0.1,unit = "in"))
-dev.off()
-
-rm(pltdat,sexreslist)
 ```
 
 
@@ -487,26 +562,27 @@ attached base packages:
 [1] stats4    stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
- [1] ggbeeswarm_0.7.2               SpatialFeatureExperiment_1.6.1
+ [1] SpatialFeatureExperiment_1.6.1 ggstance_0.3.7                
  [3] BiocParallel_1.38.0            parallelly_1.38.0             
- [5] colorout_1.3-0.2               ggrastr_1.0.2                 
- [7] Cairo_1.6-2                    ggtext_0.1.2                  
- [9] gridExtra_2.3                  escheR_1.4.0                  
-[11] ggplot2_3.5.1                  SpatialExperiment_1.14.0      
-[13] SingleCellExperiment_1.26.0    SummarizedExperiment_1.34.0   
-[15] Biobase_2.64.0                 GenomicRanges_1.56.1          
-[17] GenomeInfoDb_1.40.1            IRanges_2.38.1                
-[19] S4Vectors_0.42.1               BiocGenerics_0.50.0           
-[21] MatrixGenerics_1.16.0          matrixStats_1.3.0             
-[23] data.table_1.15.4              rlang_1.1.4                   
+ [5] colorout_1.3-0.2               ggbeeswarm_0.7.2              
+ [7] ggrastr_1.0.2                  Cairo_1.6-2                   
+ [9] ggtext_0.1.2                   gridExtra_2.3                 
+[11] escheR_1.4.0                   ggplot2_3.5.1                 
+[13] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
+[15] SummarizedExperiment_1.34.0    Biobase_2.64.0                
+[17] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
+[19] IRanges_2.38.1                 S4Vectors_0.42.1              
+[21] BiocGenerics_0.50.0            MatrixGenerics_1.16.0         
+[23] matrixStats_1.3.0              data.table_1.15.4             
+[25] rlang_1.1.4                   
 
 loaded via a namespace (and not attached):
-  [1] rstudioapi_0.16.0         jsonlite_1.8.8            wk_0.9.2                 
+  [1] wk_0.9.2                  rstudioapi_0.16.0         jsonlite_1.8.8           
   [4] magrittr_2.0.3            magick_2.8.3              farver_2.1.2             
   [7] rmarkdown_2.27            zlibbioc_1.50.0           vctrs_0.6.5              
  [10] spdep_1.3-5               DelayedMatrixStats_1.26.0 RCurl_1.98-1.14          
  [13] terra_1.7-78              htmltools_0.5.8.1         S4Arrays_1.4.1           
- [16] BiocNeighbors_1.22.0      Rhdf5lib_1.26.0           s2_1.1.6                 
+ [16] BiocNeighbors_1.22.0      s2_1.1.6                  Rhdf5lib_1.26.0          
  [19] SparseArray_1.4.8         rhdf5_2.48.0              spData_2.3.1             
  [22] KernSmooth_2.23-24        htmlwidgets_1.6.4         commonmark_1.9.1         
  [25] lifecycle_1.0.4           pkgconfig_2.0.3           Matrix_1.7-0             
@@ -516,27 +592,27 @@ loaded via a namespace (and not attached):
  [37] fansi_1.0.6               httr_1.4.7                abind_1.4-5              
  [40] compiler_4.4.1            here_1.0.1                proxy_0.4-27             
  [43] withr_3.0.0               tiff_0.1-12               DBI_1.2.3                
- [46] HDF5Array_1.32.0          R.utils_2.12.3            sessioninfo_1.2.2        
- [49] DelayedArray_0.30.1       rjson_0.2.21              classInt_0.4-10          
- [52] tools_4.4.1               units_0.8-5               vipor_0.4.7              
- [55] beeswarm_0.4.0            R.oo_1.26.0               glue_1.7.0               
- [58] EBImage_4.46.0            rhdf5filters_1.16.0       gridtext_0.1.5           
- [61] grid_4.4.1                sf_1.0-16                 generics_0.1.3           
- [64] gtable_0.3.5              R.methodsS3_1.8.2         class_7.3-22             
- [67] sp_2.1-4                  xml2_1.3.6                utf8_1.2.4               
- [70] XVector_0.44.0            stringr_1.5.1             pillar_1.9.0             
- [73] markdown_1.13             limma_3.60.3              dplyr_1.1.4              
- [76] lattice_0.22-6            deldir_2.0-4              tidyselect_1.2.1         
- [79] locfit_1.5-9.10           scuttle_1.14.0            sfheaders_0.4.4          
- [82] knitr_1.48                edgeR_4.2.0               xfun_0.45                
- [85] statmod_1.5.0             DropletUtils_1.24.0       stringi_1.8.4            
- [88] UCSC.utils_1.0.0          fftwtools_0.9-11          yaml_2.3.9               
- [91] boot_1.3-30               evaluate_0.24.0           codetools_0.2-20         
- [94] tibble_3.2.1              cli_3.6.3                 munsell_0.5.1            
- [97] Rcpp_1.0.13               zeallot_0.1.0             png_0.1-8                
-[100] parallel_4.4.1            jpeg_0.1-10               sparseMatrixStats_1.16.0 
-[103] bitops_1.0-7              viridisLite_0.4.2         scales_1.3.0             
-[106] e1071_1.7-14              crayon_1.5.3             
+ [46] HDF5Array_1.32.0          R.utils_2.12.3            DelayedArray_0.30.1      
+ [49] rjson_0.2.21              classInt_0.4-10           tools_4.4.1              
+ [52] units_0.8-5               vipor_0.4.7               beeswarm_0.4.0           
+ [55] R.oo_1.26.0               glue_1.7.0                EBImage_4.46.0           
+ [58] rhdf5filters_1.16.0       gridtext_0.1.5            grid_4.4.1               
+ [61] sf_1.0-16                 generics_0.1.3            gtable_0.3.5             
+ [64] R.methodsS3_1.8.2         class_7.3-22              sp_2.1-4                 
+ [67] xml2_1.3.6                utf8_1.2.4                XVector_0.44.0           
+ [70] pillar_1.9.0              markdown_1.13             stringr_1.5.1            
+ [73] limma_3.60.3              dplyr_1.1.4               lattice_0.22-6           
+ [76] deldir_2.0-4              tidyselect_1.2.1          locfit_1.5-9.10          
+ [79] scuttle_1.14.0            sfheaders_0.4.4           knitr_1.48               
+ [82] edgeR_4.2.0               xfun_0.45                 statmod_1.5.0            
+ [85] DropletUtils_1.24.0       stringi_1.8.4             UCSC.utils_1.0.0         
+ [88] fftwtools_0.9-11          boot_1.3-30               yaml_2.3.9               
+ [91] evaluate_0.24.0           codetools_0.2-20          tibble_3.2.1             
+ [94] cli_3.6.3                 munsell_0.5.1             Rcpp_1.0.13              
+ [97] zeallot_0.1.0             png_0.1-8                 parallel_4.4.1           
+[100] jpeg_0.1-10               sparseMatrixStats_1.16.0  bitops_1.0-7             
+[103] viridisLite_0.4.2         scales_1.3.0              e1071_1.7-14             
+[106] crayon_1.5.3             
 > sessioninfo::session_info()
 ─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
@@ -548,7 +624,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-10-24
+ date     2024-10-28
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
@@ -597,6 +673,7 @@ loaded via a namespace (and not attached):
    ggbeeswarm               * 0.7.2     2023-04-29 [1] CRAN (R 4.4.0)
    ggplot2                  * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
    ggrastr                  * 1.0.2     2023-06-01 [1] CRAN (R 4.4.0)
+   ggstance                 * 0.3.7     2024-04-05 [1] CRAN (R 4.4.0)
    ggtext                   * 0.1.2     2022-09-16 [1] CRAN (R 4.4.0)
    glue                       1.7.0     2024-01-09 [1] CRAN (R 4.4.0)
    gridExtra                * 2.3       2017-09-09 [1] CRAN (R 4.4.0)
