@@ -1,7 +1,7 @@
 ---
 title: "Fig5_Attributing_SexDE_to_celltypes"
 output: html_document
-date: "2024-08-29"
+date: "2024-10-31"
 ---
 
 ```{r setup, include=FALSE}
@@ -236,7 +236,7 @@ Panel B: ARC sex DE volcano by cell type.
 ```{r}
 xenarcdeplt <- xenarcde[cluster_annotated %in% grep(cluster_annotated,pattern="ARC",value=T)]
 
-xenarcdeplt[gene_name %in% c("MYT1L","TAC1","MC4R","CYP26A1","TMEM233","EGR1","ESR1","PGR")&FDR<0.2,label:=gene_name]
+xenarcdeplt[gene_name %in% c("MYT1L","CYP26A1","EGR1","ESR1","PGR","RXRG","CDH13")&FDR<0.2,label:=gene_name]
 
 ## replace names with informative cell type labels for plot, and thus in palette
 xenarcdeplt <- merge.data.table(xenarcdeplt,arcvmhanno,by.x="cluster_annotated",by.y="bjm_annot")
@@ -258,13 +258,12 @@ p <- ggplot(xenarcdeplt, aes(y = -log10(P.Value), x = logFC_MvF,col=subclus_anno
         min.segment.length = 0,
         size = 0.9,
         show.legend=FALSE,
-        nudge_x=1.25*sign(xenarcdeplt$logFC_MvF),
-        nudge_y=0.25,
+        nudge_x=0.5*sign(xenarcdeplt$logFC_MvF),
         seed=10403,
         max.iter=100000,
         max.overlaps=10000,
         max.time=3,
-        segment.size=0.125)+
+        segment.size=0.075)+
     xlab("logFC (M:F)")+
     ylab("-log10 (P-value)")+
     labs(color="ARC Cell Type")+
