@@ -153,9 +153,8 @@ dev.off()
 rm(panc,p)
 ```
 
-### Set up the xenium palette for cell groups for the next panel.
+### ## create supercluster labels to group related cell types together and use the previously saved + loaded xenium palette for cell groups for the next panel.
 ```{r}
-## create supercluster labels to group related cell types together
 bkcl <- as.data.table(bkcl,keep.rownames=T)
 bkcl[,supercl:="ifthisisplottedigoofed"]
 bkcl[bjm_annot %in% grep(bjm_annot,pattern="VMH",value=T),supercl:="VMH (4)"]
@@ -403,15 +402,15 @@ gift_wrapping_concave <- function(points) {
 tmpcoldata <- as.data.table(as.data.frame(cbind(colData(panf),spatialCoords(panf))))
 
 ### these end up looking wacky without some stray spots removed, so we need to manually drop a handful of singletons
-tmpcoldata <- tmpcoldata[Visium.Domain %in% c("ARC","VMH")]
+# tmpcoldata <- tmpcoldata[Visium.Domain %in% c("ARC","VMH")]
 # this will be easier to figure out using the array row/col values on a temporary plot with some lines overlaid to help pinpoint array coords to remove from the tracing. this doesn't account for the rotations or mirroring of the visium data, so grab a screenshot and rotate so that the x and y coords are not changed relative to the values we'll use to filter the table.
-ggplot(tmpcoldata,aes(x=array_col,y=array_row,color=Visium.Domain))+
+ggplot(tmpcoldata,aes(x=array_row,y=array_col,color=Visium.Domain))+
    geom_point(size=1.5)+
-   geom_vline(xintercept=seq(0,max(tmpcoldata$array_col),by=5))+
-   geom_hline(yintercept=seq(0,max(tmpcoldata$array_row),5))
+   geom_vline(xintercept=seq(0,max(tmpcoldata$array_row),by=5))+
+   geom_hline(yintercept=seq(0,max(tmpcoldata$array_col),5))+scale_x_reverse()
 dev.off()
-# ok three conditionals should do it: ARC points that are to the right of an array_row/col line col = 5.8*row - 230 and for array_row>=50 & array_row<=55 or at array_col>40 where array_row<40. for VMH, points right of the line 10.8*row-184
-tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!((array_row<40&array_col>40)|(array_row>=50&array_row<=55&array_col>5.8*array_row-230))],
+# ok three conditionals should do it: ARC points that are to the right of an array_row/col line col = 5.8*row - 230 and for array_row>=50 & array_row<=55 or at array_col>40 where array_row<40, or anything with array_col>101 or array_row<20. for VMH, points right of the line 10.8*row-184
+tmpcoldata <- rbind(tmpcoldata[Visium.Domain=="ARC"&!((array_row<40&array_col>40)|(array_row>=50&array_row<=55&array_col>5.8*array_row-230)|array_col>101|array_row<21)],
                     tmpcoldata[Visium.Domain=="VMH"&!(array_col>10.8*array_row-184)])
 
 ## for plotting with geom_path, we need to add the first point at the end of the sequence as well. this function is a little glitchy in that it returns a matrix of equal dimensions to the input but now with a bunch of NA rows so dump those after
@@ -419,17 +418,18 @@ vhull <- gift_wrapping_concave(as.data.frame(tmpcoldata[Visium.Domain=="VMH",.(a
 vhull <- vhull[rowSums(is.na(vhull))==0,]
 vhull <- as.data.frame(rbind(vhull,vhull[1,]))
 vhull$dom <- "VMH"
+rownames(vhull) <- as.numeric(rownames(vhull))
 rownames(vhull) <- paste0("pt",seq(1,nrow(vhull),by=1))
 
 
 ahull <- gift_wrapping_concave(as.data.frame(tmpcoldata[Visium.Domain=="ARC",.(array_col,array_row)]))
 ahull <- ahull[rowSums(is.na(ahull))==0,]
 
-# the ARC hull points still come out a little goofy. after array_col 38, array _row 16, we need to add the following points: col40row36,col38row40,col40row42,col45row45,52-49,7454
+# the ARC hull points still come out a little goofy. after array_col 37, array _row 27, we need to add the following points: col40row36,col38row40,col40row42,col45row45,52-49,7454
 
 addpoints <- as.data.frame(cbind(c(40,38,40,45,52,74),c(36,40,42,45,49,54)))
 colnames(addpoints) <- c("array_col","array_row")
-insertrow <- which(ahull[,1]==38&ahull[,2]==16)
+insertrow <- which(ahull[,1]==37&ahull[,2]==27)
 ahull <- rbind(ahull[c(1:insertrow),],addpoints,ahull[c(1+insertrow:nrow(ahull)),])
 
 # then add the first point to the end of the sequence again
@@ -458,13 +458,13 @@ p <- p |> add_fill("log counts",size=0.8,point_size = 0.8)
 pdf("manuscript_plots/Fig1/1F-V13Y24-346_C1_NR5A1.pdf",height=2,width=2)
 p+
    geom_path(data=dompoly2,aes(x=pxl_col_in_fullres,y=pxl_row_in_fullres,color=Visium.Domain,group=Visium.Domain),size=0.4)+
-    scale_color_manual(values=pal,na.value = NA)+
-    scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
-    ggtitle("*NR5A1*")+
-    # guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
-    # labs(color="Visium\nDomain")+
-    guides(color="none")+
-    theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"),legend.margin = margin(0,0,0,-0.14,"in"))
+   scale_color_manual(values=pal,na.value = NA)+
+   scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000")+
+   ggtitle("*NR5A1*")+
+   guides(color=guide_legend(override.aes=list(size=1.5,stroke=1)))+
+   labs(color="Visium\nDomain")+
+   guides(color="none")+
+   theme(plot.title.position = "plot",plot.title = element_markdown(size=9,hjust=0.5),legend.text = element_text(size=7),legend.key.size = ggplot2::unit(0.075,"in"),legend.title=element_text(size=7.5,hjust=0.5),plot.margin = margin(0,0.05,0,-0.05,unit = "in"),legend.margin = margin(0,0,0,-0.14,"in"))
 dev.off()
 
 rm(p,panf)

@@ -1,0 +1,196 @@
+---
+title: "diseases_tfs_and_sexDE_tabulations"
+output: html_document
+date: "2024-10-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(SpatialExperiment)
+
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+
+```{r}
+visde <- fread("spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+
+xendea <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02a-4ARCtypesmoothed_withinARC_celltypeSexDE.txt")
+
+xendev <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02b-4ARCtypesmoothed_withinVMH_celltypeSexDE.txt")
+
+betterclustnames <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+
+xendea <- merge.data.table(xendea,betterclustnames[,.(bjm_annot,dom.clus)],by.x="cluster_annotated",by.y="bjm_annot",all.x=T)
+xendea[!is.na(dom.clus),cluster_annotated:=dom.clus]
+
+xendev <- merge.data.table(xendev,betterclustnames[,.(bjm_annot,dom.clus)],by.x="cluster_annotated",by.y="bjm_annot",all.x=T)
+xendev[!is.na(dom.clus),cluster_annotated:=dom.clus]
+
+## disease gene sets for reference:
+dissets <- fread("spatial_HYP/raw-data/Genesets from GWAS pubs, TWAS, and disgenet/nonredundant_union_set_genesymbols.txt")
+
+## gsea results from marker, sex de enrichments in disease, tf targets
+## WHERE IS THE EXPRESSION FILTERING? the info from the filtering of these on expression tho?
+mkdisres <- readRDS("spatial_HYP/processed-data/11-GSEA/05-Common variant disease gene enrichment in markers.RDS")
+
+sexdisres <- readRDS("spatial_HYP/processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs.RDS")
+
+mktfres <- readRDS("spatial_HYP/processed-data/11-GSEA/08-Marker TF-target GSEA results from 02a filtered to TFs expressed in avg 5pct of cluster spots and at least 1pct of cluster spots in 5samps.RDS")
+mktfres <- mktfres[c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH")]
+names(mktfres) <- c("vARC","vVMH")
+
+sextfres <- readRDS("spatial_HYP/processed-data/11-GSEA/09-Sex DE TF-target GSEA results from 04a filtered to TFs expressed in at least one sex at avg 2.5pct of cluster spots and at least 1pct of cluster spots in 3samps.RDS")
+sextfres <- sextfres[c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_ARC","k15_HARMONYlmbna_nnsvg10_60kiter_collapsedXVMH")]
+names(sextfres) <- c("vARC","vVMH")
+```
+
+
+### apply the "expressed TF" cutoffs for all genes to get genes qualifying as expressed in vVMH, vARC, or that domain for a single sex
+```{r}
+hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+# set rownames of spe to gene symbol, since those are the identifiers we're stuck with for TF-targ sets
+# make all upper case to be sure
+dropg <- as.data.table(rowData(hyp2),keep.rownames=T)[,.(.N,gene_id),by=gene_name][N>1,gene_id]
+hyp2 <- hyp2[!(rownames(hyp2)%in%dropg),]
+rownames(hyp2) <- rowData(hyp2)$gene_name
+
+bscl <- fread("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("X",cl)]
+
+bscl[cl %in% c("X4","X6"),cl:="vARC"]
+bscl[cl %in% c("X12","X7"),cl:="vVMH"]
+
+bscl <- DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
+colLabels(hyp2) <- bscl$cl
+
+doms <- c(rep("vARC",3),rep("vVMH",3))
+sexes <- list(c("Male","Female"),"Male","Female",c("Male","Female"),"Male","Female")
+
+setDTthreads(2,restore_after_fork = FALSE)
+domxprgs <- mcmapply(S=sexes,D=doms,mc.cores=6,FUN=function(S,D){
+
+    cursamps <- unique(colData(hyp2[,hyp2$Sex %in% S])[,"sample_id"])
+    lct <- as.data.table(as.data.frame(as.matrix(logcounts(hyp2[,hyp2$label==D&hyp2$sample_id %in% cursamps]))),keep.rownames=T)
+    setnames(lct,"rn","symb")
+    lct <- melt(lct,id.vars="symb",value.name="logcounts")
+    ### get sample ID from the unique spot identifiers
+    lct[,samp:=gsub(variable,pattern="^.*_(.*_.*)$",replacement="\\1")]
+    lct[,Nspot:=.N/length(unique(symb)),by="samp"]
+            
+    # this is a clunky approach, but the TOTAL %age of spots expressing the TF in question (ie logcounts>0) for that sample will fill in for any rows where logcounts are >0. we can then get a table of unique combinations of sample X TF x %age of spots
+    lct[logcounts>0,pctxpr:=.N/Nspot,by=c("symb","samp")]
+    # set NAs in pctxpr to 0
+    lct[is.na(pctxpr),pctxpr:=0]
+    # get each unique pair of tf-sample-pctxpr, where we fetch the max row value of pctxpr for a tf-sample pair (which will be >0 and = the % of spots expressing in any row where the gene was detected for that sample)
+    lctfilt <- lct[,max(pctxpr),by=c("symb","samp")]
+    # calculate mean % spots expressing dataset wide and number of samples with expression over 1%. each tf occurs once per sample, so take the mean across rows with a given TF value for samplewise means, or tabulate the number of TF occurrences with the pctxpr filter to get the number of passing rows
+    setnames(lctfilt,"V1","pctxpr")
+    lctfilt[,meanxpr:=mean(pctxpr),by="symb"]
+    lctfilt[pctxpr>0.01,Nxpr:=.N,by="symb"]
+    # na rows returned in Nxpr will be meaningless in this result, since we just will subset to max Nxpr analogous to what we did above, resulting in a table of X tfs with their mean + spot %age and number of samples over threshold. set na values to 0 to avoid errors relating to NAs here.
+    lctfilt[is.na(Nxpr),Nxpr:=0]
+    lctfilt2 <- lctfilt[,max(Nxpr),by="symb"]
+    setnames(lctfilt2,"V1","Nxpr")
+    ## add baack the mean expression to the number of threshold-passing samples by merging parts of the old data ttable to the above result
+    lctfilt2 <- merge.data.table(lctfilt2,unique(lctfilt[,.(symb,meanxpr)],by="symb"))
+
+    # FINALLY  get the genes meeting criteria (expressed in at least 2.5% of spots of cluster for at least 3 samples from the given sex, or 5% / 5 samples for the combined sex case) back and filter the result table to them
+    
+    if(length(S)==1){
+        xprg <- lctfilt2[Nxpr>3&meanxpr>0.025,symb]
+    }
+    else{
+        xprg <- lctfilt2[Nxpr>5&meanxpr>0.05,symb]
+    }
+    
+    # return qualifying genes
+    return(xprg)
+})
+sexes[c(1,4)] <- "both"
+names(domxprgs) <- mapply(X=doms,Y=sexes,FUN=function(X,Y){paste0(X,"_",Y)})
+```
+
+
+supp tab of sex DE genes from Visium paired to GSEA disease sets(s); ibid for xenium: one long table of gene IDs (one for TFs, one for disease•gene pairs, including columns for whether vVMH, vARC markers andor vVMH/vARC sex DE was enriched for that disease) with expressed y/n, vVMH top 1k 1 vs. all, sex DE (encoding p < 0.05, fdr < 0.05, or neither) , vARC sexDE, ...xVMH CRHR2 top 20 marker y/n, xVMH CRHR2 sex DE y/n...
+```{r}
+gtab <- as.data.table(rownames(hyp2))
+setnames(gtab,1,"gene_symbol")
+
+gtab[,disorders:=apply(.SD,MARGIN = 1,FUN=function(x){
+    dxes <- unique(dissets[symbol %in% x[1],dx])
+    if(length(dxes)==0){
+        return(NA)
+    }
+    else{
+        return(paste0(dxes,collapse=", "))
+}})]
+
+gtab[gene_symbol %in% unique(c(mktfres$vVMH,mktfres$vARC$tf,sextfres$vVMH$tf,sextfres$vARC$tf)),tested_tf:="YES"]
+gtab[is.na(tested_tf),tested_tf:="NO"]
+
+gtab[gene_symbol %in% domxprgs[["vVMH_both"]],xpr_vVMH:="YES"]
+gtab[gene_symbol %in% domxprgs[["vVMH_Male"]],xpr_vVMH_M:="YES"]
+gtab[gene_symbol %in% domxprgs[["vVMH_Female"]],xpr_vVMH_F:="YES"]
+gtab[gene_symbol %in% domxprgs[["vARC_both"]],xpr_vARC:="YES"]
+gtab[gene_symbol %in% domxprgs[["vARC_Male"]],xpr_vARC_M:="YES"]
+gtab[gene_symbol %in% domxprgs[["vARC_Female"]],xpr_vARC_F:="YES"]
+
+gtab[is.na(xpr_vVMH),xpr_vVMH:="NO"]
+gtab[is.na(xpr_vVMH_M),xpr_vVMH_M:="NO"]
+gtab[is.na(xpr_vVMH_F),xpr_vVMH_F:="NO"]
+gtab[is.na(xpr_vARC),xpr_vARC:="NO"]
+gtab[is.na(xpr_vARC_M),xpr_vARC_M:="NO"]
+gtab[is.na(xpr_vARC_F),xpr_vARC_F:="NO"]
+
+
+
+gtab[,vARC_sexDE_fdrsig:=apply(.SD,MARGIN = 1,function(x){ifelse(visde[assay=="ARC"&adj.P.Val<0.05&gene_name %in% x,.N]>0,"YES","NO")}),.SDcols = "gene_symbol"]
+gtab[,vVMH_sexDE_fdrsig:=apply(.SD,MARGIN = 1,function(x){ifelse(visde[assay=="VMH"&adj.P.Val<0.05&gene_name %in% x,.N]>0,"YES","NO")}),.SDcols = "gene_symbol"]
+
+gtab[,vARC_sexDE_nomsig:=apply(.SD,MARGIN = 1,function(x){ifelse(visde[assay=="ARC"&P.Value<0.05&gene_name==x,.N]>0,"YES","NO")}),.SDcols = "gene_symbol"]
+gtab[,vVMH_sexDE_nomsig:=apply(.SD,MARGIN = 1,function(x){ifelse(visde[assay=="VMH"&P.Value<0.05&gene_name==x,.N]>0,"YES","NO")}),.SDcols = "gene_symbol"]
+
+gtab[,xARC_FDRpt1clusts:=apply(.SD,MARGIN = 1,function(x){ifelse(xendea[FDR<0.1&gene_name==x,.N]>0,paste0(xendea[FDR<0.1&gene_name==x,cluster_annotated],collapse=", "),"NO")}),.SDcols = "gene_symbol"]
+
+gtab[,xVMH_FDRpt1clusts:=apply(.SD,MARGIN = 1,function(x){ifelse(xendev[FDR<0.1&gene_name==x,.N]>0,paste0(xendev[FDR<0.1&gene_name==x,cluster_annotated],collapse=", "),"NO")}),.SDcols = "gene_symbol"]
+```
+
+save
+```{r}
+fwrite(gtab,"manuscript_plots/Supplemental/STable-Genes_diseases_TFs_and_sexDE.txt",sep='\t',quote=F,row.names=F,col.names=T)
+
+# save one with only pertinent genes as well
+gtab2 <- gtab[(vARC_sexDE_fdrsig=="YES"|vVMH_sexDE_fdrsig=="YES"|vARC_sexDE_nomsig=="YES"|vVMH_sexDE_nomsig=="YES"|xARC_FDRpt1clusts!="NO"|xVMH_FDRpt1clusts!="NO"|xpr_vVMH_M!=xpr_vVMH_F|xpr_vARC_M!=xpr_vARC_F)][!is.na(disorders)|!is.na(tested_tf)]
+
+
+gtab3 <- gtab2[disorders %in% grep(disorders,pattern="BMI",value=T,invert=T)|is.na(disorders)]
+
+```
