@@ -1,0 +1,17 @@
+date: Tue Nov  5 01:19:37 PM EST 2024
+**** JHPCE info ****
+User: rmiller
+Job id: 10429516
+Job name: 04samui
+Hostname: 
+Task id: 1
+Loading LIBD SLURM module for samui/1.0.0-next.49
+/jhpce/shared/libd/core/samui/1.0.0-next.49/samui_env/lib/python3.10/site-packages/pydantic/_internal/_config.py:322: UserWarning: Valid config keys have changed in V2:
+* 'allow_mutation' has been removed
+  warnings.warn(message, UserWarning)
+Traceback (most recent call last):
+  File "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/13-samui/03_loopy-xenium.py", line 119, in <module>
+    assert all([x.exists() for x in [out_dir, img_path]])
+AssertionError
+**** Job ends ****
+Tue Nov  5 01:19:41 PM EST 2024

@@ -1,0 +1,69 @@
+
+**** Job starts ****
+Fri Oct 25 11:55:30 AM EDT 2024
+
+**** JHPCE info ****
+User: rmiller
+Job id: 10222662
+Job name: r2py-xen
+Hostname: 
+Task id: 1
+Loading conda_R/4.4
+Loading required package: SpatialFeatureExperiment
+Error in .requirePackage(package) : 
+  unable to find required package ‘SpatialFeatureExperiment’
+Calls: spatialCoords ... .findInheritedMethods -> getClass -> getClassDef -> .requirePackage
+In addition: Warning message:
+In library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+  there is no package called ‘SpatialFeatureExperiment’
+Execution halted
+
+**** Job starts ****
+Fri Oct 25 12:00:59 PM EDT 2024
+
+**** JHPCE info ****
+User: rmiller
+Job id: 10222765
+Job name: r2py-xen
+Hostname: 
+Task id: 1
+Loading conda_R/4.4
+Error in library("SpatialFeatureExperiment") : 
+  there is no package called ‘SpatialFeatureExperiment’
+Calls: suppressPackageStartupMessages -> withCallingHandlers -> library
+Execution halted
+
+**** Job starts ****
+Fri Oct 25 12:40:18 PM EDT 2024
+
+**** JHPCE info ****
+User: rmiller
+Job id: 10223275
+Job name: r2py-xen
+Hostname: 
+Task id: 1
+Unloading conda_R/4.4
+Loading conda_R/4.4
+[1] "Converting objects to AnnDatas..."
+ℹ Using the 'counts' assay as the X matrix
+/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
+  warnings.warn(
+/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/aligned_df.py:67: ImplicitModificationWarning: Transforming to str index.
+  warnings.warn("Transforming to str index.", ImplicitModificationWarning)
+
+**** Job starts ****
+Tue Oct 29 02:51:25 PM EDT 2024
+
+**** JHPCE info ****
+User: rmiller
+Job id: 10292976
+Job name: r2py-xen
+Hostname: 
+Task id: 1
+Loading conda_R/4.4
+[1] "Converting objects to AnnDatas..."
+ℹ Using the 'counts' assay as the X matrix
+/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
+  warnings.warn(
+/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/aligned_df.py:67: ImplicitModificationWarning: Transforming to str index.
+  warnings.warn("Transforming to str index.", ImplicitModificationWarning)
