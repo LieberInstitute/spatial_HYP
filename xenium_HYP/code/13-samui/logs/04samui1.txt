@@ -1,7 +1,7 @@
-date: Tue Nov  5 01:19:37 PM EST 2024
+date: Thu Nov  7 02:43:41 PM EST 2024
 **** JHPCE info ****
 User: rmiller
-Job id: 10429516
+Job id: 10481279
 Job name: 04samui
 Hostname: 
 Task id: 1
@@ -14,4 +14,4 @@ Traceback (most recent call last):
     assert all([x.exists() for x in [out_dir, img_path]])
 AssertionError
 **** Job ends ****
-Tue Nov  5 01:19:41 PM EST 2024
+Thu Nov  7 02:43:45 PM EST 2024
