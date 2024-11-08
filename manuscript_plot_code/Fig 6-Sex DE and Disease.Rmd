@@ -1,7 +1,7 @@
 ---
 title: "Fig 6-Sex DE and Disease"
 output: html_document
-date: "2024-10-28"
+date: "2024-11-02"
 ---
 
 ```{r setup, include=FALSE}
@@ -51,6 +51,18 @@ mkgs <- mkgs[genesets_from=="union"]
 
 sxgs <- readRDS("spatial_HYP/processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs.RDS")
 sxgs <- sxgs[genesets_from=="union"]
+
+sxgsunsign <- readRDS("spatial_HYP/processed-data/11-GSEA/06b-Unsigned_Common variant disease gene enrichment in sex DEGs.RDS")
+sxgsunsign <- sxgsunsign[genesets_from=="union"]
+sxgsunsign[,dir:="both"]
+
+sxgs <- rbind(sxgs,sxgsunsign)
+rm(sxgsunsign)
+
+sxgs[dir=="female_up",dir:="Female-\nUpreg."]
+sxgs[dir=="male_up",dir:="Male-\nUpreg."]
+sxgs[dir=="both",dir:="Bidir.\nSex DE"]
+
 ```
 
 
@@ -70,16 +82,17 @@ ggplot(dmk,aes(y=spdom,x=pathway,fill=NES))+
     geom_tile(linewidth = 0.25,colour = "black")+
     geom_text(label=ifelse(dmk$padj<0.05,"*",""),size = 5,nudge_y = -0.2)+
     geom_text(label=ifelse(dmk$padj>0.05&dmk$pval<0.05,"•",""),size = 4)+
-    scale_fill_viridis_c(begin=0.2,end=1,option="E")+
+    #scale_fill_viridis_c(begin=0.2,end=1,option="E")+
+    scale_fill_gradientn(colors=c("#ffffff","#ABDDDE","#046C9A"),values = c(-0.75,.5,1))+
     scale_x_discrete(expand = c(0,0)) +
     scale_y_discrete(expand = c(0,0)) +
     labs(fill="Normalized\nEnrichment\nScore")+
     ylab("Visium Domain")+
-    xlab("Disease / Trait\nGene Set") +
+    xlab("Disease / Trait Gene Set") +
     theme(plot.background = element_blank(),axis.text.x = element_text(size=9,angle=90,vjust=0.5),axis.text.y=element_text(size=9),axis.title.x=element_text(size=10,hjust=0.5),axis.title.y=element_text(size=10,vjust=0.5,margin=margin(0,0.05,0,0,"in")),legend.title = element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin=margin(0,0,0,-0.1,"in"))
 dev.off()
 
-rm(dmk,mkgs)
+#rm(dmk,mkgs)
 ```
 
 panel B: sex DE domain-level
@@ -92,28 +105,33 @@ dsx[spdom=="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH",spdom:="VMH"]
 ## reorder traits of interest into broad groups (not that they will be explicitly labeled as such, but still)
 dsx[,pathway:=factor(pathway,levels=c("Lefthanded","BMI","Anorexia","Panic","PTSD","GAD","OCD","TS","ADHD","NDD","ASD","OUD","AUD","Cannabis","SCZ","BIP","MDD","AD"))]
 
+
+# absolute value NES since we have one-sided tests now
+dsx[dir!="Bidir. Sex DE",NES:=abs(NES)]
+#dsx[NES<0,NES:=0]
+
+dsx[,dir:=factor(dir,levels = c("Male-\nUpreg.","Female-\nUpreg.","Bidir.\nSex DE"))]
+
 ## make plot; use a rearranged version of the wesanderson:: palette "Darjeeling2" (colors 3,1,4,2)
 scalefact <- max(dsx$NES)-min(dsx$NES)
-zeropt <- -min(dsx$NES)/scalefact
-zero.to.zeropt.mid <- zeropt/2
-zeropt.to.one.mid <- zeropt*1.5
 
 cairo_pdf("manuscript_plots/Fig6/6B-DomainSexDE_Dis_GSEA.pdf",height=3,width=3.75)
-ggplot(dsx,aes(y=spdom,x=pathway,fill=NES))+
+ggplot(dsx,aes(x=spdom,y=pathway,fill=NES))+
     geom_tile(linewidth = 0.25,colour = "black")+
     geom_text(label=ifelse(dsx$padj<0.05,"*",""),size = 5,nudge_y = -0.2)+
     geom_text(label=ifelse(dsx$padj>0.05&dsx$pval<0.05,"•",""),size = 4)+
-    #scale_fill_viridis_c(begin=0.15,end=0.85,option="H",direction = -1)+
-    scale_fill_gradientn(colors=c("#D69C4E","#ECCBAE","#ABDDDE","#046C9A"),values = c(0,zero.to.zeropt.mid,zeropt.to.one.mid,1))+
+    facet_grid(.~dir)+
+    # scale_fill_viridis_c(begin=0.15,end=0.37,option="H",direction = 1)+
+    scale_fill_gradientn(colors=c("#ffffff","#F9EFDE","#E8C696","#D69C4E"),values = c(0,min(dsx[dir=="Bidir.\nSex DE",NES])/scalefact,max(dsx[dir=="Bidir.\nSex DE",NES])/scalefact,1))+
     scale_x_discrete(expand = c(0,0)) +
     scale_y_discrete(expand = c(0,0)) +
-    labs(fill="Normalized\nEnrichment\nScore\n(>0: Male-Up,\n<0: Female-Up)")+
-    ylab("Visium Domain")+
-    xlab("Disease / Trait\nGene Set") +
-    theme(plot.background = element_blank(),axis.text.x = element_text(size=9,angle=90,vjust=0.5),axis.text.y=element_text(size=9),axis.title.x=element_text(size=10,hjust=0.5),axis.title.y=element_text(size=10,vjust=0.5,margin=margin(0,0.05,0,0,"in")),legend.title = element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin=margin(0,0,0,-0.1,"in"))
+    labs(fill="Normalized\nEnrichment\nScore (<0:\nDepleted)")+
+    xlab("Visium Domain")+
+    ylab("Disease / Trait\nGene Set") +
+    theme(plot.background = element_blank(),axis.text.x = element_text(size=9,angle=90,vjust=0.5),axis.text.y=element_text(size=9),axis.title.x=element_text(size=10,hjust=0.5),axis.title.y=element_text(size=10,vjust=0.5,margin=margin(0,0.05,0,0,"in")),legend.title = element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin=margin(0,0,0,-0.1,"in"),strip.text=element_text(size=10),strip.background = element_rect(fill=NA))
 dev.off()
 
-rm(dsx,zeropt,zero.to.zeropt.mid,zeropt.to.one.mid,scalefact)
+rm(dsx,scalefact)
 ```
 
 
@@ -133,8 +151,13 @@ arcs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC"]][pa
 
 msigpltdat <- rbind(vmhs,arcs)
 msigpltdat[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)",replacement="\\1")]
-msigpltdat[spdom=="VMH",sexreg:=ifelse(NES>0,yes="vVMH Male Up",no="vVMH Fem. Up")]
-msigpltdat[spdom=="ARC",sexreg:=ifelse(NES>0,yes="vARC Male Up",no="vARC Fem. Up")]
+# msigpltdat[spdom=="VMH",sexreg:=ifelse(NES>0,yes="vVMH Male Up",no="vVMH Fem. Up")]
+# msigpltdat[spdom=="ARC",sexreg:=ifelse(NES>0,yes="vARC Male Up",no="vARC Fem. Up")]
+msigpltdat[spdom=="VMH",sexreg:=ifelse(dir=="male_up",yes="vVMH Male Up",no="vVMH Fem. Up")]
+msigpltdat[spdom=="ARC",sexreg:=ifelse(dir=="male_up",yes="vARC Male Up",no="vARC Fem. Up")]
+# make all NES for female test w/ enrichment, (i.e. negative NES) positive
+msigpltdat[dir=="female_up"&NES<0,NES:=abs(NES)]
+
 rm(vmhs,arcs)
 ### extract pathway source db
 
@@ -165,7 +188,7 @@ msigpltdat[pathway=="MCLACHLAN_DENTAL_CARIES_UP",pathway:="Dental caries"]
 msigpltdat[pathway=="FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2",pathway:="Thecal cell of ovary\n(early atretic follicle)"]
 
 ### flip sign on negative NES scores
-msigpltdat[NES<0,NES:=-1*NES]
+# msigpltdat[NES<0,NES:=-1*NES]
 
 ## change source info slightly so we can have msigdb and non-msigdb stuff in one legend
 msigpltdat[genesource=="MSigDB Literature-Curated",source:="Literature-Curated"]
@@ -280,12 +303,14 @@ tfres[pathway=="PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_
 
 
 
-### group by sex•region, flip all NES to positive
-tfres[NES<0&spdom=="ARC",sexreg:="vARC Fem. Up"]
-tfres[NES>0&spdom=="ARC",sexreg:="vARC Male Up"]
-tfres[NES<0&spdom=="VMH",sexreg:="vVMH Fem. Up"]
-tfres[NES>0&spdom=="VMH",sexreg:="vVMH Male Up"]
-tfres[,NES:=abs(NES)]
+### group by sex•region, flip all female enrichments (negative NES and female test) to positive
+tfres[dir=="female_up"&NES<0,NES:=abs(NES)]
+
+tfres[dir=="female_up"&spdom=="ARC",sexreg:="vARC Fem. Up"]
+tfres[dir=="male_up"&spdom=="ARC",sexreg:="vARC Male Up"]
+tfres[dir=="female_up"&spdom=="VMH",sexreg:="vVMH Fem. Up"]
+tfres[dir=="male_up"&spdom=="VMH",sexreg:="vVMH Male Up"]
+
 
 ### make data source name consistent across the two result tables
 setnames(tfres,"source","genesource")
@@ -329,8 +354,8 @@ legplt <- ggplot(legdat,aes(x=-log10(padj),y=pathway,size=NES))+
    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=pathway),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
    scale_color_manual(values=sexregpal)+
    scale_shape_manual(values=shapelabs)+
-   guides(col=guide_legend(override.aes=list(stroke = 0,size=3.5)))+
-   labs(size="NES",shape="Geneset Source",col="DE Gene Set",fill="DE Gene Set")+
+   guides(col=guide_legend(override.aes=list(stroke = 0,size=3.5,alpha=0.7)))+
+   labs(size="NES",shape="Geneset Source",col="DE Pattern",fill="DE Pattern")+
     # ^ make size legend with all point types
     theme(legend.text = element_text(size=6), 
           legend.title = element_text(size=7,hjust=0.5,vjust=0.5,margin=margin(0,0,-0.01,0,"in")),
@@ -368,7 +393,6 @@ msigshapes <- shapelabs[levels(msigpltdat$genesource)]
 msigpltdat[,pathway:=factor(pathway,levels=c("Aggressive/im-\npulsive behavior","Dental caries","Acid-base ab-\nnormality","miR-21","miR-30a_3P","Chromatin binding","Thecal cell of ovary\n(early atretic follicle)","Temporal progest-\nerone response"))]
 
 fig6cd[[1]] <- ggplot(msigpltdat,aes(y=pathway,x=-log10(padj),size=NES))+
-    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=pathway),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
     ylab("MSigDB Set")+
     scale_color_manual(values=sexregpal)+
     xlab("-log10 (*p*-value)")+
@@ -376,8 +400,9 @@ fig6cd[[1]] <- ggplot(msigpltdat,aes(y=pathway,x=-log10(padj),size=NES))+
     geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
     scale_shape_manual(values=msigshapes)+
     #add minor gridlines between TFs to contain jittered points
-    geom_hline(yintercept = seq(0.5,length(unique(msigpltdat$pathway))-0.5),color="grey",linewidth=.25)+
+    geom_hline(yintercept = seq(0.5,length(unique(msigpltdat$pathway))-0.5),color="grey",linewidth=.375)+
     scale_size_continuous(range = c(breaks[1],breaks[length(breaks)]),breaks = rep(breaks,length(msigshapes)))+
+    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=pathway),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
     guides(col="none",size="none",shape="none",fill="none")+
     theme(axis.text.y = element_text(size = 8),
           axis.title.y=element_text(size=9,margin=margin(0,-0.175,0,0,"in")),
@@ -399,14 +424,14 @@ tfres[,tf:=factor(tf,levels=c("AR", "AR (KD DE)", "ESR1 (KD Down)", "ESR1 (KO DE
 
 
 fig6cd[[2]] <- ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
-    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
     ylab("TF")+
     scale_color_manual(values=sexregpal)+
     xlab("-log10 (*p*-value)")+
     geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
     scale_shape_manual(values=tfshapes)+
     #add minor gridlines between TFs to contain jittered points
-    geom_hline(yintercept = seq(0.5,length(unique(tfres$tf))-0.5),color="grey",linewidth=.25)+
+    geom_hline(yintercept = seq(0.5,length(unique(tfres$tf))-0.5),color="grey",linewidth=.375)+
+    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
     scale_size_continuous(range = c(breaks[1],breaks[length(breaks)]),breaks = rep(breaks,length(tfshapes)))+
     guides(col="none",size="none",shape="none",fill="none")+
     theme(axis.text.y = element_text(size = 8),
@@ -425,7 +450,7 @@ fig6cd[[2]] <- ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
 ## save 6C-D combined
 ```{r}
 pdf("manuscript_plots/Fig6/6CandD-sexDE_msigdb_and_TFtargGSEAs.pdf",width=7.5,height=3,onefile = FALSE)
-do.call("grid.arrange",list(arrangeGrob(grobs=fig6cd,nrow=1,widths=c(3.25,3.25)),legcd,ncol=2,widths=c(6.5,1)))
+do.call("grid.arrange",list(arrangeGrob(grobs=fig6cd,nrow=1,widths=c(3.25,3.25)),legcd,ncol=2,widths=c(6.3,1.2)))
 dev.off()
 
 ```
@@ -562,12 +587,12 @@ attached base packages:
 [1] stats4    stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
- [1] SpatialFeatureExperiment_1.6.1 ggstance_0.3.7                
- [3] BiocParallel_1.38.0            parallelly_1.38.0             
- [5] colorout_1.3-0.2               ggbeeswarm_0.7.2              
- [7] ggrastr_1.0.2                  Cairo_1.6-2                   
- [9] ggtext_0.1.2                   gridExtra_2.3                 
-[11] escheR_1.4.0                   ggplot2_3.5.1                 
+ [1] BiocParallel_1.38.0            parallelly_1.38.0             
+ [3] colorout_1.3-0.2               ggstance_0.3.7                
+ [5] ggbeeswarm_0.7.2               ggrastr_1.0.2                 
+ [7] Cairo_1.6-2                    ggtext_0.1.2                  
+ [9] gridExtra_2.3                  escheR_1.4.0                  
+[11] ggplot2_3.5.1                  SpatialFeatureExperiment_1.6.1
 [13] SpatialExperiment_1.14.0       SingleCellExperiment_1.26.0   
 [15] SummarizedExperiment_1.34.0    Biobase_2.64.0                
 [17] GenomicRanges_1.56.1           GenomeInfoDb_1.40.1           
@@ -577,42 +602,42 @@ other attached packages:
 [25] rlang_1.1.4                   
 
 loaded via a namespace (and not attached):
-  [1] wk_0.9.2                  rstudioapi_0.16.0         jsonlite_1.8.8           
-  [4] magrittr_2.0.3            magick_2.8.3              farver_2.1.2             
-  [7] rmarkdown_2.27            zlibbioc_1.50.0           vctrs_0.6.5              
- [10] spdep_1.3-5               DelayedMatrixStats_1.26.0 RCurl_1.98-1.14          
- [13] terra_1.7-78              htmltools_0.5.8.1         S4Arrays_1.4.1           
- [16] BiocNeighbors_1.22.0      s2_1.1.6                  Rhdf5lib_1.26.0          
- [19] SparseArray_1.4.8         rhdf5_2.48.0              spData_2.3.1             
- [22] KernSmooth_2.23-24        htmlwidgets_1.6.4         commonmark_1.9.1         
- [25] lifecycle_1.0.4           pkgconfig_2.0.3           Matrix_1.7-0             
- [28] R6_2.5.1                  fastmap_1.2.0             GenomeInfoDbData_1.2.12  
- [31] digest_0.6.36             colorspace_2.1-0          rprojroot_2.0.4          
- [34] dqrng_0.4.1               beachmat_2.20.0           labeling_0.4.3           
- [37] fansi_1.0.6               httr_1.4.7                abind_1.4-5              
- [40] compiler_4.4.1            here_1.0.1                proxy_0.4-27             
- [43] withr_3.0.0               tiff_0.1-12               DBI_1.2.3                
- [46] HDF5Array_1.32.0          R.utils_2.12.3            DelayedArray_0.30.1      
- [49] rjson_0.2.21              classInt_0.4-10           tools_4.4.1              
- [52] units_0.8-5               vipor_0.4.7               beeswarm_0.4.0           
- [55] R.oo_1.26.0               glue_1.7.0                EBImage_4.46.0           
- [58] rhdf5filters_1.16.0       gridtext_0.1.5            grid_4.4.1               
- [61] sf_1.0-16                 generics_0.1.3            gtable_0.3.5             
- [64] R.methodsS3_1.8.2         class_7.3-22              sp_2.1-4                 
- [67] xml2_1.3.6                utf8_1.2.4                XVector_0.44.0           
- [70] pillar_1.9.0              markdown_1.13             stringr_1.5.1            
- [73] limma_3.60.3              dplyr_1.1.4               lattice_0.22-6           
- [76] deldir_2.0-4              tidyselect_1.2.1          locfit_1.5-9.10          
- [79] scuttle_1.14.0            sfheaders_0.4.4           knitr_1.48               
- [82] edgeR_4.2.0               xfun_0.45                 statmod_1.5.0            
- [85] DropletUtils_1.24.0       stringi_1.8.4             UCSC.utils_1.0.0         
- [88] fftwtools_0.9-11          boot_1.3-30               yaml_2.3.9               
- [91] evaluate_0.24.0           codetools_0.2-20          tibble_3.2.1             
- [94] cli_3.6.3                 munsell_0.5.1             Rcpp_1.0.13              
- [97] zeallot_0.1.0             png_0.1-8                 parallel_4.4.1           
-[100] jpeg_0.1-10               sparseMatrixStats_1.16.0  bitops_1.0-7             
-[103] viridisLite_0.4.2         scales_1.3.0              e1071_1.7-14             
-[106] crayon_1.5.3             
+  [1] DBI_1.2.3                 bitops_1.0-7              deldir_2.0-4             
+  [4] s2_1.1.6                  magrittr_2.0.3            e1071_1.7-14             
+  [7] compiler_4.4.1            DelayedMatrixStats_1.26.0 png_0.1-8                
+ [10] sfheaders_0.4.4           fftwtools_0.9-11          vctrs_0.6.5              
+ [13] stringr_1.5.1             pkgconfig_2.0.3           wk_0.9.2                 
+ [16] crayon_1.5.3              fastmap_1.2.0             magick_2.8.3             
+ [19] XVector_0.44.0            labeling_0.4.3            scuttle_1.14.0           
+ [22] utf8_1.2.4                rmarkdown_2.27            markdown_1.13            
+ [25] UCSC.utils_1.0.0          xfun_0.45                 zlibbioc_1.50.0          
+ [28] beachmat_2.20.0           jsonlite_1.8.8            rhdf5filters_1.16.0      
+ [31] DelayedArray_0.30.1       Rhdf5lib_1.26.0           jpeg_0.1-10              
+ [34] tiff_0.1-12               terra_1.7-78              parallel_4.4.1           
+ [37] R6_2.5.1                  stringi_1.8.4             limma_3.60.3             
+ [40] boot_1.3-30               Rcpp_1.0.13               knitr_1.48               
+ [43] R.utils_2.12.3            tidyselect_1.2.1          Matrix_1.7-0             
+ [46] rstudioapi_0.16.0         abind_1.4-5               yaml_2.3.9               
+ [49] EBImage_4.46.0            codetools_0.2-20          lattice_0.22-6           
+ [52] tibble_3.2.1              withr_3.0.0               evaluate_0.24.0          
+ [55] sf_1.0-16                 units_0.8-5               spData_2.3.1             
+ [58] proxy_0.4-27              xml2_1.3.6                pillar_1.9.0             
+ [61] KernSmooth_2.23-24        generics_0.1.3            rprojroot_2.0.4          
+ [64] sp_2.1-4                  RCurl_1.98-1.14           commonmark_1.9.1         
+ [67] sparseMatrixStats_1.16.0  munsell_0.5.1             scales_1.3.0             
+ [70] class_7.3-22              glue_1.7.0                tools_4.4.1              
+ [73] BiocNeighbors_1.22.0      locfit_1.5-9.10           rhdf5_2.48.0             
+ [76] grid_4.4.1                spdep_1.3-5               DropletUtils_1.24.0      
+ [79] edgeR_4.2.0               colorspace_2.1-0          GenomeInfoDbData_1.2.12  
+ [82] beeswarm_0.4.0            HDF5Array_1.32.0          vipor_0.4.7              
+ [85] cli_3.6.3                 fansi_1.0.6               viridisLite_0.4.2        
+ [88] S4Arrays_1.4.1            dplyr_1.1.4               gtable_0.3.5             
+ [91] R.methodsS3_1.8.2         zeallot_0.1.0             digest_0.6.36            
+ [94] classInt_0.4-10           SparseArray_1.4.8         dqrng_0.4.1              
+ [97] farver_2.1.2              rjson_0.2.21              htmlwidgets_1.6.4        
+[100] htmltools_0.5.8.1         R.oo_1.26.0               lifecycle_1.0.4          
+[103] httr_1.4.7                here_1.0.1                statmod_1.5.0            
+[106] gridtext_0.1.5           
 > sessioninfo::session_info()
 ─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
@@ -624,7 +649,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-10-28
+ date     2024-11-02
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 

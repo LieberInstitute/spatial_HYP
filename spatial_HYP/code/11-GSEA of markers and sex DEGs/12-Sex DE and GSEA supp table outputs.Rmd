@@ -69,7 +69,11 @@ rm(sexde,ofile)
 ```{r}
 msigdbfull <- readRDS("processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
+msigfull.unsign <- readRDS("processed-data/11-GSEA/03d-Unsigned Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
 msigdbcollapsed <- readRDS("processed-data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
+
+msigcoll.unsign <- readRDS("processed-data/11-GSEA/03e-Unsigned Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
 
 msigbindpatterns <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
 
@@ -78,7 +82,9 @@ i<-1
 for (i in c(1:length(msigbindpatterns))){
     curpatt <- msigbindpatterns[i]
     subfull <- msigdbfull[grep(names(msigdbfull),pattern=curpatt)]
+    subfull.us <- msigfull.unsign[grep(names(msigfull.unsign),pattern=curpatt)]
     subclps <- msigdbcollapsed[grep(names(msigdbcollapsed),pattern=curpatt)]
+    subclps.us <- msigcoll.unsign[grep(names(msigcoll.unsign),pattern=curpatt)]
     
     j<-1
     for (j in c(1:length(subfull))){

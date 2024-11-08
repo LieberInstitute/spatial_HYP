@@ -122,22 +122,23 @@ tmpcd[sample_id=="V13M13-362_A1"&Visium.Domain=="VMH"&((array_row<55&array_col>7
 
 tmpcd[sample_id=="V12D07-075_A1"&Visium.Domain=="ARC"&array_row>15&array_col<100,Visium.Domain:="Other"]
 
-tmpcd[sample_id=="V12Y31-080_A1"&Visium.Domain=="ARC"&((array_row<50&array_col>90)|(array_row<60&array_col>80)),Visium.Domain:="Other"]
+tmpcd[sample_id=="V12Y31-080_A1"&Visium.Domain=="ARC"&((array_row<50&array_col>90)|(array_row<60&array_col>80)|(array_row<31&array_col>29)),Visium.Domain:="Other"]
 tmpcd[sample_id=="V12Y31-080_A1"&Visium.Domain=="VMH"&(array_row>50|array_col>85),Visium.Domain:="Other"]
 
-tmpcd[sample_id=="V12D05-348_D1"&Visium.Domain=="ARC"&array_row>55,Visium.Domain:="Other"]
+tmpcd[sample_id=="V12D05-348_D1"&Visium.Domain=="ARC"&(array_row>55|(array_row>30&array_col>50)),Visium.Domain:="Other"]
+tmpcd[sample_id=="V12D05-348_D1"&Visium.Domain=="VMH"&array_row>32&array_col<36,Visium.Domain:="Other"]
 
 tmpcd[sample_id=="V12D05-350_D1"&Visium.Domain=="ARC"&(array_row>55|(array_row>40&array_col>45)|(array_col>60&array_row<35)),Visium.Domain:="Other"]
 
 
 tmpcd[sample_id=="V13M13-362_D1"&Visium.Domain=="VMH"&(array_row<10|array_col<75),Visium.Domain:="Other"]
-tmpcd[sample_id=="V13M13-362_D1"&Visium.Domain=="ARC"&array_row>15&array_col<100,Visium.Domain:="Other"]
+tmpcd[sample_id=="V13M13-362_D1"&Visium.Domain=="ARC"&array_row>15&array_col>79,Visium.Domain:="Other"]
 
 tmpcd[sample_id=="V12D05-348_C1"&Visium.Domain=="ARC"&array_row<40,Visium.Domain:="Other"]
 
 tmpcd[sample_id=="V12D05-350_C1"&Visium.Domain=="ARC"&array_row<35,Visium.Domain:="Other"]
 
-tmpcd[sample_id=="V13Y24-346_C1"&Visium.Domain=="ARC"&array_col>35&array_row<35,Visium.Domain:="Other"]
+tmpcd[sample_id=="V13Y24-346_C1"&Visium.Domain=="ARC"&(array_col>45&array_row<45),Visium.Domain:="Other"]
 tmpcd[sample_id=="V13Y24-346_C1"&Visium.Domain=="VMH"&array_row<25,Visium.Domain:="Other"]
 
 
@@ -166,9 +167,11 @@ hyp2$k15dom <- factor(hyp2$k15dom,levels=c("VMH.1","VMH.2","ARC.1","ARC.2","OT.1
 rownames(hyp2) <- rowData(hyp2)$gene_name
 ## 
 
+## pull back out the updated coldata
 tmpcd <- as.data.table(colData(hyp2))
 # randomly choose a sample for each donor
-samps <- unique(tmpcd[,sample(sample_id,1,replace = F),by=brnum])$V1
+# samps <- unique(tmpcd[,sample(sample_id,1,replace = F),by=brnum])$V1
+samps <- unique(hyp2$sample_id)
 
 mclapply(samps,mc.cores = 8,FUN=function(s){
     pans <- hyp2[,hyp2$sample_id==s]

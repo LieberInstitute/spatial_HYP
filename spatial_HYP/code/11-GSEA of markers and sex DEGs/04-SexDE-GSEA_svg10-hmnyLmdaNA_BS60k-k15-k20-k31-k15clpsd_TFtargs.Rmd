@@ -1,7 +1,7 @@
 ---
 title: "04-Sex DE TF-Target GSEA"
 author: "Bernard Mulvey"
-date: "2024-07-25"
+date: "2024-10-31"
 output: html_document
 ---
 
@@ -41,10 +41,10 @@ sexde <- sexde[grep(names(sexde),pattern="HARMONYlmbna_nnsvg10")]
 
 # check:
 # names(sexde)
-# [1] "k15_HARMONYlmbna_nnsvg10"          
-# [2] "k20_HARMONYlmbna_nnsvg10"          
-# [3] "k31_HARMONYlmbna_nnsvg10"          
-# [4] "k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH"
+# [1] "BSpace_k15_HARMONYlmbna_nnsvg10"          
+# [2] "BSpace_k20_HARMONYlmbna_nnsvg10"          
+# [3] "BSpace_k31_HARMONYlmbna_nnsvg10"          
+# [4] "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH"
 
 ```
 
@@ -87,18 +87,42 @@ rm(i)
 ### looping through each domain (each run is very fast with 10 cpus in biocparallel, so just serially run 10cpu GSEA for each cluster)
 
 ```{r}
-sbp <- MulticoreParam(10)
-register(sbp)
 sexderes <- mapply(X=sexdelist,Y=names(sexdelist),SIMPLIFY=FALSE,FUN=function(X,Y){
-    z<-as.data.table(fgseaMultilevel(pathways=tftargsets,stats = X,minSize = 15,maxSize = 500,eps=0.0,BPPARAM = sbp,nPermSimple = 50000))
-    z[,spdom:=Y]
-    return(z)
+   register(MulticoreParam())
+   
+   # get male-up enriched results
+   z1<-fgseaMultilevel(pathways=tftargsets,stats = X,minSize = 15,maxSize = 500,eps=0.0,nPermSimple = 50000,nproc=10,scoreType = "pos")
+   # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
+   z1$leadingEdge <- as.character(z1$leadingEdge)
+   z1$leadingEdge <- gsub(z1$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+   z1$leadingEdge <- gsub(z1$leadingEdge,pattern='"',replacement='')
+   # drop newlines from leadingEdge
+   z1$leadingEdge <- gsub(z1$leadingEdge,pattern=", \n",replacement=", ")
+   z1 <- as.data.table(z1)
+   z1[,spdom:=Y]
+   z1[,dir:="male_up"]
+   
+   # get female-up enriched results
+   register(MulticoreParam())
+   z2<-fgseaMultilevel(pathways=tftargsets,stats = X,minSize = 15,maxSize = 500,eps=0.0,nPermSimple = 50000,nproc=10,scoreType = "neg")
+   # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
+   z2$leadingEdge <- as.character(z2$leadingEdge)
+   z2$leadingEdge <- gsub(z2$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+   z2$leadingEdge <- gsub(z2$leadingEdge,pattern='"',replacement='')
+   # drop newlines from leadingEdge
+   z2$leadingEdge <- gsub(z2$leadingEdge,pattern=", \n",replacement=", ")
+   z2 <- as.data.table(z2)
+   z2[,spdom:=Y]
+   z2[,dir:="female_up"]
+   
+   z<-rbind(z1,z2)
+   return(z)
 })
 names(sexderes) <- names(sexdelist)
 
 saveRDS(sexderes,"processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
-### collapse pathways-this part is WAY WAY slower than the GSEA itself
+### collapse pathways-can't run this this part is WAY WAY slower than the GSEA itself
 
 sexderes2 <- mcmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, mc.cores=10,FUN=function(X,Y){
     tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = tftargsets)
@@ -108,7 +132,7 @@ names(sexderes2) <- names(sexderes)
 
 saveRDS(sexderes2,"processed-data/11-GSEA/04b-Sex DE TF-target fGSEA-collapsePathways output.RDS")
 
-rm(sexdelist,sexde)
+rm(sexdelist)
 gc(full=T)
 
 ### subset to main enrichments
@@ -117,7 +141,86 @@ sexderes3 <- mapply(X=sexderes,Y=sexderes2,SIMPLIFY = FALSE,FUN=function(X,Y){
 })
 
 saveRDS(sexderes3,"processed-data/11-GSEA/04c-Sex DE TF-target GSEA clpspath mainPathways-only.RDS")
+rm(sexderes,sexderes2,sexderes3)
+gc(full=T)
 ```
+
+### PT 2: unsigned (absolute value) de stats, one tailed test for enrichment in general sex de
+
+get UNSIGNED de t stats
+```{r}
+### drop mito and sex chr genes
+sexde <- lapply(sexde,FUN=function(x){
+    x[!(chromosome_name %in% grep(chromosome_name,pattern="MT|X|Y",value=T))]})
+
+### get named vectors of marker t-stats for each cluster in each result set (15+20+31+13)=79 (if no clusters dropped out of sex de analysis)
+sexdelist.unsign <- list()
+i<-1
+for (i in c(1:length(sexde))){
+    sdoms <- unique(sexde[[i]]$assay)
+    j<-1
+    for (j in c(1:length(sdoms))){
+        tmp <- copy(sexde[[i]][assay==sdoms[j]])[,.(gene_name,abs(tstat))]
+        setnames(tmp,2,"tstat")
+        setorderv(tmp,"tstat",-1)
+        ## get the stat column as a vector and give it the gene ids as names for fgsea
+        ## note that since data.table (invisibly) uses list() for column data, its cleaner to just make the working table a data frame for this last bit
+        tmp <- as.data.frame(tmp)
+        v <- tmp$tstat
+        names(v) <- tmp$gene_name
+        sexdelist.unsign[[length(sexdelist.unsign)+1]] <- v
+        names(sexdelist.unsign)[length(sexdelist.unsign)] <- paste0(names(sexde)[i],"_",sdoms[j])
+        rm(v,tmp)
+    }
+    rm(j,sdoms)
+}
+rm(i)
+```
+
+
+```{r}
+sexderes.unsign <- mapply(X=sexdelist.unsign,Y=names(sexdelist.unsign),SIMPLIFY=FALSE,FUN=function(X,Y){
+   register(MulticoreParam())
+   z<-fgseaMultilevel(pathways=tftargsets,stats = X,minSize = 15,maxSize = 500,eps=0.0,nPermSimple = 50000,nproc=10,scoreType = "pos")
+   # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
+   z$leadingEdge <- as.character(z$leadingEdge)
+   z$leadingEdge <- gsub(z$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+   z$leadingEdge <- gsub(z$leadingEdge,pattern='"',replacement='')
+   # remove newlines from leading edge
+   z$leadingEdge <- gsub(z$leadingEdge,pattern=", \n",replacement=", ")
+   z <- as.data.table(z)
+   z[,spdom:=Y]
+   return(z)
+})
+names(sexderes.unsign) <- names(sexdelist.unsign)
+
+saveRDS(sexderes.unsign,"processed-data/11-GSEA/04d-Unsigned Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
+
+# clear some memory for the next step which is more intensive
+
+gc(full=T)
+### collapse pathways-this part is WAY WAY slower than the GSEA itself
+
+sexderes.unsign2 <- mcmapply(X=sexderes.unsign,Y=sexdelist.unsign,SIMPLIFY = FALSE, mc.cores=7,FUN=function(X,Y){
+    tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = tftargsets)
+    return(tmpres)
+})
+names(sexderes.unsign2) <- names(sexderes.unsign)
+
+saveRDS(sexderes.unsign2,"processed-data/11-GSEA/04e-Unsigned Sex DE TF-target fGSEA-collapsePathways output.RDS")
+
+rm(sexde)
+gc(full=T)
+
+### subset to main enrichments
+sexderes.unsign3 <- mapply(X=sexderes.unsign,Y=sexderes.unsign2,SIMPLIFY = FALSE,FUN=function(X,Y){
+    X[pathway %in% Y[[1]]]
+})
+
+saveRDS(sexderes.unsign3,"processed-data/11-GSEA/04f-Unsigned Sex DE TF-target GSEA clpspath mainPathways-only.RDS")
+```
+
 
 ```{r}
 sessionInfo()
@@ -166,23 +269,23 @@ loaded via a namespace (and not attached):
  [52] treeio_1.28.0           Biobase_2.64.0          withr_3.0.0            
  [55] KEGGREST_1.44.1         evaluate_0.24.0         gridGraphics_0.5-1     
  [58] scatterpie_0.2.3        polyclip_1.10-6         Biostrings_2.72.1      
- [61] ggtree_3.12.0           pillar_1.9.0            rsconnect_1.3.1        
- [64] stats4_4.4.1            ggfun_0.1.5             generics_0.1.3         
- [67] rprojroot_2.0.4         S4Vectors_0.42.1        ggplot2_3.5.1          
- [70] tidytree_0.4.6          munsell_0.5.1           scales_1.3.0           
- [73] glue_1.7.0              lazyeval_0.2.2          tools_4.4.1            
- [76] fs_1.6.4                graphlayouts_1.1.1      fastmatch_1.1-4        
- [79] tidygraph_1.3.1         cowplot_1.1.3           grid_4.4.1             
- [82] ape_5.8                 tidyr_1.3.1             AnnotationDbi_1.66.0   
- [85] colorspace_2.1-0        nlme_3.1-165            patchwork_1.2.0        
- [88] GenomeInfoDbData_1.2.12 ggforce_0.4.2           cli_3.6.3              
- [91] fansi_1.0.6             viridisLite_0.4.2       dplyr_1.1.4            
- [94] gtable_0.3.5            yulab.utils_0.1.4       digest_0.6.36          
- [97] BiocGenerics_0.50.0     ggplotify_0.1.2         ggrepel_0.9.5          
-[100] farver_2.1.2            memoise_2.0.1           htmltools_0.5.8.1      
-[103] lifecycle_1.0.4         httr_1.4.7              here_1.0.1             
-[106] GO.db_3.19.1            bit64_4.0.5             MASS_7.3-61    
-
+ [61] ggtree_3.12.0           pillar_1.9.0            stats4_4.4.1           
+ [64] ggfun_0.1.5             generics_0.1.3          rprojroot_2.0.4        
+ [67] S4Vectors_0.42.1        ggplot2_3.5.1           tidytree_0.4.6         
+ [70] munsell_0.5.1           scales_1.3.0            glue_1.7.0             
+ [73] lazyeval_0.2.2          tools_4.4.1             fs_1.6.4               
+ [76] graphlayouts_1.1.1      fastmatch_1.1-4         tidygraph_1.3.1        
+ [79] cowplot_1.1.3           grid_4.4.1              ape_5.8                
+ [82] tidyr_1.3.1             AnnotationDbi_1.66.0    colorspace_2.1-0       
+ [85] nlme_3.1-165            patchwork_1.2.0         GenomeInfoDbData_1.2.12
+ [88] ggforce_0.4.2           cli_3.6.3               fansi_1.0.6            
+ [91] viridisLite_0.4.2       dplyr_1.1.4             gtable_0.3.5           
+ [94] yulab.utils_0.1.4       digest_0.6.36           BiocGenerics_0.50.0    
+ [97] ggplotify_0.1.2         ggrepel_0.9.5           farver_2.1.2           
+[100] memoise_2.0.1           htmltools_0.5.8.1       lifecycle_1.0.4        
+[103] httr_1.4.7              here_1.0.1              GO.db_3.19.1           
+[106] bit64_4.0.5             MASS_7.3-61            
+> sessioninfo::session_info()
 ─ Session info ──────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
@@ -193,7 +296,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-07-28
+ date     2024-11-01
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
@@ -283,7 +386,6 @@ loaded via a namespace (and not attached):
  P rlang            * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
    rmarkdown          2.27    2024-05-17 [1] CRAN (R 4.4.0)
    rprojroot          2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
-   rsconnect          1.3.1   2024-06-04 [1] CRAN (R 4.4.0)
    RSQLite            2.3.7   2024-05-27 [1] CRAN (R 4.4.0)
    rstudioapi         0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
    S4Vectors          0.42.1  2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
