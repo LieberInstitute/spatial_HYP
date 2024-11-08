@@ -19,18 +19,7 @@ ColorOut()
 options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 ##
 
-## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
-# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
-library(parallelly)
-options(parallelly.supportsMulticore.disableOn="")
-options(parallelly.fork.enable=TRUE)
-library(BiocParallel)
-options(bphost="localhost")
-
-
-## ggplot defaults
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+library(parallel)
 
 ## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
 unloadNamespace("datasets")
@@ -178,19 +167,28 @@ gtab[,vVMH_sexDE_fdrsig:=apply(.SD,MARGIN = 1,function(x){ifelse(visde[assay=="V
 gtab[,vARC_sexDE_nomsig:=apply(.SD,MARGIN = 1,function(x){ifelse(visde[assay=="ARC"&P.Value<0.05&gene_name==x,.N]>0,"YES","NO")}),.SDcols = "gene_symbol"]
 gtab[,vVMH_sexDE_nomsig:=apply(.SD,MARGIN = 1,function(x){ifelse(visde[assay=="VMH"&P.Value<0.05&gene_name==x,.N]>0,"YES","NO")}),.SDcols = "gene_symbol"]
 
-gtab[,xARC_FDRpt1clusts:=apply(.SD,MARGIN = 1,function(x){ifelse(xendea[FDR<0.1&gene_name==x,.N]>0,paste0(xendea[FDR<0.1&gene_name==x,cluster_annotated],collapse=", "),"NO")}),.SDcols = "gene_symbol"]
+gtab[,xARC_sexDE_FDRpt1clusts:=apply(.SD,MARGIN = 1,function(x){ifelse(xendea[FDR<0.1&gene_name==x,.N]>0,paste0(xendea[FDR<0.1&gene_name==x,cluster_annotated],collapse=", "),"NO")}),.SDcols = "gene_symbol"]
 
-gtab[,xVMH_FDRpt1clusts:=apply(.SD,MARGIN = 1,function(x){ifelse(xendev[FDR<0.1&gene_name==x,.N]>0,paste0(xendev[FDR<0.1&gene_name==x,cluster_annotated],collapse=", "),"NO")}),.SDcols = "gene_symbol"]
+gtab[,xVMH_sexDE_FDRpt1clusts:=apply(.SD,MARGIN = 1,function(x){ifelse(xendev[FDR<0.1&gene_name==x,.N]>0,paste0(xendev[FDR<0.1&gene_name==x,cluster_annotated],collapse=", "),"NO")}),.SDcols = "gene_symbol"]
 ```
+
+## lastly, add a column for whether or not the gene was assayed on Xenium
+```{r}
+# check if the DE tables cover all 366 genes otherwise load up the full panel list
+stopifnot(length(unique(c(xendea$gene_name,xendev$gene_name)))==366)
+xeng <- unique(c(xendea$gene_name,xendev$gene_name))
+
+gtab[,xenium_gene:="No"]
+gtab[gene_symbol %in% xeng,xenium_gene:="Yes"]
+
+names(gtab)
+gtab <- gtab[,c(1,16,2:15),with=F]
+```
+
 
 save
 ```{r}
 fwrite(gtab,"manuscript_plots/Supplemental/STable-Genes_diseases_TFs_and_sexDE.txt",sep='\t',quote=F,row.names=F,col.names=T)
 
-# save one with only pertinent genes as well
-gtab2 <- gtab[(vARC_sexDE_fdrsig=="YES"|vVMH_sexDE_fdrsig=="YES"|vARC_sexDE_nomsig=="YES"|vVMH_sexDE_nomsig=="YES"|xARC_FDRpt1clusts!="NO"|xVMH_FDRpt1clusts!="NO"|xpr_vVMH_M!=xpr_vVMH_F|xpr_vARC_M!=xpr_vARC_F)][!is.na(disorders)|!is.na(tested_tf)]
-
-
-gtab3 <- gtab2[disorders %in% grep(disorders,pattern="BMI",value=T,invert=T)|is.na(disorders)]
 
 ```

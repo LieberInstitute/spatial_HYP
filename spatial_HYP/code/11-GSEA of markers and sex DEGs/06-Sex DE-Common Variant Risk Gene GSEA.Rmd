@@ -1,7 +1,7 @@
 ---
 title: "06-Sex DE-Common Variant Risk Gene GSEA"
 author: "Bernard Mulvey"
-date: "2024-07-26"
+date: "2024-10-31"
 output: html_document
 ---
 
@@ -34,7 +34,7 @@ library(BiocParallel)
 
 ### load aggregated disease-gene lists and reformat
 ```{r}
-setDTthreads(1,restore_after_fork=FALSE)
+#setDTthreads(1,restore_after_fork=FALSE)
 
 gwas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/gwassets.txt",header=T)
 twas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/twassets.txt")
@@ -93,7 +93,7 @@ for (i in c(1:length(sexde))){
     }
     rm(j,sdoms)
 }
-rm(i,sexde)
+rm(i)
 ```
 
 ```{r}
@@ -103,16 +103,37 @@ dissets.res <- list()
 i<-1
 for (i in c(1:length(dissets))){
     cursets <- copy(dissets[[i]])
+    
     sexderes <- mapply(X=sexdelist,Y=names(sexdelist),SIMPLIFY=FALSE,FUN=function(X,Y){
         # max size for dis gene sets is BMI at 8100-some, so set max size to 8200 
         register(MulticoreParam())
-        z<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,nPermSimple = 50000,nproc=8)
+        
+        # get male-up enriched results
+        z1<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,nPermSimple = 50000,nproc=10,scoreType = "pos")
         # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
-        z$leadingEdge <- as.character(z$leadingEdge)
-        z$leadingEdge <- gsub(z$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
-        z$leadingEdge <- gsub(z$leadingEdge,pattern='"',replacement='')
-        z <- as.data.table(z)
-        z[,spdom:=Y]
+        z1$leadingEdge <- as.character(z1$leadingEdge)
+        z1$leadingEdge <- gsub(z1$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+        z1$leadingEdge <- gsub(z1$leadingEdge,pattern='"',replacement='')
+        # drop newlines from leadingEdge
+        z1$leadingEdge <- gsub(z1$leadingEdge,pattern=", \n",replacement=", ")
+        z1 <- as.data.table(z1)
+        z1[,spdom:=Y]
+        z1[,dir:="male_up"]
+        
+        # get female-up enriched results
+        register(MulticoreParam())
+        z2<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,nPermSimple = 50000,nproc=10,scoreType = "neg")
+        # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
+        z2$leadingEdge <- as.character(z2$leadingEdge)
+        z2$leadingEdge <- gsub(z2$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+        z2$leadingEdge <- gsub(z2$leadingEdge,pattern='"',replacement='')
+        # drop newlines from leadingEdge
+        z2$leadingEdge <- gsub(z2$leadingEdge,pattern=", \n",replacement=", ")
+        z2 <- as.data.table(z2)
+        z2[,spdom:=Y]
+        z2[,dir:="female_up"]
+        
+        z<-rbind(z1,z2)
         return(z)
     })
     dissets.res[[i]] <- sexderes
@@ -143,12 +164,150 @@ for (i in c(1:length(dissets.res))){
 }
 
 saveRDS(allsexdedisres,"processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs.RDS")
+
+rm(sexdelist)
 ```
+
+### PT2: unsigned DE stats
+```{r}
+sexdelist.unsign <- list()
+i<-1
+for (i in c(1:length(sexde))){
+    sdoms <- unique(sexde[[i]]$assay)
+    j<-1
+    for (j in c(1:length(sdoms))){
+        tmp <- copy(sexde[[i]][assay==sdoms[j]])[,.(gene_name,abs(tstat))]
+        ### juuuust in case duplicate genes are somehow leaking through
+        setnames(tmp,2,"tstat")
+        tmp <- tmp[!duplicated(gene_name)]
+        setorderv(tmp,"tstat",-1)
+        ## get the stat column as a vector and give it the gene ids as names for fgsea
+        ## note that since data.table (invisibly) uses list() for column data, its cleaner to just make the working table a data frame for this last bit
+        tmp <- as.data.frame(tmp)
+        v <- tmp$tstat
+        names(v) <- tmp$gene_name
+        sexdelist.unsign[[length(sexdelist.unsign)+1]] <- v
+        names(sexdelist.unsign)[length(sexdelist.unsign)] <- paste0(names(sexde)[i],"_",sdoms[j])
+        rm(v,tmp)
+    }
+    rm(j,sdoms)
+}
+rm(i,sexde)
+```
+
+unsigned GSEA (pos enrichment)
+```{r}
+dissets.res.unsign <- list()
+
+i<-1
+for (i in c(1:length(dissets))){
+    cursets <- copy(dissets[[i]])
+    sexderes <- mapply(X=sexdelist.unsign,Y=names(sexdelist.unsign),SIMPLIFY=FALSE,FUN=function(X,Y){
+        # max size for dis gene sets is BMI at 8100-some, so set max size to 8200 
+        register(MulticoreParam())
+        z<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,nPermSimple = 50000,nproc=10,scoreType="pos")
+        # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
+        z$leadingEdge <- as.character(z$leadingEdge)
+        z$leadingEdge <- gsub(z$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+        z$leadingEdge <- gsub(z$leadingEdge,pattern='"',replacement='')
+        z <- as.data.table(z)
+        z[,spdom:=Y]
+        return(z)
+    })
+    dissets.res.unsign[[i]] <- sexderes
+    names(dissets.res.unsign)[i] <- names(dissets)[i]
+    rm(cursets,sexderes)
+}
+rm(i)
+
+### concatenate
+i <-1
+for (i in c(1:length(dissets.res.unsign))){
+    j<-1
+    for (j in c(1:length(dissets.res.unsign[[i]]))){
+        if(i==1 & j==1){
+            allsexdedisres.unsign <- copy(dissets.res.unsign[[i]][[j]])
+            allsexdedisres.unsign[,genesets_from:=names(dissets.res.unsign)[i]]
+        }
+        else{
+            tmp <- copy(dissets.res.unsign[[i]][[j]])
+            tmp[,genesets_from:=names(dissets.res.unsign)[i]]
+            allsexdedisres.unsign <- rbind(allsexdedisres.unsign,tmp)
+            rm(tmp)
+        }
+    }
+}
+
+saveRDS(allsexdedisres.unsign,"processed-data/11-GSEA/06b-Unsigned_Common variant disease gene enrichment in sex DEGs.RDS")
+
+rm(sexdelist.unsign)
+``` 
 
 ```{r}
 sessionInfo()
 sessioninfo::session_info()
 ```
+
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] parallel  stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] BiocParallel_1.38.0    parallelly_1.38.0      default_1.0.0         
+[4] colorout_1.3-0.2       msigdbr_7.5.1          fgsea_1.30.0          
+[7] clusterProfiler_4.12.1 data.table_1.15.4      rlang_1.1.4           
+
+loaded via a namespace (and not attached):
+  [1] DBI_1.2.3               gson_0.1.0              shadowtext_0.1.3       
+  [4] gridExtra_2.3           magrittr_2.0.3          DOSE_3.30.1            
+  [7] compiler_4.4.1          RSQLite_2.3.7           png_0.1-8              
+ [10] vctrs_0.6.5             reshape2_1.4.4          stringr_1.5.1          
+ [13] pkgconfig_2.0.3         crayon_1.5.3            fastmap_1.2.0          
+ [16] XVector_0.44.0          ggraph_2.2.1            utf8_1.2.4             
+ [19] HDO.db_0.99.1           rmarkdown_2.27          enrichplot_1.24.0      
+ [22] UCSC.utils_1.0.0        purrr_1.0.2             bit_4.0.5              
+ [25] xfun_0.45               zlibbioc_1.50.0         cachem_1.1.0           
+ [28] aplot_0.2.3             GenomeInfoDb_1.40.1     jsonlite_1.8.8         
+ [31] blob_1.2.4              tweenr_2.0.3            R6_2.5.1               
+ [34] stringi_1.8.4           RColorBrewer_1.1-3      GOSemSim_2.30.0        
+ [37] Rcpp_1.0.13             knitr_1.48              IRanges_2.38.1         
+ [40] Matrix_1.7-0            splines_4.4.1           igraph_2.0.3           
+ [43] tidyselect_1.2.1        qvalue_2.36.0           rstudioapi_0.16.0      
+ [46] yaml_2.3.9              viridis_0.6.5           codetools_0.2-20       
+ [49] lattice_0.22-6          tibble_3.2.1            plyr_1.8.9             
+ [52] treeio_1.28.0           Biobase_2.64.0          withr_3.0.0            
+ [55] KEGGREST_1.44.1         evaluate_0.24.0         gridGraphics_0.5-1     
+ [58] scatterpie_0.2.3        polyclip_1.10-6         Biostrings_2.72.1      
+ [61] ggtree_3.12.0           pillar_1.9.0            stats4_4.4.1           
+ [64] ggfun_0.1.5             generics_0.1.3          rprojroot_2.0.4        
+ [67] S4Vectors_0.42.1        ggplot2_3.5.1           tidytree_0.4.6         
+ [70] munsell_0.5.1           scales_1.3.0            glue_1.7.0             
+ [73] lazyeval_0.2.2          tools_4.4.1             babelgene_22.9         
+ [76] fs_1.6.4                graphlayouts_1.1.1      fastmatch_1.1-4        
+ [79] tidygraph_1.3.1         cowplot_1.1.3           grid_4.4.1             
+ [82] ape_5.8                 tidyr_1.3.1             AnnotationDbi_1.66.0   
+ [85] colorspace_2.1-0        nlme_3.1-165            patchwork_1.2.0        
+ [88] GenomeInfoDbData_1.2.12 ggforce_0.4.2           cli_3.6.3              
+ [91] fansi_1.0.6             viridisLite_0.4.2       dplyr_1.1.4            
+ [94] gtable_0.3.5            yulab.utils_0.1.4       digest_0.6.36          
+ [97] BiocGenerics_0.50.0     ggplotify_0.1.2         ggrepel_0.9.5          
+[100] farver_2.1.2            memoise_2.0.1           htmltools_0.5.8.1      
+[103] lifecycle_1.0.4         httr_1.4.7              here_1.0.1             
+[106] GO.db_3.19.1            bit64_4.0.5             MASS_7.3-61            
+> sessioninfo::session_info()
 ─ Session info ───────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
@@ -159,75 +318,124 @@ sessioninfo::session_info()
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-07-28
+ date     2024-11-02
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
 ─ Packages ───────────────────────────────────────────────────────────────────────
  ! package          * version date (UTC) lib source
-   BiocGenerics     * 0.50.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   BiocManager        1.30.23 2024-05-04 [1] CRAN (R 4.4.0)
+   AnnotationDbi      1.66.0  2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
+   ape                5.8     2024-04-11 [1] CRAN (R 4.4.0)
+   aplot              0.2.3   2024-06-17 [1] CRAN (R 4.4.0)
+   babelgene          22.9    2022-09-29 [1] CRAN (R 4.4.0)
+   Biobase            2.64.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
+   BiocGenerics       0.50.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    BiocParallel     * 1.38.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
-   Biostrings       * 2.72.1  2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
-   callr              3.7.6   2024-03-25 [1] CRAN (R 4.4.0)
+   Biostrings         2.72.1  2024-06-02 [1] Bioconductor 3.19 (R 4.4.0)
+   bit                4.0.5   2022-11-15 [1] CRAN (R 4.4.0)
+   bit64              4.0.5   2020-08-30 [1] CRAN (R 4.4.0)
+   blob               1.2.4   2023-03-17 [1] CRAN (R 4.4.0)
+   cachem             1.1.0   2024-05-16 [1] CRAN (R 4.4.0)
  P cli                3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
+   clusterProfiler  * 4.12.1  2024-07-21 [1] Bioconductor 3.19 (R 4.4.1)
    codetools          0.2-20  2024-03-31 [1] CRAN (R 4.4.1)
    colorout         * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
    colorspace         2.1-0   2023-01-23 [1] CRAN (R 4.4.0)
    cowplot            1.1.3   2024-01-22 [1] CRAN (R 4.4.0)
    crayon             1.5.3   2024-06-20 [1] CRAN (R 4.4.0)
-   curl               5.2.1   2024-03-01 [1] CRAN (R 4.4.0)
    data.table       * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   DBI                1.2.3   2024-06-02 [1] CRAN (R 4.4.0)
    default          * 1.0.0   2017-08-07 [1] CRAN (R 4.4.0)
-   desc               1.4.3   2023-12-10 [1] CRAN (R 4.4.0)
    digest             0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
+   DOSE               3.30.1  2024-05-16 [1] Bioconductor 3.19 (R 4.4.0)
    dplyr              1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
+   enrichplot         1.24.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    evaluate           0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
    fansi              1.0.6   2023-12-08 [1] CRAN (R 4.4.0)
+   farver             2.1.2   2024-05-13 [1] CRAN (R 4.4.0)
    fastmap            1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
    fastmatch          1.1-4   2023-08-18 [1] CRAN (R 4.4.0)
    fgsea            * 1.30.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.1)
+   fs                 1.6.4   2024-04-25 [1] CRAN (R 4.4.0)
    generics           0.1.3   2022-07-05 [1] CRAN (R 4.4.0)
-   GenomeInfoDb     * 1.40.1  2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
+   GenomeInfoDb       1.40.1  2024-05-24 [1] Bioconductor 3.19 (R 4.4.0)
    GenomeInfoDbData   1.2.12  2024-05-01 [1] Bioconductor
+   ggforce            0.4.2   2024-02-19 [1] CRAN (R 4.4.0)
+   ggfun              0.1.5   2024-05-28 [1] CRAN (R 4.4.0)
    ggplot2            3.5.1   2024-04-23 [1] CRAN (R 4.4.0)
+   ggplotify          0.1.2   2023-08-09 [1] CRAN (R 4.4.0)
+   ggraph             2.2.1   2024-03-07 [1] CRAN (R 4.4.0)
+   ggrepel            0.9.5   2024-01-10 [1] CRAN (R 4.4.0)
+   ggtree             3.12.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    glue               1.7.0   2024-01-09 [1] CRAN (R 4.4.0)
+   GO.db              3.19.1  2024-05-01 [1] Bioconductor
+   GOSemSim           2.30.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   graphlayouts       1.1.1   2024-03-09 [1] CRAN (R 4.4.0)
+   gridExtra          2.3     2017-09-09 [1] CRAN (R 4.4.0)
+   gridGraphics       0.5-1   2020-12-13 [1] CRAN (R 4.4.0)
+   gson               0.1.0   2023-03-07 [1] CRAN (R 4.4.0)
    gtable             0.3.5   2024-04-22 [1] CRAN (R 4.4.0)
+   HDO.db             0.99.1  2024-05-01 [1] Bioconductor
    here               1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
    htmltools          0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
    httr               1.4.7   2023-08-15 [1] CRAN (R 4.4.0)
-   IRanges          * 2.38.1  2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
+   igraph             2.0.3   2024-03-13 [1] CRAN (R 4.4.0)
+   IRanges            2.38.1  2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
    jsonlite           1.8.8   2023-12-04 [1] CRAN (R 4.4.0)
+   KEGGREST           1.44.1  2024-06-19 [1] Bioconductor 3.19 (R 4.4.0)
    knitr              1.48    2024-07-07 [1] CRAN (R 4.4.1)
    lattice            0.22-6  2024-03-20 [1] CRAN (R 4.4.1)
+   lazyeval           0.2.2   2019-03-15 [1] CRAN (R 4.4.0)
    lifecycle          1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
    magrittr           2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
+   MASS               7.3-61  2024-06-13 [1] CRAN (R 4.4.0)
    Matrix             1.7-0   2024-04-26 [1] CRAN (R 4.4.1)
+   memoise            2.0.1   2021-11-26 [1] CRAN (R 4.4.0)
+   msigdbr          * 7.5.1   2022-03-30 [1] CRAN (R 4.4.0)
    munsell            0.5.1   2024-04-01 [1] CRAN (R 4.4.0)
+   nlme               3.1-165 2024-06-06 [1] CRAN (R 4.4.0)
    parallelly       * 1.38.0  2024-07-27 [1] CRAN (R 4.4.0)
+   patchwork          1.2.0   2024-01-08 [1] CRAN (R 4.4.0)
    pillar             1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
-   pkgbuild           1.4.4   2024-03-17 [1] CRAN (R 4.4.0)
    pkgconfig          2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
-   processx           3.8.4   2024-03-16 [1] CRAN (R 4.4.0)
-   ps                 1.7.7   2024-07-02 [1] CRAN (R 4.4.0)
+   plyr               1.8.9   2023-10-02 [1] CRAN (R 4.4.0)
+   png                0.1-8   2022-11-29 [1] CRAN (R 4.4.0)
+   polyclip           1.10-6  2023-09-27 [1] CRAN (R 4.4.0)
+   purrr              1.0.2   2023-08-10 [1] CRAN (R 4.4.0)
+   qvalue             2.36.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    R6                 2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
+   RColorBrewer       1.1-3   2022-04-03 [1] CRAN (R 4.4.0)
    Rcpp               1.0.13  2024-07-17 [1] CRAN (R 4.4.0)
-   remotes            2.5.0   2024-03-17 [1] CRAN (R 4.4.0)
+   reshape2           1.4.4   2020-04-09 [1] CRAN (R 4.4.0)
  P rlang            * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
    rmarkdown          2.27    2024-05-17 [1] CRAN (R 4.4.0)
    rprojroot          2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   RSQLite            2.3.7   2024-05-27 [1] CRAN (R 4.4.0)
    rstudioapi         0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
-   S4Vectors        * 0.42.1  2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
+   S4Vectors          0.42.1  2024-07-03 [1] Bioconductor 3.19 (R 4.4.1)
    scales             1.3.0   2023-11-28 [1] CRAN (R 4.4.0)
+   scatterpie         0.2.3   2024-06-05 [1] CRAN (R 4.4.0)
    sessioninfo        1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   shadowtext         0.1.3   2024-01-19 [1] CRAN (R 4.4.0)
+   stringi            1.8.4   2024-05-06 [1] CRAN (R 4.4.0)
+   stringr            1.5.1   2023-11-14 [1] CRAN (R 4.4.0)
    tibble             3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
+   tidygraph          1.3.1   2024-01-30 [1] CRAN (R 4.4.0)
+   tidyr              1.3.1   2024-01-24 [1] CRAN (R 4.4.0)
    tidyselect         1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
+   tidytree           0.4.6   2023-12-12 [1] CRAN (R 4.4.0)
+   treeio             1.28.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   tweenr             2.0.3   2024-02-26 [1] CRAN (R 4.4.0)
    UCSC.utils         1.0.0   2024-05-06 [1] Bioconductor 3.19 (R 4.4.0)
    utf8               1.2.4   2023-10-22 [1] CRAN (R 4.4.0)
    vctrs              0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
+   viridis            0.6.5   2024-01-29 [1] CRAN (R 4.4.0)
+   viridisLite        0.4.2   2023-05-02 [1] CRAN (R 4.4.0)
+   withr              3.0.0   2024-01-16 [1] CRAN (R 4.4.0)
    xfun               0.45    2024-06-16 [1] CRAN (R 4.4.0)
-   XVector          * 0.44.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
+   XVector            0.44.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    yaml               2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
+   yulab.utils        0.1.4   2024-01-28 [1] CRAN (R 4.4.0)
    zlibbioc           1.50.0  2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
 
  [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library

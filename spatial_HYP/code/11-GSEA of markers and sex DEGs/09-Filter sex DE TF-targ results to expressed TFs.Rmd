@@ -38,6 +38,13 @@ load Sex DE - TFtarg GSEA results before having run collapsePathways (which coul
 ## un-redundancied results
 sexreslist <- readRDS("processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
+sexreslist.unsign <- readRDS("processed-data/11-GSEA/04d-Unsigned Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
+names(sexreslist.unsign) <- paste0("unsigned_",names(sexreslist.unsign))
+
+sexreslist <- c(sexreslist,sexreslist.unsign)
+
+# 
 hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
 
 # set rownames of spe to gene symbol, since those are the identifiers we're stuck with for TF-targ sets
@@ -79,13 +86,25 @@ gc(full=T)
 names(sexreslist)
 
 sexreslist <- list(
-    sexreslist[grep(names(sexreslist),pattern="BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T)],
-    sexreslist[grep(names(sexreslist),pattern="BSpace_k20_HARMONYlmbna_nnsvg10",value=T)],
-    sexreslist[grep(names(sexreslist),pattern="BSpace_k31_HARMONYlmbna_nnsvg10",value=T)],
-    sexreslist[grep(names(sexreslist),pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH",value=T)]
+    sexreslist[grep(names(sexreslist),pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T)],
+    sexreslist[grep(names(sexreslist),pattern="^BSpace_k20_HARMONYlmbna_nnsvg10",value=T)],
+    sexreslist[grep(names(sexreslist),pattern="^BSpace_k31_HARMONYlmbna_nnsvg10",value=T)],
+    sexreslist[grep(names(sexreslist),pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH",value=T)]
+    sexreslist[grep(names(sexreslist),pattern="^unsigned_BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T)],
+    sexreslist[grep(names(sexreslist),pattern="^unsigned_BSpace_k20_HARMONYlmbna_nnsvg10",value=T)],
+    sexreslist[grep(names(sexreslist),pattern="^unsigned_BSpace_k31_HARMONYlmbna_nnsvg10",value=T)],
+    sexreslist[grep(names(sexreslist),pattern="^unsigned_BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH",value=T)]
 )
 
-names(sexreslist) <- c("BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10","BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH")
+names(sexreslist) <- c(
+    "BSpace_k15_HARMONYlmbna_nnsvg10",
+    "BSpace_k20_HARMONYlmbna_nnsvg10",
+    "BSpace_k31_HARMONYlmbna_nnsvg10",
+    "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH",
+    "unsigned_BSpace_k15_HARMONYlmbna_nnsvg10",
+    "unsigned_BSpace_k20_HARMONYlmbna_nnsvg10",
+    "unsigned_BSpace_k31_HARMONYlmbna_nnsvg10",
+    "unsigned_BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH")
 ```
 
 ### get the clustering sets for the four Bayesspace runs we're reporting so we can extract and filter to TFs expressed in the cluster at >0.0025% of spots in ≥ 3 samples and with a mean expression in at least 1% of spots for all 4 clustering approaches
@@ -119,11 +138,15 @@ names(bscls)[4] <- "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH"
 
 # sanity check
 stopifnot(names(bscls)==names(sexreslist))
+
+# make this a list of the clusterings x2 since we need to apply our functions to the signed and unsigned result lists
+bscls <- c(bscls,bscls)
+
 ```
 
 ### get TFs qualifying as expressed in each cluster for at least one sex (≥3 samples of a sex with detection in at least 1% of cluster spots and overall at least 2.5% of cluster spots expressing.) see code/08 for a more marked-up version explaining how the code tabulating this works.
 ```{r}
-sbp <- MulticoreParam(4)
+sbp <- MulticoreParam(8)
 register(sbp)
 sexreslist.filt <- bpmapply(R=sexreslist,C=bscls,N=as.list(names(bscls)),FUN=function(R,C,N){
     
