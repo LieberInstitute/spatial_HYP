@@ -1,0 +1,254 @@
+---
+title: "SF-vARC-vVMH and v-x sexDE comparisons"
+output: html_document
+date: "2024-11-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(ggtext)
+
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 9), axis.title.x = element_text(size = 8), axis.text.y = element_text(size = 8), axis.title.y = element_text(size =9), plot.title = element_markdown(size = 11,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+sex DE table
+```{r}
+visde <- fread("spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+
+## append chromosome info to filter out sex chr, mito genes
+enslut <- fread("spatial_HYP/raw-data/USEFOR10X_ensg_lut_hg38_fromEns98_111123.txt")
+enslut <- unique(enslut[,.(ensembl_gene_id,chromosome_name)])
+enslut[,chromosome_name:=paste0("chr",chromosome_name)]
+
+visde <- merge.data.table(visde,enslut,by.x="gene_id",by.y="ensembl_gene_id")
+visde <- visde[chromosome_name %in% paste0("chr",c(1:22))]
+
+vmh <- visde[assay=="VMH",.(gene_id,gene_name,logFC,P.Value,adj.P.Val,t,B)]
+arc <- visde[assay=="ARC",.(gene_id,gene_name,logFC,P.Value,adj.P.Val,t,B)]
+setnames(vmh,c(3:ncol(vmh)),paste0("vmh_",names(vmh)[3:ncol(vmh)]))
+setnames(arc,c(3:ncol(arc)),paste0("arc_",names(arc)[3:ncol(arc)]))
+
+jt <- merge.data.table(vmh,arc,by="gene_id")
+
+
+# initialize plot list
+plts <- list()
+
+# first plot: t stat correlations
+sprh <- round(cor(jt$vmh_t,jt$arc_t,use = "pairwise.complete.obs",method = "spearman"),digits = 3)
+
+# make abline dataframe
+xeqy <- as.data.table(data.frame(intercept=0,slope=1,`Line Color`="x=y"))
+setnames(xeqy,3,"Line Color")
+
+plts[[1]] <- ggplot(jt,aes(x=vmh_t,y=arc_t))+
+    geom_point(size=0.375)+
+    ggtitle(paste0("Autosomal sex DE t-stats<br>(Spearman rho: ",sprh,")"))+
+    xlab("vVMH t-statistic")+
+    ylab("vARC t-statistic")+
+    scale_x_continuous(limits=c(min(c(jt$vmh_t,jt$arc_t)),max(c(jt$vmh_t,jt$arc_t))),expand=c(0.05,0.05))+
+    scale_y_continuous(limits=c(min(c(jt$vmh_t,jt$arc_t)),max(c(jt$vmh_t,jt$arc_t))),expand=c(0.05,0.05))+
+    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
+    theme(legend.position = "inside",legend.position.inside=c(0.125,0.875),legend.background = element_blank(),legend.key=element_blank())
+
+## logFC correlations
+sprh <- round(cor(jt$vmh_logFC,jt$arc_logFC,use = "pairwise.complete.obs",method = "spearman"),digits = 3)
+pcc <- round(cor(jt$vmh_logFC,jt$arc_logFC,use = "pairwise.complete.obs",method = "pearson"),digits = 3)
+
+plts[[2]] <- ggplot(jt,aes(x=vmh_logFC,y=arc_logFC))+
+    geom_point(size=0.375)+
+    ggtitle(paste0("Autosomal sex DE logFC<br>(Spearman ",sprh," / Pearson ",pcc,")"))+
+    xlab("vVMH logFC")+
+    ylab("vARC logFC")+
+    scale_x_continuous(limits=c(min(c(jt$vmh_logFC,jt$arc_logFC)),max(c(jt$vmh_logFC,jt$arc_logFC))),expand=c(0.05,0.05))+
+    scale_y_continuous(limits=c(min(c(jt$vmh_logFC,jt$arc_logFC)),max(c(jt$vmh_logFC,jt$arc_logFC))),expand=c(0.05,0.05))+
+    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
+    theme(legend.position = "inside",legend.position.inside=c(0.125,0.875),legend.background = element_blank(),legend.key=element_blank())
+
+
+## panel 3: unconditional *p*-value densities: genes nominal in either
+jtun <- jt[(vmh_P.Value<0.05|arc_P.Value<0.05)&!is.na(vmh_P.Value)&!is.na(arc_P.Value)]
+jtun <- melt.data.table(jtun,id.vars=c("gene_id"),measure.vars = c("arc_P.Value","vmh_P.Value"))
+jtun[,variable:=gsub(variable,pattern="^(.*)_.*$",replacement="\\1")]
+jtun[,variable:=paste0("v",toupper(variable))]
+
+
+plts[[3]] <- ggplot(jtun,aes(x=value,color=variable))+
+    geom_density()+
+    ggtitle("Gene *p*-value density: p<0.05, either domain")+
+    xlab("*p*-value")+
+    ylab("density")+
+    labs(color="Domain")+
+    scale_y_continuous(expand=c(0,0))+
+    theme(legend.position = "inside",legend.position.inside=c(0.85,0.825),legend.background = element_blank(),legend.key=element_blank(),legend.margin = margin(0,0,-0.05,0,unit="in"))
+
+
+rm(jtun)
+# panel 4 using p<0.01
+jtun <- jt[(vmh_P.Value<0.01|arc_P.Value<0.01)&!is.na(vmh_P.Value)&!is.na(arc_P.Value)]
+jtun <- melt.data.table(jtun,id.vars=c("gene_id"),measure.vars = c("arc_P.Value","vmh_P.Value"))
+jtun[,variable:=gsub(variable,pattern="^(.*)_.*$",replacement="\\1")]
+jtun[,variable:=paste0("v",toupper(variable))]
+
+plts[[4]] <- ggplot(jtun,aes(x=value,color=variable))+
+    geom_density()+
+    ggtitle("Gene *p*-value density: p<0.01, either domain")+
+    xlab("*p*-value")+
+    ylab("density")+
+    labs(color="Domain")+
+    scale_y_continuous(expand=c(0,0))+
+    theme(legend.position = "inside",legend.position.inside=c(0.8,0.825),legend.background = element_blank(),legend.key=element_blank(),legend.margin = margin(0,0,-0.05,0,unit="in"))
+
+rm(jtun)
+#### conditional: ARC DEGs p<0.2, p<0.05, p<0.01 in VMH
+vcon <- jt[arc_P.Value<0.2,.(gene_id,vmh_P.Value,arc_P.Value)]
+vcon[,grp:=ifelse(arc_P.Value>0.1,"vARC p 0.1 to 0.2","tmp")]
+vcon[arc_P.Value>0.05&arc_P.Value<0.1,grp:="vARC p 0.05 to 0.1"]
+vcon[arc_P.Value<0.05,grp:="vARC p<0.05"]
+vcon2 <- jt[arc_P.Value>0.2,.(gene_id,vmh_P.Value,arc_P.Value)]
+vcon2[,grp:="vARC p>0.2"]
+vcon <- rbind(vcon,vcon2)
+
+plts[[5]] <- ggplot(vcon,aes(x=vmh_P.Value,color=grp))+
+    geom_density()+
+    ggtitle("vVMH gene *p*-value density: p<0.2 in vARC")+
+    xlab("vVMH *p*-value")+
+    ylab("density")+
+    scale_y_continuous(expand=c(0,0))+
+    theme(legend.position = "inside",legend.position.inside=c(0.8,0.75),legend.background = element_blank(),legend.key=element_blank(),legend.margin = margin(0,0,-0.05,0,unit="in"),legend.title=element_blank())
+
+### VMH DEGs in ARC
+acon <- jt[vmh_P.Value<0.2,.(gene_id,vmh_P.Value,arc_P.Value)]
+acon[,grp:=ifelse(vmh_P.Value>0.1,"vVMH p 0.1 to 0.2","tmp")]
+acon[vmh_P.Value>0.05&vmh_P.Value<0.1,grp:="vVMH p 0.05 to 0.1"]
+acon[vmh_P.Value<0.05,grp:="vVMH p<0.05"]
+acon2 <- jt[vmh_P.Value>0.2,.(gene_id,vmh_P.Value,arc_P.Value)]
+acon2[,grp:="vVMH p>0.2"]
+acon <- rbind(acon,acon2)
+
+plts[[6]] <- ggplot(acon,aes(x=arc_P.Value,color=grp))+
+    geom_density()+
+    ggtitle("vARC gene *p*-value density: p<0.2 in vVMH")+
+    xlab("vARC *p*-value")+
+    ylab("density")+
+    scale_y_continuous(expand=c(0,0))+
+    theme(legend.position = "inside",legend.position.inside=c(0.8,0.75),legend.background = element_blank(),legend.key=element_blank(),legend.margin = margin(0,0,-0.05,0,unit="in"),legend.title=element_blank())
+```
+
+## xenium-visium comparative plots (domain level)
+```{r}
+xendom <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
+
+### grab ensembl ids (retrieved when assembling SPE) so we can match to ids in visium
+enslut <- fread("xenium_HYP/processed-data/03_make_SPE-SFE/01_rowData_raw.txt")
+xendom <- merge.data.table(xendom,enslut[,.(ID,Symbol)],by.x="gene_name",by.y="Symbol")
+
+## check that symbol and ID give same visium results
+stopifnot(identical(vmh[gene_name %in% unique(xendom$gene_name)&vmh_P.Value<0.1],vmh[gene_id %in% unique(xendom$ID)&vmh_P.Value<0.1]))
+
+stopifnot(identical(arc[gene_name %in% unique(xendom$gene_name)&arc_P.Value<0.1],arc[gene_id %in% unique(xendom$ID)&arc_P.Value<0.1]))
+
+###
+xvmh <- xendom[domain=="VMH",.(ID,logFC_MvF,P.Value,adj.P.Val,t,B)]
+xarc <- xendom[domain=="ARC",.(ID,logFC_MvF,P.Value,adj.P.Val,t,B)]
+setnames(xvmh,1,"gene_id")
+setnames(xarc,1,"gene_id")
+setnames(xvmh,c(2:ncol(xvmh)),paste0("xvmh_",names(xvmh)[2:ncol(xvmh)]))
+setnames(xarc,c(3:ncol(xarc)),paste0("xarc_",names(xarc)[3:ncol(xarc)]))
+
+arcxv <- merge.data.table(arc,xarc,by="gene_id")
+vmhxv <- merge.data.table(vmh,xvmh,by="gene_id")
+```
+
+
+xen-vis comparison plot series: ARC (all genes), VMH (all genes), ARC (36 prioritized genes), VMH (36 prioritized genes)
+```{r}
+xvplts <- list()
+
+cor.test(arcxv$xarc_t,arcxv$arc_t,use = "pairwise.complete.obs",method = "spearman") # p < 2.2e-16
+sprh <- round(cor(arcxv$xarc_t,arcxv$arc_t,use = "pairwise.complete.obs",method = "spearman"),3)
+
+xvplts[[1]] <- ggplot(arcxv,aes(y=xarc_t,x=arc_t))+
+    geom_point(size=0.375)+
+    ggtitle(paste0("vARC-xARC Sex DE *t*<br>(277 shared genes;<br>rho= ",sprh,")"))+
+    xlab("vARC t-statistic")+
+    ylab("xARC t-statistic")+
+    scale_x_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))+
+    scale_y_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))+
+    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
+    theme(legend.position = "inside",legend.position.inside=c(0.195,0.85),legend.background = element_blank(),legend.key=element_blank())
+    
+
+cor.test(vmhxv$xvmh_t,vmhxv$vmh_t,use = "pairwise.complete.obs",method = "spearman") # p < 5.46e-11
+
+sprh <- round(cor(vmhxv$xvmh_t,vmhxv$vmh_t,use = "pairwise.complete.obs",method = "spearman"),3)
+
+xvplts[[2]] <- ggplot(vmhxv,aes(y=xvmh_t,x=vmh_t))+
+    geom_point(size=0.375)+
+    ggtitle(paste0("vVMH-xVMH Sex DE *t*<br>(245 shared genes;<br>rho= ",sprh,")"))+
+    xlab("vVMH t-statistic")+
+    ylab("xVMH t-statistic")+
+    scale_x_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))+
+    scale_y_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))+
+    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
+    theme(legend.position = "inside",legend.position.inside=c(0.195,0.85),legend.background = element_blank(),legend.key=element_blank())
+
+## subset to genes earmarked for sex de followup
+fulist <- fread("xenium_HYP/raw-data/genes_prioritized_for_xeniumSexDEfollowup.txt",header=F)
+
+arcxv <- arcxv[gene_name %in% fulist$V1]
+vmhxv <- vmhxv[gene_name %in% fulist$V1]
+
+cor.test(arcxv$xarc_t,arcxv$arc_t,use = "pairwise.complete.obs",method = "spearman") # p < 5.8e-7
+
+sprh <- round(cor(arcxv$xarc_t,arcxv$arc_t,use = "pairwise.complete.obs",method = "spearman"),3)
+
+xvplts[[3]] <- ggplot(arcxv,aes(y=xarc_t,x=arc_t))+
+    geom_point(size=0.375)+
+    ggtitle(paste0("vARC-xARC Sex DE *t*<br>(33 prioritized genes;<br>rho= ",sprh,")"))+
+    xlab("vARC t-statistic")+
+    ylab("xARC t-statistic")+
+    scale_x_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))+
+    scale_y_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))+
+    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
+    theme(legend.position = "inside",legend.position.inside=c(0.195,0.85),legend.background = element_blank(),legend.key=element_blank())
+
+cor.test(vmhxv$xvmh_t,vmhxv$vmh_t,use = "pairwise.complete.obs",method = "spearman") # p < 0.008
+
+sprh <- round(cor(vmhxv$xvmh_t,vmhxv$vmh_t,use = "pairwise.complete.obs",method = "spearman"),3)
+
+xvplts[[4]] <- ggplot(vmhxv,aes(y=xvmh_t,x=vmh_t))+
+    geom_point(size=0.375)+
+    ggtitle(paste0("vVMH-xVMH Sex DE *t*<br>(27 prioritized genes;<br>rho= ",sprh,")"))+
+    xlab("vVMH t-statistic")+
+    ylab("xVMH t-statistic")+
+    scale_x_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))+
+    scale_y_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))+
+    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
+    theme(legend.position = "inside",legend.position.inside=c(0.195,0.85),legend.background = element_blank(),legend.key=element_blank())
+
+```
+
+### save
+```{r}
+pdf("manuscript_plots/Supplemental/SF-vVMH-vARC_sex_DE_comparative_stats.pdf",height=11,width=8.5,onefile = FALSE)
+do.call("grid.arrange",list(arrangeGrob(grobs=plts,ncol=2),arrangeGrob(grobs=xvplts,nrow=1),nrow=2,heights=c(8.5,2.5)))
+dev.off()
+```

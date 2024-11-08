@@ -1,0 +1,253 @@
+---
+title: "SF-Xen_celltype_proportions_ESR1positive"
+output: html_document
+date: "2024-11-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(SpatialExperiment)
+library(SpatialFeatureExperiment)
+library(sf)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+library(parallel)
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+
+
+#### VISIUM setup ####
+```{r}
+hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+bscl <- fread("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt") # main visium clustering (bs=bayesspace)
+
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("Vis",cl)]
+bscl[cl=="Vis7",cl:="VMH.1"]
+bscl[cl=="Vis12",cl:="VMH.2"]
+bscl[cl=="Vis4",cl:="ARC.1"]
+bscl[cl=="Vis6",cl:="ARC.2"]
+
+bscl[,dom:=cl]
+bscl[dom %in% c("VMH.1","VMH.2"),dom:="vVMH"]
+bscl[dom %in% c("ARC.1","ARC.2"),dom:="vARC"]
+bscl <- bscl[dom %in% c("vARC","vVMH")]
+
+## subset to vVMH and vARC
+hyp2 <- hyp2[,colnames(hyp2) %in% bscl$rn]
+
+bscl<-DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
+hyp2$k15clus <- bscl$cl
+hyp2$dom <- factor(bscl$dom,levels=c("vARC","vVMH"))
+
+rownames(hyp2) <- rowData(hyp2)$gene_name
+```
+
+### XENIUM setup ###
+```{r}
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bksmooth <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt") ## xenium domain assignments after smoothing, by xenium cell
+
+## but drop discarded cell clusters, too
+bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+setnames(bkcl,2,"cl")
+
+bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+
+## drop sample-specific clusters, append cluster annotations 
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
+
+## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
+arcvmhanno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+
+## append these to the other annots and replace bjm_annot with the ARC/VMH cell type labels where applicable
+bkanno <- merge.data.table(bkanno,arcvmhanno,by="bjm_annot",all.x=T)
+bkanno[!is.na(plotclusname),bjm_annot:=plotclusname]
+
+## this drops rows that were assigned one of the discarded types (ie no longer in the cell type annotations)
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+## and now we can drop excluded clusters from xenium spe
+hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
+
+## append cluster annots to xenium spe
+bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]
+bkcl$rn <- NULL
+hypx$banksyclus <- bkcl$bjm_annot
+
+## assign the domain labels to the xenium cells
+bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
+bksmooth[dualVMHARC4=="ARC",dualVMHARC4:="xARC"]
+bksmooth[dualVMHARC4=="VMH",dualVMHARC4:="xVMH"]
+
+bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
+hypx$dom <- bksmooth$dualVMHARC4
+```
+
+pt1: expanded xVMH
+
+### the package `sf` can be used to extend the boundary of a polygonal areas by first creating a buffer zone around each, then reporting cells that buffered polygon overlaps 
+```{r}
+arcvmh4 <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
+# filter to included cells
+arcvmh4 <- arcvmh4[rn %in% colnames(hypx)]
+
+arcvmh4.list <- split(arcvmh4,arcvmh4$sample_id)
+
+## divy each sample into VMH and ARC subtables for defining their respective polygons; extract convex hulls, convert to sf objects and create additional buffer zones, then find their overlaps (which define the approx ARC-VMH boundary region) and extract the VMH/ARC domain cells in that boundary region for downstream enrichment testing 
+arcvmh4.xpandedcells <- mclapply(arcvmh4.list,mc.cores=10,FUN=function(s){
+    fullsf <- st_as_sf(s,coords=c("xcoord","ycoord"))
+    
+    ## get the points defining the convex hull using sf by running st_union to make a single geometry of all component points, then st_convex_hull to get the hull
+    vmh.sf <- st_as_sf(s[dualVMHARC4=="VMH"],coords=c("xcoord","ycoord"))
+    vmh.hull <- st_convex_hull(st_union(vmh.sf))
+
+    ## add a buffer zone the domain hull polygons. our coordinates span about 10000 unitless values in the x and y planes for each tissue section, so a buffer adding about 4% to the hull should be good. we can approximate this by calculating the median of the pairwise distances between points defining the domain hull
+    
+    vmh.buffdist <- median(dist(st_coordinates(vmh.hull)))
+    vmh.buffhull <- st_buffer(vmh.hull,dist=0.15*vmh.buffdist)
+    ## combine the buffered hulls into a single geometry
+    ## then fucking finally, get the polygon defining where these buffered hulls that overlap, which should thus encompass the vicinity of where a "true" VMH and ARC boundary lies. extract the portions of the overlapping buffers that were assigned ARC or VMH domains by the original smoothing. these are what we want to run DE on next. 
+    ## really, truly finally, get the cells that fall within this VMH-arc boundary polygon in each respective domain.
+    inexpandedvmh <- st_within(fullsf,vmh.buffhull,sparse = F)
+    expandedvmhcells <- as.data.frame(fullsf)[inexpandedvmh,"rn"]
+    return(expandedvmhcells)
+})
+```
+
+# set an xl domain identity, where existing ARC labels are retained
+```{r}
+tmpcd <- as.data.table(colData(hypx),keep.rownames=T)
+
+tmpcd[dom!="ARC",dom_expandedVMH:=ifelse(rn %in% unlist(arcvmh4.xpandedcells),"VMHxl","Other")]
+tmpcd[dom=="ARC",dom_expandedVMH:="ARC"]
+
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(hypx),]
+colData(hypx) <- tmpcd
+```
+
+
+xenium, visium cell/spot props
+```{r}
+## xenium cellwise counts
+hypx.ct <- cbind(as.data.table(colData(hypx))[dom %in% c("xVMH","xARC"),.(banksyclus,dom)],
+                 as.data.table(as.data.frame(t(as.matrix(counts(hypx[c("ESR1","AR"),hypx$dom %in% c("xVMH","xARC")]))))))
+
+# visium spotwise counts
+hyp2.ct <- cbind(as.data.table(colData(hyp2))[dom %in% c("vARC","vVMH"),.(dom,dom)],
+                 as.data.table(as.data.frame(t(as.matrix(counts(hyp2[c("ESR1","AR","ESR2","PGR"),hyp2$dom %in% c("vARC","vVMH")]))))))
+setnames(hyp2.ct,2,"banksyclus")
+hypx.ct <- rbind(hypx.ct,hyp2.ct,fill=T)
+
+# expanded VMH excluded from all calculations and plotting by commenting out these lines:
+# vmhxl.ct <- cbind(as.data.table(colData(hypx))[dom_expandedVMH=="VMHxl",.(banksyclus,dom_expandedVMH)],
+#                  as.data.table(as.data.frame(t(as.matrix(counts(hypx[c("ESR1","AR"),hypx$dom_expandedVMH=="VMHxl"]))))))
+# 
+# setnames(vmhxl.ct,"dom_expandedVMH","dom")
+# hypx.ct <- rbind(hypx.ct,vmhxl.ct)
+# 
+
+xprops <- lapply(unique(hypx.ct$banksyclus),FUN=function(x){
+    ans <- hypx.ct[banksyclus==x]
+    ans[,esr:=ifelse(ESR1>0,1,0)]
+    ans[,ar:=ifelse(AR>0,1,0)]
+    if(nrow(ans[!is.na(PGR)|!is.na(ESR2)])>0){
+        ans[,pgr:=ifelse(PGR>0,1,0)]
+        ans[,esr2:=ifelse(ESR2>0,1,0)]
+    } else {
+        ans[,pgr:=0]
+        ans[,esr2:=0]
+    }
+    
+    ans <- melt.data.table(ans[,.(banksyclus,dom,esr,ar,pgr,esr2)],c(id.vars="banksyclus","dom"))
+    xprops2 <- ans[value==1,.N,by=c("dom","banksyclus","variable")]
+    denom <- ans[,.N,by=c("dom","banksyclus")][,.(dom,banksyclus,N)]
+    setnames(denom,"N","domainCellsInCluster")
+    
+    xprops2 <- merge.data.table(xprops2,denom,by=c("dom","banksyclus"),all.x=T)
+    xprops2[,domainCelltype_prop_xpr:=N/domainCellsInCluster]
+    return(xprops2)
+})
+
+xprops <- rbindlist(xprops)
+
+xprops[variable=="esr",variable:="*ESR1*"]
+xprops[variable=="ar",variable:="*AR*"]
+xprops[variable=="pgr",variable:="*PGR*"]
+xprops[variable=="esr2",variable:="*ESR2*"]
+
+xprops[,banksyclus:=gsub(banksyclus,pattern="_",replacement=" ")]
+xprops[banksyclus=="Peripheral immune NK-or Tcell 1",banksyclus:="Peripheral immune<br>NK or T-cell 1"]
+xprops[banksyclus=="Peripheral immune NK-or Tcell",banksyclus:="Peripheral immune<br>NK or T-cell 2"]
+xprops[banksyclus=="Excitatory Periventricular (CRH, TRH)",banksyclus:="Excitatory PeriVN<br>(*CRH*, *TRH*)"]
+xprops[banksyclus=="Oligodendrocyte Precursor cells (OPC)",banksyclus:="OPC"]
+xprops[banksyclus=="Supraoptic nu (AVP+OXT+) 2",banksyclus:="SON (*AVP*, *OXT*) 2"]
+xprops[banksyclus=="Supraoptic nu (AVP+OXT+) 1",banksyclus:="SON (*AVP*, *OXT*) 1"]
+xprops[banksyclus=="Diffuse GABAergic TRH",banksyclus:="Diffuse GABA-<br>ergic *TRH*"]
+
+xprops[banksyclus %in% c("*AGRP*","*GAL*-*TRH*-*GHRH*","*POMC*-Oligo Mixed","*SLC17A7*-Glia Mixed","*TAC3*-*ESR1*"),banksyclus:=gsub(banksyclus,pattern="^(.*)$",replacement=paste0("xARC<br>","\\1"))]
+
+xprops[banksyclus=="xARC<br>*SLC17A7*-Glia Mixed",banksyclus:="xARC<br>*SLC17A7*-Glia<br>Mixed"]
+
+xprops[banksyclus %in% c("*CRHR2*","*LAMP5*"),banksyclus:=gsub(banksyclus,pattern="^(.*)$",replacement=paste0("xVMH<br>","\\1"))]
+xprops[banksyclus=="xVMH Lateral Border",banksyclus:="xVMH Lateral<br>Border"]
+
+lvs <- c(unique(xprops[banksyclus %in% grep(banksyclus,pattern="vARC|vVMH",value=T),banksyclus]),
+         unique(xprops[banksyclus %in% grep(banksyclus,pattern="xARC",value=T),banksyclus]),
+         unique(xprops[banksyclus %in% grep(banksyclus,pattern="xVMH",value=T),banksyclus]),
+         unique(xprops[banksyclus %in% grep(banksyclus,pattern="xVMH|xARC|vARC|vVMH",value=T,invert=T),banksyclus]))
+
+xprops[,banksyclus:=factor(banksyclus,levels=lvs)]
+
+# drop arc cell types in vmh and vice versa-- there's very few of each and its confusing
+xprops <- xprops[!(dom=="xVMH"&banksyclus %in% grep(banksyclus,pattern="xARC",value=T))&!(dom=="xARC"&banksyclus %in% grep(banksyclus,pattern="xVMH",value=T))&!(dom=="xVMHxl"&banksyclus %in% grep(banksyclus,pattern="xARC",value=T)),]
+
+# xprops[dom=="xVMHxl",dom:="Expanded<br>xVMH"]
+xprops[,dom:=gsub(dom,pattern="^.(.*)$",replacement="\\1")]
+xprops[,dom:=factor(dom,levels=c("ARC","VMH"))]
+
+pdf("manuscript_plots/Supplemental/SF_xARC_xVMH_clusterproportions_expressing_esr1.pdf",height=11,width=8.5)
+ggplot(xprops,aes(xprops,x=dom,y=domainCelltype_prop_xpr,fill=variable))+geom_col(position="dodge")+
+    facet_wrap(~banksyclus)+
+    ylab("Proportion of Visium domain spots OR\nXenium cluster cells within Xenium domain\nexpressing gene")+
+    xlab("Domain")+
+    labs(fill="Gene")+
+    theme(axis.text.x=element_markdown(angle=90,hjust=1,vjust=0.5,size=9),
+          strip.text=element_markdown(size=9),
+          strip.background=element_blank(),
+          axis.title.x=element_text(size=10),
+          axis.title.y=element_text(size=10),
+          axis.text.y=element_text(size=9),
+          legend.text=element_markdown(size=9),
+          legend.title=element_text(size=10))
+dev.off()
+```
+
