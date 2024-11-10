@@ -1,5 +1,5 @@
 ---
-title: "SF-Xen_celltype_proportions_ESR1positive"
+title: "SF-Domain_and_Xen_celltype_proportions_ESR1positive"
 output: html_document
 date: "2024-11-08"
 ---
@@ -15,6 +15,7 @@ library(gridExtra)
 library(SpatialExperiment)
 library(SpatialFeatureExperiment)
 library(sf)
+library(ggtext)
 
 ## rstudio GUI tweaks
 require(colorout)
@@ -112,71 +113,22 @@ bksmooth <- DataFrame(bksmooth,row.names=bksmooth$rn)[colnames(hypx),]
 hypx$dom <- bksmooth$dualVMHARC4
 ```
 
-pt1: expanded xVMH
-
-### the package `sf` can be used to extend the boundary of a polygonal areas by first creating a buffer zone around each, then reporting cells that buffered polygon overlaps 
+xenium and visium domain cell/spot props
 ```{r}
-arcvmh4 <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
-# filter to included cells
-arcvmh4 <- arcvmh4[rn %in% colnames(hypx)]
-
-arcvmh4.list <- split(arcvmh4,arcvmh4$sample_id)
-
-## divy each sample into VMH and ARC subtables for defining their respective polygons; extract convex hulls, convert to sf objects and create additional buffer zones, then find their overlaps (which define the approx ARC-VMH boundary region) and extract the VMH/ARC domain cells in that boundary region for downstream enrichment testing 
-arcvmh4.xpandedcells <- mclapply(arcvmh4.list,mc.cores=10,FUN=function(s){
-    fullsf <- st_as_sf(s,coords=c("xcoord","ycoord"))
-    
-    ## get the points defining the convex hull using sf by running st_union to make a single geometry of all component points, then st_convex_hull to get the hull
-    vmh.sf <- st_as_sf(s[dualVMHARC4=="VMH"],coords=c("xcoord","ycoord"))
-    vmh.hull <- st_convex_hull(st_union(vmh.sf))
-
-    ## add a buffer zone the domain hull polygons. our coordinates span about 10000 unitless values in the x and y planes for each tissue section, so a buffer adding about 4% to the hull should be good. we can approximate this by calculating the median of the pairwise distances between points defining the domain hull
-    
-    vmh.buffdist <- median(dist(st_coordinates(vmh.hull)))
-    vmh.buffhull <- st_buffer(vmh.hull,dist=0.15*vmh.buffdist)
-    ## combine the buffered hulls into a single geometry
-    ## then fucking finally, get the polygon defining where these buffered hulls that overlap, which should thus encompass the vicinity of where a "true" VMH and ARC boundary lies. extract the portions of the overlapping buffers that were assigned ARC or VMH domains by the original smoothing. these are what we want to run DE on next. 
-    ## really, truly finally, get the cells that fall within this VMH-arc boundary polygon in each respective domain.
-    inexpandedvmh <- st_within(fullsf,vmh.buffhull,sparse = F)
-    expandedvmhcells <- as.data.frame(fullsf)[inexpandedvmh,"rn"]
-    return(expandedvmhcells)
-})
-```
-
-# set an xl domain identity, where existing ARC labels are retained
-```{r}
-tmpcd <- as.data.table(colData(hypx),keep.rownames=T)
-
-tmpcd[dom!="ARC",dom_expandedVMH:=ifelse(rn %in% unlist(arcvmh4.xpandedcells),"VMHxl","Other")]
-tmpcd[dom=="ARC",dom_expandedVMH:="ARC"]
-
-tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(hypx),]
-colData(hypx) <- tmpcd
-```
-
-
-xenium, visium cell/spot props
-```{r}
-## xenium cellwise counts
-hypx.ct <- cbind(as.data.table(colData(hypx))[dom %in% c("xVMH","xARC"),.(banksyclus,dom)],
+hypx.ct <- cbind(as.data.table(colData(hypx))[dom %in% c("xVMH","xARC"),.(dom)],
                  as.data.table(as.data.frame(t(as.matrix(counts(hypx[c("ESR1","AR"),hypx$dom %in% c("xVMH","xARC")]))))))
 
 # visium spotwise counts
-hyp2.ct <- cbind(as.data.table(colData(hyp2))[dom %in% c("vARC","vVMH"),.(dom,dom)],
+hyp2.ct <- cbind(as.data.table(colData(hyp2))[dom %in% c("vARC","vVMH"),.(dom)],
                  as.data.table(as.data.frame(t(as.matrix(counts(hyp2[c("ESR1","AR","ESR2","PGR"),hyp2$dom %in% c("vARC","vVMH")]))))))
-setnames(hyp2.ct,2,"banksyclus")
 hypx.ct <- rbind(hypx.ct,hyp2.ct,fill=T)
 
-# expanded VMH excluded from all calculations and plotting by commenting out these lines:
-# vmhxl.ct <- cbind(as.data.table(colData(hypx))[dom_expandedVMH=="VMHxl",.(banksyclus,dom_expandedVMH)],
-#                  as.data.table(as.data.frame(t(as.matrix(counts(hypx[c("ESR1","AR"),hypx$dom_expandedVMH=="VMHxl"]))))))
-# 
-# setnames(vmhxl.ct,"dom_expandedVMH","dom")
-# hypx.ct <- rbind(hypx.ct,vmhxl.ct)
-# 
+hypx.ct[dom %in% c("vARC","vVMH"),Platform:="Visium"]
+hypx.ct[dom %in% c("xARC","xVMH"),Platform:="Xenium"]
 
-xprops <- lapply(unique(hypx.ct$banksyclus),FUN=function(x){
-    ans <- hypx.ct[banksyclus==x]
+# by DOMAIN
+dprops <- lapply(unique(hypx.ct$dom),FUN=function(x){
+    ans <- hypx.ct[dom==x]
     ans[,esr:=ifelse(ESR1>0,1,0)]
     ans[,ar:=ifelse(AR>0,1,0)]
     if(nrow(ans[!is.na(PGR)|!is.na(ESR2)])>0){
@@ -187,7 +139,71 @@ xprops <- lapply(unique(hypx.ct$banksyclus),FUN=function(x){
         ans[,esr2:=0]
     }
     
-    ans <- melt.data.table(ans[,.(banksyclus,dom,esr,ar,pgr,esr2)],c(id.vars="banksyclus","dom"))
+    ans <- melt.data.table(ans[,.(Platform,dom,esr,ar,pgr,esr2)],c(id.vars="Platform","dom"))
+    dprops2 <- ans[value==1,.(.N,Platform),by=c("dom","variable")]
+    denom <- unique(ans[,.(.N,Platform),by=c("dom","variable")][,N])
+
+    dprops2[,domainCelltype_prop_xpr:=N/denom]
+    dprops2 <- unique(dprops2)
+    return(dprops2)
+})
+names(dprops) <- unique(hypx.ct$dom)
+dprops <- rbindlist(dprops)
+
+### plots
+plts <- list()
+
+dprops[variable=="esr",variable:="*ESR1*"]
+dprops[variable=="ar",variable:="*AR*"]
+dprops[variable=="pgr",variable:="*PGR*"]
+dprops[variable=="esr2",variable:="*ESR2*"]
+## add explicit rows of 0 to xARC, xVMH for PGR, ESR2 to make column widths consistent
+
+## make x axis a factor so can force spacing
+
+dprops[,dom:=factor(dom,levels=c("vARC","xARC","vVMH","xVMH"))]
+
+dprops <- rbind(dprops[,.(dom,variable,domainCelltype_prop_xpr,Platform)],data.table(dom="xARC",variable="*PGR*",domainCelltype_prop_xpr=0,Platform="Xenium"),
+                data.table(dom="xARC",variable="*ESR2*",domainCelltype_prop_xpr=0,Platform="Xenium"),
+                data.table(dom="xVMH",variable="*PGR*",domainCelltype_prop_xpr=0,Platform="Xenium"),
+                data.table(dom="xVMH",variable="*ESR2*",domainCelltype_prop_xpr=0,Platform="Xenium"))
+
+
+dprops[,variable:=factor(variable,levels=c("*AR*","*ESR1*","*ESR2*","*PGR*"))]
+
+## reorder default ggplot2 palette colors so that they match between plots
+pal <- c("#F8766D","#00BFC4","#7CAE00","#C77CFF")
+names(pal) <- levels(dprops$variable)
+
+plts <- list()
+plts[[1]] <- ggplot(dprops,aes(x=dom,y=domainCelltype_prop_xpr,fill=variable))+geom_col(width=0.5,position="dodge")+
+    ylab("Proportion spots (Visium)\nOR cells (Xenium) positive")+
+    xlab("Domain")+
+    labs(fill="Gene")+
+    scale_fill_manual(values=pal)+
+    theme(axis.text.x=element_markdown(angle=90,hjust=1,vjust=0.5,size=9),
+          strip.text=element_markdown(size=9),
+          strip.background=element_blank(),
+          axis.title.x=element_text(size=10),
+          axis.title.y=element_text(size=10),
+          axis.text.y=element_text(size=9),
+          legend.text=element_markdown(size=9),
+          legend.title=element_text(size=10))
+```
+
+xenium cell/spot props
+
+```{r}
+## xenium cellwise counts
+hypx.ct <- cbind(as.data.table(colData(hypx))[dom %in% c("xVMH","xARC"),.(banksyclus,dom)],
+                 as.data.table(as.data.frame(t(as.matrix(counts(hypx[c("ESR1","AR"),hypx$dom %in% c("xVMH","xARC")]))))))
+
+xprops <- lapply(unique(hypx.ct$banksyclus),FUN=function(x){
+    ans <- hypx.ct[banksyclus==x]
+    ans[,esr:=ifelse(ESR1>0,1,0)]
+    ans[,ar:=ifelse(AR>0,1,0)]
+    
+    ans <- melt.data.table(ans[,.(banksyclus,dom,esr,ar)],c(id.vars="banksyclus","dom"))
     xprops2 <- ans[value==1,.N,by=c("dom","banksyclus","variable")]
     denom <- ans[,.N,by=c("dom","banksyclus")][,.(dom,banksyclus,N)]
     setnames(denom,"N","domainCellsInCluster")
@@ -201,8 +217,7 @@ xprops <- rbindlist(xprops)
 
 xprops[variable=="esr",variable:="*ESR1*"]
 xprops[variable=="ar",variable:="*AR*"]
-xprops[variable=="pgr",variable:="*PGR*"]
-xprops[variable=="esr2",variable:="*ESR2*"]
+xprops[,variable:=factor(variable,levels=c("*AR*","*ESR1*"))]
 
 xprops[,banksyclus:=gsub(banksyclus,pattern="_",replacement=" ")]
 xprops[banksyclus=="Peripheral immune NK-or Tcell 1",banksyclus:="Peripheral immune<br>NK or T-cell 1"]
@@ -220,34 +235,37 @@ xprops[banksyclus=="xARC<br>*SLC17A7*-Glia Mixed",banksyclus:="xARC<br>*SLC17A7*
 xprops[banksyclus %in% c("*CRHR2*","*LAMP5*"),banksyclus:=gsub(banksyclus,pattern="^(.*)$",replacement=paste0("xVMH<br>","\\1"))]
 xprops[banksyclus=="xVMH Lateral Border",banksyclus:="xVMH Lateral<br>Border"]
 
-lvs <- c(unique(xprops[banksyclus %in% grep(banksyclus,pattern="vARC|vVMH",value=T),banksyclus]),
-         unique(xprops[banksyclus %in% grep(banksyclus,pattern="xARC",value=T),banksyclus]),
+lvs <- c(unique(xprops[banksyclus %in% grep(banksyclus,pattern="xARC",value=T),banksyclus]),
          unique(xprops[banksyclus %in% grep(banksyclus,pattern="xVMH",value=T),banksyclus]),
-         unique(xprops[banksyclus %in% grep(banksyclus,pattern="xVMH|xARC|vARC|vVMH",value=T,invert=T),banksyclus]))
+         unique(xprops[banksyclus %in% grep(banksyclus,pattern="xVMH|xARC",value=T,invert=T),banksyclus]))
 
 xprops[,banksyclus:=factor(banksyclus,levels=lvs)]
 
 # drop arc cell types in vmh and vice versa-- there's very few of each and its confusing
 xprops <- xprops[!(dom=="xVMH"&banksyclus %in% grep(banksyclus,pattern="xARC",value=T))&!(dom=="xARC"&banksyclus %in% grep(banksyclus,pattern="xVMH",value=T))&!(dom=="xVMHxl"&banksyclus %in% grep(banksyclus,pattern="xARC",value=T)),]
 
-# xprops[dom=="xVMHxl",dom:="Expanded<br>xVMH"]
-xprops[,dom:=gsub(dom,pattern="^.(.*)$",replacement="\\1")]
-xprops[,dom:=factor(dom,levels=c("ARC","VMH"))]
+xprops[,dom:=factor(dom,levels=c("xARC","xVMH"))]
 
-pdf("manuscript_plots/Supplemental/SF_xARC_xVMH_clusterproportions_expressing_esr1.pdf",height=11,width=8.5)
-ggplot(xprops,aes(xprops,x=dom,y=domainCelltype_prop_xpr,fill=variable))+geom_col(position="dodge")+
+xprops[,variable:=factor(variable,levels=c("*AR*","*ESR1*"))]
+pal2 <- pal[levels(xprops$variable)]
+
+plts[[2]] <- ggplot(xprops,aes(xprops,x=dom,y=domainCelltype_prop_xpr,fill=variable))+geom_col(position="dodge")+
     facet_wrap(~banksyclus)+
-    ylab("Proportion of Visium domain spots OR\nXenium cluster cells within Xenium domain\nexpressing gene")+
+    ylab("Proportion of cell cluster within Xenium domain expressing gene")+
     xlab("Domain")+
-    labs(fill="Gene")+
+    guides(fill="none")+
+    scale_fill_manual(values=pal2)+
     theme(axis.text.x=element_markdown(angle=90,hjust=1,vjust=0.5,size=9),
           strip.text=element_markdown(size=9),
           strip.background=element_blank(),
           axis.title.x=element_text(size=10),
-          axis.title.y=element_text(size=10),
+          axis.title.y=element_text(size=10,margin = margin(0,0.2,0,0,unit="in")),
           axis.text.y=element_text(size=9),
           legend.text=element_markdown(size=9),
           legend.title=element_text(size=10))
+
+pdf("manuscript_plots/Supplemental/SF_xARC_xVMH_clusterproportions_expressing_esr1.pdf",height=11,width=8.5,onefile = FALSE)
+do.call("grid.arrange",list(arrangeGrob(plts[[1]]),arrangeGrob(plts[[2]]),heights=c(2.5,8.5)))
 dev.off()
 ```
 

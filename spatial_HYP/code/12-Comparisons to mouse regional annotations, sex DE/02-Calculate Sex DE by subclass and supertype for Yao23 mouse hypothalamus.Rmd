@@ -138,6 +138,51 @@ fwrite(subdif2,"processed-data/12-Mouse comparisons/02-Yao23-HYP-VMHARCsupertype
 fwrite(ncells,"processed-data/12-Mouse comparisons/02-Yao23-HYP-ncells-per-VMHARCsupertype.txt",sep='\t',quote=F,row.names=F)
 ```
 
+## finally, for max. comparability to Visium, repeat the preceding analyses with all ARH and all VMH subclasses collapsed to respective single mouse domains.
+```{r}
+sbp <- MulticoreParam(10)
+register(sbp)
+
+tmpcd <- as.data.table(colData(bothhyp),keep.rownames=T)
+arcsubcls <- grep(unique(tmpcd$subclass),pattern="ARH",value=T)
+vmhsubcls <- grep(unique(tmpcd$subclass),pattern="VMH",value=T)
+
+tmpcd[subclass %in% arcsubcls,subclass:="ARC"]
+tmpcd[subclass %in% vmhsubcls,subclass:="VMH"]
+tmpcd <- tmpcd[subclass %in% c("ARC","VMH")]
+## 24.8k cells
+
+keepcells <- colnames(bothhyp)[colnames(bothhyp) %in% tmpcd$rn]
+pbulkdom <- bothhyp[,keepcells]
+
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(pbulkdom),]
+tmpcd$rn <- NULL
+tmpcd$rn.1 <- NULL
+colData(pbulkdom) <- tmpcd
+
+rm(bothhyp,tmpcd,keepcells,arcsubcls,vmhsubcls)
+gc(full=T)
+
+#### run sex de, where Subclass has been replaced with the domain's identity
+pbag <- aggregateToPseudoBulk(pbulkdom,sample_id = "library_label.x",cluster_id = "subclass",assay = "counts",BPPARAM = sbp)
+
+# continue with sex de modeling--note that since we've aggregated 4 cell types here, we now need to cut min.prop since we're considering multiple populations together. there's 2 VMH and 4 ARC, so for a nice midpoint do 0.4/3. min cells is a nonissue here since there's thousands in both sets of subclasses.
+pbdif <- dreamlet::processAssays(pbag,min.cells = 15,min.count = 1,min.samples = 12,min.prop = 0.4/3,normalize.method = "TMM",useCountsWeights = T,formula = ~donor_sex+(1|donor_label),BPPARAM = sbp)
+
+pbdif <- dreamlet::dreamlet(pbdif,BPPARAM = sbp,formula = ~donor_sex+(1|donor_label))
+#
+
+pbdif2 <- dreamlet::topTable(pbdif,coef="donor_sexM",number=Inf,adjust.method ="BH")
+pbdif2 <- as.data.table(pbdif2)
+
+ncells <- as.data.table(table(colData(pbulkdom)$subclass))
+ncells <- ncells[N!=0]
+setnames(ncells,1,"Pseudobulked_Subclasses_From")
+
+fwrite(pbdif2,"processed-data/12-Mouse comparisons/02-Yao23-HYP-VMHARCalltypescollapsed-sexDE_dreamlet_donormouse-ranfx.txt",sep='\t',quote=F,row.names=F)
+fwrite(ncells,"processed-data/12-Mouse comparisons/02-Yao23-HYP-ncells-per-VMHARCcollapsed.txt",sep='\t',quote=F,row.names=F)
+```
+
 ## reproducibility info
 ```{r}
 sessionInfo()

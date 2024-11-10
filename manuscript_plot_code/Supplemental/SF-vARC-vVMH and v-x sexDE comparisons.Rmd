@@ -64,10 +64,9 @@ plts[[1]] <- ggplot(jt,aes(x=vmh_t,y=arc_t))+
     xlab("vVMH t-statistic")+
     ylab("vARC t-statistic")+
     scale_x_continuous(limits=c(min(c(jt$vmh_t,jt$arc_t)),max(c(jt$vmh_t,jt$arc_t))),expand=c(0.05,0.05))+
-    scale_y_continuous(limits=c(min(c(jt$vmh_t,jt$arc_t)),max(c(jt$vmh_t,jt$arc_t))),expand=c(0.05,0.05))+
-    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
-    theme(legend.position = "inside",legend.position.inside=c(0.125,0.875),legend.background = element_blank(),legend.key=element_blank())
+    scale_y_continuous(limits=c(min(c(jt$vmh_t,jt$arc_t)),max(c(jt$vmh_t,jt$arc_t))),expand=c(0.05,0.05))
 
+rm(sprh)
 ## logFC correlations
 sprh <- round(cor(jt$vmh_logFC,jt$arc_logFC,use = "pairwise.complete.obs",method = "spearman"),digits = 3)
 pcc <- round(cor(jt$vmh_logFC,jt$arc_logFC,use = "pairwise.complete.obs",method = "pearson"),digits = 3)
@@ -78,10 +77,9 @@ plts[[2]] <- ggplot(jt,aes(x=vmh_logFC,y=arc_logFC))+
     xlab("vVMH logFC")+
     ylab("vARC logFC")+
     scale_x_continuous(limits=c(min(c(jt$vmh_logFC,jt$arc_logFC)),max(c(jt$vmh_logFC,jt$arc_logFC))),expand=c(0.05,0.05))+
-    scale_y_continuous(limits=c(min(c(jt$vmh_logFC,jt$arc_logFC)),max(c(jt$vmh_logFC,jt$arc_logFC))),expand=c(0.05,0.05))+
-    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
-    theme(legend.position = "inside",legend.position.inside=c(0.125,0.875),legend.background = element_blank(),legend.key=element_blank())
+    scale_y_continuous(limits=c(min(c(jt$vmh_logFC,jt$arc_logFC)),max(c(jt$vmh_logFC,jt$arc_logFC))),expand=c(0.05,0.05))
 
+rm(sprh,pcc)
 
 ## panel 3: unconditional *p*-value densities: genes nominal in either
 jtun <- jt[(vmh_P.Value<0.05|arc_P.Value<0.05)&!is.na(vmh_P.Value)&!is.na(arc_P.Value)]
@@ -101,6 +99,7 @@ plts[[3]] <- ggplot(jtun,aes(x=value,color=variable))+
 
 
 rm(jtun)
+
 # panel 4 using p<0.01
 jtun <- jt[(vmh_P.Value<0.01|arc_P.Value<0.01)&!is.na(vmh_P.Value)&!is.na(arc_P.Value)]
 jtun <- melt.data.table(jtun,id.vars=c("gene_id"),measure.vars = c("arc_P.Value","vmh_P.Value"))
@@ -117,6 +116,7 @@ plts[[4]] <- ggplot(jtun,aes(x=value,color=variable))+
     theme(legend.position = "inside",legend.position.inside=c(0.8,0.825),legend.background = element_blank(),legend.key=element_blank(),legend.margin = margin(0,0,-0.05,0,unit="in"))
 
 rm(jtun)
+
 #### conditional: ARC DEGs p<0.2, p<0.05, p<0.01 in VMH
 vcon <- jt[arc_P.Value<0.2,.(gene_id,vmh_P.Value,arc_P.Value)]
 vcon[,grp:=ifelse(arc_P.Value>0.1,"vARC p 0.1 to 0.2","tmp")]
@@ -182,6 +182,7 @@ xen-vis comparison plot series: ARC (all genes), VMH (all genes), ARC (36 priori
 ```{r}
 xvplts <- list()
 
+# arc
 cor.test(arcxv$xarc_t,arcxv$arc_t,use = "pairwise.complete.obs",method = "spearman") # p < 2.2e-16
 sprh <- round(cor(arcxv$xarc_t,arcxv$arc_t,use = "pairwise.complete.obs",method = "spearman"),3)
 
@@ -191,11 +192,11 @@ xvplts[[1]] <- ggplot(arcxv,aes(y=xarc_t,x=arc_t))+
     xlab("vARC t-statistic")+
     ylab("xARC t-statistic")+
     scale_x_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))+
-    scale_y_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))+
-    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
-    theme(legend.position = "inside",legend.position.inside=c(0.195,0.85),legend.background = element_blank(),legend.key=element_blank())
+    scale_y_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))
     
+rm(sprh)
 
+# vmh
 cor.test(vmhxv$xvmh_t,vmhxv$vmh_t,use = "pairwise.complete.obs",method = "spearman") # p < 5.46e-11
 
 sprh <- round(cor(vmhxv$xvmh_t,vmhxv$vmh_t,use = "pairwise.complete.obs",method = "spearman"),3)
@@ -206,10 +207,9 @@ xvplts[[2]] <- ggplot(vmhxv,aes(y=xvmh_t,x=vmh_t))+
     xlab("vVMH t-statistic")+
     ylab("xVMH t-statistic")+
     scale_x_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))+
-    scale_y_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))+
-    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
-    theme(legend.position = "inside",legend.position.inside=c(0.195,0.85),legend.background = element_blank(),legend.key=element_blank())
+    scale_y_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))
 
+rm(sprh)
 ## subset to genes earmarked for sex de followup
 fulist <- fread("xenium_HYP/raw-data/genes_prioritized_for_xeniumSexDEfollowup.txt",header=F)
 
@@ -226,9 +226,11 @@ xvplts[[3]] <- ggplot(arcxv,aes(y=xarc_t,x=arc_t))+
     xlab("vARC t-statistic")+
     ylab("xARC t-statistic")+
     scale_x_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))+
-    scale_y_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))+
-    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
-    theme(legend.position = "inside",legend.position.inside=c(0.195,0.85),legend.background = element_blank(),legend.key=element_blank())
+    scale_y_continuous(limits=c(min(c(arcxv$arc_t,arcxv$xarc_t)),max(c(arcxv$arc_t,arcxv$xarc_t))),expand=c(0.05,0.05))
+
+rm(sprh)
+
+# vmh, earmarked genes
 
 cor.test(vmhxv$xvmh_t,vmhxv$vmh_t,use = "pairwise.complete.obs",method = "spearman") # p < 0.008
 
@@ -240,12 +242,47 @@ xvplts[[4]] <- ggplot(vmhxv,aes(y=xvmh_t,x=vmh_t))+
     xlab("vVMH t-statistic")+
     ylab("xVMH t-statistic")+
     scale_x_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))+
-    scale_y_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))+
-    geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))+
-    theme(legend.position = "inside",legend.position.inside=c(0.195,0.85),legend.background = element_blank(),legend.key=element_blank())
+    scale_y_continuous(limits=c(min(c(vmhxv$vmh_t,vmhxv$xvmh_t)),max(c(vmhxv$vmh_t,vmhxv$xvmh_t))),expand=c(0.05,0.05))
 
 ```
 
+## standardize theme and draw x=y line onto correlation plots. defaults defined in setup code block don't pass into lapply so reproduce here
+```{r}
+plts[c(1:2)] <- lapply(plts[c(1:2)],function(x){
+    x + 
+        theme_bw()+
+        theme(legend.position = "inside", 
+              legend.position.inside=c(0.1, 0.875), 
+              legend.background = element_blank(),
+              legend.key=element_blank(),
+              legend.text=element_text(size=8, margin=margin(0, 0, 0, -0.06, unit = "in")), 
+              axis.text.x = element_text(size = 9),
+              axis.title.x = element_text(size = 8),
+              axis.text.y = element_text(size = 8),
+              axis.title.y = element_text(size =9),
+              plot.title = element_markdown(size = 11, hjust=0.5),
+              strip.text = element_text(size=11),
+              legend.title = element_text(size=9, hjust=0.5))+
+        geom_abline(data = xeqy, linetype="dashed", aes(slope = slope, intercept=intercept, col=`Line Color`))
+})
+
+xvplts[c(1:4)] <- lapply(xvplts[c(1:4)],function(x){
+    x + theme_bw()+
+        theme(legend.position = "inside",
+              legend.position.inside=c(0.195,0.85),
+              legend.background = element_blank(),
+              legend.key=element_blank(),
+              legend.text=element_text(size=8,margin=margin(0,0,0,-0.04,unit = "in")),
+              axis.text.x = element_text(size = 9),
+              axis.title.x = element_text(size = 8),
+              axis.text.y = element_text(size = 8),
+              axis.title.y = element_text(size =9),
+              plot.title = element_markdown(size = 11, hjust=0.5),
+              strip.text = element_text(size=11),
+              legend.title = element_text(size=9, hjust=0.5))+
+        geom_abline(data = xeqy,linetype="dashed",aes(slope = slope,intercept=intercept,col=`Line Color`))
+})
+```
 ### save
 ```{r}
 pdf("manuscript_plots/Supplemental/SF-vVMH-vARC_sex_DE_comparative_stats.pdf",height=11,width=8.5,onefile = FALSE)

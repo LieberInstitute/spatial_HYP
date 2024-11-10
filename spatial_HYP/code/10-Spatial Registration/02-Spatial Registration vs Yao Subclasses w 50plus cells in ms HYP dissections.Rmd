@@ -285,6 +285,7 @@ sphypcollapse.reg <- spatialLIBD::registration_wrapper(hyp2,var_registration = "
 saveRDS(sphypcollapse.reg,"processed-data/10-Spatial Registration/02f-sphypcollapse_regwrapper.RDS")
 ```
 
+## this block only: list output naming bugfix 11-10-24
 Wipe env and load the outputs from spatialLIBD::registration_wrapper
 ```{r}
 rm(list=ls())
@@ -355,9 +356,9 @@ names(hyps) <- c(rep("sphypk15",3),rep("sphypk20",3),rep("sphypk31",3),rep("sphy
 spatialLIBD layer_stat_cor won't cooperate so just do this manually
 ### correction 02/27/24: spearman, not pearson correlation
 ```{r}
-outfilesuff <- as.list(paste0(names(abas),"_to_",names(hyps)))
+outfilesuff <- paste0(names(abas),"_to_",names(hyps))
 
-spatregs <- mcmapply(m=hyps,s=abas,z=outfilesuff,SIMPLIFY = F,mc.cores=8,FUN = function(m,s,z){
+spatregs <- mcmapply(m=hyps,s=abas,z=outfilesuff,USE.NAMES=FALSE,SIMPLIFY = F,mc.cores=8,FUN = function(m,s,z){
     j<-c(25,50,75,100,250,500,750,1000)
     i<-1
     outlist <- list()
