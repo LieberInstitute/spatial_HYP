@@ -61,14 +61,14 @@ keepcols <- c("sphyp_domain","ngenes",grep(names(spatregs),pattern="VMHall|ARHal
 spatregs <- spatregs[,..keepcols]
 spatregs <- melt.data.table(spatregs,id.vars=c("sphyp_domain","ngenes"))
 setnames(spatregs,c("variable","ngenes","value"),c("mouse_pseudobulk_domain","top_n_human","spearmancor"))
-spatregs[mouse_pseudobulk_domain=="ARHall",mouse_pseudobulk_domain:="Ms ARC Aggre-\ngated Subclasses"]
-spatregs[mouse_pseudobulk_domain=="VMHall",mouse_pseudobulk_domain:="Ms VMH Aggre-\ngated Subclasses"]
+spatregs[mouse_pseudobulk_domain=="ARHall",mouse_pseudobulk_domain:="Ms ARC Aggregated Subclasses"]
+spatregs[mouse_pseudobulk_domain=="VMHall",mouse_pseudobulk_domain:="Ms VMH Aggregated Subclasses"]
 
 sexregs <- sexregs[human_domain %in% c("ARC","VMH")]
 sexregs[,human_domain:=paste0("v",human_domain," Sex DE")]
 setnames(sexregs,"human_domain","sphyp_domain")
-sexregs[mouse_pseudobulk_domain=="VMH",mouse_pseudobulk_domain:="Ms VMH Aggre-\ngated Subclasses"]
-sexregs[mouse_pseudobulk_domain=="ARC",mouse_pseudobulk_domain:="Ms ARC Aggre-\ngated Subclasses"]
+sexregs[mouse_pseudobulk_domain=="VMH",mouse_pseudobulk_domain:="Ms VMH Aggregated Subclasses"]
+sexregs[mouse_pseudobulk_domain=="ARC",mouse_pseudobulk_domain:="Ms ARC Aggregated Subclasses"]
 
 jtres <- rbind(spatregs,sexregs)
 
@@ -81,13 +81,225 @@ jtres <- rbind(jtres[domain=="VMH"&mouse_pseudobulk_domain %in% unique(grep(mous
 
 
 
-pdf("manuscript_plots/Supplemental/SF-VisDomain-Marker-and-SexDE_registration_to_aggregated-Yao23-MouseHYP-domainsubclasses.pdf",height=11,width=8.5)
-ggplot(jtres,aes(x=log10(top_n_human),y=spearmancor,col=sphyp_domain))+
+# pdf("manuscript_plots/Supplemental/SF-VisDomain-Marker-and-SexDE_registration_to_aggregated-Yao23-MouseHYP-domainsubclasses.pdf",height=11,width=8.5)
+plts <- list()
+plts[[1]] <- ggplot(jtres,aes(x=log10(top_n_human),y=spearmancor,col=sphyp_domain))+
     geom_line()+
-    facet_wrap(~mouse_pseudobulk_domain,scales="free",nrow = 2)+
-    labs(y="Spearman rho (Human vs. Mouse Orthologue\nMarker/DE t-statistics)",x="log10 (Top n Human DEGs or Markers)",col="Human Domain Genes")
+    facet_wrap(~mouse_pseudobulk_domain,scales="free",nrow = 1)+
+    labs(y="Spearman rho (Human-<br>Ms Marker/Sex DE *t*)",x="log10 (Top n Human DEGs or Markers)",col="Human Domain Genes")+
+    theme(strip.text = element_text(size=10),strip.background = element_blank())
+
+rm(spatregs,sexregs,jtres,keepcols)
+```
+
+
+####### ####### #######
+
+## xenium clusters to subclasses
+```{r}
+clustids <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+
+###
+xenspat <- readRDS("xenium_HYP/processed-data/10_Spatial_Registration/01-NonSampleSpecific_cluster_reg_to_Yao23_mouseHyp_subclasses.RDS")
+xenspat <- xenspat[[1]]
+xenspat <- rbindlist(xenspat,idcol="ngenes")
+xenspat[,ngenes:=as.numeric(gsub(ngenes,pattern="^.*_top_(.*)_sphyp.*$",replacement="\\1"))]
+
+# this step conveniently also filters down to xVMH and xARC neuron types
+xenspat <- merge.data.table(xenspat,clustids[,.(cluster_id,plotclusname,subclus_domain)],by.x="sphyp_domain",by.y="cluster_id")
+# subset to ARH/VMH mouse subclasses
+keepn <- c("plotclusname","ngenes","subclus_domain",grep(names(xenspat),pattern="ARH|VMH",value=T))
+xenspat <- xenspat[,..keepn]
+# melt
+## append xenium domain to the front of the xenium cluster name 
+xenspat[,analysis:=paste0(plotclusname," Markers")]
+xenspat <- melt.data.table(xenspat,id.vars=c("plotclusname","ngenes","subclus_domain","analysis"))
+```
+
+### setup continued 
+### xenium sex DE - already melted into same layout as above
+```{r}
+xensex <- readRDS("xenium_HYP/processed-data/10_Spatial_Registration/03-Yao23-subclass-MvFsexDE-tstat_correls_to_celltypes-in-xenARCVMHdomains.RDS")
+###
+
+xensex[,analysis_domain:=gsub(human_domain_celltype,pattern="^(...)_.*$",replacement="\\1")]
+
+## match plotting IDs
+xensex[,human_domain_celltype:=gsub(human_domain_celltype,pattern="^..._(.*)$",replacement="\\1")]
+xensex <- merge.data.table(xensex,clustids[,.(bjm_annot,plotclusname,subclus_domain)],by.x="human_domain_celltype",by.y="bjm_annot")
+
+## subset to ARC type - ARC type and VMH type - VMH type correlations
+xensex <- xensex[
+   (mouse_subclass %in% grep(mouse_subclass,pattern="VMH",value=T)&analysis_domain=="VMH"&subclus_domain=="VMH")|(mouse_subclass %in% grep(mouse_subclass,pattern="ARH",value=T) & analysis_domain=="ARC"&subclus_domain=="ARC")]
+
+
+xensex[,analysis:=paste0(plotclusname," Sex DE")]
+
+setnames(xensex,c("mouse_subclass","spearmancor","top_n_human"),c("variable","value","ngenes"))
+
+## remove temporary which-domain-was-the-cell-type-being-analyzed-in column
+xensex[,analysis_domain:=NULL]
+
+xenjt <- rbind(xenspat,xensex[,names(xenspat),with=F])
+
+# tidy up mouse subclass names
+xenjt[,variable:=gsub(variable,pattern="_",replacement=" ")]
+xenjt[,variable:=gsub(variable,pattern="^x... (.*)$",replacement="\\1")]
+xenjt[,variable:=gsub(variable,pattern="ARH",replacement="ARC")]
+## remove additional areas attributed to some ARC cell groups
+xenjt[,variable:=gsub(variable,pattern="PVa |PVp |TU ",replacement="")]
+## make cell type markers of mouse cells italic in output
+xenjt[,variable:=gsub(variable,pattern="(Tbx3|Six3|Six6|Otp|Fezf1|Tbx3|Nr5a1)",replacement=paste0("*","\\1","*"))]
+
+# make primary transmitter type more presentable
+xenjt[,variable:=gsub(variable,pattern="Gaba",replacement="GABAergic")]
+xenjt[,variable:=gsub(variable,pattern="Glut",replacement="Glutamatergic")]
+xenjt[,variable:=gsub(variable,pattern="Dopa",replacement="DAergic")]
+
+## lastly, append the name of the xenium domain to the xenium clusters (to be used as  plot titles)
+xenjt[,analysis:=paste0("x",subclus_domain," ",analysis)]
+
+## but get rid of any redundant xVMH xVMH or xARC xARC
+xenjt[,analysis:=gsub(analysis,pattern="xVMH xVMH",replacement="xVMH")]
+xenjt[,analysis:=gsub(analysis,pattern="xARC xARC ",replacement="xARC ")]
+
+## format the analysis column to be used as plot titles
+xenjt[analysis %in% grep(analysis,pattern="POMC|SLC17A7|GHRH",value=T),analysis:=gsub(analysis,pattern="(Mixed|\\*GHRH*)",replacement=paste0("<br>","\\1"))]
+xenjt[,analysis:=gsub(analysis,pattern="^(.*)<br>Mixed (.*)$",replacement=paste0("\\1","<br>Mixed (","\\2",")"))]
+
+
+xenjt[analysis %in% grep(analysis,pattern="POMC|SLC17A7|GHRH",value=T,invert=T),analysis:=gsub(analysis,pattern=" (Marker)",
+                       replacement=paste0("<br>","\\1"))]
+xenjt[analysis %in% grep(analysis,pattern="POMC|SLC17A7|GHRH",value=T,invert=T),analysis:=gsub(analysis,pattern=" (Sex)",
+                       replacement=paste0("<br>","\\1"))]
+
+
+## make ARC table
+arcreg <- xenjt[variable %in% grep(variable,pattern="ARC",value=T)&subclus_domain=="ARC"]
+
+## make vmh table
+vmhreg <- xenjt[variable %in% grep(variable,pattern="VMH",value=T)&subclus_domain=="VMH"]
+
+rm(xensex,xenspat,clustids,keepn)
+```
+
+## make unified and shared legend for arc-arc and vmh-vmh plots with one 
+## use xenium celltype palette for colors here
+```{r}
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+arcpal <- pals[["XenARC"]][c(1:3,5)]
+vmhpal <- pals[["XenVMH"]][c(1,4)]
+
+names(arcpal) <- unique(arcreg$variable)
+names(vmhpal) <- unique(vmhreg$variable)
+jtpal <- c(arcpal,vmhpal)
+
+# helper function to extract a legend and use as grob: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+
+legdat <- rbind(arcreg,vmhreg)
+
+## arrange so that ARCs are first, VMHs second. put palette in same factor order to be sure it comes out right
+levs <- c(grep(unique(legdat$variable),pattern="ARC",value=T),grep(unique(legdat$variable),pattern="VMH",value=T))
+legdat[,variable:=factor(variable,levels=levs)]
+jtpal <- jtpal[levs]
+
+legplt <- ggplot(legdat,aes(x=variable,y=ngenes,col=variable))+
+    geom_line()+
+    scale_color_manual(values=jtpal)+
+    facet_grid(~plotclusname)+
+    labs(col="Mouse Subclass")+
+    guides(color=guide_legend(ncol=2))+
+    theme(axis.title.x = element_blank(), axis.text.y = element_text(size = 8), axis.text.x = element_text(size = 8), axis.title.y = element_text(size = 9), legend.title = element_text(size = 9), legend.text = element_markdown(size = 8), title = element_text(size = 8))
+
+legout <- extract_legend(legplt)
+dev.off()
+
+rm(legdat,legplt,pals,levs)
+```
+
+make plots in pairs of marker-sex by human cluster
+```{r}
+# plot shared numbers of genes tested: 50, 100, 150, 200, 250, 280
+arcreg <- arcreg[ngenes %in% c(50,100,150,200,250,280)]
+vmhreg <- vmhreg[ngenes %in% c(50,100,150,200,250,280)]
+
+## continue plotting in the list that we dropped the Visium plot pair into several blocks ago
+
+# go thru making arc plots first
+i<-1
+for (i in c(1:length(unique(arcreg$plotclusname)))){
+   curclus <- unique(arcreg$plotclusname)[i]
+   
+   ## marker plot 
+   mkdat <- arcreg[plotclusname==curclus&analysis %in% grep(analysis,pattern="Markers",value=T)]
+   plts[[length(plts)+1]] <- ggplot(mkdat,aes(x=ngenes,y=value,col=variable))+
+       geom_line()+
+       scale_color_manual(values=jtpal)+
+       guides(color="none")+
+       ggtitle(unique(mkdat$analysis))+
+       labs(y="Spearman rho (Human-<br>Ms Marker *t*))",x="Top n Xenium Markers")
+   
+   ## sex DE plot
+   sexdat <- arcreg[plotclusname==curclus & analysis %in% grep(analysis,pattern="Sex DE",value=T)]
+   plts[[length(plts)+1]] <-
+       ggplot(sexdat,aes(x=ngenes,y=value,col=variable))+
+       geom_line()+
+       scale_color_manual(values=jtpal)+
+       guides(color="none")+
+       ggtitle(unique(sexdat$analysis))+
+       labs(y="Spearman rho(Human-<br>Ms Sex DE *t*)",x="Top n Xenium DEGs")
+}
+
+## then vmh plots
+i<-1
+for (i in c(1:length(unique(vmhreg$plotclusname)))){
+   curclus <- unique(vmhreg$plotclusname)[i]
+   
+   ## marker plot 
+   mkdat <- vmhreg[plotclusname==curclus&analysis %in% grep(analysis,pattern="Markers",value=T)]
+   plts[[length(plts)+1]] <- ggplot(mkdat,aes(x=ngenes,y=value,col=variable))+
+       geom_line()+
+       scale_color_manual(values=jtpal)+
+       guides(color="none")+
+       ggtitle(unique(mkdat$analysis))+
+       labs(y="Spearman rho (Human-<br>Ms Marker *t*))",x="Top n Xenium Markers")
+   
+   ## sex DE plot
+   sexdat <- vmhreg[plotclusname==curclus & analysis %in% grep(analysis,pattern="Sex DE",value=T)]
+   plts[[length(plts)+1]] <-
+       ggplot(sexdat,aes(x=ngenes,y=value,col=variable))+
+       geom_line()+
+       scale_color_manual(values=jtpal)+
+       guides(color="none")+
+       ggtitle(unique(sexdat$analysis))+
+       labs(y="Spearman rho(Human-<br>Ms Sex DE *t*)",x="Top n Xenium DEGs")
+}
+
+plts <- lapply(plts,FUN=function(p){
+   q <- p+theme(axis.text.y=element_text(size=8),axis.text.x=element_text(size=8),axis.title.y=element_markdown(size=9),axis.title.x=element_markdown(size=9),plot.title=element_markdown(size=10,hjust=0.5),strip.text=element_text(size=10))
+return(q)
+})
+
+## append legout as the last plot of this so it appears in the incomplete row
+plts[[length(plts)+1]] <- legout
+```
+
+## save. legend still needs to be scooched rightward in illustrator but no big deal there
+```{r}
+pdf("manuscript_plots/Supplemental/SF-VisiumXenium_Yao23HYPscseq_registration.pdf",height=11,width=8,onefile=FALSE)
+do.call("grid.arrange",list(arrangeGrob(grobs=plts[1],nrow=1),
+                            arrangeGrob(grobs=plts[2:length(plts)],ncol=4),
+                        nrow=2,
+                        heights=c(2.5,8.5)))
 dev.off()
 ```
+
 
 ```{r}
 sessionInfo()
@@ -111,27 +323,28 @@ attached base packages:
 [1] stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
-[1] Polychrome_1.5.1  colorout_1.3-0.2  ggtext_0.1.2      gridExtra_2.3    
+[1] colorout_1.3-0.2  Polychrome_1.5.1  ggtext_0.1.2      gridExtra_2.3    
 [5] ggplot2_3.5.1     data.table_1.15.4 rlang_1.1.4      
 
 loaded via a namespace (and not attached):
  [1] gtable_0.3.5         dplyr_1.1.4          compiler_4.4.1      
- [4] tidyselect_1.2.1     Rcpp_1.0.13          xml2_1.3.6          
- [7] stringr_1.5.1        scales_1.3.0         yaml_2.3.9          
+ [4] tidyselect_1.2.1     Rcpp_1.0.13          stringr_1.5.1       
+ [7] xml2_1.3.6           scales_1.3.0         yaml_2.3.9          
 [10] fastmap_1.2.0        here_1.0.1           R6_2.5.1            
 [13] commonmark_1.9.1     labeling_0.4.3       generics_0.1.3      
-[16] knitr_1.48           tibble_3.2.1         munsell_0.5.1       
-[19] rprojroot_2.0.4      pillar_1.9.0         utf8_1.2.4          
-[22] stringi_1.8.4        xfun_0.45            cli_3.6.3           
-[25] withr_3.0.0          magrittr_2.0.3       digest_0.6.36       
-[28] grid_4.4.1           gridtext_0.1.5       rstudioapi_0.16.0   
-[31] markdown_1.13        lifecycle_1.0.4      vctrs_0.6.5         
-[34] scatterplot3d_0.3-44 evaluate_0.24.0      glue_1.7.0          
-[37] farver_2.1.2         sessioninfo_1.2.2    fansi_1.0.6         
-[40] colorspace_2.1-0     rmarkdown_2.27       htmltools_0.5.8.1   
-[43] tools_4.4.1          pkgconfig_2.0.3     
+[16] knitr_1.48           datasets_4.4.1       tibble_3.2.1        
+[19] munsell_0.5.1        rprojroot_2.0.4      pillar_1.9.0        
+[22] R.utils_2.12.3       utf8_1.2.4           stringi_1.8.4       
+[25] xfun_0.45            cli_3.6.3            withr_3.0.0         
+[28] magrittr_2.0.3       digest_0.6.36        grid_4.4.1          
+[31] gridtext_0.1.5       rstudioapi_0.16.0    markdown_1.13       
+[34] lifecycle_1.0.4      R.oo_1.26.0          R.methodsS3_1.8.2   
+[37] vctrs_0.6.5          scatterplot3d_0.3-44 evaluate_0.24.0     
+[40] glue_1.7.0           farver_2.1.2         sessioninfo_1.2.2   
+[43] fansi_1.0.6          colorspace_2.1-0     rmarkdown_2.27      
+[46] tools_4.4.1          pkgconfig_2.0.3      htmltools_0.5.8.1   
 > sessioninfo::session_info()
-─ Session info ───────────────────────────────────────────────────────────────────
+─ Session info ──────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -141,11 +354,11 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Chicago
- date     2024-11-10
+ date     2024-11-11
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ───────────────────────────────────────────────────────────────────────
+─ Packages ──────────────────────────────────────────────────────────────────────
  ! package       * version date (UTC) lib source
  P cli             3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
    colorout      * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
@@ -176,6 +389,9 @@ loaded via a namespace (and not attached):
    pillar          1.9.0   2023-03-22 [1] CRAN (R 4.4.0)
    pkgconfig       2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
    Polychrome    * 1.5.1   2022-05-03 [1] CRAN (R 4.4.0)
+   R.methodsS3     1.8.2   2022-06-13 [1] CRAN (R 4.4.0)
+   R.oo            1.26.0  2024-01-24 [1] CRAN (R 4.4.0)
+   R.utils         2.12.3  2023-11-18 [1] CRAN (R 4.4.0)
    R6              2.5.1   2021-08-19 [1] CRAN (R 4.4.0)
    Rcpp            1.0.13  2024-07-17 [1] CRAN (R 4.4.0)
  P rlang         * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
@@ -201,7 +417,7 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-──────────────────────────────────────────────────────────────────────────────────
+─────────────────────────────────────────────────────────────────────────────────
 
 
 
@@ -319,7 +535,7 @@ loaded via a namespace (and not attached):
 # ## marker registration plots
 ```{r}
 # arcplts <- plotspatregtabs2[grep(names(plotspatregtabs2),pattern="vARC",value=T)]
-# # change variable ARHall in the collapsed analysis to Pseudobulked\nMs ARC Subclasses
+# # change variable ARHall in the collapsed analysis to Pseudobulked<br>Ms ARC Subclasses
 # vmhplts <- plotspatregtabs2[grep(names(plotspatregtabs2),pattern="vVMH",value=T)]
 # legtitles <- c("Mouse Subclass","Mouse Domain","Mouse Supertype")
 # 
