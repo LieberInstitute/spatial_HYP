@@ -1,7 +1,7 @@
 ---
 title: "SF-VMH and ARC clusters and markers at k15, 20, 31"
 output: html_document
-date: "2024-10-07"
+date: "2024-11-13"
 ---
 
 ```{r setup, include=FALSE}
@@ -13,7 +13,7 @@ library(data.table)
 library(ggplot2)
 library(gridExtra)
 library(SpatialExperiment)
-library(spatialLIBD)
+library(escheR)
 library(ComplexHeatmap)
 library(ggrastr) # render plots with bajillions of points as raster so they can be manipulated in eg Illustrator--Fig 2B
 library(Cairo) # pdf device for ^ to properly save; also used for complexheatmap raster functions
@@ -481,6 +481,11 @@ colData(hyp2) <- tmpcd
 
 hyp2$sample_id <- hyp2$manuscript_id
 
+samps <- lapply(unique(hyp2$sample_id),FUN=function(x){
+  s <- hyp2[,hyp2$sample_id==x]
+  return(s)
+})
+names(samps) <- unlist(lapply(samps,function(x){unique(x$sample_id)}))
 
 ### make the plots
 mapply(x=bscls.dt,y=names(bscls.dt),SIMPLIFY=FALSE,FUN=function(x,y){
@@ -491,21 +496,34 @@ mapply(x=bscls.dt,y=names(bscls.dt),SIMPLIFY=FALSE,FUN=function(x,y){
     wms <- unique(x[cl %in% grep(cl,pattern="WM",value=T),cl])
     nwm <- length(wms)
     
-    b <- DataFrame(x,row.names=x$rn)[colnames(hyp2),]
-    
-    # nclusts <- length(unique(b[, 2]))
-    
-    # pal <- Polychrome::palette36.colors(n = (nclusts+2))[c(3:(nclusts+2))]
     pal <- c(arcpal[1:narc],
              vmhpal[1:nvmh],
              wmpal[1:nwm],
              "gray")
-    
     names(pal) <- c(arcs,vmhs,wms,"Other")
     
+    # for legend generation
+    b <- DataFrame(x,row.names=x$rn)[colnames(hyp2),]
     colLabels(hyp2) <- factor(b$cl,levels=c(arcs,vmhs,wms,"Other"))
-    # next line is needed for consistency in color-cluster assignments between libdspatial and the generated legend below
-    names(pal) <- levels(hyp2$label)
+    # 
+    
+    
+    plt <- lapply(samps,FUN=function(s){
+         b <- DataFrame(x,row.names=x$rn)[colnames(s),]
+         colLabels(s) <- factor(b$cl,levels=c(arcs,vmhs,wms,"Other"))
+         p <- make_escheR(s)
+         p <- p |> add_fill("label",size=0.5,point_size = 0.5)
+         return(p)
+    })
+    names(plt) <- names(samps)
+    
+    plt <- mapply(p=plt,s=names(plt),SIMPLIFY=FALSE,FUN=function(p,s){
+      q <- p + guides(fill="none")+
+        ggtitle(s)+
+        theme(plot.title=element_text(size=11,margin=margin(0,0,0.04,0,unit="in")),plot.margin = margin(0.1,0.1,0.1,0.1,unit="in"))+
+        scale_fill_manual(values=pal)
+      return(q)
+    })
     
     ## create a unified legend spanning all possible cluster values (regardless of presence in a given sample)
     leg.tmp <- ggplot(as.data.table(colData(hyp2))[,.(label,array_row,array_col)],aes(x=array_row,y=array_col,col=label))+geom_point()+
@@ -517,41 +535,19 @@ mapply(x=bscls.dt,y=names(bscls.dt),SIMPLIFY=FALSE,FUN=function(x,y){
     leg.tmp2 <- extract_legend(leg.tmp)
     dev.off()
     ### make spotplots
-    plt <-
-        spatialLIBD::vis_grid_clus(
-            hyp2,
-            clustervar = "label",
-            pdf_file = NULL,
-            colors = pal,
-            spatial = F,
-            auto_crop = T,
-            return_plots = T,
-            point_size = 1.65,
-            sort_clust = F
-        )
-    
     ### adjust font sizes, drop individual plot legends
-    plt <- lapply(
-        plt,
-        FUN = function(x) {
-            x +
-                theme(
-                    plot.title = element_text(size = 11, hjust = 0.5),
-                    strip.text = element_text(size = 10),
-                )+
-                guides(fill="none")
-        }
-    )
+
     
     # save
     pdf(
         paste0(
             "manuscript_plots/Supplemental/SFigparts-k152031spotplots_globalmks_intraVMHmks_intraARCmks/",y,"_spotplot.pdf"),
-        width = 11,
-        height = 20
+        width = 5.5,
+        height = 8,
+        onefile = FALSE
     )
     ### arrangeGrob() on the spotplot list --> 3 x 3 of plots from that list only, constituting the "first column" of the parent; leg.tmp2 is an additional thing being plotted in the second column of the parent. width of the plot grid is set to 10, width of the second column (legend only) set to 2.
-    do.call("grid.arrange",list(arrangeGrob(grobs=plt,ncol=3,nrow=4),leg.tmp2,ncol=2,widths=c(9.5,1.5)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=plt,ncol=2,nrow=5),leg.tmp2,ncol=2,widths=c(4.25,1.25)))
     dev.off()
 })
 ```
