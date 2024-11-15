@@ -1,7 +1,7 @@
-date: Thu Nov  7 02:43:41 PM EST 2024
+date: Fri Nov 15 02:11:24 PM EST 2024
 **** JHPCE info ****
 User: rmiller
-Job id: 10481279
+Job id: 10587610
 Job name: 04samui
 Hostname: 
 Task id: 1
@@ -9,9 +9,24 @@ Loading LIBD SLURM module for samui/1.0.0-next.49
 /jhpce/shared/libd/core/samui/1.0.0-next.49/samui_env/lib/python3.10/site-packages/pydantic/_internal/_config.py:322: UserWarning: Valid config keys have changed in V2:
 * 'allow_mutation' has been removed
   warnings.warn(message, UserWarning)
-Traceback (most recent call last):
-  File "/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/xenium_HYP/code/13-samui/03_loopy-xenium.py", line 119, in <module>
-    assert all([x.exists() for x in [out_dir, img_path]])
-AssertionError
+/jhpce/shared/libd/core/samui/1.0.0-next.49/samui_env/lib/python3.10/site-packages/anndata/__init__.py:55: FutureWarning: `anndata.read` is deprecated, use `anndata.read_h5ad` instead. `ad.read` will be removed in mid 2024.
+  warnings.warn(
+Using 366 genes as features.
+[14:11:29] INFO     'X36_5459A' Executing queued functions          logger.py:27
+           INFO     X36_5459A Adding coords 'coords'                logger.py:27
+[14:11:30] INFO     X36_5459A Adding chunked feature 'Genes'        logger.py:27
+[14:11:56] INFO     X36_5459A Concatenating and compressing chunks  logger.py:27
+[14:12:40] INFO     Writing compressed chunks for Genes: 5307784    logger.py:27
+                    bytes                                                       
+           INFO     X36_5459A Adding csv feature 'Banksy-Cluster'   logger.py:27
+[14:12:41] INFO     X36_5459A Adding csv feature 'Domain of Cell'   logger.py:27
+           INFO     X36_5459A Adding csv feature 'nCounts'          logger.py:27
+           INFO     X36_5459A Adding csv feature 'nGenes'           logger.py:27
+           INFO     X36_5459A Adding csv feature 'Cell Area'        logger.py:27
+           INFO     X36_5459A Adding csv feature 'Nucleus Area'     logger.py:27
+           INFO     'X36_5459A' written to                          logger.py:27
+                    /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
+                    tial_HYP/xenium_HYP/code/13-samui/../../../xeni             
+                    um_HYP/processed-data/12-samui/X36_5459A                    
 **** Job ends ****
-Thu Nov  7 02:43:45 PM EST 2024
+Fri Nov 15 02:12:41 PM EST 2024

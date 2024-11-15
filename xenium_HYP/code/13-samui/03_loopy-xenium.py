@@ -12,10 +12,10 @@ from rasterio import Affine
 from loopy.sample import Sample
 from loopy.utils.utils import remove_dupes, Url
 
-spot_diameter_m = 5e-6 # 55-micrometer diameter for Visium spot
-img_channels = ['DAPI']
-default_channels = {'blue': 'DAPI'}
-default_gene = 'SNAP25'
+spot_diameter_m = 55e-6 # 55-micrometer diameter for Visium spot
+img_channels = ["rgb"]
+default_channels = {"blue": "DAPI"}
+default_gene = "SLC17A6"
 
 #   Names of continuous features expected to be columns in the observation 
 #   data (colData) of the AnnData
@@ -32,7 +32,7 @@ sample_info_path = here(
 
 spe_path = here('xenium_HYP',"processed-data", "12-samui", "spe.h5ad")
 # notes_path = str(Path(here('code', '16_samui', 'feature_notes.md')).resolve())
-img_path = here('xenium_HYP','processed-data', '11-XeniumSPE_imageunderlays', '{}.png')
+img_path = here('xenium_HYP','processed-data', '11-XeniumSPE_imageunderlays', '{}')
 #json_path = here(
 #    'processed-data', '09_spaceranger_reorg', 'spg', '{}', 'outs', 'spatial',
 #    'scalefactors_json.json'
@@ -84,7 +84,7 @@ sample_info['sample_id'] = sample_info['sample_id']
 #         image_id = 'VIFAD' + sample_info['experiment_num'] + '_' + sample_info['sample_id'] + '_' + sample_info['array_num']
 #     )
 # )
-sample_info['spaceranger_id'] = sample_info['raw']
+sample_info['spaceranger_id'] = sample_info['obj_id']
 sample_info['image_id'] = sample_info['image'] 
 # sample_id_spaceranger = sample_info['Slide #'] + '_' + sample_info['Array #']
 # sample_id_image = sample_info['Slide #'] + '_' + sample_info['Array #']
@@ -127,7 +127,8 @@ assert all([x.exists() for x in [out_dir, img_path]])
 #with open(json_path, 'r') as f:
 #    spaceranger_json = json.load(f)
 
-#m_per_px = spot_diameter_m / spaceranger_json['spot_diameter_fullres']
+# m_per_px = spot_diameter_m / spaceranger_json['spot_diameter_fullres']
+# pixel / size(m)
 
 ################################################################################
 #   Gather gene-expression data into a DataFrame to later as a feature
@@ -144,7 +145,7 @@ spe.obs.index.name = "barcode"
 gene_df = pd.DataFrame(
     spe.X.toarray(),
     index = spe.obs.index,
-    columns = spe.var['gene_name']
+    columns = spe.var['Symbol']
 )
 
 #   Some gene symbols are actually duplicated. Just take the first column in
@@ -153,7 +154,7 @@ gene_df = gene_df.loc[: , ~gene_df.columns.duplicated()].copy()
 
 #   Samui seems to break when using > ~ 5,000 genes. Take just the genes where
 #   at least 10% of spots have nonzero counts
-gene_df = gene_df.loc[:, np.sum(gene_df > 0, axis = 0) > (gene_df.shape[0] * 0.1)].copy()
+# gene_df = gene_df.loc[:, np.sum(gene_df > 0, axis = 0) > (gene_df.shape[0] * 0.1)].copy()
 
 assert default_gene in gene_df.columns, "Default gene not in AnnData"
 
@@ -177,17 +178,17 @@ print('Using {} genes as features.'.format(gene_df.shape[1]))
 this_sample = Sample(name = sample_id_samui, path = out_dir)
 
 this_sample.add_coords(
-    spe.obsm['spatial'].rename(
-        columns = {'pxl_col_in_fullres': 'x', 'pxl_row_in_fullres': 'y'}
+    spe.obsm["spatial"].rename(
+        columns = {"x_centroid": "x", "y_centroid": "y"}
     ),
-    name = "coords",  size = spot_diameter_m #, mPerPx = m_per_px,
+    name = "coords",  size = 2e-5 , mPerPx = 1e-6
 )
 
 #   Add the IF image for this sample
-this_sample.add_image(
-    tiff = img_path, channels = img_channels, #scale = m_per_px,
-    defaultChannels = default_channels
-)
+#this_sample.add_image(
+#    tiff = img_path, channels = img_channels, scale = 1e-7,
+#    #defaultChannels = default_channels
+#)
 
 #   Add gene expression results (multiple columns) as a feature
 this_sample.add_chunked_feature(
@@ -195,10 +196,35 @@ this_sample.add_chunked_feature(
 )
 
 #   Add additional requested observational columns (colData columns)
-# this_sample.add_csv_feature(
-#     spe.obs[spe_cont_features], name = "Spot Coverage", coordName = "coords",
-#     dataType = "quantitative"
-# )
+this_sample.add_csv_feature(
+    spe.obs["Banksy_cluster"], name = "Banksy-Cluster", coordName = "coords",
+    dataType = "categorical"
+)
+
+this_sample.add_csv_feature(
+    spe.obs["domain_of_cell"], name = "Domain of Cell", coordName = "coords",
+    dataType = "categorical"
+)
+
+this_sample.add_csv_feature(
+    spe.obs["nCounts"], name = "nCounts", coordName = "coords",
+    dataType = "quantitative"
+)
+
+this_sample.add_csv_feature(
+    spe.obs["nGenes"], name = "nGenes", coordName = "coords",
+    dataType = "quantitative"
+)
+
+this_sample.add_csv_feature(
+    spe.obs["cell_area"], name = "Cell Area", coordName = "coords",
+    dataType = "quantitative"
+)
+
+this_sample.add_csv_feature(
+    spe.obs["nucleus_area"], name = "Nucleus Area", coordName = "coords",
+    dataType = "quantitative"
+)
 
 #   Add pathology groups
 # this_sample.add_csv_feature(
