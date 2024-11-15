@@ -1,7 +1,7 @@
 ---
 title: "SF-vVMH_vARC_marker_msigdbGSEA"
 output: html_document
-date: "2024-10-31"
+date: "2024-11-13"
 ---
 
 ```{r setup, include=FALSE}
@@ -57,7 +57,7 @@ pltdat <- mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH"]][pathway %in
    "GOBP_REGULATION_OF_INSULIN_SECRETION",
    "GOBP_NEUROPEPTIDE_SIGNALING_PATHWAY")]
 pltdat <- rbind(pltdat,mkres[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC"]][pathway %in% c(
-   #"GOCC_GLUTAMATERGIC_SYNAPSE",
+   "GOCC_GLUTAMATERGIC_SYNAPSE",
    "GOCC_GABA_ERGIC_SYNAPSE",
    "HP_HYPERACTIVITY",
    "HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",
@@ -92,6 +92,7 @@ pltdat[pathway=="KEGG_LONG_TERM_POTENTIATION",pathway:="Long-term\npotentiation"
 pltdat[pathway=="GOMF_HORMONE_ACTIVITY",pathway:="Hormone activity"]
 pltdat[pathway=="GOBP_AXONEME_ASSEMBLY",pathway:="Axoneme assembly"]
 pltdat[pathway=="GOCC_CILIARY_PLASM",pathway:="Ciliary membrane"]
+pltdat[pathway=="GOCC_GLUTAMATERGIC_SYNAPSE",pathway:="Glutamatergic synapse"]
 pltdat[pathway=="GOBP_MOTILE_CILIUM_ASSEMBLY",pathway:="Cilium assembly"]
 pltdat[pathway=="GOCC_CILIARY_TRANSITION_ZONE",pathway:="Ciliary transition zone"]
 pltdat[pathway=="HP_ABSENCE_OF_SECONDARY_SEX_CHARACTERISTICS",pathway:="Secondary sex\ncharacteristics"]
@@ -107,7 +108,7 @@ pltdat$spdom <- factor(pltdat$spdom,levels=c("vVMH","vARC"))
 pltdat$spdom
 
 ### make enrichments a factor so they're grouped by source on the y axis
-pltdat$pathway <- factor(pltdat$pathway,levels=rev(c("Long-term\npotentiation","Neuropeptide signaling","GABAergic synapse","Insulin secretion\nregulation","Hormone activity","Kisspeptin receptor\nsystem (ovarian)","Axoneme assembly","Ciliary membrane","Cilium assembly","Ciliary transition zone","Hyperactivity","Aggressive/impulsive\nbehavior","Feeding behavior","Secondary sex\ncharacteristics")))
+pltdat$pathway <- factor(pltdat$pathway,levels=rev(c("Glutamatergic synapse","Long-term\npotentiation","Neuropeptide signaling","GABAergic synapse","Insulin secretion\nregulation","Hormone activity","Kisspeptin receptor\nsystem (ovarian)","Axoneme assembly","Ciliary membrane","Cilium assembly","Ciliary transition zone","Hyperactivity","Aggressive/impulsive\nbehavior","Feeding behavior","Secondary sex\ncharacteristics")))
 
 pltdat[,log10fdr:=-log10(padj)]
 

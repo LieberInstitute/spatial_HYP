@@ -1,0 +1,77 @@
+---
+title: "SF-xARC_pbulk_CYP26A1_xpr"
+author: "Bernie Mulvey"
+date: "2024-11-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 9), axis.title.x = element_text(size = 8), axis.text.y = element_text(size = 8), axis.title.y = element_text(size =9), plot.title = element_markdown(size = 11,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+```{r}
+xarcpb <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02c-pseudobulkARC_voomLmFitELists.RDS")
+
+mscriptid <- fread("standardized_sampleids_for_plotting.txt")
+mscriptclus <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+pals <- pals[["XenARC"]]
+    
+#####
+mscriptclus <- mscriptclus[cluster_id %in% names(xarcpb)&plotclusname %in% names(pals)]
+xarcpb <- xarcpb[mscriptclus$cluster_id]
+names(xarcpb) <- mscriptclus$plotclusname
+    
+cypxpr <- lapply(xarcpb,FUN=function(x){
+    setnames(x,1,"rn")
+    y <- x[rn=="CYP26A1"]
+    setnames(y,c(2:ncol(y)),gsub(names(y)[c(2:ncol(y))],pattern="elist\\.",replacement=""))
+})
+
+cypxpr2 <- rbindlist(cypxpr,idcol = "xarcclus",fill = T)
+cypxpr2[,rn:=NULL]
+cypxpr2 <- melt(cypxpr2,id.vars="xarcclus")
+
+cypxpr2 <- merge.data.table(cypxpr2,mscriptid[,.(sample_id,manuscript_id)],by.x="variable",by.y="sample_id")
+```
+
+```{r}
+pdf("manuscript_plots/Supplemental/SF-Pseudobulk_CYP26A1_by_xARCtype.pdf",height=11,width=8.5)
+ggplot(cypxpr2,aes(x=xarcclus,y=value,fill=xarcclus))+
+    geom_boxplot(position=position_dodge(width=0.3),outliers = FALSE,aes(fill=xarcclus),alpha=0.6)+
+    geom_point(shape=21,position=position_jitter(width=0.3),color="black",stroke=0.75)+
+    scale_fill_manual(values=pals)+
+    #scale_color_manual(values=pals)+
+    guides(fill="none")+
+    labs(x="xARC Neuron Population",y="log (counts per million *CYP26A1*)")+
+    theme(axis.text.x = element_markdown(size=10,angle = 45, hjust = 1),
+          axis.text.y=element_markdown(size=10),
+          axis.title.x=element_markdown(size=11),
+          axis.title.y=element_markdown(size=11),
+          plot.margin = margin(1,1,3.5,1,unit="in"))
+dev.off()    
+
+
+
+
+
+```

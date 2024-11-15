@@ -28,7 +28,7 @@ options("styler.addins_style_transformer" = "biocthis::bioc_style()")
 
 
 ## ggplot defaults
-theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 9), axis.title.x = element_text(size = 10), axis.text.y = element_text(size = 9), axis.title.y = element_text(size =10), plot.title = element_text(size = 11,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5)))
 
 ## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
 unloadNamespace("datasets")
@@ -99,6 +99,7 @@ umiplt <- lapply(unique(hyp2$sample_id),FUN=function(s){
         scale_fill_gradient(low="white",high="black")+
         scale_y_reverse()+
         labs(color="UMIs Filtering\nStep",fill="N UMIs")+
+        guides(color=guide_legend(order=1),fill=guide_colorbar(order=2))+
         scale_color_manual(values=c(NA,"red","blue"))+
         ggtitle(samplut[match(s,samplut$sample_id),manuscript_id])
     return(p)
@@ -113,6 +114,7 @@ geneplt <- lapply(unique(hyp2$sample_id),FUN=function(s){
         scale_fill_gradient(low="white",high="black")+
         scale_y_reverse()+
         labs(color="nGenes Filtering\nStep",fill="N Unique\nGenes")+
+        guides(color=guide_legend(order=1),fill=guide_colorbar(order=2))+
         scale_color_manual(values=c(NA,"red","blue"))+
         ggtitle(samplut[match(s,samplut$sample_id),manuscript_id])
     return(p)
@@ -130,13 +132,14 @@ chrMplt <- lapply(unique(hyp2$sample_id),FUN=function(s){
         scale_fill_gradient(low="white",high="black")+
         scale_y_reverse()+
         labs(color="chrM Filtering\nStep",fill="Mito Read %")+
+        guides(color=guide_legend(order=1),fill=guide_colorbar(order=2))+
         scale_color_manual(values=pal)+
         ggtitle(samplut[match(s,samplut$sample_id),manuscript_id])
     return(p)
 })
 
 ### save as 3 page pdf
-pdf("manuscript_plots/Supplemental/SF-RemovedSpots_Spotsweeper_and_Numerical_filt.pdf",width=8,height=10.5)
+pdf("manuscript_plots/Supplemental/SF-RemovedSpots_Spotsweeper_and_Numerical_filt.pdf",width=7.5,height=10)
 do.call("grid.arrange",c(umiplt,ncol=3))
 do.call("grid.arrange",c(geneplt,ncol=3))
 do.call("grid.arrange",c(chrMplt,ncol=3))

@@ -1,0 +1,63 @@
+---
+title: "SF-ESR1-KISS1-TAC3_coloc_br1225smfishanalysis"
+author: "Bernie Mulvey"
+date: "2024-11-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 9), axis.title.x = element_text(size = 8), axis.text.y = element_text(size = 8), axis.title.y = element_text(size =9), plot.title = element_markdown(size = 11,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+```{r}
+cellq <- fread("manuscript_plots/Supplemental/SF-ESR-KISS-TAC_20xsmfish_and_cellquants/br1225 esrTacKiss smfish quant from atharv 110724.txt")
+
+cellq <- cellq[c(1:8)]
+setnames(cellq,c("Phenotype","Tissue Section 1","Tissue Section 2"))
+# don't show triple negatives
+cellq <- cellq[Phenotype!="KISS1- ESR1- TAC3-"]
+
+cellq <- melt(cellq,id.vars="Phenotype")
+cellq[,ncells:=sum(value),by="variable"]
+cellq[,prop:=value/ncells]
+
+cellq[,Phenotype:=gsub(Phenotype,pattern="KISS1",replacement="*KISS1*")]
+cellq[,Phenotype:=gsub(Phenotype,pattern="ESR1",replacement="*ESR1*")]
+cellq[,Phenotype:=gsub(Phenotype,pattern="TAC3",replacement="*TAC3*")]
+
+## show KISS1+ESR1+TAC3+ and KISS- ESR1+ TAC3+ at the top
+levs <- c(unique(cellq$Phenotype)[!(unique(cellq$Phenotype) %in% c("*KISS1*+ *ESR1*+ *TAC3*+","*KISS1*- *ESR1*+ *TAC3*+"))],"*KISS1*- *ESR1*+ *TAC3*+","*KISS1*+ *ESR1*+ *TAC3*+")
+cellq[,Phenotype:=factor(Phenotype,levels=levs)]
+
+pdf("manuscript_plots/Supplemental/SF-ESR-KISS-TAC_smfish_cellquants.pdf",width=8.5,height=11)
+ggplot(cellq,aes(x=prop,y=Phenotype,fill=variable))+
+    geom_col(position="dodge")+
+    labs(fill="Replicate",x="Proportion of Cells")+
+    theme(axis.text.y=element_markdown(size=9),axis.title.y=element_text(size=10),axis.text.x=element_text(size=9),axis.title.x=element_text(size=10))
+dev.off()
+
+
+
+
+
+
+
+```
