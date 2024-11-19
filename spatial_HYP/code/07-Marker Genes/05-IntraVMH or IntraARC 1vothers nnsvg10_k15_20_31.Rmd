@@ -1,7 +1,7 @@
 ---
 title: "05-IntraVMH or IntraARC 1vothers nnsvg10_k15_20_31"
 output: html_document
-date: "2024-09-20"
+date: "2024-11-17"
 ---
 
 ```{r setup, include=FALSE}
@@ -92,23 +92,19 @@ for (i in c(1:length(bscls.dt))){
         # make sure each cluster of interest is the lead in a comparison so we can process all stats for + logFC downstream. even though this is kinda redundant because for pairwise, depleted in one direction is enriched in the other. so there'll be duplicated output tables in what we save here, but fine.
         colLabels(hyptmp) <- factor(btmp$cl,levels=c(v,vmhs[vmhs!=v]))
         
-        ## stepwise set up to run registration_pairwise if two clusters, simply using reigstration_wrapper for "one-vs-all"-like otherwise)
-        if(length(vmhs)==2){
-           hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
-           mkmod <- registration_model(hyptmp.pb,var_registration = "label")
-           bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
-           
-           # run pairwise reg
-           mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
-           mkres <- as.data.table(mk,keep.rownames=T)
-        } else{
-           
-           mk <- registration_wrapper(hyptmp,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_id",gene_name = "gene_name")
-           mkres <- as.data.table(mk[["enrichment"]],keep.rownames=T)
-        }
+        ## stepwise set up to run registration_pairwise
+        hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
+        mkmod <- registration_model(hyptmp.pb,var_registration = "label")
+        bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
+        
+        # run pairwise reg
+        mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
+        mkres <- as.data.table(mk,keep.rownames=T)
+
         return(mkres)
     })
     names(vmhres) <- vmhs
+    # if there are more than 2 clusters, just take the first table (too many pairwise combinations to bother with getting each direction from, since they'll all be inverses of each other)
     
     arcs <- grep(unique(b$cl),pattern="ARC",value=T)
     arcres <- lapply(arcs,FUN=function(v){
@@ -119,26 +115,31 @@ for (i in c(1:length(bscls.dt))){
         colLabels(hyptmp) <- factor(btmp$cl,levels=c(v,arcs[arcs!=v]))
         
         ## stepwise set up to run registration_pairwise
-        ## stepwise set up to run registration_pairwise if two clusters, simply using reigstration_wrapper for "one-vs-all"-like otherwise)
-        if(length(arcs)==2){
-           hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
-           mkmod <- registration_model(hyptmp.pb,var_registration = "label")
-           bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
-           
-           # run pairwise reg
-           mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
-           mkres <- as.data.table(mk,keep.rownames=T)
-        } else{
-           
-           mk <- registration_wrapper(hyptmp,var_registration = "label",var_sample_id = "sample_id",gene_ensembl = "gene_id",gene_name = "gene_name")
-           mkres <- as.data.table(mk[["enrichment"]],keep.rownames=T)
-        }
+        hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
+        mkmod <- registration_model(hyptmp.pb,var_registration = "label")
+        bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
+        
+        # run pairwise reg
+        mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
+        mkres <- as.data.table(mk,keep.rownames=T)
+
         return(mkres)
     })
     names(arcres) <- arcs
+    names(vmhres) <- vmhs
+    # if there are more than 2 clusters, just take the first table (too many pairwise combinations to bother with getting each direction from, since they'll all be inverses of each other)
+    if(length(arcs)>2){arcres <- arcres[[1]]}
+    if(length(vmhs)>2){vmhres <- vmhres[[1]]}
+
     
     retlist <- list(vmhres,arcres)
     names(retlist) <- c("vmh","arc")
+
+    if(length(vmhs)>2){
+       names(retlist)[1] <- "VMHs_onedir_per_comparison"}
+    if(length(arcs)>2){
+       names(retlist)[2] <- "ARCs_onedir_per_comparison"}
+    
     select.vmharc.markers[[i]] <- retlist
     
     rm(vmhs,arcs,arcres,vmhres,b)
@@ -152,6 +153,72 @@ names(select.vmharc.markers) <- names(bscls.dt)
 ```{r}
 ### save complete results as RDS
 saveRDS(select.vmharc.markers,file="processed-data/07-Marker_genes/05-IntraVMH-intraARC_1clus_vallother_clus_slibdEnrichment_full.RDS")
+```
+
+## convert to giant table for supp tables
+```{r}
+i<-1
+for (i in c(1:3)){
+   j<-1
+   for (j in c(1:length(select.vmharc.markers[[i]]))){
+      k<-1
+      if (length(select.vmharc.markers[[i]][[j]])==2){
+         for (k in c(1:length(select.vmharc.markers[[i]][[j]]))){
+            curdat <- as.data.table(select.vmharc.markers[[i]][[j]][[k]])
+            curdat[,rn:=NULL]
+            
+            curdat[,tested_cluster:=gsub(names(curdat)[1],pattern="t_stat_(.*)-.*$",replacement="\\1")]
+            curdat[,comparator_cluster:=gsub(names(curdat)[1],pattern="t_stat_.*-(.*)$",replacement="\\1")]
+            
+            dropstr <- paste0("_",gsub(names(curdat)[1],pattern="t_stat_(.*)$",replacement="\\1"))
+            setnames(curdat,gsub(names(curdat),pattern=dropstr,replacement=""))
+            
+            if(i==1&j==1&k==1){outdat <- copy(curdat)} else{
+               outdat<-rbind(outdat,curdat)
+            }
+            
+   }} else {
+         curdat <- as.data.table(select.vmharc.markers[[i]][[j]])
+
+         curdat[,rn:=NULL]
+         curdat <- melt.data.table(curdat,id.vars=c("ensembl","gene"))
+         
+         curdat[,stat:=gsub(variable,pattern="^(.*)_.*_.-.*_.$",replacement="\\1")]
+         curdat[,tested_cluster:=gsub(variable,pattern="^.*_(.*_.)-.*$",replacement="\\1")]
+         curdat[,comparator_cluster:=gsub(variable,pattern="^.*-(.*)$",replacement="\\1")]
+         
+         curdat.t <- curdat[stat=="t_stat"]
+         curdat.p <- curdat[stat=="p_value"]
+         curdat.l <- curdat[stat=="logFC"]
+         curdat.f <- curdat[stat=="fdr"]
+
+         curdat.t <- curdat.t[,variable:=NULL]
+         curdat.t <- curdat.t[,stat:=NULL]
+         curdat.p <- curdat.p[,variable:=NULL]
+         curdat.p <- curdat.p[,stat:=NULL]
+         curdat.l <- curdat.l[,variable:=NULL]
+         curdat.l <- curdat.l[,stat:=NULL]
+         curdat.f <- curdat.f[,variable:=NULL]
+         curdat.f <- curdat.f[,stat:=NULL]
+         
+         setnames(curdat.t,"value","t_stat")
+         setnames(curdat.p,"value","p_value")
+         setnames(curdat.l,"value","logFC")
+         setnames(curdat.f,"value","fdr")
+         
+         
+         curdat2 <- merge(curdat.t,curdat.p,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
+         curdat2 <- merge.data.table(curdat2,curdat.l,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
+         curdat2 <- merge.data.table(curdat2,curdat.f,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
+         
+         outdat <- rbind(curdat2[,.(logFC,ensembl,gene,tested_cluster,comparator_cluster,t_stat,p_value,fdr)],outdat)
+      }
+   }
+}
+
+
+fwrite(outdat,"local_supptab_assembly/SLIBDpairwise_VMHARC_clusts_k15-20-31.txt",sep='\t',quote=F,row.names=F)
+
 ```
 
 ```{r}
@@ -169,25 +236,23 @@ LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlap
 locale:
 [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 
-time zone: America/Chicago
+time zone: America/New_York
 tzcode source: internal
 
 attached base packages:
-[1] parallel  grid      stats4    stats     graphics  grDevices utils     methods  
-[9] base     
+[1] parallel  stats4    stats     graphics  grDevices utils     methods   base     
 
 other attached packages:
- [1] scran_1.32.0                scuttle_1.14.0             
- [3] BiocParallel_1.38.0         parallelly_1.38.0          
- [5] colorout_1.3-0.2            ComplexHeatmap_2.20.0      
- [7] spatialLIBD_1.16.2          SpatialExperiment_1.14.0   
- [9] SingleCellExperiment_1.26.0 SummarizedExperiment_1.34.0
-[11] Biobase_2.64.0              GenomicRanges_1.56.1       
-[13] GenomeInfoDb_1.40.1         IRanges_2.38.1             
-[15] S4Vectors_0.42.1            BiocGenerics_0.50.0        
-[17] MatrixGenerics_1.16.0       matrixStats_1.3.0          
-[19] gridExtra_2.3               ggplot2_3.5.1              
-[21] data.table_1.15.4           rlang_1.1.4                
+ [1] BiocParallel_1.38.0         parallelly_1.38.0          
+ [3] colorout_1.3-0.2            scran_1.32.0               
+ [5] scuttle_1.14.0              spatialLIBD_1.16.2         
+ [7] SpatialExperiment_1.14.0    SingleCellExperiment_1.26.0
+ [9] SummarizedExperiment_1.34.0 Biobase_2.64.0             
+[11] GenomicRanges_1.56.1        GenomeInfoDb_1.40.1        
+[13] IRanges_2.38.1              S4Vectors_0.42.1           
+[15] BiocGenerics_0.50.0         MatrixGenerics_1.16.0      
+[17] matrixStats_1.3.0           data.table_1.15.4          
+[19] rlang_1.1.4                
 
 loaded via a namespace (and not attached):
   [1] later_1.3.2               BiocIO_1.14.0             bitops_1.0-7             
@@ -201,44 +266,43 @@ loaded via a namespace (and not attached):
  [25] DBI_1.2.3                 RColorBrewer_1.1-3        golem_0.4.1              
  [28] maps_3.4.2                abind_1.4-5               zlibbioc_1.50.0          
  [31] purrr_1.0.2               RCurl_1.98-1.14           rappdirs_0.3.3           
- [34] circlize_0.4.16           GenomeInfoDbData_1.2.12   ggrepel_0.9.5            
- [37] irlba_2.3.5.1             dqrng_0.4.1               DelayedMatrixStats_1.26.0
- [40] codetools_0.2-20          DelayedArray_0.30.1       DT_0.33                  
- [43] shape_1.4.6.1             tidyselect_1.2.1          UCSC.utils_1.0.0         
- [46] ScaledMatrix_1.12.0       viridis_0.6.5             shinyWidgets_0.8.6       
- [49] BiocFileCache_2.12.0      GenomicAlignments_1.40.0  jsonlite_1.8.8           
- [52] GetoptLong_1.0.5          BiocNeighbors_1.22.0      scater_1.32.0            
- [55] iterators_1.0.14          foreach_1.5.2             tools_4.4.1              
- [58] Rcpp_1.0.13               glue_1.7.0                SparseArray_1.4.8        
- [61] xfun_0.45                 here_1.0.1                dplyr_1.1.4              
- [64] withr_3.0.0               BiocManager_1.30.23       fastmap_1.2.0            
- [67] bluster_1.14.0            fansi_1.0.6               digest_0.6.36            
- [70] rsvd_1.0.5                R6_2.5.1                  mime_0.12                
- [73] colorspace_2.1-0          RSQLite_2.3.7             config_0.3.2             
- [76] utf8_1.2.4                tidyr_1.3.1               generics_0.1.3           
- [79] rtracklayer_1.64.0        httr_1.4.7                htmlwidgets_1.6.4        
- [82] S4Arrays_1.4.1            pkgconfig_2.0.3           gtable_0.3.5             
- [85] blob_1.2.4                XVector_0.44.0            htmltools_0.5.8.1        
- [88] dotCall64_1.1-1           clue_0.3-65               scales_1.3.0             
- [91] png_0.1-8                 attempt_0.3.1             knitr_1.48               
- [94] rstudioapi_0.16.0         rjson_0.2.21              curl_5.2.1               
- [97] cachem_1.1.0              GlobalOptions_0.1.2       BiocVersion_3.19.1       
-[100] vipor_0.4.7               AnnotationDbi_1.66.0      restfulr_0.0.15          
-[103] pillar_1.9.0              vctrs_0.6.5               promises_1.3.0           
-[106] BiocSingular_1.20.0       dbplyr_2.5.0              beachmat_2.20.0          
-[109] cluster_2.1.6             xtable_1.8-4              beeswarm_0.4.0           
-[112] paletteer_1.6.0           evaluate_0.24.0           magick_2.8.3             
-[115] cli_3.6.3                 locfit_1.5-9.10           compiler_4.4.1           
-[118] Rsamtools_2.20.0          crayon_1.5.3              rematch2_2.1.2           
-[121] ggbeeswarm_0.7.2          viridisLite_0.4.2         munsell_0.5.1            
-[124] Biostrings_2.72.1         lazyeval_0.2.2            Matrix_1.7-0             
-[127] ExperimentHub_2.12.0      benchmarkme_1.0.8         sparseMatrixStats_1.16.0 
-[130] bit64_4.0.5               KEGGREST_1.44.1           statmod_1.5.0            
-[133] shiny_1.8.1.1             AnnotationHub_3.12.0      igraph_2.0.3             
-[136] memoise_2.0.1             bslib_0.7.0               benchmarkmeData_1.0.4    
-[139] bit_4.0.5                
+ [34] GenomeInfoDbData_1.2.12   ggrepel_0.9.5             irlba_2.3.5.1            
+ [37] dqrng_0.4.1               DelayedMatrixStats_1.26.0 codetools_0.2-20         
+ [40] DelayedArray_0.30.1       DT_0.33                   tidyselect_1.2.1         
+ [43] UCSC.utils_1.0.0          ScaledMatrix_1.12.0       viridis_0.6.5            
+ [46] shinyWidgets_0.8.6        BiocFileCache_2.12.0      GenomicAlignments_1.40.0 
+ [49] jsonlite_1.8.8            BiocNeighbors_1.22.0      scater_1.32.0            
+ [52] iterators_1.0.14          foreach_1.5.2             tools_4.4.1              
+ [55] Rcpp_1.0.13               glue_1.7.0                gridExtra_2.3            
+ [58] SparseArray_1.4.8         xfun_0.45                 here_1.0.1               
+ [61] dplyr_1.1.4               BiocManager_1.30.23       fastmap_1.2.0            
+ [64] bluster_1.14.0            fansi_1.0.6               digest_0.6.36            
+ [67] rsvd_1.0.5                R6_2.5.1                  mime_0.12                
+ [70] colorspace_2.1-0          RSQLite_2.3.7             config_0.3.2             
+ [73] utf8_1.2.4                tidyr_1.3.1               generics_0.1.3           
+ [76] rtracklayer_1.64.0        httr_1.4.7                htmlwidgets_1.6.4        
+ [79] S4Arrays_1.4.1            pkgconfig_2.0.3           gtable_0.3.5             
+ [82] blob_1.2.4                XVector_0.44.0            htmltools_0.5.8.1        
+ [85] dotCall64_1.1-1           scales_1.3.0              png_0.1-8                
+ [88] attempt_0.3.1             knitr_1.48                rstudioapi_0.16.0        
+ [91] rjson_0.2.21              curl_5.2.1                cachem_1.1.0             
+ [94] BiocVersion_3.19.1        vipor_0.4.7               AnnotationDbi_1.66.0     
+ [97] restfulr_0.0.15           pillar_1.9.0              grid_4.4.1               
+[100] vctrs_0.6.5               promises_1.3.0            BiocSingular_1.20.0      
+[103] dbplyr_2.5.0              beachmat_2.20.0           xtable_1.8-4             
+[106] cluster_2.1.6             beeswarm_0.4.0            paletteer_1.6.0          
+[109] evaluate_0.24.0           magick_2.8.3              cli_3.6.3                
+[112] locfit_1.5-9.10           compiler_4.4.1            Rsamtools_2.20.0         
+[115] crayon_1.5.3              rematch2_2.1.2            ggbeeswarm_0.7.2         
+[118] viridisLite_0.4.2         munsell_0.5.1             Biostrings_2.72.1        
+[121] lazyeval_0.2.2            Matrix_1.7-0              ExperimentHub_2.12.0     
+[124] benchmarkme_1.0.8         sparseMatrixStats_1.16.0  bit64_4.0.5              
+[127] ggplot2_3.5.1             KEGGREST_1.44.1           statmod_1.5.0            
+[130] shiny_1.8.1.1             AnnotationHub_3.12.0      igraph_2.0.3             
+[133] memoise_2.0.1             bslib_0.7.0               benchmarkmeData_1.0.4    
+[136] bit_4.0.5                
 > sessioninfo::session_info()
-─ Session info ────────────────────────────────────────────────────────────────────
+─ Session info ──────────────────────────────────────────────────────────────────
  setting  value
  version  R version 4.4.1 RC (2024-06-06 r86719)
  os       macOS Sonoma 14.5
@@ -247,12 +311,12 @@ loaded via a namespace (and not attached):
  language (EN)
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
- tz       America/Chicago
- date     2024-09-20
+ tz       America/New_York
+ date     2024-11-17
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 
-─ Packages ────────────────────────────────────────────────────────────────────────
+─ Packages ──────────────────────────────────────────────────────────────────────
  ! package              * version   date (UTC) lib source
    abind                  1.4-5     2016-07-21 [1] CRAN (R 4.4.0)
    AnnotationDbi          1.66.0    2024-05-01 [1] Bioconductor 3.19 (R 4.4.0)
@@ -279,14 +343,11 @@ loaded via a namespace (and not attached):
    bluster                1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    bslib                  0.7.0     2024-03-29 [1] CRAN (R 4.4.0)
    cachem                 1.1.0     2024-05-16 [1] CRAN (R 4.4.0)
-   circlize               0.4.16    2024-02-20 [1] CRAN (R 4.4.0)
  P cli                    3.6.3     2024-06-21 [2] CRAN (R 4.4.0)
-   clue                   0.3-65    2023-09-23 [1] CRAN (R 4.4.0)
    cluster                2.1.6     2023-12-01 [1] CRAN (R 4.4.1)
    codetools              0.2-20    2024-03-31 [1] CRAN (R 4.4.1)
    colorout             * 1.3-0.2   2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
    colorspace             2.1-0     2023-01-23 [1] CRAN (R 4.4.0)
-   ComplexHeatmap       * 2.20.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    config                 0.3.2     2023-08-30 [1] CRAN (R 4.4.0)
    cowplot                1.1.3     2024-01-22 [1] CRAN (R 4.4.0)
    crayon                 1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
@@ -315,14 +376,12 @@ loaded via a namespace (and not attached):
    GenomeInfoDbData       1.2.12    2024-05-01 [1] Bioconductor
    GenomicAlignments      1.40.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    GenomicRanges        * 1.56.1    2024-06-12 [1] Bioconductor 3.19 (R 4.4.1)
-   GetoptLong             1.0.5     2020-12-15 [1] CRAN (R 4.4.0)
    ggbeeswarm             0.7.2     2023-04-29 [1] CRAN (R 4.4.0)
-   ggplot2              * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
+   ggplot2                3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
    ggrepel                0.9.5     2024-01-10 [1] CRAN (R 4.4.0)
-   GlobalOptions          0.1.2     2020-06-10 [1] CRAN (R 4.4.0)
    glue                   1.7.0     2024-01-09 [1] CRAN (R 4.4.0)
    golem                  0.4.1     2023-06-05 [1] CRAN (R 4.4.0)
-   gridExtra            * 2.3       2017-09-09 [1] CRAN (R 4.4.0)
+   gridExtra              2.3       2017-09-09 [1] CRAN (R 4.4.0)
    gtable                 0.3.5     2024-04-22 [1] CRAN (R 4.4.0)
    here                   1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
    htmltools              0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
@@ -386,7 +445,6 @@ loaded via a namespace (and not attached):
    scran                * 1.32.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    scuttle              * 1.14.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
    sessioninfo            1.2.2     2021-12-06 [1] CRAN (R 4.4.0)
-   shape                  1.4.6.1   2024-02-23 [1] CRAN (R 4.4.0)
    shiny                  1.8.1.1   2024-04-02 [1] CRAN (R 4.4.0)
    shinyWidgets           0.8.6     2024-04-24 [1] CRAN (R 4.4.0)
    SingleCellExperiment * 1.26.0    2024-04-30 [1] Bioconductor 3.19 (R 4.4.0)
@@ -406,7 +464,6 @@ loaded via a namespace (and not attached):
    vipor                  0.4.7     2023-12-18 [1] CRAN (R 4.4.0)
    viridis                0.6.5     2024-01-29 [1] CRAN (R 4.4.0)
    viridisLite            0.4.2     2023-05-02 [1] CRAN (R 4.4.0)
-   withr                  3.0.0     2024-01-16 [1] CRAN (R 4.4.0)
    xfun                   0.45      2024-06-16 [1] CRAN (R 4.4.0)
    XML                    3.99-0.17 2024-06-25 [1] CRAN (R 4.3.3)
    xtable                 1.8-4     2019-04-21 [1] CRAN (R 4.4.0)
@@ -419,4 +476,4 @@ loaded via a namespace (and not attached):
 
  P ── Loaded and on-disk path mismatch.
 
-───────────────────────────────────────────────────────────────────────────────────
+─────────────────────────────────────────────────────────────────────────────────

@@ -137,12 +137,41 @@ setnames(restab,c("mouse_subclass","human_domain_celltype","pcc","spearmancor","
 
 saveRDS(restab,"processed-data/10_Spatial_Registration/03-Yao23-subclass-MvFsexDE-tstat_correls_to_celltypes-in-xenARCVMHdomains.RDS")
 
+## save supplemental table version:
+restab[,XeniumDomain:=gsub(human_domain_celltype,pattern="^(...)_.*$",replacement=paste0("x","\\1"))]
+restab[,XeniumCluster:=gsub(human_domain_celltype,pattern="^..._(.*)$",replacement="\\1")]
+restab[,XeniumCluster:=gsub(XeniumCluster,pattern="^_(.*)$",replacement="\\1")]
+
+
+clusteranno <- fread("../manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+
+restab <- merge.data.table(restab,clusteranno[,.(bjm_annot,plotclusname,subclus_domain)],all.x=T,by.x="XeniumCluster",by.y="bjm_annot")
+
+## drop xarc clusters analyzed in xVMH boundaries and vice versa
+restab <- restab[(subclus_domain=="ARC"&XeniumDomain=="xARC")|(subclus_domain=="VMH"&XeniumDomain=="xVMH")|is.na(subclus_domain)]
+restab[,subclus_domain:=NULL]
+
+# sub in refined cluster names
+restab[!is.na(plotclusname),XeniumCluster:=plotclusname]
+restab[,XeniumCluster:=gsub(XeniumCluster,pattern="\\*",replacement="\\1")]
+restab[,XeniumCluster:=gsub(XeniumCluster,pattern="_",replacement=" ")]
+restab[,plotclusname:=NULL]
+restab[,pcc:=NULL]
+restab[,human_domain_celltype:=NULL]
+## clean up names
+setnames(restab,"mouse_subclass","Mouse Subclass")
+setnames(restab,"spearmancor","Spearman Correlation (Sex DE t-statistics)")
+setnames(restab,"top_n_human","n Top Xenium Cluster Sex DEGs")
+
+# save
+fwrite(restab,"../local_mscriptplotref/Suptab_assembly_nov2024/Xenium_intraARC_intraVMH_sexDE_subclass_registration.txt",sep='\t',quote=F)
+
 ### remove subclass data, saved result to prevent whoopsies in the next block
 rm(restab,ms,msn,cluspairs,i,j,topn)
 ```
 
 
-### now do the same for the VMH and ARC supertype analysis results
+### now (for posterity only) do the same for the VMH and ARC supertype analysis results
 ```{r}
 cluspairs <- as.data.table(expand.grid(unique(msst$assay),unique(xde$domain_assay)))
 cluspairs[,Var1:=as.character(Var1)]

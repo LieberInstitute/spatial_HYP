@@ -43,7 +43,65 @@ rm(scc)
 ```
 
 
-### writing out spatial reg results for yao23 ABA subclasses -- see code for fig 5 (plots/manuscript/code/)
+### writing out spatial reg results for yao23 ABA subclasses (we only want collapsed ARH and VMH subclasses for comparing to Visium ARC/VMH)
+```{r}
+spatregs <- readRDS("processed-data/10-Spatial Registration/02g-sphyp-k15-20-31-15clps_ABAms-47subclass-47withVMHARCclps-VMHARCsupertypes.RDS")
+
+spatregs <- spatregs[grep(names(spatregs),pattern="subclass_collapsed")]
+
+spatregs2 <- lapply(spatregs,FUN=function(x,n){
+   ret <- mapply(d=x,n=names(x),SIMPLIFY=FALSE,FUN=function(d,n){
+      z <- as.data.table(d)
+      z[,ntop:=as.numeric(gsub(n,pattern="^.*_top_(.*)_sphypdomainmks$",replacement="\\1"))]
+      z[,comparison:=n]
+      return(z)
+   })
+   ret2 <- rbindlist(ret)
+   return(ret2)
+})
+
+ret3 <- rbindlist(spatregs2)
+ret3[,comparison:=gsub(comparison,pattern="ABA23_HYP_subclass_collapsed_to_(.*)_top.*$",replacement="\\1")]
+unique(ret3$comparison)
+ret3[,comparison:=gsub(comparison,pattern="sphyp",replacement="")]
+ret3[,comparison:=gsub(comparison,pattern="_collapsed",replacement=" (collapsed VMH/ARC)")]
+setnames(ret3,"comparison","BayesSpace Clustering")
+setnames(ret3,"sphyp_domain","Visium Cluster")
+
+
+
+## name ARC and VMH clusters for the nnsvg10 harmony lambda=NA bayesspaces
+ret3[`BayesSpace Clustering`=="k15"&`Visium Cluster`=="X4",`Visium Cluster`:="ARC.1"]
+ret3[`BayesSpace Clustering`=="k15"&`Visium Cluster`=="X6",`Visium Cluster`:="ARC.2"]
+ret3[`BayesSpace Clustering`=="k15"&`Visium Cluster`=="X7",`Visium Cluster`:="VMH.1"]
+ret3[`BayesSpace Clustering`=="k15"&`Visium Cluster`=="X12",`Visium Cluster`:="VMH.2"]
+
+ret3[`BayesSpace Clustering`=="k20"&`Visium Cluster`=="X1",`Visium Cluster`:="ARC20.1"]
+ret3[`BayesSpace Clustering`=="k20"&`Visium Cluster`=="X4",`Visium Cluster`:="ARC20.2"]
+ret3[`BayesSpace Clustering`=="k20"&`Visium Cluster`=="X2",`Visium Cluster`:="VMH20.1"]
+ret3[`BayesSpace Clustering`=="k20"&`Visium Cluster`=="X3",`Visium Cluster`:="VMH20.2"]
+
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X6",`Visium Cluster`:="VMH31.1"]
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X21",`Visium Cluster`:="VMH31.2"]
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X25",`Visium Cluster`:="VMH31.3"]
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X26",`Visium Cluster`:="VMH31.4"]
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X31",`Visium Cluster`:="VMH31.5"]
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X2",`Visium Cluster`:="ARC31.1"]
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X4",`Visium Cluster`:="ARC31.2"]
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X11",`Visium Cluster`:="ARC31.3"]
+ret3[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X22",`Visium Cluster`:="ARC31.4"]
+
+ret3 <- melt.data.table(ret3,id.vars=c("BayesSpace Clustering","Visium Cluster","ntop"))
+
+setnames(ret3,"variable","Mouse Subclass or Aggregate VMH/ARC Subclasses")
+setnames(ret3,"value","Spearman Correlation")
+setnames(ret3,"ntop","n Top Visium Cluster Markers")
+
+ret3 <- ret3[,c(1,2,4,3,5),with=F]
+
+fwrite(ret3,"local_supptab_assembly/sphyp-ABA23-VMHARCsubtypesCollapsed_Visium_spatreg.txt",sep='\t',quote=F)
+```
+
 
 ### reproducibility info
 ```{r}

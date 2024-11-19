@@ -63,29 +63,12 @@ bkanno <- unique(bkanno[,.(clus,bjm_annot)])
 bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
 ## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
 
-arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
+arcvmhanno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
 ## simplify these by removing VMH/ARC and underscores; asterisk-ize so the gene names  can be italiczed in ggplot elements; remove vmh and arc from the names but add a temporary column here so we know they're VMH and ARC for mapping onto the de result sets
-arcvmhanno[,subclus_domain:=gsub(subclus_annot,pattern="^(VMH)_.*$",replacement="\\1")]
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="VMH_",replacement="")]
-
-arcvmhanno[subclus_domain!="VMH",subclus_domain:=gsub(subclus_annot,pattern="^(ARC)_.*$",replacement="\\1")]
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="ARC_",replacement="")]
-
-arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="_",replacement=" ")]
-
-arcvmhanno[subclus_annot=="VMH-Glia-Mixed",subclus_annot:="VMH-Glia Mixed"]
-arcvmhanno[subclus_annot=="SLC17A6-CRHR2",subclus_annot:="*SLC17A6*-*CRHR2*"]
-arcvmhanno[subclus_annot=="FEZF1-LAMP5-NRGN",subclus_annot:="*FEZF1*-*LAMP5*-*NRGN*"]
-arcvmhanno[subclus_annot=="HCRT-SLC6A3-TAC1",subclus_annot:="*HCRT*-*SLC6A3*-*TAC1*"]
-arcvmhanno[subclus_annot=="AGRP",subclus_annot:="*AGRP*"]
-arcvmhanno[subclus_annot=="TAC3-AR-ESR1",subclus_annot:="*TAC3*-*AR*-*ESR1*"]
-arcvmhanno[subclus_annot=="POMC-Oligo-Mixed",subclus_annot:="*POMC*-Oligo Mixed"]
-arcvmhanno[subclus_annot=="Excit-SLC17A7-Glial-Mixed",subclus_annot:="*SLC17A7*-Glia Mixed"]
-arcvmhanno[subclus_annot=="GAL-TRH-GHRH",subclus_annot:="*GAL*-*TRH*-*GHRH*"]
+bkanno <- merge.data.table(bkanno,arcvmhanno[,.(cluster_id,subclus_domain,plotclusname)],by.x="clus",by.y="cluster_id",all.x=T)
 
 ## append these to the other annots and replace bjm_annot with the ARC/VMH cell type labels where applicable
-bkanno <- merge.data.table(bkanno,arcvmhanno,by="bjm_annot",all.x=T)
-bkanno[!is.na(subclus_annot),bjm_annot:=subclus_annot]
+bkanno[!is.na(plotclusname),bjm_annot:=plotclusname]
 
 ## this drops rows that were assigned one of the discarded types (ie no longer in the cell type annotations)
 bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
@@ -95,7 +78,7 @@ hypx <- hypx[,colnames(hypx) %in% bkcl$rn]
 ## append cluster annots to xenium spe
 bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),]
 bkcl$rn <- NULL
-hypx$banksyclus <- bkcl$bjm_annot
+hypx$banksyclus <- bkcl$plotclusname
 
 ## assign the domain labels to the xenium cells
 bksmooth[dualVMHARC4=="other",dualVMHARC4:="Other"]
@@ -105,11 +88,11 @@ hypx$dom <- bksmooth$dualVMHARC4
 
 ## we only need the VMH domain and VMH clusters or ARC domain and ARC clusters for these plots
 hypv <- hypx[,hypx$dom=="VMH"]
-hypv <- hypv[,hypv$banksyclus %in% arcvmhanno[subclus_domain=="VMH",subclus_annot]]
+hypv <- hypv[,hypv$banksyclus %in% arcvmhanno[subclus_domain=="VMH",plotclusname]]
 stopifnot(length(unique(hypv$banksyclus))==nrow(arcvmhanno[subclus_domain=="VMH"]))
 
 hypa <- hypx[,hypx$dom=="ARC"]
-hypa <- hypa[,hypa$banksyclus %in% arcvmhanno[subclus_domain=="ARC",subclus_annot]]
+hypa <- hypa[,hypa$banksyclus %in% arcvmhanno[subclus_domain=="ARC",plotclusname]]
 stopifnot(length(unique(hypa$banksyclus))==nrow(arcvmhanno[subclus_domain=="ARC"]))
 ```
 
@@ -137,10 +120,11 @@ extract_legend <- function(my_ggp) {
 }
 ```
 
-### VMH
+### VMH -- glia mixed doesn't display with a space (only in the legend?) so i guess just fix that in illustrator 
 ```{r}
+
 ## order the clusters so that the HCRT one is last
-hypv$banksyclus <- factor(hypv$banksyclus,levels=c("*SLC17A6*-*CRHR2*","*FEZF1*-*LAMP5*-*NRGN*","VMH-Glia Mixed","*HCRT*-*SLC6A3*-*TAC1*"))
+hypv$banksyclus <- factor(hypv$banksyclus,levels=c("*CRHR2*","*LAMP5*","xVMH-Glia Mixed","xVMH Lateral Border"))
 
 ## make a plot w legend to extract from
 
@@ -158,11 +142,11 @@ tmplegplt <- ggplot(pltspe,aes(x=sdimx,y=sdimy,color=banksyclus))+
           axis.title.y=element_blank(),
           axis.title.x=element_blank(),
           axis.ticks = element_blank(),
-          legend.background = element_blank(),
-          legend.box=element_blank(),
+          #legend.background = element_blank(),
+          #legend.box=element_blank(),
           #legend.margin=margin(0,0,0,-0.15,unit="in"),
           #plot.margin = margin(0.01,0.02,0,0,unit="in"),
-          legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),
+          legend.text = element_markdown(),
           strip.background = element_blank(),
           strip.text = element_text(size=10))
 
@@ -171,14 +155,15 @@ dev.off()
 rm(tmplegplt,pltspe)
 ###
 
+
 ## actual plots
 allplts <- lapply(unique(hypv$sample_id),FUN=function(s){
     pltspe <- hypv[,hypv$sample_id==s]
     pltspe <- as.data.table(cbind(spatialCoords(pltspe),as.data.table(colData(pltspe))))[,.(sdimx,sdimy,banksyclus)]
     
     samplts <- ggplot(pltspe,aes(x=sdimx,y=sdimy,color=banksyclus))+
-        rasterize(geom_point(size=0.075,stroke=0.375),res=450,dev="cairo_png")+
-        facet_wrap(~banksyclus)+
+        rasterize(geom_point(size=0.075,stroke=0.375),res=750,dev="cairo_png")+
+        facet_wrap(~banksyclus,nrow = 1)+
         scale_color_manual(values = vmhpal)+
         guides(color="none")+
         ggtitle(mscriptsampleids[sample_id==s,manuscript_id])+
@@ -192,24 +177,29 @@ allplts <- lapply(unique(hypv$sample_id),FUN=function(s){
               panel.grid = element_blank(),
               #legend.margin=margin(0,0,0,-0.15,unit="in"),
               #plot.margin = margin(0.01,0.02,0,0,unit="in"),
-              legend.text = element_markdown(margin=margin(0,0,0,-0.075,"in")),
+              legend.text = element_markdown(),
               strip.background = element_blank(),
               strip.text = element_markdown(size=10),
               )
     
     return(samplts)
 })
-
+allplts[[14]] <- ggplot()+geom_blank()+theme(rect = element_blank())
+allplts[[15]] <- ggplot()+geom_blank()+theme(rect = element_blank())
 ### arrangeGrob() on the spotplot list --> constituting the "first column" of the parent; leg.tmp is an additional thing being plotted in the second column of the parent. width of the plot grid is set to 30, width of the second column (legend only) set to 2.
-pdf("manuscript_plots/Supplemental/SF-VMH_cluster_facets_allsamples.pdf",height=32,width=25)
-    do.call("grid.arrange",list(arrangeGrob(grobs=allplts,ncol=4),leg.tmp,ncol=2,widths=c(30,2)))
+pdf("manuscript_plots/Supplemental/SF-VMH_cluster_facets_allsamples.pdf",height=8.5,width=7.5)
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(1:3)],ncol=1),leg.tmp,ncol=2,widths=c(6.15,1.35)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(4:6)],ncol=1),leg.tmp,ncol=2,widths=c(6.15,1.35)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(7:9)],ncol=1),leg.tmp,ncol=2,widths=c(6.15,1.35)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(10:12)],ncol=1),leg.tmp,ncol=2,widths=c(6.15,1.35)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(13:15)],ncol=1),leg.tmp,ncol=2,widths=c(6.15,1.35)))
 dev.off()
 ```
 
 ### ARC:
-```{r}
-## make a plot w legend to extract from
 
+## make a plot w legend to extract from
+```{r}
 pltspe <- hypa[,hypa$sample_id=="X86_reg1"]
 pltspe <- as.data.table(cbind(spatialCoords(pltspe),as.data.table(colData(pltspe))))[,.(sdimx,sdimy,banksyclus)]
     
@@ -244,7 +234,7 @@ allplts <- lapply(unique(hypa$sample_id),FUN=function(s){
     
     samplts <- ggplot(pltspe,aes(x=sdimx,y=sdimy,color=banksyclus))+
         rasterize(geom_point(size=0.075,stroke=0.375),res=450,dev="cairo_png")+
-        facet_wrap(~banksyclus,nrow=2)+
+        facet_wrap(~banksyclus,nrow=1)+
         scale_color_manual(values = arcpal)+
         guides(color="none")+
         ggtitle(mscriptsampleids[sample_id==s,manuscript_id])+
@@ -265,10 +255,16 @@ allplts <- lapply(unique(hypa$sample_id),FUN=function(s){
     
     return(samplts)
 })
+allplts[[14]] <- ggplot()+geom_blank()+theme(rect = element_blank())
+allplts[[15]] <- ggplot()+geom_blank()+theme(rect = element_blank())
 
 ### arrangeGrob() on the spotplot list --> constituting the "first column" of the parent; leg.tmp is an additional thing being plotted in the second column of the parent. width of the plot grid is set to 32, width of the second column (legend only) set to 2.
-pdf("manuscript_plots/Supplemental/SF-ARC_cluster_facets_allsamples.pdf",height=40,width=34)
-    do.call("grid.arrange",list(arrangeGrob(grobs=allplts,ncol=3),leg.tmp,ncol=2,widths=c(32,2)))
+pdf("manuscript_plots/Supplemental/SF-ARC_cluster_facets_allsamples.pdf",height=6.8,width=8)
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(1:3)],ncol=1),leg.tmp,ncol=2,widths=c(6.65,1.35)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(4:6)],ncol=1),leg.tmp,ncol=2,widths=c(6.65,1.35)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(7:9)],ncol=1),leg.tmp,ncol=2,widths=c(6.65,1.35)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(10:12)],ncol=1),leg.tmp,ncol=2,widths=c(6.65,1.35)))
+    do.call("grid.arrange",list(arrangeGrob(grobs=allplts[c(13:15)],ncol=1),leg.tmp,ncol=2,widths=c(6.65,1.35)))
 dev.off()
 ```
 
