@@ -45,18 +45,18 @@ bscl[cl=="Vis7",cl:="VMH.1"]
 bscl[cl=="Vis12",cl:="VMH.2"]
 bscl[cl=="Vis4",cl:="ARC.1"]
 bscl[cl=="Vis6",cl:="ARC.2"]
-# WM (optic tract, OT): Clusters 3 and 10
-bscl[cl=="Vis3",cl:="OT.1"]
-bscl[cl=="Vis10",cl:="OT.2"]
-bscl[cl=="Vis5",cl:="OT.3"]
+# WM (optic tract, OT): Clusters 3 5 and 10
+bscl[cl=="Vis3",cl:="OT (3)"]
+bscl[cl=="Vis10",cl:="OT (3)"]
+bscl[cl=="Vis5",cl:="OT (3)"]
 # others:
-bscl[cl=="Vis1",cl:="GABA.1"]
+bscl[cl=="Vis1",cl:="GABA (2)"]
 bscl[cl=="Vis2",cl:="PeriVN"]
 bscl[cl=="Vis9",cl:="Vascular"]
 bscl[cl=="Vis8",cl:="SON"]
 bscl[cl=="Vis13",cl:="Portal Vasc."]
 bscl[cl=="Vis14",cl:="Astro"]
-bscl[cl=="Vis15",cl:="GABA.2"]
+bscl[cl=="Vis15",cl:="GABA (2)"]
 
 ## Vis11 is a donor/sample-specific cluster, so remove that one for plotting here.
 bscl <- bscl[cl!="Vis11"]
@@ -64,7 +64,7 @@ bscl <- bscl[cl!="Vis11"]
 bscl[,dom:=cl]
 bscl[dom %in% c("VMH.1","VMH.2"),dom:="VMH"]
 bscl[dom %in% c("ARC.1","ARC.2"),dom:="ARC"]
-bscl[dom %in% c("OT.1","OT.2","OT.3"),dom:="OT"]
+bscl[dom %in% c("OT"),dom:="OT"]
 bscl[!(dom %in% c("VMH","ARC","OT")),dom:="Other"]
 
 # subset the visium obj to non-cluster 11 spots for plotting
@@ -114,10 +114,20 @@ pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAM
 pal <- pals[[1]]
 
 fullpal <- readRDS("manuscript_plot_code/14color_palette.RDS")
+ 
+#### FOR PLOTTING INDIVIDUAL VISIUM OT/GABA CLUSTERS, NOT USED: set levels for the domain labels so they appear in the same order
+# hyp2$k15dom <- factor(hyp2$k15dom,levels=c("VMH.1","VMH.2","ARC.1","ARC.2","OT.1","OT.2","OT.3","GABA.1","GABA.2","SON","Vascular","Astro","PeriVN","Portal Vasc."))
 
-#### set levels for the domain labels so they appear in the same order
-hyp2$k15dom <- factor(hyp2$k15dom,levels=c("VMH.1","VMH.2","ARC.1","ARC.2","OT.1","OT.2","OT.3","GABA.1","GABA.2","SON","Vascular","Astro","PeriVN","Portal Vasc."))
+## subset the 14 color pal to 11 colors (matching the xenium clustergroup palette for oligos (orange) and GABAs (deep pink)) to account for merging OT clusters or GABA clusters together, rename pal and factor the spe cluster column
 
+fullpal <- c(fullpal[c("VMH.1","VMH.2","ARC.1","ARC.2")],
+             pals[["xen_cellgroups"]][c("Oligo (4)","Other GABAergic Neurons (2)")],
+             fullpal[c("SON","Vascular","Astro","PeriVN","Portal Vasc.")]) 
+
+names(fullpal)[c(5,6)] <- c("OT (3)","GABA (2)")
+
+stopifnot(all(names(fullpal) %in% unique(hyp2$k15dom)))
+hyp2$k15dom <- factor(hyp2$k15dom,levels=names(fullpal))
 ### also load manuscript plotting ids
 mscriptids <- fread("standardized_sampleids_for_plotting.txt")
 ```
@@ -142,8 +152,8 @@ pdf("manuscript_plots/Fig1/1C-V13Y24-346_C1_Visdomains.pdf",height=2,width=2)
 p+
     scale_fill_manual(values=fullpal,na.value = NA)+
     # ggtitle(mscriptids[sample_id==unique(panc$sample_id),manuscript_id])+
-    guides(color="none",fill=guide_legend(override.aes=list(size=1.5)))+
-    labs(fill="Visium\nDomain")+
+    guides(color="none",fill=guide_legend(title = NULL,override.aes=list(size=1.5)))+
+    #labs(fill="Visium\nCluster(s)\n(N if >1)")+
     theme(
        #plot.title.position = "plot",
        #plot.title = element_markdown(size=9,hjust=0.5),

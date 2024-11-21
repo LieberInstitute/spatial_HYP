@@ -1,7 +1,7 @@
 ---
 title: "SF-ESR1-KISS1-TAC3_coloc_br1225smfishanalysis"
 author: "Bernie Mulvey"
-date: "2024-11-12"
+date: "2024-11-19"
 output: html_document
 ---
 
@@ -13,7 +13,7 @@ knitr::opts_knit$set(root.dir = here::here())
 library(data.table)
 library(ggplot2)
 library(ggtext)
-
+library(readxl)
 ## rstudio GUI tweaks
 require(colorout)
 ColorOut()
@@ -28,30 +28,32 @@ unloadNamespace("datasets")
 ```
 
 ```{r}
-cellq <- fread("manuscript_plots/Supplemental/SF-ESR-KISS-TAC_20xsmfish_and_cellquants/br1225 esrTacKiss smfish quant from atharv 110724.txt")
+cellq <- read_xlsx("Br1225_ESR1-TAC3-KISS1_smfish_analysis/processed-data/04-HYP1225_selected_Three_Clusters.xlsx")
+cellq <- as.data.table(cellq)
+setnames(cellq,2,"n")
 
-cellq <- cellq[c(1:8)]
-setnames(cellq,c("Phenotype","Tissue Section 1","Tissue Section 2"))
+cellq[,phenotype:=gsub(phenotype,pattern="520",replacement="*KISS1*")]
+cellq[,phenotype:=gsub(phenotype,pattern="570",replacement="*ESR1*")]
+cellq[,phenotype:=gsub(phenotype,pattern="690",replacement="*TAC3*")]
+cellq[,phenotype:=gsub(phenotype,pattern="\\+",replacement="\\+ ")]
+cellq[,phenotype:=gsub(phenotype,pattern="\\-",replacement="\\- ")]
+cellq[,phenotype:=gsub(phenotype,pattern=" $",replacement="")]
+
 # don't show triple negatives
-cellq <- cellq[Phenotype!="KISS1- ESR1- TAC3-"]
+cellq <- cellq[phenotype!="*KISS1*- *ESR1*- *TAC3*-"]
 
-cellq <- melt(cellq,id.vars="Phenotype")
-cellq[,ncells:=sum(value),by="variable"]
-cellq[,prop:=value/ncells]
+cellq[,prop:=n/sum(n)]
 
-cellq[,Phenotype:=gsub(Phenotype,pattern="KISS1",replacement="*KISS1*")]
-cellq[,Phenotype:=gsub(Phenotype,pattern="ESR1",replacement="*ESR1*")]
-cellq[,Phenotype:=gsub(Phenotype,pattern="TAC3",replacement="*TAC3*")]
 
 ## show KISS1+ESR1+TAC3+ and KISS- ESR1+ TAC3+ at the top
-levs <- c(unique(cellq$Phenotype)[!(unique(cellq$Phenotype) %in% c("*KISS1*+ *ESR1*+ *TAC3*+","*KISS1*- *ESR1*+ *TAC3*+"))],"*KISS1*- *ESR1*+ *TAC3*+","*KISS1*+ *ESR1*+ *TAC3*+")
-cellq[,Phenotype:=factor(Phenotype,levels=levs)]
+levs <- c(unique(cellq[!(unique(cellq$phenotype) %in% c("*KISS1*+ *ESR1*+ *TAC3*+","*KISS1*- *ESR1*+ *TAC3*+")),phenotype]),"*KISS1*- *ESR1*+ *TAC3*+","*KISS1*+ *ESR1*+ *TAC3*+")
+cellq[,Phenotype:=factor(phenotype,levels=levs)]
 
-pdf("manuscript_plots/Supplemental/SF-ESR-KISS-TAC_smfish_cellquants.pdf",width=8.5,height=11)
-ggplot(cellq,aes(x=prop,y=Phenotype,fill=variable))+
+pdf("manuscript_plots/Supplemental/SF-ESR-KISS-TAC_20xsmfish_and_cellquants/ESR-KISS-TAC_smfish_cellquants.pdf",width=4,height=5)
+ggplot(cellq,aes(x=prop,y=Phenotype))+
     geom_col(position="dodge")+
-    labs(fill="Replicate",x="Proportion of Cells")+
-    theme(axis.text.y=element_markdown(size=9),axis.title.y=element_text(size=10),axis.text.x=element_text(size=9),axis.title.x=element_text(size=10))
+    labs(fill="Replicate",x="Proportion of Cells",y="smFISH Cell Phenotype")+
+    theme(axis.text.y=element_markdown(size=8),axis.title.y=element_text(size=9),axis.text.x=element_text(size=8),axis.title.x=element_text(size=9))
 dev.off()
 
 
