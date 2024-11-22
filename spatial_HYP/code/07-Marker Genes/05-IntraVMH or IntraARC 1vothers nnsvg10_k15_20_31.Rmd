@@ -80,7 +80,8 @@ bscls.dt[["k31"]][cl=="X22",cl:="ARC31_4"]
 select.vmharc.markers <- list()
 i<-1
 
-for (i in c(1:length(bscls.dt))){
+## k31 is different -- we need to take each cluster and compare it to the others in aggregate. so we'll do this in a separate loop.
+for (i in c(1:length(bscls.dt[names(bscls.dt)!="k31"]))){
     b <- copy(bscls.dt[[i]])
     
     vmhs <- grep(unique(b$cl),pattern="VMH",value=T)
@@ -146,7 +147,68 @@ for (i in c(1:length(bscls.dt))){
     gc(full=T)
 }
 
-names(select.vmharc.markers) <- names(bscls.dt)
+names(select.vmharc.markers) <- names(bscls.dt)[names(bscls.dt)!="k31"]
+```
+
+## for the k31s, similar deal but we need to compare each cluster to the others in aggregate. (e.g., VMH31.1 vs VMH31.2-31.5 all put under the aegis of "otherVMH")
+```{r}
+i<-3
+b <- copy(bscls.dt[["k31"]])
+
+vmhs <- grep(unique(b$cl),pattern="VMH",value=T)
+vmhres <- lapply(vmhs,FUN=function(v){
+    btmp <- copy(b)
+    btmp <- btmp[cl %in% vmhs]
+    
+    ### label all of the clusters in vmhs != v as "otherVMH"
+    btmp[cl!=v,cl:="otherVMH"]
+    hyptmp <- hyp2[,hyp2$key %in% btmp$rn]
+    
+    
+    btmp <- DataFrame(btmp,row.names = btmp$rn)[colnames(hyptmp),]
+    colLabels(hyptmp) <- factor(btmp$cl,levels=c(v,"otherVMH"))
+    
+    ## stepwise set up to run registration_pairwise
+    hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
+    mkmod <- registration_model(hyptmp.pb,var_registration = "label")
+    bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
+    
+    # run pairwise reg
+    mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
+    mkres <- as.data.table(mk,keep.rownames=T)
+
+    return(mkres)
+})
+names(vmhres) <- vmhs
+
+### same with ARC
+arcs <- grep(unique(b$cl),pattern="ARC",value=T)
+arcres <- lapply(arcs,FUN=function(a){
+    btmp <- copy(b)
+    btmp <- btmp[cl %in% arcs]
+    
+    ### label all of the clusters in arcs != a as "otherARC"
+    btmp[cl!=a,cl:="otherARC"]
+    hyptmp <- hyp2[,hyp2$key %in% btmp$rn]
+    
+    btmp <- DataFrame(btmp,row.names = btmp$rn)[colnames(hyptmp),]
+    colLabels(hyptmp) <- factor(btmp$cl,levels=c(a,"otherARC"))
+    
+    ## stepwise set up to run registration_pairwise
+    hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
+    mkmod <- registration_model(hyptmp.pb,var_registration = "label")
+    bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
+    
+    # run pairwise reg
+    mk <- registration_stats_pairwise(sce_pseudo = hyptmp.pb, registration_model = mkmod, var_registration = "label",block_cor = bcor, var_sample_id = "sample_id", gene_ensembl = "gene_id",gene_name = "gene_name")
+    mkres <- as.data.table(mk,keep.rownames=T)
+    
+    return(mkres)
+})
+names(arcres) <- arcs
+
+select.vmharc.markers[[i]] <- list(vmh=vmhres,arc=arcres)
+names(select.vmharc.markers)[i] <- names(bscls.dt)[names(bscls.dt)=="k31"]
 ```
 
 ## save complete results
@@ -162,7 +224,7 @@ for (i in c(1:3)){
    j<-1
    for (j in c(1:length(select.vmharc.markers[[i]]))){
       k<-1
-      if (length(select.vmharc.markers[[i]][[j]])==2){
+      #if (length(select.vmharc.markers[[i]][[j]])==2){
          for (k in c(1:length(select.vmharc.markers[[i]][[j]]))){
             curdat <- as.data.table(select.vmharc.markers[[i]][[j]][[k]])
             curdat[,rn:=NULL]
@@ -176,48 +238,48 @@ for (i in c(1:3)){
             if(i==1&j==1&k==1){outdat <- copy(curdat)} else{
                outdat<-rbind(outdat,curdat)
             }
-            
-   }} else {
-         curdat <- as.data.table(select.vmharc.markers[[i]][[j]])
-
-         curdat[,rn:=NULL]
-         curdat <- melt.data.table(curdat,id.vars=c("ensembl","gene"))
-         
-         curdat[,stat:=gsub(variable,pattern="^(.*)_.*_.-.*_.$",replacement="\\1")]
-         curdat[,tested_cluster:=gsub(variable,pattern="^.*_(.*_.)-.*$",replacement="\\1")]
-         curdat[,comparator_cluster:=gsub(variable,pattern="^.*-(.*)$",replacement="\\1")]
-         
-         curdat.t <- curdat[stat=="t_stat"]
-         curdat.p <- curdat[stat=="p_value"]
-         curdat.l <- curdat[stat=="logFC"]
-         curdat.f <- curdat[stat=="fdr"]
-
-         curdat.t <- curdat.t[,variable:=NULL]
-         curdat.t <- curdat.t[,stat:=NULL]
-         curdat.p <- curdat.p[,variable:=NULL]
-         curdat.p <- curdat.p[,stat:=NULL]
-         curdat.l <- curdat.l[,variable:=NULL]
-         curdat.l <- curdat.l[,stat:=NULL]
-         curdat.f <- curdat.f[,variable:=NULL]
-         curdat.f <- curdat.f[,stat:=NULL]
-         
-         setnames(curdat.t,"value","t_stat")
-         setnames(curdat.p,"value","p_value")
-         setnames(curdat.l,"value","logFC")
-         setnames(curdat.f,"value","fdr")
-         
-         
-         curdat2 <- merge(curdat.t,curdat.p,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
-         curdat2 <- merge.data.table(curdat2,curdat.l,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
-         curdat2 <- merge.data.table(curdat2,curdat.f,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
-         
-         outdat <- rbind(curdat2[,.(logFC,ensembl,gene,tested_cluster,comparator_cluster,t_stat,p_value,fdr)],outdat)
-      }
+         }   
+   # #}} else {
+   #       curdat <- as.data.table(select.vmharc.markers[[i]][[j]])
+   # 
+   #       curdat[,rn:=NULL]
+   #       curdat <- melt.data.table(curdat,id.vars=c("ensembl","gene"))
+   #       
+   #       curdat[,stat:=gsub(variable,pattern="^(.*)_.*_.-.*_.$",replacement="\\1")]
+   #       curdat[,tested_cluster:=gsub(variable,pattern="^.*_(.*_.)-.*$",replacement="\\1")]
+   #       curdat[,comparator_cluster:=gsub(variable,pattern="^.*-(.*)$",replacement="\\1")]
+   #       
+   #       curdat.t <- curdat[stat=="t_stat"]
+   #       curdat.p <- curdat[stat=="p_value"]
+   #       curdat.l <- curdat[stat=="logFC"]
+   #       curdat.f <- curdat[stat=="fdr"]
+   # 
+   #       curdat.t <- curdat.t[,variable:=NULL]
+   #       curdat.t <- curdat.t[,stat:=NULL]
+   #       curdat.p <- curdat.p[,variable:=NULL]
+   #       curdat.p <- curdat.p[,stat:=NULL]
+   #       curdat.l <- curdat.l[,variable:=NULL]
+   #       curdat.l <- curdat.l[,stat:=NULL]
+   #       curdat.f <- curdat.f[,variable:=NULL]
+   #       curdat.f <- curdat.f[,stat:=NULL]
+   #       
+   #       setnames(curdat.t,"value","t_stat")
+   #       setnames(curdat.p,"value","p_value")
+   #       setnames(curdat.l,"value","logFC")
+   #       setnames(curdat.f,"value","fdr")
+   #       
+   #       
+   #       curdat2 <- merge(curdat.t,curdat.p,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
+   #       curdat2 <- merge.data.table(curdat2,curdat.l,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
+   #       curdat2 <- merge.data.table(curdat2,curdat.f,by=c("ensembl","gene","comparator_cluster","tested_cluster"))
+   #       
+   #       outdat <- rbind(curdat2[,.(logFC,ensembl,gene,tested_cluster,comparator_cluster,t_stat,p_value,fdr)],outdat)
+   #    }
    }
 }
 
-
-fwrite(outdat,"local_supptab_assembly/SLIBDpairwise_VMHARC_clusts_k15-20-31.txt",sep='\t',quote=F,row.names=F)
+outdat[tested_cluster %in% grep(tested_cluster,pattern="31",value=T),comparator_cluster:=paste0("all_",comparator_cluster,"31s")]
+fwrite(outdat,"local_supptab_assembly/SLIBDpairwise_VMHARC_clusts_1vsallothers_k15-20-31.txt",sep='\t',quote=F,row.names=F)
 
 ```
 
@@ -312,7 +374,7 @@ loaded via a namespace (and not attached):
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/New_York
- date     2024-11-17
+ date     2024-11-21
  rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
  pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
 

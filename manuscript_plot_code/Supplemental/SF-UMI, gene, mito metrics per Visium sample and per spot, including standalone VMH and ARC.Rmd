@@ -2,7 +2,7 @@
 title: "SF-UMI, gene, mito metrics per Visium sample and per spot, including standalone
   VMH and ARC"
 output: html_document
-date: "2024-10-07"
+date: "2024-11-20"
 ---
 
 ```{r setup, include=FALSE}
@@ -69,6 +69,7 @@ hyp2$`Visium Domain` <- factor(bscl$dom,levels=c("ARC","VMH","Other"))
 
 ```{r}
 tmpcd <- as.data.table(colData(hyp2))
+tmpcd[,sum_gene:=as.numeric(sum_gene)] # sum_gene is an integer column which will screw with melting later, so switch it to numeric
 
 sampmeds <- tmpcd[,.(`Median Spot Genes`=median(sum_gene),`Median Spot UMIs`=median(sum_umi),`Median spot\nMito Read Pct`=median(expr_chrM_ratio)),by="sample_id"]
 sampmeds <- melt(sampmeds,id.vars=c("sample_id"))
@@ -83,23 +84,23 @@ visqcplots[[1]] <- ggplot(sampmeds,aes(x=1,y=value))+
     ylab("Sample Medians")
 ```
 
-then, make violin plots of all individual spot values for each metric, faceted by sample:
+then, make violin plots of all individual spot values for each metric, faceted by sample. only show sample ids in the bottom row (x axes and such will lined up and the same labels for plot sets 2 3 and 4).
 ```{r}
 spotvals <- tmpcd[,.(`Spot Genes`=sum_gene,`Spot UMIs`=sum_umi,`Spot Mito Pct`=expr_chrM_ratio,sample_id)]
-# sum_gene is an integer column which will screw with melting, so fix
-spotvals[,spotGenes:=as.numeric(`Spot Genes`)]
+
 spotvals <- melt(spotvals,id.vars=c("sample_id"))
 
-# violin with dashed lines for the 10/90%ile, solid for the 50%ile
+# violin with dashed lines for the 25th/75th%ile, solid for the 50%ile
 # simplest approach is two violins: https://stackoverflow.com/questions/48936704/manual-specification-of-draw-quantile-argument-in-violin-plot-call-in-r
 
 visqcplots[[2]] <- ggplot(spotvals,aes(x=sample_id,y=value))+
     geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.25,0.75),linewidth=0.85)+
     geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=1,fill="transparent")+
-    facet_wrap(~variable,scales="free_y")+
-    theme(strip.text = element_text(size=6),axis.text.x=element_text(angle=90))+
-    ylab("Spot Values")+
-    xlab("Sample ID")
+    facet_wrap(~variable,scales="free_y",nrow=1)+
+    theme(strip.text = element_text(size=6),
+          axis.text.x=element_blank(),
+          axis.title.x=element_blank())+
+    ylab("Spot Values")
 
 
 # the same for VMH spots:
@@ -110,10 +111,12 @@ vmhvals <- melt(vmhvals,id.vars=c("sample_id"))
 visqcplots[[3]] <- ggplot(vmhvals,aes(x=sample_id,y=value))+
     geom_violin(aes(fill=sample_id),show.legend = FALSE,draw_quantiles = c(0.25,0.75),linewidth=0.85)+
     geom_violin(aes(fill="sample_id"),show.legend=FALSE,draw_quantiles=0.5,linewidth=1,fill="transparent")+
-    facet_wrap(~variable,scales="free_y")+
-    theme(strip.text = element_text(size=6),axis.text.x=element_text(angle=90))+
     ylab("VMH Spot Values")+
-    xlab("Sample ID")
+    facet_wrap(~variable,scales="free_y")+
+    theme(strip.text = element_text(size=6),
+          axis.text.x=element_blank(),
+          axis.title.x=element_blank())
+    #xlab("Sample ID")
 
 # the same for ARC spots:
 arcvals <- tmpcd[Visium.Domain=="ARC",.(`Spot Genes`=sum_gene,`Spot UMIs`=sum_umi,`Spot Mito Pct`=expr_chrM_ratio,sample_id)]
@@ -133,21 +136,21 @@ visqcplots[[4]] <- ggplot(arcvals,aes(x=sample_id,y=value))+
 
 arrange and save into one pdf
 ```{r}
-pdf("manuscript_plots/Supplemental/SFig-UMI_gene_mito_Visium.pdf",height=11,width=8.5)
-do.call("grid.arrange",list(arrangeGrob(grobs=visqcplots,ncol=1,nrow=4,heights = c(2,3,3,3))))
+pdf("manuscript_plots/Supplemental/SFig-UMI_gene_mito_Visium.pdf",height=11,width=8.5,onefile = FALSE)
+do.call("grid.arrange",list(arrangeGrob(grobs=visqcplots,ncol=1,nrow=4,heights = c(2,2.25,2.25,3.5))))
 dev.off()
 ```
 
 ## continued plot for same sfig: # spots / sample
 ```{r}
-nspot <- tmpcd[,.N,by="sample_id"]
-pdf("manuscript_plots/Supplemental/SFig-UMIgenemito-contd_nSpotsperSamp.pdf",height=5,width=6)
-ggplot(nspot,aes(x=sample_id,y=N))+
-  geom_col()+
-  ylab("Number of Analyzed Spots")+
-  xlab("Sample ID")+
-  theme(axis.text.x=element_text(angle=45,vjust=1,hjust=1))
-dev.off()
+# nspot <- tmpcd[,.N,by="sample_id"]
+# pdf("manuscript_plots/Supplemental/SFig-UMIgenemito-contd_nSpotsperSamp.pdf",height=5,width=6)
+# ggplot(nspot,aes(x=sample_id,y=N))+
+#   geom_col()+
+#   ylab("Number of Analyzed Spots")+
+#   xlab("Sample ID")+
+#   theme(axis.text.x=element_text(angle=45,vjust=1,hjust=1))
+# dev.off()
 
 
 

@@ -47,34 +47,9 @@ theme_set(theme_bw() + theme(axis.text.x = element_text(size = 8), axis.title.x 
 unloadNamespace("datasets")
 ```
 
-
-
-#### VISIUM setup ####
-```{r}
-hyp2 <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
-
-bscl <- fread("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt") # main visium clustering (bs=bayesspace)
-
-setnames(bscl,2,"cl")
-bscl[,cl:=paste0("Vis",cl)]
-bscl[cl=="Vis7",cl:="VMH.1"]
-bscl[cl=="Vis12",cl:="VMH.2"]
-bscl[cl=="Vis4",cl:="ARC.1"]
-bscl[cl=="Vis6",cl:="ARC.2"]
-
-bscl[,dom:=cl]
-bscl[dom %in% c("VMH.1","VMH.2"),dom:="VMH"]
-bscl[dom %in% c("ARC.1","ARC.2"),dom:="ARC"]
-bscl[!(dom %in% c("VMH","ARC")),dom:="Other"]
-
-bscl<-DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
-hyp2$k15dom <- bscl$cl
-hyp2$`Visium Domain` <- factor(bscl$dom,levels=c("ARC","VMH","Other"))
-```
-
 ### cluster label setup ###
 ```{r}
-## but drop discarded cell clusters, too
+## drop discarded cell clusters
 bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
 setnames(bkcl,2,"cl")
 
@@ -86,6 +61,7 @@ bkanno <- bkanno[bjm_annot!="DISCARD"&bjm_annot!="VMH_4_DISCARD"]
 
 ## convert ARC_1..etc to more descriptive cluster IDs defined based on ARC/VMH specific cluster marker analyses
 arcvmhanno <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/04e_ARC_and_VMH_cluster_identities_based_on_cellgroup_1vall.txt")
+
 ## simplify these by removing VMH/ARC and underscores; asterisk-ize so the gene names  can be italiczed in ggplot elements; remove vmh and arc from the names but add a temporary column here so we know they're VMH and ARC for mapping onto the de result sets
 arcvmhanno[,subclus_domain:=gsub(subclus_annot,pattern="^(VMH)_.*$",replacement="\\1")]
 arcvmhanno[,subclus_annot:=gsub(subclus_annot,pattern="VMH_",replacement="")]
@@ -116,13 +92,14 @@ bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
 
 ### sex DE results
 ```{r}
-visde <- fread("spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 ### exclude sex chromosomal, mito genes (need to append this info)
 genelut <- fread("spatial_HYP/raw-data/USEFOR10X_ensg_lut_hg38_fromEns98_111123.txt")
-genelut <- unique(genelut[,.(ensembl_gene_id,chromosome_name)])
-setnames(genelut,c("ens","chr"))
-visde <- merge.data.table(visde,genelut,by.x="gene_id",by.y="ens")
-visde <- visde[!(chr %in% c("MT","X","Y"))]
+genelut <- unique(genelut[,.(ensembl_gene_id,external_gene_name,chromosome_name)])
+setnames(genelut,c("ens","gene_name","chr"))
+genelut <- genelut[chr %in% c(1:22,"X","Y","MT")]
+
+
+
 
 ### load by cell type and full-domains xenium results from 4 ARC-cell-type-smoothing domain
 xenarcde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02a-4ARCtypesmoothed_withinARC_celltypeSexDE.txt")
@@ -130,13 +107,16 @@ xenvmhde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within 
 
 xendomde <- fread("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/04-4typeARC-and-dualassignVMH_domainwise_sexDE.txt")
 
-### for correlation plot, merge xenium domain and visium arc/vmh stats
-vistmp <- copy(visde[assay %in% c("VMH","ARC")])
-setnames(vistmp,"logFC","logFC_Visium")
+## make sure all genes in the xenium de analysis have only one ENSG for their symbol
+stopifnot(length(unique(
+   genelut[gene_name %in% unique(c(xenvmhde$gene_name,xenarcde$gene_name,xendomde$gene_name)),ens]))==
+      length(unique(c(xenvmhde$gene_name,xenarcde$gene_name))))
+##
 
-setnames(xendomde,"logFC_MvF","logFC_Xenium")
-
-xendomde <- merge.data.table(xendomde[,.(domain,gene_name,logFC_Xenium)],vistmp[,.(assay,gene_name,logFC_Visium)],by.x=c("domain","gene_name"),by.y=c("assay","gene_name"))
+xenarcde <- merge.data.table(xenarcde,genelut[,.(gene_name,chr)],by="gene_name")
+xenarcde <- xenarcde[!(chr %in% c("MT","X","Y"))]
+xenvmhde <- merge.data.table(xenvmhde,genelut[,.(gene_name,chr)],by="gene_name")
+xenvmhde <- xenvmhde[!(chr %in% c("MT","X","Y"))]
 
 ## clean up
 rm(genelut,vistmp)
