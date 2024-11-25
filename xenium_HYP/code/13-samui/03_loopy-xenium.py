@@ -12,8 +12,8 @@ from rasterio import Affine
 from loopy.sample import Sample
 from loopy.utils.utils import remove_dupes, Url
 
-spot_diameter_m = 55e-6 # 55-micrometer diameter for Visium spot
-img_channels = ["rgb"]
+#spot_diameter_m = 55e-6 # 55-micrometer diameter for Visium spot
+img_channels = "rgb"
 default_channels = {"blue": "DAPI"}
 default_gene = "SLC17A6"
 
@@ -186,8 +186,8 @@ this_sample.add_coords(
 
 #   Add the IF image for this sample
 #this_sample.add_image(
-#    tiff = img_path, channels = img_channels, scale = 1e-7,
-#    #defaultChannels = default_channels
+#    tiff = img_path, channels = img_channels, scale = 1e-6,
+#    defaultChannels = default_channels
 #)
 
 #   Add gene expression results (multiple columns) as a feature
@@ -198,6 +198,11 @@ this_sample.add_chunked_feature(
 #   Add additional requested observational columns (colData columns)
 this_sample.add_csv_feature(
     spe.obs["Banksy_cluster"], name = "Banksy-Cluster", coordName = "coords",
+    dataType = "categorical"
+)
+
+this_sample.add_csv_feature(
+    spe.obs["banksy_cluster_group"], name = "Banksy Cluster Grouped", coordName = "coords",
     dataType = "categorical"
 )
 
