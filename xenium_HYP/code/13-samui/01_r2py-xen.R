@@ -8,7 +8,7 @@ suppressPackageStartupMessages(library("SpatialFeatureExperiment"))
 
 
 spe_vis_in <- here(
-    "processed-data", "11-XeniumSPE_forSamui.RDS"
+    "processed-data", "11-XeniumSPE_forSamui_yreversed.RDS"
 )
 
 spe_out <- here(
