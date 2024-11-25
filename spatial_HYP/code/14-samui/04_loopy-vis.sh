@@ -16,7 +16,7 @@ echo "Hostname: ${SLURM_NODENAME}"
 echo "Task id: ${SLURM_ARRAY_TASK_ID}"
 
 module load samui/1.0.0-next.45
-python 07-loopy-vis.py
+python 03_loopy-vis.py
 
 echo "**** Job ends ****"
 date

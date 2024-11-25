@@ -1,7 +1,7 @@
-date: Wed Oct  9 09:02:15 AM EDT 2024
+date: Mon Nov 18 10:23:02 AM EST 2024
 **** JHPCE info ****
 User: rmiller
-Job id: 10073918
+Job id: 10770243
 Job name: samui
 Hostname: 
 Task id: 1
@@ -10,32 +10,40 @@ Loading LIBD SLURM module for samui/1.0.0-next.45
 * 'allow_mutation' has been removed
   warnings.warn(message, UserWarning)
 Using 30352 genes as features.
-[09:03:29] INFO     Transforming                                    logger.py:27
+[10:24:27] INFO     Transforming                                    logger.py:27
                     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
                     tial_HYP/spatial_HYP/code/14-samui/../../../spa             
                     tial_HYP/processed-data/14-samui/visium/V12D07-             
                     075_D1/V12D07-075_D1.tif to COG.                            
            INFO     'V12D07-075_D1' Executing queued functions      logger.py:27
            INFO     V12D07-075_D1 Adding coords 'coords'            logger.py:27
-[09:03:30] INFO     Writing uncompressed GeoTIFF                    logger.py:27
+[10:24:38] INFO     Writing uncompressed GeoTIFF                    logger.py:27
                     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
                     tial_HYP/spatial_HYP/code/14-samui/../../../spa             
                     tial_HYP/processed-data/14-samui/visium/V12D07-             
                     075_D1/V12D07-075_D1.tif                                    
-[09:03:48] INFO     Writing COG                                     logger.py:27
+[10:24:50] INFO     Writing COG                                     logger.py:27
                     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
                     tial_HYP/spatial_HYP/code/14-samui/../../../spa             
                     tial_HYP/processed-data/14-samui/visium/V12D07-             
                     075_D1/V12D07-075_D1.tif                                    
-[09:04:11] INFO     V12D07-075_D1 Adding chunked feature 'Genes'    logger.py:27
-[09:09:49] INFO     V12D07-075_D1 Concatenating and compressing     logger.py:27
+[10:25:12] INFO     V12D07-075_D1 Adding chunked feature 'Genes'    logger.py:27
+[10:30:53] INFO     V12D07-075_D1 Concatenating and compressing     logger.py:27
                     chunks                                                      
-[09:10:41] INFO     Writing compressed chunks for Genes: 12089399   logger.py:27
+[10:31:42] INFO     Writing compressed chunks for Genes: 12089399   logger.py:27
                     bytes                                                       
+           INFO     V12D07-075_D1 Adding csv feature 'HARMONYlmbna  logger.py:27
+                    nnsvg10 k15 collapsed'                                      
+           INFO     V12D07-075_D1 Adding csv feature 'HARMONYlmbna  logger.py:27
+                    nnsvg10 k15'                                                
+           INFO     V12D07-075_D1 Adding csv feature 'HARMONYlmbna  logger.py:27
+                    nnsvg10 k20'                                                
+           INFO     V12D07-075_D1 Adding csv feature 'HARMONYlmbna  logger.py:27
+                    nnsvg10 k31'                                                
            INFO     'V12D07-075_D1' written to                      logger.py:27
                     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
                     tial_HYP/spatial_HYP/code/14-samui/../../../spa             
                     tial_HYP/processed-data/14-samui/visium/V12D07-             
                     075_D1                                                      
 **** Job ends ****
-Wed Oct  9 09:10:41 AM EDT 2024
+Mon Nov 18 10:31:42 AM EST 2024

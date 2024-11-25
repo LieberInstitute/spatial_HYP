@@ -176,10 +176,29 @@ this_sample.add_chunked_feature(
 )
 
 #   Add additional requested observational columns (colData columns)
-# this_sample.add_csv_feature(
-#     spe.obs[spe_cont_features], name = "Spot Coverage", coordName = "coords",
-#     dataType = "quantitative"
-# )
+this_sample.add_csv_feature(
+    spe.obs["HARMONYlmbna_nnsvg10_k15_collapsed"], name = "HARMONYlmbna nnsvg10 k15 collapsed", coordName = "coords",
+    dataType = "categorical"
+)
+
+#   Add additional requested observational columns (colData columns)
+this_sample.add_csv_feature(
+    spe.obs["HARMONYlmbna_nnsvg10_k15"], name = "HARMONYlmbna nnsvg10 k15", coordName = "coords",
+    dataType = "categorical"
+)
+
+#   Add additional requested observational columns (colData columns)
+this_sample.add_csv_feature(
+    spe.obs["HARMONYlmbna_nnsvg10_k20"], name = "HARMONYlmbna nnsvg10 k20", coordName = "coords",
+    dataType = "categorical"
+)
+
+#   Add additional requested observational columns (colData columns)
+this_sample.add_csv_feature(
+    spe.obs["HARMONYlmbna_nnsvg10_k31"], name = "HARMONYlmbna nnsvg10 k31", coordName = "coords",
+    dataType = "categorical"
+)
+
 
 #   Add pathology groups
 # this_sample.add_csv_feature(
