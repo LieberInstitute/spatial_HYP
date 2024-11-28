@@ -67,3 +67,20 @@ Loading conda_R/4.4
   warnings.warn(
 /users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/aligned_df.py:67: ImplicitModificationWarning: Transforming to str index.
   warnings.warn("Transforming to str index.", ImplicitModificationWarning)
+
+**** Job starts ****
+Tue Nov 19 11:36:53 AM EST 2024
+
+**** JHPCE info ****
+User: rmiller
+Job id: 10790968
+Job name: r2py-xen
+Hostname: 
+Task id: 1
+Loading conda_R/4.4
+[1] "Converting objects to AnnDatas..."
+ℹ Using the 'counts' assay as the X matrix
+/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
+  warnings.warn(
+/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/aligned_df.py:67: ImplicitModificationWarning: Transforming to str index.
+  warnings.warn("Transforming to str index.", ImplicitModificationWarning)

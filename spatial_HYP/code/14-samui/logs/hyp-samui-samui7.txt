@@ -1,7 +1,7 @@
-date: Wed Oct  9 09:10:18 AM EDT 2024
+date: Mon Nov 18 10:31:47 AM EST 2024
 **** JHPCE info ****
 User: rmiller
-Job id: 10073936
+Job id: 10770284
 Job name: samui
 Hostname: 
 Task id: 7
@@ -10,7 +10,7 @@ Loading LIBD SLURM module for samui/1.0.0-next.45
 * 'allow_mutation' has been removed
   warnings.warn(message, UserWarning)
 Using 30352 genes as features.
-[09:11:16] INFO     Transforming                                    logger.py:27
+[10:32:21] INFO     Transforming                                    logger.py:27
                     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
                     tial_HYP/spatial_HYP/code/14-samui/../../../spa             
                     tial_HYP/processed-data/14-samui/visium/V13M13-             
@@ -22,20 +22,28 @@ Using 30352 genes as features.
                     tial_HYP/spatial_HYP/code/14-samui/../../../spa             
                     tial_HYP/processed-data/14-samui/visium/V13M13-             
                     362_D1/V13M13-362_D1.tif                                    
-[09:11:32] INFO     Writing COG                                     logger.py:27
+[10:32:33] INFO     Writing COG                                     logger.py:27
                     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
                     tial_HYP/spatial_HYP/code/14-samui/../../../spa             
                     tial_HYP/processed-data/14-samui/visium/V13M13-             
                     362_D1/V13M13-362_D1.tif                                    
-[09:11:59] INFO     V13M13-362_D1 Adding chunked feature 'Genes'    logger.py:27
-[09:22:02] INFO     V13M13-362_D1 Concatenating and compressing     logger.py:27
+[10:32:54] INFO     V13M13-362_D1 Adding chunked feature 'Genes'    logger.py:27
+[10:38:30] INFO     V13M13-362_D1 Concatenating and compressing     logger.py:27
                     chunks                                                      
-[09:22:54] INFO     Writing compressed chunks for Genes: 11549139   logger.py:27
+[10:39:15] INFO     Writing compressed chunks for Genes: 11549139   logger.py:27
                     bytes                                                       
+           INFO     V13M13-362_D1 Adding csv feature 'HARMONYlmbna  logger.py:27
+                    nnsvg10 k15 collapsed'                                      
+           INFO     V13M13-362_D1 Adding csv feature 'HARMONYlmbna  logger.py:27
+                    nnsvg10 k15'                                                
+           INFO     V13M13-362_D1 Adding csv feature 'HARMONYlmbna  logger.py:27
+                    nnsvg10 k20'                                                
+           INFO     V13M13-362_D1 Adding csv feature 'HARMONYlmbna  logger.py:27
+                    nnsvg10 k31'                                                
            INFO     'V13M13-362_D1' written to                      logger.py:27
                     /dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spa             
                     tial_HYP/spatial_HYP/code/14-samui/../../../spa             
                     tial_HYP/processed-data/14-samui/visium/V13M13-             
                     362_D1                                                      
 **** Job ends ****
-Wed Oct  9 09:22:55 AM EDT 2024
+Mon Nov 18 10:39:15 AM EST 2024
