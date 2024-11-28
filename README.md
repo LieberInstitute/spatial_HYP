@@ -1,31 +1,35 @@
-# spatial_HYP
+# Spatially-resolved molecular sex differences at single cell resolution in the adult human hypothalamus
 
+[![DOI](https://zenodo.org/badge/676605218.svg)]() PENDING
 
-##Internal: `/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/`
+### Study Design
+The hypothalamus is a critical brain area underlying functions with inherent sex differences, such as reproductive physiology, endocrine signaling, and metabolism. In the rodent, these sex-differentiated functions correspond to differences in volume, cell type composition, and gene expression between males and females across individual hypothalamic regions (here, "domains"). The ventromedial hypothalamus (VMH) and arcuate nucleus (ARC) are two hypothalamic regions that influence appetitive/social behaviors and growth/metabolism, respectively. While molecular profiling studies in the rodent hypothalamus have identified specialized cell types with unique transcriptomic signatures, there is a paucity of data describing the molecular architecture of the human HYP, especially in the context of sex-differentiated cell types that drive evolutionarily essential, hypothalamus-mediated behaviors in males and females. 
 
+This study, led by Bernard (Bernie) Mulvey, Kristen Maynard, and Kasper Hansen, profiled the adult human mediobasal hypothalamus (ventromedial nucleus, VMH, and arcuate nucleus, ARC) using  Visium and Xenium spatial transcriptomic platforms (10x Genomics). Atlasing and sex-differential expression efforts using Visium data from 8 donors (4 per sex) were used to guide gene selection for subsequent Xenium assays on adjacent tissue sections from these same 8 donors.
 
-## /Code Directories:
+![Experimental Overview](./images/overview.png)
 
-###01_Spaceranger: Initial data handling through Spaceranger (Ryan M)
+This dataset spanning 23 samples identified 5 ARC and 4 VMH neuronal populations governing known hypothalamus-specific functions and defined their spatial distributions. Compared to rodent VMH and ARC, we found increases in retinoid pathway gene expression in these domains. Sex-DE analysis within VMH and ARC revealed correlated autosomal expression differences, which were localized to *ESR1*- and *TAC3*-expressing neurons in the ARC, and *CRHR2*-expressing neurons in the VMH. VMH- and ARC-residing cell types have a striking number of sex-DE genes linked to sex-biased disorders, including autism, depression, and schizophrenia. By mapping disease associations to hypothalamic regions containing cell types with established roles in mediating sex-divergent physiology and behavior, these data provide insights into mechanistic bases of sex bias in neurodevelopmental and neuropsychiatric disorders.
 
-###02_build_spe: Initial assembly of spatialExperiment object (Ryan M)
+![Sex DE Analysis with Xenium](./images/Xenium sex DE analysis schematic.png)
+*Sex-DE analysis was performed at the level of Xenium clusters by first subsetting to all cells within the boundaries of the VMH or ARC. Then, cells of each type are tested separately for sex-DE within that domain. Thus, broadly distributed cell clusters/types (e.g., glia) are tested for sex-DE in each domain. Meanwhile, sex-DE testing of domain-specific neuronal clusters (e.g.,* TAC3*-*ESR1 *in ARC) is filtered to the cells given that label and found in their domain (i.e. in the expected anatomic space). This simplified schematic only shows one domain-specific cluster each for ARC and VMH.*
 
-###03_filtering: QC and filtering on technical variables (mitochondrial reads, number genes detected, etc) (Bernie M)
+### Data resources
 
+##### Analysis and plotting code
+Code for analyses is contained within subdirectories of this repository: for Visium, (spatial_HYP)[https://github.com/LieberInstitute/spatial_HYP/tree/main/spatial_HYP], and for Xenium, (xenium_HYP)[https://github.com/LieberInstitute/spatial_HYP/tree/main/xenium_HYP]. Code for creating the manuscript plots is in [manuscript_plot_code](https://github.com/LieberInstitute/spatial_HYP/tree/main/manuscript_plot_code). Code for analysis of *KISS1*-*ESR1*-*TAC3* smFISH can also be found (here)[https://github.com/LieberInstitute/spatial_HYP/tree/main/Br1225_ESR1-TAC3-KISS1_smfish_analysis].
 
-###REDCAP: ?
+##### Data visualization
+We have created interactive web portals (one for Visium, one for Xenium) using [Samui](https://samuibrowser.com/) that allows for visualization of gene expression and cluster assignments, as well as creation of custom spatial annotations:
 
-###Vistoseg: Align section image data with spaceranger (Ryan M) 
+- HYP Visium Browser: PENDING
+- HYP Xenium Browser: PENDING
 
+##### Supplemental Data S1-S6 and smFISH microscopy
+Supplemental data mentioned in the manuscript, along with smFISH images on Visium/Xenium-adjacent tissue for LAMP5 and KISS1, are available through the Globus endpoint PENDING. Readme files for these data are also available through the endpoint.
 
+##### Further data availability
+Raw data will be available through GEO, and (additional) processed data through the Globus endpoint above, at the time of publication. 
 
-## /analysis/code directories:
-00-Run Harmony.rmd: Correcting rownames of colData and colnames of spe to be unique for downstream/future BioC compatability; run Harmony by brnum (since technical replicates are present from some donors).
-
-###01-feature_selection: HVGs, nnSVG, others(? future)
-
-###02-clustering: walktrap based clustering on sets of top x percentile HVGs, nnSVGs, and combinations thereof, across SNNgraph k of 10, 15...30
-
-###H01-feature_selection: feature selection as above, on Harmony-corrected data.
-
-###H02-clustering: clustering as above but with walktrap k=5, 10, 15 only, on Harmony-corrected data. 
+### How to Cite
+PENDING
