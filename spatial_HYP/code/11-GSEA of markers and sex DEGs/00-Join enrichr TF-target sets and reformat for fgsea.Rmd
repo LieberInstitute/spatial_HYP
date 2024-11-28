@@ -28,7 +28,7 @@ options(bphost="localhost")
 ```
 
 ```{r}
-tftargsets <- list.files("data/11-GSEA/00-enrichr TF-target sets from dbs and lit mining DLed 120623",pattern=".txt",full.names=T)
+tftargsets <- list.files("processed-data/11-GSEA/00-enrichr TF-target sets from dbs and lit mining DLed 120623",pattern=".txt",full.names=T)
 
 sourcename <- gsub(tftargsets,pattern="^.*DLed 120623/(.*).txt$",replacement="\\1")
 
@@ -45,7 +45,7 @@ tftargsets <- mapply(X=tftargsets,Y=sourcename,SIMPLIFY=F,FUN=function(X,Y){
 })
 
 # for the TF-LOF_Expression_from_GEO we need to take an extra step, since these also have scores (DE values?) with them
-tftargmanual <- fread("data/11-GSEA/00-enrichr TF-target sets from dbs and lit mining DLed 120623/TF-LOF_Expression_from_GEO.txt",sep="\n")
+tftargmanual <- fread("processed-data/11-GSEA/00-enrichr TF-target sets from dbs and lit mining DLed 120623/TF-LOF_Expression_from_GEO.txt",sep="\n")
 setnames(tftargmanual,1,"origstr")
 tftargmanual[,setname:=apply(.SD,MARGIN=1,FUN=function(x){str_split_fixed(x,pattern="\t",n=2)[1]}),.SDcols=1]
 tftargmanual[,setname:=gsub(" ","_",setname)]
@@ -83,7 +83,7 @@ alltfsets[,setmembers:=toupper(setmembers)]
 fgseatfsets <- split(alltfsets$setmembers,alltfsets$set_n_source)
 
 # save
-saveRDS(fgseatfsets,"data/11-GSEA/00a-enrichrTFsets_forfgseainput.RDS")
+saveRDS(fgseatfsets,"processed-data/11-GSEA/00a-enrichrTFsets_forfgseainput.RDS")
 ```
 
 ```{r}

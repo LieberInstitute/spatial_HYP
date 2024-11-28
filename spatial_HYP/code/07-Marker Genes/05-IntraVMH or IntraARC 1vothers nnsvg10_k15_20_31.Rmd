@@ -93,7 +93,7 @@ for (i in c(1:length(bscls.dt[names(bscls.dt)!="k31"]))){
         # make sure each cluster of interest is the lead in a comparison so we can process all stats for + logFC downstream. even though this is kinda redundant because for pairwise, depleted in one direction is enriched in the other. so there'll be duplicated output tables in what we save here, but fine.
         colLabels(hyptmp) <- factor(btmp$cl,levels=c(v,vmhs[vmhs!=v]))
         
-        ## stepwise set up to run registration_pairwise
+        ## stepwise set up to run registration_pairwise (this is equivalent to running registration_wrapper and grabbing only the pairwise ouput, but we can't do that since registration_wrapper requires ≥3 clusters to run, since it tries to do enrichment, ANOVA, and pairwise.)
         hyptmp.pb <- registration_pseudobulk(hyptmp,var_registration = "label",var_sample_id = "sample_id")
         mkmod <- registration_model(hyptmp.pb,var_registration = "label")
         bcor <- registration_block_cor(hyptmp.pb,registration_model = mkmod,var_sample_id = "sample_id")
@@ -150,7 +150,7 @@ for (i in c(1:length(bscls.dt[names(bscls.dt)!="k31"]))){
 names(select.vmharc.markers) <- names(bscls.dt)[names(bscls.dt)!="k31"]
 ```
 
-## for the k31s, similar deal but we need to compare each cluster to the others in aggregate. (e.g., VMH31.1 vs VMH31.2-31.5 all put under the aegis of "otherVMH")
+## for the k31s, similar deal but we need to compare each cluster to the others in aggregate. (e.g., VMH31.1 vs VMH31.2-31.5 all put under the aegis of "otherVMH"). since this still yields two clusters, we have to manually step thru the pairwise registration approach as above.
 ```{r}
 i<-3
 b <- copy(bscls.dt[["k31"]])

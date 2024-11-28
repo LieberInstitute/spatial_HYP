@@ -89,7 +89,7 @@ sexreslist <- list(
     sexreslist[grep(names(sexreslist),pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T)],
     sexreslist[grep(names(sexreslist),pattern="^BSpace_k20_HARMONYlmbna_nnsvg10",value=T)],
     sexreslist[grep(names(sexreslist),pattern="^BSpace_k31_HARMONYlmbna_nnsvg10",value=T)],
-    sexreslist[grep(names(sexreslist),pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH",value=T)]
+    sexreslist[grep(names(sexreslist),pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH",value=T)],
     sexreslist[grep(names(sexreslist),pattern="^unsigned_BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T)],
     sexreslist[grep(names(sexreslist),pattern="^unsigned_BSpace_k20_HARMONYlmbna_nnsvg10",value=T)],
     sexreslist[grep(names(sexreslist),pattern="^unsigned_BSpace_k31_HARMONYlmbna_nnsvg10",value=T)],
@@ -136,11 +136,12 @@ rownames(bscls[[4]]) <- bscls[[4]]$rn
 bscls[[4]] <- bscls[[4]][colnames(hyp2),]
 names(bscls)[4] <- "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH"
 
-# sanity check
-stopifnot(names(bscls)==names(sexreslist))
-
 # make this a list of the clusterings x2 since we need to apply our functions to the signed and unsigned result lists
 bscls <- c(bscls,bscls)
+
+names(bscls)[5:8] <- paste0("unsigned_",names(bscls)[5:8])
+# sanity check
+stopifnot(names(bscls)==names(sexreslist))
 
 ```
 
@@ -199,21 +200,9 @@ sexreslist.filt <- bpmapply(R=sexreslist,C=bscls,N=as.list(names(bscls)),FUN=fun
 
 ```
 
-### return to one giant list and save
+### save
 ```{r}
-megalist.filt <- list()
-i<-1
-for (i in c(1:4)){
-    j<-1
-    for(j in c(1:length(sexreslist.filt[[i]]))){
-        megalist.filt[[length(megalist.filt)+1]] <- sexreslist.filt[[i]][[j]]
-        names(megalist.filt)[length(megalist.filt)] <- names(sexreslist.filt[[i]])[j]
-    }
-    rm(j)
-}
-rm(i)
-
-saveRDS(megalist.filt,"processed-data/11-GSEA/09-Sex DE TF-target GSEA results from 04a filtered to TFs expressed in at least one sex at avg 2.5pct of cluster spots and at least 1pct of cluster spots in 3samps.RDS")
+saveRDS(sexreslist.filt,"processed-data/11-GSEA/09-Sex DE TF-target GSEA results from 04a filtered to TFs expressed in at least one sex at avg 2.5pct of cluster spots and at least 1pct of cluster spots in 3samps.RDS")
 ```
 
 ```{r}

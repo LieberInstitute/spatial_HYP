@@ -71,9 +71,9 @@ msigdbfull <- readRDS("processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA
 
 msigfull.unsign <- readRDS("processed-data/11-GSEA/03d-Unsigned Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
 
-msigdbcollapsed <- readRDS("processed-data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
+# msigdbcollapsed <- readRDS("processed-data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
 
-msigcoll.unsign <- readRDS("processed-data/11-GSEA/03e-Unsigned Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
+# msigcoll.unsign <- readRDS("processed-data/11-GSEA/03e-Unsigned Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
 
 msigbindpatterns <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
 
@@ -83,62 +83,97 @@ for (i in c(1:length(msigbindpatterns))){
     curpatt <- msigbindpatterns[i]
     subfull <- msigdbfull[grep(names(msigdbfull),pattern=curpatt)]
     subfull.us <- msigfull.unsign[grep(names(msigfull.unsign),pattern=curpatt)]
-    subclps <- msigdbcollapsed[grep(names(msigdbcollapsed),pattern=curpatt)]
-    subclps.us <- msigcoll.unsign[grep(names(msigcoll.unsign),pattern=curpatt)]
+    #subclps <- msigdbcollapsed[grep(names(msigdbcollapsed),pattern=curpatt)]
+    #subclps.us <- msigcoll.unsign[grep(names(msigcoll.unsign),pattern=curpatt)]
     
     j<-1
     for (j in c(1:length(subfull))){
         tmpres <- subfull[[j]]
         tmpres[,spdom:=gsub(spdom,pattern="^.*_(X.*)$",replacement="\\1")]
         
-        tmpres[,mainPathway:="No"]
-        tmpres[pathway %in% msigdbcollapsed[[names(subfull)[j]]]$pathway,mainPathway:="Yes"]
+        tmpres.us <- subfull.us[[j]]
+        tmpres.us[,spdom:=gsub(spdom,pattern="^_.*_(X.*)$",replacement="\\1")]
         
-        if(j==1){catres <- copy(tmpres)}
-        else{catres <- rbind(catres,tmpres)}
-        rm(tmpres)
+        #tmpres[,mainPathway:="No"]
+        #tmpres[pathway %in% msigdbcollapsed[[names(subfull)[j]]]$pathway,mainPathway:="Yes"]
+        
+        if(j==1){catres <- copy(tmpres)
+          catusres <- copy(tmpres.us)
+        }
+        else{catres <- rbind(catres,tmpres)
+          catusres <- rbind(catusres,tmpres.us)
+        }
+        rm(tmpres,tmpres.us)
     }
-    clustres[[i]] <- catres
-    rm(subfull,subclps,curpatt,j)
+    clustres[[length(clustres)+1]] <- catres
+    names(clustres)[length(clustres)] <- msigbindpatterns[i]
+    
+    clustres[[length(clustres)+1]] <- catusres
+    names(clustres)[length(clustres)] <- paste0("unsigned_",msigbindpatterns[i])
+    
+    rm(subfull,subfull.us,curpatt,j)
 }
-rm(i,catres)
+rm(i,catres,catusres)
 
 ### fix VMH/ARC cluster labels for the collapsed case
 clustres[[1]][,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
+clustres[[2]][,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
 
 ## remove collapsed cluster results from the k=15 single domain results. not sure how/why i copied them there before. 
-clustres[[2]] <- clustres[[2]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
+clustres[[3]] <- clustres[[3]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
+clustres[[4]] <- clustres[[4]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
 
 # assign respective VMH and ARC ids previously used
 
 ### assign VMH.1,2 ARC1,2 labels to the corresponding k15 results
-clustres[[2]][spdom=="X4",spdom:="ARC.1"]
-clustres[[2]][spdom=="X6",spdom:="ARC.2"]
-clustres[[2]][spdom=="X7",spdom:="VMH.1"]
-clustres[[2]][spdom=="X12",spdom:="VMH.2"]
-
+clustres[[3]][spdom=="X4",spdom:="ARC.1"]
+clustres[[3]][spdom=="X6",spdom:="ARC.2"]
+clustres[[3]][spdom=="X7",spdom:="VMH.1"]
+clustres[[3]][spdom=="X12",spdom:="VMH.2"]
+clustres[[4]][spdom=="X4",spdom:="ARC.1"]
+clustres[[4]][spdom=="X6",spdom:="ARC.2"]
+clustres[[4]][spdom=="X7",spdom:="VMH.1"]
+clustres[[4]][spdom=="X12",spdom:="VMH.2"]
 ### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
-clustres[[3]][spdom=="X2",spdom:="VMH20.1"]
-clustres[[3]][spdom=="X3",spdom:="VMH20.2"]
-clustres[[3]][spdom=="X1",spdom:="ARC20.1"]
-clustres[[3]][spdom=="X4",spdom:="ARC20.2"]
+clustres[[5]][spdom=="X2",spdom:="VMH20.1"]
+clustres[[5]][spdom=="X3",spdom:="VMH20.2"]
+clustres[[5]][spdom=="X1",spdom:="ARC20.1"]
+clustres[[5]][spdom=="X4",spdom:="ARC20.2"]
+clustres[[6]][spdom=="X2",spdom:="VMH20.1"]
+clustres[[6]][spdom=="X3",spdom:="VMH20.2"]
+clustres[[6]][spdom=="X1",spdom:="ARC20.1"]
+clustres[[6]][spdom=="X4",spdom:="ARC20.2"]
 
-clustres[[4]][spdom=="X6",spdom:="VMH31.1"]
-clustres[[4]][spdom=="X21",spdom:="VMH31.2"]
-clustres[[4]][spdom=="X25",spdom:="VMH31.3"]
-clustres[[4]][spdom=="X26",spdom:="VMH31.4"]
-clustres[[4]][spdom=="X31",spdom:="VMH31.5"]
-clustres[[4]][spdom=="X2",spdom:="ARC31.1"]
-clustres[[4]][spdom=="X4",spdom:="ARC31.2"]
-clustres[[4]][spdom=="X11",spdom:="ARC31.3"]
-clustres[[4]][spdom=="X22",spdom:="ARC31.4"]
+clustres[[7]][spdom=="X6",spdom:="VMH31.1"]
+clustres[[7]][spdom=="X21",spdom:="VMH31.2"]
+clustres[[7]][spdom=="X25",spdom:="VMH31.3"]
+clustres[[7]][spdom=="X26",spdom:="VMH31.4"]
+clustres[[7]][spdom=="X31",spdom:="VMH31.5"]
+clustres[[7]][spdom=="X2",spdom:="ARC31.1"]
+clustres[[7]][spdom=="X4",spdom:="ARC31.2"]
+clustres[[7]][spdom=="X11",spdom:="ARC31.3"]
+clustres[[7]][spdom=="X22",spdom:="ARC31.4"]
+clustres[[8]][spdom=="X6",spdom:="VMH31.1"]
+clustres[[8]][spdom=="X21",spdom:="VMH31.2"]
+clustres[[8]][spdom=="X25",spdom:="VMH31.3"]
+clustres[[8]][spdom=="X26",spdom:="VMH31.4"]
+clustres[[8]][spdom=="X31",spdom:="VMH31.5"]
+clustres[[8]][spdom=="X2",spdom:="ARC31.1"]
+clustres[[8]][spdom=="X4",spdom:="ARC31.2"]
+clustres[[8]][spdom=="X11",spdom:="ARC31.3"]
+clustres[[8]][spdom=="X22",spdom:="ARC31.4"]
 
-### name the lists and columns, rearrange, and save
-names(clustres) <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
 
 clustres <- lapply(clustres,function(x){
-    setnames(x,c(1:10),c("Pathway","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain","Main Pathway after fgsea::collapsePathways"))
+  if(ncol(x)==9){
+    setnames(x,c(1:9),c("Pathway","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain"))
+    x <- x[,c(1,9,3,6,5,7,4,2,8)]
+  } else {
+    
+    setnames(x,c(1:10),c("Pathway","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain","Tested Sex-Enrichment Direction"))
     x <- x[,c(9,1,10,3,6,5,7,4,2,8)]
+  }  
+  
     return(x)
 })
 
