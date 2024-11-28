@@ -1,6 +1,6 @@
 # Spatially-resolved molecular sex differences at single cell resolution in the adult human hypothalamus
 
-[![DOI](https://zenodo.org/badge/676605218.svg)]() PENDING
+[![DOI](https://zenodo.org)]() PENDING
 
 ### Study Design
 The hypothalamus is a critical brain area underlying functions with inherent sex differences, such as reproductive physiology, endocrine signaling, and metabolism. In the rodent, these sex-differentiated functions correspond to differences in volume, cell type composition, and gene expression between males and females across individual hypothalamic regions (here, "domains"). The ventromedial hypothalamus (VMH) and arcuate nucleus (ARC) are two hypothalamic regions that influence appetitive/social behaviors and growth/metabolism, respectively. While molecular profiling studies in the rodent hypothalamus have identified specialized cell types with unique transcriptomic signatures, there is a paucity of data describing the molecular architecture of the human HYP, especially in the context of sex-differentiated cell types that drive evolutionarily essential, hypothalamus-mediated behaviors in males and females. 
@@ -11,7 +11,7 @@ This study, led by Bernard (Bernie) Mulvey, Kristen Maynard, and Kasper Hansen, 
 
 This dataset spanning 23 samples identified 5 ARC and 4 VMH neuronal populations governing known hypothalamus-specific functions and defined their spatial distributions. Compared to rodent VMH and ARC, we found increases in retinoid pathway gene expression in these domains. Sex-DE analysis within VMH and ARC revealed correlated autosomal expression differences, which were localized to *ESR1*- and *TAC3*-expressing neurons in the ARC, and *CRHR2*-expressing neurons in the VMH. VMH- and ARC-residing cell types have a striking number of sex-DE genes linked to sex-biased disorders, including autism, depression, and schizophrenia. By mapping disease associations to hypothalamic regions containing cell types with established roles in mediating sex-divergent physiology and behavior, these data provide insights into mechanistic bases of sex bias in neurodevelopmental and neuropsychiatric disorders.
 
-![Sex DE Analysis with Xenium](./images/Xenium sex DE analysis schematic.png)
+![Sex DE Analysis with Xenium](./images/Xenium_sex_DE_analysis_schematic.png)
 *Sex-DE analysis was performed at the level of Xenium clusters by first subsetting to all cells within the boundaries of the VMH or ARC. Then, cells of each type are tested separately for sex-DE within that domain. Thus, broadly distributed cell clusters/types (e.g., glia) are tested for sex-DE in each domain. Meanwhile, sex-DE testing of domain-specific neuronal clusters (e.g.,* TAC3*-*ESR1 *in ARC) is filtered to the cells given that label and found in their domain (i.e. in the expected anatomic space). This simplified schematic only shows one domain-specific cluster each for ARC and VMH.*
 
 ### Data resources
