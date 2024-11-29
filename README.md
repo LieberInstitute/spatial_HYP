@@ -17,7 +17,11 @@ Examining 13 Xenium samples revealed 5 ARC and 4 VMH neuronal populations govern
 ### Data resources
 
 ##### Analysis and plotting code
-Code for analyses is contained within subdirectories of this repository: for Visium, [spatial_HYP](https://github.com/LieberInstitute/spatial_HYP/tree/main/spatial_HYP), and for Xenium, [xenium_HYP](https://github.com/LieberInstitute/spatial_HYP/tree/main/xenium_HYP). Code for creating the manuscript plots is in [manuscript_plot_code](https://github.com/LieberInstitute/spatial_HYP/tree/main/manuscript_plot_code). Code for analysis of *KISS1*-*ESR1*-*TAC3* smFISH can also be found [here](https://github.com/LieberInstitute/spatial_HYP/tree/main/Br1225_ESR1-TAC3-KISS1_smfish_analysis).
+Code for analyses is contained within subdirectories of this repository: 
+-Visium: [spatial_HYP](https://github.com/LieberInstitute/spatial_HYP/tree/main/spatial_HYP)
+-Xenium: [xenium_HYP](https://github.com/LieberInstitute/spatial_HYP/tree/main/xenium_HYP)
+-For manuscript plots: [manuscript_plot_code](https://github.com/LieberInstitute/spatial_HYP/tree/main/manuscript_plot_code)
+-For *KISS1*-*ESR1*-*TAC3* smFISH analysis: [here](https://github.com/LieberInstitute/spatial_HYP/tree/main/Br1225_ESR1-TAC3-KISS1_smfish_analysis)
 
 ##### Data visualization
 Interactive web portals (one for Visium, one for Xenium) have been made available using [Samui](https://samuibrowser.com/) to allow visualization of gene expression and cluster assignments, as well as creation of custom spatial annotations. Documentation is built into these respective visualization tools, which can be found at:
