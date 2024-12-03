@@ -30,10 +30,10 @@ Interactive web portals (one for Visium, one for Xenium) have been made availabl
 - HYP Xenium Browser: PENDING
 
 ##### Supplemental Data S1-S6 and smFISH microscopy
-Supplemental data mentioned in the manuscript, along with smFISH images on Visium/Xenium-adjacent tissue for LAMP5 and KISS1, are available through the Globus endpoint PENDING. Readme files for these data are also available through the endpoint.
+Supplemental data mentioned in the manuscript, along with smFISH images on Visium/Xenium-adjacent tissue for LAMP5 and KISS1, are available through are available through [http://research.libd.org/globus/](http://research.libd.org/globus/) via the Globus endpoint jhpce#HYP_suppdata. Readme files for these data are also available through the endpoint.
 
 ##### Further data availability
-Raw data will be available through GEO, and (additional) processed data through the Globus endpoint above, at the time of publication. 
+FASTQ files from Visium and unfiltered sample-level xeniumranger 1.7 outputs (transcript-level data) compatible with Xenium Explorer software are respectively available through GEO accessions [GSE280316](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE280316) and [GSE280460](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE280460). Addditional processed data may be added to the Globus endpoint in the process of review and publication. 
 
 ### How to Cite
 PENDING
