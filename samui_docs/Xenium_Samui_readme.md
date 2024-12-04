@@ -1,4 +1,4 @@
-This is the [Samui](samuibrowser.com) browser for adult human hypothalamus (VMH/ARC) **Xenium** data from Mulvey, et. al. If you're looking for the Visium browser, please go [here](libd.org). 
+This is the [Samui](samuibrowser.com) browser for adult human hypothalamus (VMH/ARC) **Xenium** data from Mulvey, et. al. If you're looking for the Visium browser, please go [here](https://samuibrowser.com/from?url=data.libd.org/samuibrowser/&s=12D05-348_C1&s=12D05-348_D1&s=12D05-350_C1&s=12D05-350_D1&s=12D07-075_A1&s=12D07-075_D1&s=12Y31-080_A1&s=13M13-362_A1&s=13M13-362_D1&s=13Y24-346_C1). 
 
 Information to match sample IDs as listed in browser to those in the manuscript are in a table at the end of this document. 
 
