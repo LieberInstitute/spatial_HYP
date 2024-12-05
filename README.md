@@ -27,7 +27,7 @@ Code for analyses is contained within subdirectories of this repository:
 Interactive web portals (one for Visium, one for Xenium) have been made available using [Samui](https://samuibrowser.com/) to allow visualization of gene expression and cluster assignments, as well as creation of custom spatial annotations. Documentation is built into these respective visualization tools, which can be found at:
 
 - [Documentation for both browsers](https://github.com/LieberInstitute/spatial_HYP/tree/main/samui_docs)
-- [HYP Visium Browser](https://samuibrowser.com/from?url=data.libd.org/samuibrowser/&s=12D05-348_C1&s=12D05-348_D1&s=12D05-350_C1&s=12D05-350_D1&s=12D07-075_A1&s=12D07-075_D1&s=12Y31-080_A1&s=13M13-362_A1&s=13M13-362_D1&s=13Y24-346_C1)
+- [HYP Visium Browser](https://samuibrowser.com/from?url=data.libd.org/samuibrowser/&s=V12D05-348_C1&s=V12D05-348_D1&s=V12D05-350_C1&s=V12D05-350_D1&s=V12D07-075_A1&s=V12D07-075_D1&s=V12Y31-080_A1&s=V13M13-362_A1&s=V13M13-362_D1&s=V13Y24-346_C1)
 - [HYP Xenium Browser](https://samuibrowser.com/from?url=data.libd.org/samuibrowser/&s=X36_5459A&s=X36_5459B&s=X36_8667C&s=X86_reg1&s=X86_reg2&s=X86_reg3&s=X97_reg1&s=X97_reg2&s=X97_reg3&s=X99_1225A&s=X99_1225B&s=X99_8741C&s=X99_8741D)
 
 ##### Supplemental Data S1-S6 and smFISH microscopy
