@@ -1,6 +1,6 @@
 # Spatially-resolved molecular sex differences at single cell resolution in the adult human hypothalamus
 
-[![DOI](https://zenodo.org)]() PENDING
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14285059.svg)](https://doi.org/10.5281/zenodo.14285059)
 
 ### Study Design
 The hypothalamus is a critical brain area underlying functions with inherent sex differences, such as reproductive physiology, endocrine signaling, and metabolism. In the rodent, these sex-differentiated functions correspond to differences in volume, cell type composition, and gene expression between males and females across individual hypothalamic regions (here, "domains"). The ventromedial hypothalamus (VMH) and arcuate nucleus (ARC) are two hypothalamic regions that influence appetitive/social behaviors and growth/metabolism, respectively. While molecular profiling studies in the rodent hypothalamus have identified specialized cell types with unique transcriptomic signatures, there is a paucity of data describing the molecular architecture of the human HYP, especially in the context of sex-differentiated cell types that drive evolutionarily essential, hypothalamus-mediated behaviors in males and females. 
