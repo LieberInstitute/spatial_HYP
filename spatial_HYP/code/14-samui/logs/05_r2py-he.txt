@@ -1,470 +1,0 @@
-
-**** Job starts ****
-Thu Oct  3 10:58:13 AM EDT 2024
-
-**** JHPCE info ****
-User: rmiller
-Job id: 10005810
-Job name: r2python-vis
-Hostname: 
-Task id: 1
-Loading conda_R/4.4
-Warning message:
-In .check_reddim_names(x, value[[v]], withDimnames = TRUE, vname = sprintf("value[[%s]]",  :
-  non-NULL 'rownames(value[[1]])' should be the same as 'colnames(x)' for
-'reducedDims<-'. This will be an error in the next release of
-Bioconductor.
-[1] "Converting objects to AnnDatas..."
-trying URL 'https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh'
-Content type 'application/x-sh' length 76607678 bytes (73.1 MB)
-==================================================
-downloaded 73.1 MB
-
-PREFIX=/users/rmiller/.cache/R/basilisk/1.16.0/0
-Unpacking payload ...
-  0%|          | 0/40 [00:00<?, ?it/s]Extracting : pycosat-0.6.3-py39h27cfd23_0.conda:   0%|          | 0/40 [00:00<?, ?it/s]Extracting : pycosat-0.6.3-py39h27cfd23_0.conda:   2%|▎         | 1/40 [00:00<00:27,  1.42it/s]Extracting : ca-certificates-2022.3.29-h06a4308_1.conda:   2%|▎         | 1/40 [00:00<00:27,  1.42it/s]Extracting : colorama-0.4.4-pyhd3eb1b0_0.conda:   5%|▌         | 2/40 [00:00<00:26,  1.42it/s]         Extracting : colorama-0.4.4-pyhd3eb1b0_0.conda:   8%|▊         | 3/40 [00:00<00:08,  4.16it/s]Extracting : idna-3.3-pyhd3eb1b0_0.conda:   8%|▊         | 3/40 [00:00<00:08,  4.16it/s]      Extracting : ncurses-6.3-h7f8727e_2.conda:  10%|█         | 4/40 [00:08<00:08,  4.16it/s]Extracting : ncurses-6.3-h7f8727e_2.conda:  12%|█▎        | 5/40 [00:08<01:11,  2.05s/it]Extracting : cffi-1.15.0-py39hd667e15_1.conda:  12%|█▎        | 5/40 [00:08<01:11,  2.05s/it]Extracting : brotlipy-0.7.0-py39h27cfd23_1003.conda:  15%|█▌        | 6/40 [00:08<01:09,  2.05s/it]Extracting : pysocks-1.7.1-py39h06a4308_0.conda:  18%|█▊        | 7/40 [00:08<01:07,  2.05s/it]    Extracting : python-3.9.12-h12debd9_0.conda:  20%|██        | 8/40 [00:08<01:05,  2.05s/it]    Extracting : setuptools-61.2.0-py39h06a4308_0.conda:  22%|██▎       | 9/40 [00:08<01:03,  2.05s/it]Extracting : ruamel_yaml-0.15.100-py39h27cfd23_0.conda:  25%|██▌       | 10/40 [00:08<01:01,  2.05s/it]Extracting : six-1.16.0-pyhd3eb1b0_1.conda:  28%|██▊       | 11/40 [00:08<00:59,  2.05s/it]            Extracting : cryptography-36.0.0-py39h9ce1e76_0.conda:  30%|███       | 12/40 [00:08<00:57,  2.05s/it]Extracting : yaml-0.2.5-h7b6447c_0.conda:  32%|███▎      | 13/40 [00:08<00:55,  2.05s/it]             Extracting : openssl-1.1.1n-h7f8727e_0.conda:  35%|███▌      | 14/40 [00:08<00:53,  2.05s/it]Extracting : conda-package-handling-1.8.1-py39h7f8727e_0.conda:  38%|███▊      | 15/40 [00:08<00:51,  2.05s/it]Extracting : libstdcxx-ng-9.3.0-hd4cf53a_17.conda:  40%|████      | 16/40 [00:08<00:49,  2.05s/it]             Extracting : tqdm-4.63.0-pyhd3eb1b0_0.conda:  42%|████▎     | 17/40 [00:08<00:47,  2.05s/it]      Extracting : charset-normalizer-2.0.4-pyhd3eb1b0_0.conda:  45%|████▌     | 18/40 [00:08<00:45,  2.05s/it]Extracting : _libgcc_mutex-0.1-main.conda:  48%|████▊     | 19/40 [00:08<00:42,  2.05s/it]               Extracting : tzdata-2022a-hda174b7_0.conda:  50%|█████     | 20/40 [00:08<00:40,  2.05s/it]Extracting : conda-4.12.0-py39h06a4308_0.conda:  52%|█████▎    | 21/40 [00:08<00:38,  2.05s/it]Extracting : tk-8.6.11-h1ccaba5_0.conda:  55%|█████▌    | 22/40 [00:08<00:36,  2.05s/it]       Extracting : ld_impl_linux-64-2.35.1-h7274673_9.conda:  57%|█████▊    | 23/40 [00:08<00:34,  2.05s/it]Extracting : requests-2.27.1-pyhd3eb1b0_0.conda:  60%|██████    | 24/40 [00:08<00:32,  2.05s/it]      Extracting : pyopenssl-22.0.0-pyhd3eb1b0_0.conda:  62%|██████▎   | 25/40 [00:08<00:30,  2.05s/it]Extracting : pycparser-2.21-pyhd3eb1b0_0.conda:  65%|██████▌   | 26/40 [00:08<00:28,  2.05s/it]  Extracting : certifi-2021.10.8-py39h06a4308_2.conda:  68%|██████▊   | 27/40 [00:08<00:26,  2.05s/it]Extracting : urllib3-1.26.8-pyhd3eb1b0_0.conda:  70%|███████   | 28/40 [00:08<00:24,  2.05s/it]     Extracting : libgcc-ng-9.3.0-h5101ec6_17.conda:  72%|███████▎  | 29/40 [00:08<00:22,  2.05s/it]Extracting : sqlite-3.38.2-hc218d9a_0.conda:  75%|███████▌  | 30/40 [00:08<00:20,  2.05s/it]   Extracting : wheel-0.37.1-pyhd3eb1b0_0.conda:  78%|███████▊  | 31/40 [00:08<00:18,  2.05s/it]Extracting : pip-21.2.4-py39h06a4308_0.conda:  80%|████████  | 32/40 [00:08<00:16,  2.05s/it]Extracting : libgomp-9.3.0-h5101ec6_17.conda:  82%|████████▎ | 33/40 [00:08<00:14,  2.05s/it]Extracting : readline-8.1.2-h7f8727e_1.conda:  85%|████████▌ | 34/40 [00:08<00:12,  2.05s/it]Extracting : xz-5.2.5-h7b6447c_0.conda:  88%|████████▊ | 35/40 [00:08<00:10,  2.05s/it]      Extracting : conda-content-trust-0.1.1-pyhd3eb1b0_0.conda:  90%|█████████ | 36/40 [00:08<00:08,  2.05s/it]Extracting : zlib-1.2.12-h7f8727e_1.conda:  92%|█████████▎| 37/40 [00:08<00:06,  2.05s/it]                Extracting : libffi-3.3-he6710b0_2.conda:  95%|█████████▌| 38/40 [00:08<00:04,  2.05s/it] Extracting : _openmp_mutex-4.5-1_gnu.tar.bz2:  98%|█████████▊| 39/40 [00:08<00:02,  2.05s/it]                                                                                             Collecting package metadata (current_repodata.json): ...working... done
-Solving environment: ...working... done
-
-## Package Plan ##
-
-  environment location: /users/rmiller/.cache/R/basilisk/1.16.0/0
-
-  added / updated specs:
-    - _libgcc_mutex==0.1=main
-    - _openmp_mutex==4.5=1_gnu
-    - brotlipy==0.7.0=py39h27cfd23_1003
-    - ca-certificates==2022.3.29=h06a4308_1
-    - certifi==2021.10.8=py39h06a4308_2
-    - cffi==1.15.0=py39hd667e15_1
-    - charset-normalizer==2.0.4=pyhd3eb1b0_0
-    - colorama==0.4.4=pyhd3eb1b0_0
-    - conda-content-trust==0.1.1=pyhd3eb1b0_0
-    - conda-package-handling==1.8.1=py39h7f8727e_0
-    - conda==4.12.0=py39h06a4308_0
-    - cryptography==36.0.0=py39h9ce1e76_0
-    - idna==3.3=pyhd3eb1b0_0
-    - ld_impl_linux-64==2.35.1=h7274673_9
-    - libffi==3.3=he6710b0_2
-    - libgcc-ng==9.3.0=h5101ec6_17
-    - libgomp==9.3.0=h5101ec6_17
-    - libstdcxx-ng==9.3.0=hd4cf53a_17
-    - ncurses==6.3=h7f8727e_2
-    - openssl==1.1.1n=h7f8727e_0
-    - pip==21.2.4=py39h06a4308_0
-    - pycosat==0.6.3=py39h27cfd23_0
-    - pycparser==2.21=pyhd3eb1b0_0
-    - pyopenssl==22.0.0=pyhd3eb1b0_0
-    - pysocks==1.7.1=py39h06a4308_0
-    - python==3.9.12=h12debd9_0
-    - readline==8.1.2=h7f8727e_1
-    - requests==2.27.1=pyhd3eb1b0_0
-    - ruamel_yaml==0.15.100=py39h27cfd23_0
-    - setuptools==61.2.0=py39h06a4308_0
-    - six==1.16.0=pyhd3eb1b0_1
-    - sqlite==3.38.2=hc218d9a_0
-    - tk==8.6.11=h1ccaba5_0
-    - tqdm==4.63.0=pyhd3eb1b0_0
-    - tzdata==2022a=hda174b7_0
-    - urllib3==1.26.8=pyhd3eb1b0_0
-    - wheel==0.37.1=pyhd3eb1b0_0
-    - xz==5.2.5=h7b6447c_0
-    - yaml==0.2.5=h7b6447c_0
-    - zlib==1.2.12=h7f8727e_1
-
-
-The following NEW packages will be INSTALLED:
-
-  _libgcc_mutex      pkgs/main/linux-64::_libgcc_mutex-0.1-main
-  _openmp_mutex      pkgs/main/linux-64::_openmp_mutex-4.5-1_gnu
-  brotlipy           pkgs/main/linux-64::brotlipy-0.7.0-py39h27cfd23_1003
-  ca-certificates    pkgs/main/linux-64::ca-certificates-2022.3.29-h06a4308_1
-  certifi            pkgs/main/linux-64::certifi-2021.10.8-py39h06a4308_2
-  cffi               pkgs/main/linux-64::cffi-1.15.0-py39hd667e15_1
-  charset-normalizer pkgs/main/noarch::charset-normalizer-2.0.4-pyhd3eb1b0_0
-  colorama           pkgs/main/noarch::colorama-0.4.4-pyhd3eb1b0_0
-  conda              pkgs/main/linux-64::conda-4.12.0-py39h06a4308_0
-  conda-content-tru~ pkgs/main/noarch::conda-content-trust-0.1.1-pyhd3eb1b0_0
-  conda-package-han~ pkgs/main/linux-64::conda-package-handling-1.8.1-py39h7f8727e_0
-  cryptography       pkgs/main/linux-64::cryptography-36.0.0-py39h9ce1e76_0
-  idna               pkgs/main/noarch::idna-3.3-pyhd3eb1b0_0
-  ld_impl_linux-64   pkgs/main/linux-64::ld_impl_linux-64-2.35.1-h7274673_9
-  libffi             pkgs/main/linux-64::libffi-3.3-he6710b0_2
-  libgcc-ng          pkgs/main/linux-64::libgcc-ng-9.3.0-h5101ec6_17
-  libgomp            pkgs/main/linux-64::libgomp-9.3.0-h5101ec6_17
-  libstdcxx-ng       pkgs/main/linux-64::libstdcxx-ng-9.3.0-hd4cf53a_17
-  ncurses            pkgs/main/linux-64::ncurses-6.3-h7f8727e_2
-  openssl            pkgs/main/linux-64::openssl-1.1.1n-h7f8727e_0
-  pip                pkgs/main/linux-64::pip-21.2.4-py39h06a4308_0
-  pycosat            pkgs/main/linux-64::pycosat-0.6.3-py39h27cfd23_0
-  pycparser          pkgs/main/noarch::pycparser-2.21-pyhd3eb1b0_0
-  pyopenssl          pkgs/main/noarch::pyopenssl-22.0.0-pyhd3eb1b0_0
-  pysocks            pkgs/main/linux-64::pysocks-1.7.1-py39h06a4308_0
-  python             pkgs/main/linux-64::python-3.9.12-h12debd9_0
-  readline           pkgs/main/linux-64::readline-8.1.2-h7f8727e_1
-  requests           pkgs/main/noarch::requests-2.27.1-pyhd3eb1b0_0
-  ruamel_yaml        pkgs/main/linux-64::ruamel_yaml-0.15.100-py39h27cfd23_0
-  setuptools         pkgs/main/linux-64::setuptools-61.2.0-py39h06a4308_0
-  six                pkgs/main/noarch::six-1.16.0-pyhd3eb1b0_1
-  sqlite             pkgs/main/linux-64::sqlite-3.38.2-hc218d9a_0
-  tk                 pkgs/main/linux-64::tk-8.6.11-h1ccaba5_0
-  tqdm               pkgs/main/noarch::tqdm-4.63.0-pyhd3eb1b0_0
-  tzdata             pkgs/main/noarch::tzdata-2022a-hda174b7_0
-  urllib3            pkgs/main/noarch::urllib3-1.26.8-pyhd3eb1b0_0
-  wheel              pkgs/main/noarch::wheel-0.37.1-pyhd3eb1b0_0
-  xz                 pkgs/main/linux-64::xz-5.2.5-h7b6447c_0
-  yaml               pkgs/main/linux-64::yaml-0.2.5-h7b6447c_0
-  zlib               pkgs/main/linux-64::zlib-1.2.12-h7f8727e_1
-
-
-Preparing transaction: ...working... done
-Executing transaction: ...working... done
-installation finished.
-+ /users/rmiller/.cache/R/basilisk/1.16.0/0/bin/conda create --yes --prefix /users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6 'python=3.12.2' --quiet -c conda-forge
-Collecting package metadata (current_repodata.json): ...working... done
-Solving environment: ...working... failed with repodata from current_repodata.json, will retry with next repodata source.
-Collecting package metadata (repodata.json): ...working... done
-Solving environment: ...working... done
-
-## Package Plan ##
-
-  environment location: /users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6
-
-  added / updated specs:
-    - python=3.12.2
-
-
-The following packages will be downloaded:
-
-    package                    |            build
-    ---------------------------|-----------------
-    _openmp_mutex-4.5          |            2_gnu          23 KB  conda-forge
-    bzip2-1.0.8                |       h4bc722e_7         247 KB  conda-forge
-    ca-certificates-2024.8.30  |       hbcca054_0         155 KB  conda-forge
-    ld_impl_linux-64-2.43      |       h712a8e2_1         654 KB  conda-forge
-    libexpat-2.6.3             |       h5888daf_0          72 KB  conda-forge
-    libffi-3.4.2               |       h7f98852_5          57 KB  conda-forge
-    libgcc-14.1.0              |       h77fa898_1         827 KB  conda-forge
-    libgcc-ng-14.1.0           |       h69a702a_1          51 KB  conda-forge
-    libgomp-14.1.0             |       h77fa898_1         449 KB  conda-forge
-    libnsl-2.0.1               |       hd590300_0          33 KB  conda-forge
-    libsqlite-3.46.1           |       hadc24fc_0         845 KB  conda-forge
-    libuuid-2.38.1             |       h0b41bf4_0          33 KB  conda-forge
-    libxcrypt-4.4.36           |       hd590300_1          98 KB  conda-forge
-    libzlib-1.3.1              |       hb9d3cd8_2          60 KB  conda-forge
-    ncurses-6.5                |       he02047a_1         868 KB  conda-forge
-    openssl-3.3.2              |       hb9d3cd8_0         2.8 MB  conda-forge
-    pip-24.2                   |     pyh8b19718_1         1.2 MB  conda-forge
-    python-3.12.2              |hab00c5b_0_cpython        30.8 MB  conda-forge
-    readline-8.2               |       h8228510_1         275 KB  conda-forge
-    setuptools-75.1.0          |     pyhd8ed1ab_0         759 KB  conda-forge
-    tk-8.6.13                  |noxft_h4845f30_101         3.2 MB  conda-forge
-    tzdata-2024a               |       h8827d51_1         121 KB  conda-forge
-    wheel-0.44.0               |     pyhd8ed1ab_0          57 KB  conda-forge
-    xz-5.2.6                   |       h166bdaf_0         409 KB  conda-forge
-    ------------------------------------------------------------
-                                           Total:        43.9 MB
-
-The following NEW packages will be INSTALLED:
-
-  _libgcc_mutex      conda-forge/linux-64::_libgcc_mutex-0.1-conda_forge
-  _openmp_mutex      conda-forge/linux-64::_openmp_mutex-4.5-2_gnu
-  bzip2              conda-forge/linux-64::bzip2-1.0.8-h4bc722e_7
-  ca-certificates    conda-forge/linux-64::ca-certificates-2024.8.30-hbcca054_0
-  ld_impl_linux-64   conda-forge/linux-64::ld_impl_linux-64-2.43-h712a8e2_1
-  libexpat           conda-forge/linux-64::libexpat-2.6.3-h5888daf_0
-  libffi             conda-forge/linux-64::libffi-3.4.2-h7f98852_5
-  libgcc             conda-forge/linux-64::libgcc-14.1.0-h77fa898_1
-  libgcc-ng          conda-forge/linux-64::libgcc-ng-14.1.0-h69a702a_1
-  libgomp            conda-forge/linux-64::libgomp-14.1.0-h77fa898_1
-  libnsl             conda-forge/linux-64::libnsl-2.0.1-hd590300_0
-  libsqlite          conda-forge/linux-64::libsqlite-3.46.1-hadc24fc_0
-  libuuid            conda-forge/linux-64::libuuid-2.38.1-h0b41bf4_0
-  libxcrypt          conda-forge/linux-64::libxcrypt-4.4.36-hd590300_1
-  libzlib            conda-forge/linux-64::libzlib-1.3.1-hb9d3cd8_2
-  ncurses            conda-forge/linux-64::ncurses-6.5-he02047a_1
-  openssl            conda-forge/linux-64::openssl-3.3.2-hb9d3cd8_0
-  pip                conda-forge/noarch::pip-24.2-pyh8b19718_1
-  python             conda-forge/linux-64::python-3.12.2-hab00c5b_0_cpython
-  readline           conda-forge/linux-64::readline-8.2-h8228510_1
-  setuptools         conda-forge/noarch::setuptools-75.1.0-pyhd8ed1ab_0
-  tk                 conda-forge/linux-64::tk-8.6.13-noxft_h4845f30_101
-  tzdata             conda-forge/noarch::tzdata-2024a-h8827d51_1
-  wheel              conda-forge/noarch::wheel-0.44.0-pyhd8ed1ab_0
-  xz                 conda-forge/linux-64::xz-5.2.6-h166bdaf_0
-
-
-Preparing transaction: ...working... done
-Verifying transaction: ...working... done
-Executing transaction: ...working... done
-+ /users/rmiller/.cache/R/basilisk/1.16.0/0/bin/conda install --yes --prefix /users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6 'python=3.12.2' -c conda-forge
-Collecting package metadata (current_repodata.json): ...working... done
-Solving environment: ...working... done
-
-
-==> WARNING: A newer version of conda exists. <==
-  current version: 4.12.0
-  latest version: 24.9.1
-
-Please update conda by running
-
-    $ conda update -n base -c defaults conda
-
-
-
-# All requested packages already installed.
-
-+ /users/rmiller/.cache/R/basilisk/1.16.0/0/bin/conda install --yes --prefix /users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6 -c conda-forge 'python=3.12.2' 'anndata=0.10.6' 'h5py=3.10.0' 'hdf5=1.14.3' 'natsort=8.4.0' 'numpy=1.26.4' 'packaging=24.0' 'pandas=2.2.1' 'python=3.12.2' 'scipy=1.12.0'
-Collecting package metadata (current_repodata.json): ...working... done
-Solving environment: ...working... failed with initial frozen solve. Retrying with flexible solve.
-Collecting package metadata (repodata.json): ...working... done
-Solving environment: ...working... done
-
-
-==> WARNING: A newer version of conda exists. <==
-  current version: 4.12.0
-  latest version: 24.9.1
-
-Please update conda by running
-
-    $ conda update -n base -c defaults conda
-
-
-
-## Package Plan ##
-
-  environment location: /users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6
-
-  added / updated specs:
-    - anndata=0.10.6
-    - h5py=3.10.0
-    - hdf5=1.14.3
-    - natsort=8.4.0
-    - numpy=1.26.4
-    - packaging=24.0
-    - pandas=2.2.1
-    - python[version='3.12.2.*,3.12.2.*']
-    - scipy=1.12.0
-
-
-The following packages will be downloaded:
-
-    package                    |            build
-    ---------------------------|-----------------
-    anndata-0.10.6             |     pyhd8ed1ab_0          96 KB  conda-forge
-    array-api-compat-1.9       |     pyhd8ed1ab_0          37 KB  conda-forge
-    c-ares-1.33.1              |       heb4867d_0         179 KB  conda-forge
-    exceptiongroup-1.2.2       |     pyhd8ed1ab_0          20 KB  conda-forge
-    h5py-3.10.0                |nompi_py312h1b477d7_101         1.2 MB  conda-forge
-    hdf5-1.14.3                |nompi_hdf9ad27_105         3.7 MB  conda-forge
-    keyutils-1.6.1             |       h166bdaf_0         115 KB  conda-forge
-    krb5-1.21.3                |       h659f571_0         1.3 MB  conda-forge
-    libaec-1.1.3               |       h59595ed_0          35 KB  conda-forge
-    libblas-3.9.0              |24_linux64_openblas          15 KB  conda-forge
-    libcblas-3.9.0             |24_linux64_openblas          15 KB  conda-forge
-    libcurl-8.10.1             |       hbbe4b11_0         415 KB  conda-forge
-    libev-4.33                 |       hd590300_2         110 KB  conda-forge
-    libgfortran-14.1.0         |       h69a702a_1          51 KB  conda-forge
-    libgfortran-ng-14.1.0      |       h69a702a_1          51 KB  conda-forge
-    libgfortran5-14.1.0        |       hc5f4f2c_1         1.4 MB  conda-forge
-    liblapack-3.9.0            |24_linux64_openblas          15 KB  conda-forge
-    libnghttp2-1.58.0          |       h47da74e_1         617 KB  conda-forge
-    libopenblas-0.3.27         |pthreads_hac2b453_1         5.3 MB  conda-forge
-    libssh2-1.11.0             |       h0841786_0         265 KB  conda-forge
-    libstdcxx-14.1.0           |       hc0a3c3a_1         3.7 MB  conda-forge
-    libstdcxx-ng-14.1.0        |       h4852527_1          51 KB  conda-forge
-    numpy-1.26.4               |  py312heda63a1_0         7.1 MB  conda-forge
-    packaging-24.0             |     pyhd8ed1ab_0          49 KB  conda-forge
-    pandas-2.2.1               |  py312hfb8ada1_0        14.7 MB  conda-forge
-    python-dateutil-2.9.0      |     pyhd8ed1ab_0         218 KB  conda-forge
-    python-tzdata-2024.2       |     pyhd8ed1ab_0         139 KB  conda-forge
-    python_abi-3.12            |          5_cp312           6 KB  conda-forge
-    pytz-2024.2                |     pyhd8ed1ab_0         183 KB  conda-forge
-    scipy-1.12.0               |  py312heda63a1_2        16.3 MB  conda-forge
-    zstd-1.5.6                 |       ha6fb4c9_0         542 KB  conda-forge
-    ------------------------------------------------------------
-                                           Total:        57.9 MB
-
-The following NEW packages will be INSTALLED:
-
-  anndata            conda-forge/noarch::anndata-0.10.6-pyhd8ed1ab_0
-  array-api-compat   conda-forge/noarch::array-api-compat-1.9-pyhd8ed1ab_0
-  c-ares             conda-forge/linux-64::c-ares-1.33.1-heb4867d_0
-  cached-property    conda-forge/noarch::cached-property-1.5.2-hd8ed1ab_1
-  cached_property    conda-forge/noarch::cached_property-1.5.2-pyha770c72_1
-  exceptiongroup     conda-forge/noarch::exceptiongroup-1.2.2-pyhd8ed1ab_0
-  h5py               conda-forge/linux-64::h5py-3.10.0-nompi_py312h1b477d7_101
-  hdf5               conda-forge/linux-64::hdf5-1.14.3-nompi_hdf9ad27_105
-  keyutils           conda-forge/linux-64::keyutils-1.6.1-h166bdaf_0
-  krb5               conda-forge/linux-64::krb5-1.21.3-h659f571_0
-  libaec             conda-forge/linux-64::libaec-1.1.3-h59595ed_0
-  libblas            conda-forge/linux-64::libblas-3.9.0-24_linux64_openblas
-  libcblas           conda-forge/linux-64::libcblas-3.9.0-24_linux64_openblas
-  libcurl            conda-forge/linux-64::libcurl-8.10.1-hbbe4b11_0
-  libedit            conda-forge/linux-64::libedit-3.1.20191231-he28a2e2_2
-  libev              conda-forge/linux-64::libev-4.33-hd590300_2
-  libgfortran        conda-forge/linux-64::libgfortran-14.1.0-h69a702a_1
-  libgfortran-ng     conda-forge/linux-64::libgfortran-ng-14.1.0-h69a702a_1
-  libgfortran5       conda-forge/linux-64::libgfortran5-14.1.0-hc5f4f2c_1
-  liblapack          conda-forge/linux-64::liblapack-3.9.0-24_linux64_openblas
-  libnghttp2         conda-forge/linux-64::libnghttp2-1.58.0-h47da74e_1
-  libopenblas        conda-forge/linux-64::libopenblas-0.3.27-pthreads_hac2b453_1
-  libssh2            conda-forge/linux-64::libssh2-1.11.0-h0841786_0
-  libstdcxx          conda-forge/linux-64::libstdcxx-14.1.0-hc0a3c3a_1
-  libstdcxx-ng       conda-forge/linux-64::libstdcxx-ng-14.1.0-h4852527_1
-  natsort            conda-forge/noarch::natsort-8.4.0-pyhd8ed1ab_0
-  numpy              conda-forge/linux-64::numpy-1.26.4-py312heda63a1_0
-  packaging          conda-forge/noarch::packaging-24.0-pyhd8ed1ab_0
-  pandas             conda-forge/linux-64::pandas-2.2.1-py312hfb8ada1_0
-  python-dateutil    conda-forge/noarch::python-dateutil-2.9.0-pyhd8ed1ab_0
-  python-tzdata      conda-forge/noarch::python-tzdata-2024.2-pyhd8ed1ab_0
-  python_abi         conda-forge/linux-64::python_abi-3.12-5_cp312
-  pytz               conda-forge/noarch::pytz-2024.2-pyhd8ed1ab_0
-  scipy              conda-forge/linux-64::scipy-1.12.0-py312heda63a1_2
-  six                conda-forge/noarch::six-1.16.0-pyh6c4a22f_0
-  zstd               conda-forge/linux-64::zstd-1.5.6-ha6fb4c9_0
-
-
-
-Downloading and Extracting Packages
-libgfortran-ng-14.1. | 51 KB     |            |   0% libgfortran-ng-14.1. | 51 KB     | ###1       |  31% libgfortran-ng-14.1. | 51 KB     | ########## | 100% libgfortran-ng-14.1. | 51 KB     | ########## | 100% 
-h5py-3.10.0          | 1.2 MB    |            |   0% h5py-3.10.0          | 1.2 MB    | ########## | 100% h5py-3.10.0          | 1.2 MB    | ########## | 100% 
-scipy-1.12.0         | 16.3 MB   |            |   0% scipy-1.12.0         | 16.3 MB   | ###4       |  34% scipy-1.12.0         | 16.3 MB   | ########## | 100% scipy-1.12.0         | 16.3 MB   | ########## | 100% 
-libgfortran5-14.1.0  | 1.4 MB    |            |   0% libgfortran5-14.1.0  | 1.4 MB    | ########## | 100% libgfortran5-14.1.0  | 1.4 MB    | ########## | 100% 
-libssh2-1.11.0       | 265 KB    |            |   0% libssh2-1.11.0       | 265 KB    | ########## | 100% libssh2-1.11.0       | 265 KB    | ########## | 100% 
-zstd-1.5.6           | 542 KB    |            |   0% zstd-1.5.6           | 542 KB    | ########## | 100% zstd-1.5.6           | 542 KB    | ########## | 100% 
-anndata-0.10.6       | 96 KB     |            |   0% anndata-0.10.6       | 96 KB     | ########## | 100% anndata-0.10.6       | 96 KB     | ########## | 100% 
-libaec-1.1.3         | 35 KB     |            |   0% libaec-1.1.3         | 35 KB     | ########## | 100% libaec-1.1.3         | 35 KB     | ########## | 100% 
-krb5-1.21.3          | 1.3 MB    |            |   0% krb5-1.21.3          | 1.3 MB    | ########## | 100% krb5-1.21.3          | 1.3 MB    | ########## | 100% 
-numpy-1.26.4         | 7.1 MB    |            |   0% numpy-1.26.4         | 7.1 MB    | #5         |  15% numpy-1.26.4         | 7.1 MB    | ########## | 100% numpy-1.26.4         | 7.1 MB    | ########## | 100% 
-libgfortran-14.1.0   | 51 KB     |            |   0% libgfortran-14.1.0   | 51 KB     | ########## | 100% libgfortran-14.1.0   | 51 KB     | ########## | 100% 
-libnghttp2-1.58.0    | 617 KB    |            |   0% libnghttp2-1.58.0    | 617 KB    | ########## | 100% libnghttp2-1.58.0    | 617 KB    | ########## | 100% 
-c-ares-1.33.1        | 179 KB    |            |   0% c-ares-1.33.1        | 179 KB    | ########## | 100% c-ares-1.33.1        | 179 KB    | ########## | 100% 
-libopenblas-0.3.27   | 5.3 MB    |            |   0% libopenblas-0.3.27   | 5.3 MB    | ######6    |  66% libopenblas-0.3.27   | 5.3 MB    | ########## | 100% 
-python_abi-3.12      | 6 KB      |            |   0% python_abi-3.12      | 6 KB      | ########## | 100% python_abi-3.12      | 6 KB      | ########## | 100% 
-hdf5-1.14.3          | 3.7 MB    |            |   0% hdf5-1.14.3          | 3.7 MB    | ########## | 100% hdf5-1.14.3          | 3.7 MB    | ########## | 100% 
-liblapack-3.9.0      | 15 KB     |            |   0% liblapack-3.9.0      | 15 KB     | ########## | 100% liblapack-3.9.0      | 15 KB     | ########## | 100% 
-python-dateutil-2.9. | 218 KB    |            |   0% python-dateutil-2.9. | 218 KB    | ########## | 100% python-dateutil-2.9. | 218 KB    | ########## | 100% 
-exceptiongroup-1.2.2 | 20 KB     |            |   0% exceptiongroup-1.2.2 | 20 KB     | ########## | 100% exceptiongroup-1.2.2 | 20 KB     | ########## | 100% 
-array-api-compat-1.9 | 37 KB     |            |   0% array-api-compat-1.9 | 37 KB     | ########## | 100% array-api-compat-1.9 | 37 KB     | ########## | 100% 
-pandas-2.2.1         | 14.7 MB   |            |   0% pandas-2.2.1         | 14.7 MB   | ##2        |  23% pandas-2.2.1         | 14.7 MB   | ########7  |  88% pandas-2.2.1         | 14.7 MB   | ########## | 100% 
-libcurl-8.10.1       | 415 KB    |            |   0% libcurl-8.10.1       | 415 KB    | ########## | 100% libcurl-8.10.1       | 415 KB    | ########## | 100% 
-libblas-3.9.0        | 15 KB     |            |   0% libblas-3.9.0        | 15 KB     | ########## | 100% libblas-3.9.0        | 15 KB     | ########## | 100% 
-pytz-2024.2          | 183 KB    |            |   0% pytz-2024.2          | 183 KB    | ########## | 100% pytz-2024.2          | 183 KB    | ########## | 100% 
-keyutils-1.6.1       | 115 KB    |            |   0% keyutils-1.6.1       | 115 KB    | ########## | 100% keyutils-1.6.1       | 115 KB    | ########## | 100% 
-libstdcxx-14.1.0     | 3.7 MB    |            |   0% libstdcxx-14.1.0     | 3.7 MB    | ########## | 100% libstdcxx-14.1.0     | 3.7 MB    | ########## | 100% 
-python-tzdata-2024.2 | 139 KB    |            |   0% python-tzdata-2024.2 | 139 KB    | ########## | 100% python-tzdata-2024.2 | 139 KB    | ########## | 100% 
-packaging-24.0       | 49 KB     |            |   0% packaging-24.0       | 49 KB     | ########## | 100% packaging-24.0       | 49 KB     | ########## | 100% 
-libstdcxx-ng-14.1.0  | 51 KB     |            |   0% libstdcxx-ng-14.1.0  | 51 KB     | ########## | 100% libstdcxx-ng-14.1.0  | 51 KB     | ########## | 100% 
-libcblas-3.9.0       | 15 KB     |            |   0% libcblas-3.9.0       | 15 KB     | ########## | 100% libcblas-3.9.0       | 15 KB     | ########## | 100% 
-libev-4.33           | 110 KB    |            |   0% libev-4.33           | 110 KB    | ########## | 100% libev-4.33           | 110 KB    | ########## | 100% 
-Preparing transaction: ...working... done
-Verifying transaction: ...working... done
-Executing transaction: ...working... done
-ℹ Using the 'counts' assay as the X matrix
-/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
-  warnings.warn(
-Error in py_call_impl(callable, call_args$unnamed, call_args$named) : 
-  FileNotFoundError: [Errno 2] Unable to synchronously create file (unable to open file: name = '/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/spatial_HYP/processed-data/14-samu/spe.h5ad', errno = 2, error message = 'No such file or directory', flags = 13, o_flags = 242)
-Run `reticulate::py_last_error()` for details.
-Calls: write_anndata -> basiliskRun -> fun -> <Anonymous> -> py_call_impl
-Execution halted
-
-**** Job starts ****
-Thu Oct  3 11:12:27 AM EDT 2024
-
-**** JHPCE info ****
-User: rmiller
-Job id: 10005990
-Job name: r2python-vis
-Hostname: 
-Task id: 1
-Loading conda_R/4.4
-Warning message:
-In .check_reddim_names(x, value[[v]], withDimnames = TRUE, vname = sprintf("value[[%s]]",  :
-  non-NULL 'rownames(value[[1]])' should be the same as 'colnames(x)' for
-'reducedDims<-'. This will be an error in the next release of
-Bioconductor.
-[1] "Converting objects to AnnDatas..."
-ℹ Using the 'counts' assay as the X matrix
-/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
-  warnings.warn(
-
-**** Job starts ****
-Thu Oct  3 11:17:23 AM EDT 2024
-
-**** JHPCE info ****
-User: rmiller
-Job id: 10006020
-Job name: r2python-vis
-Hostname: 
-Task id: 1
-Loading conda_R/4.4
-Warning message:
-In .check_reddim_names(x, value[[v]], withDimnames = TRUE, vname = sprintf("value[[%s]]",  :
-  non-NULL 'rownames(value[[1]])' should be the same as 'colnames(x)' for
-'reducedDims<-'. This will be an error in the next release of
-Bioconductor.
-[1] "Converting objects to AnnDatas..."
-ℹ Using the 'counts' assay as the X matrix
-/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
-  warnings.warn(
-
-**** Job starts ****
-Thu Oct  3 11:22:26 AM EDT 2024
-
-**** JHPCE info ****
-User: rmiller
-Job id: 10006036
-Job name: r2python-vis
-Hostname: 
-Task id: 1
-Loading conda_R/4.4
-Warning message:
-In .check_reddim_names(x, value[[v]], withDimnames = TRUE, vname = sprintf("value[[%s]]",  :
-  non-NULL 'rownames(value[[1]])' should be the same as 'colnames(x)' for
-'reducedDims<-'. This will be an error in the next release of
-Bioconductor.
-[1] "Converting objects to AnnDatas..."
-ℹ Using the 'counts' assay as the X matrix
-/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
-  warnings.warn(
-
-**** Job starts ****
-Thu Oct  3 11:26:28 AM EDT 2024
-
-**** JHPCE info ****
-User: rmiller
-Job id: 10006054
-Job name: r2python-vis
-Hostname: 
-Task id: 1
-Loading conda_R/4.4
-Warning message:
-In .check_reddim_names(x, value[[v]], withDimnames = TRUE, vname = sprintf("value[[%s]]",  :
-  non-NULL 'rownames(value[[1]])' should be the same as 'colnames(x)' for
-'reducedDims<-'. This will be an error in the next release of
-Bioconductor.
-[1] "Converting objects to AnnDatas..."
-ℹ Using the 'counts' assay as the X matrix
-/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
-  warnings.warn(
-
-**** Job starts ****
-Tue Oct  8 11:12:47 AM EDT 2024
-
-**** JHPCE info ****
-User: rmiller
-Job id: 10062731
-Job name: r2python-vis
-Hostname: 
-Task id: 1
-Loading conda_R/4.4
-Warning message:
-In .check_reddim_names(x, value[[v]], withDimnames = TRUE, vname = sprintf("value[[%s]]",  :
-  non-NULL 'rownames(value[[1]])' should be the same as 'colnames(x)' for
-'reducedDims<-'. This will be an error in the next release of
-Bioconductor.
-[1] "Converting objects to AnnDatas..."
-ℹ Using the 'counts' assay as the X matrix
-/users/rmiller/.cache/R/basilisk/1.16.0/zellkonverter/1.14.1/zellkonverterAnnDataEnv-0.10.6/lib/python3.12/site-packages/anndata/_core/anndata.py:430: FutureWarning: The dtype argument is deprecated and will be removed in late 2024.
-  warnings.warn(
