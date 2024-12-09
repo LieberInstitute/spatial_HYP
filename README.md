@@ -5,7 +5,7 @@
 ### Study Design
 The hypothalamus is a critical brain area underlying functions with inherent sex differences, such as reproductive physiology, endocrine signaling, and metabolism. In the rodent, these sex-differentiated functions correspond to differences in volume, cell type composition, and gene expression between males and females across individual hypothalamic regions (here, "domains"). The ventromedial hypothalamus (VMH) and arcuate nucleus (ARC) are two hypothalamic regions that influence appetitive/social behaviors and growth/metabolism, respectively. While molecular profiling studies in the rodent hypothalamus have identified specialized cell types with unique transcriptomic signatures, there is a paucity of data describing the molecular architecture of the human HYP, especially in the context of sex-differentiated cell types that drive evolutionarily essential, hypothalamus-mediated behaviors in males and females. 
 
-This study, led by Bernard (Bernie) Mulvey, Kristen Maynard, and Kasper Hansen, profiled the adult human mediobasal hypothalamus (ventromedial nucleus, VMH, and arcuate nucleus, ARC) using  Visium and Xenium spatial transcriptomic platforms (10x Genomics). Atlasing and sex-differential expression efforts using Visium data from 8 donors (4 per sex) were used to guide gene selection for subsequent Xenium assays on adjacent tissue sections from these same 8 donors.
+This [study](https://www.biorxiv.org/content/10.1101/2024.12.07.627362v1), led by Bernard (Bernie) Mulvey, Kristen Maynard, and Kasper Hansen, profiled the adult human mediobasal hypothalamus (ventromedial nucleus, VMH, and arcuate nucleus, ARC) using  Visium and Xenium spatial transcriptomic platforms (10x Genomics). Atlasing and sex-differential expression efforts using Visium data from 8 donors (4 per sex) were used to guide gene selection for subsequent Xenium assays on adjacent tissue sections from these same 8 donors.
 
 ![Experimental Overview](./images/overview.png)
 
@@ -37,4 +37,4 @@ Supplemental data mentioned in the manuscript, along with smFISH images on Visiu
 FASTQ files from Visium and unfiltered sample-level xeniumranger 1.7 outputs (transcript-level data) compatible with Xenium Explorer software are respectively available through GEO accessions [GSE280316](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE280316) and [GSE280460](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE280460). Addditional processed data may be added to the Globus endpoint in the process of review and publication. 
 
 ### How to Cite
-PENDING
+Mulvey, B. et al. Spatially-resolved molecular sex differences at single cell resolution in the adult human hypothalamus. BioRxiv (2024) doi:10.1101/2024.12.07.627362.
