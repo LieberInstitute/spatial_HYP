@@ -80,7 +80,7 @@ collapsed <- copy(bscls[["BSpace_k15_HARMONYlmbna_nnsvg10"]])
 collapsed[cl %in% c("X7","X12"),cl:="VMH"]
 collapsed[cl %in% c("X4","X6"),cl:="ARC"]
 bscls[[length(bscls)+1]] <- copy(collapsed)
-names(bscls)[length(bscls)] <- "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH")
+names(bscls)[length(bscls)] <- "BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH"
 
 # clean up
 rm(bscl,collapsed)

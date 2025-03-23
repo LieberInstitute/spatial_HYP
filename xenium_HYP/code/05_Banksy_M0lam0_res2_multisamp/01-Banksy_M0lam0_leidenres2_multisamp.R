@@ -51,7 +51,7 @@ spatialCoords(hypx) <- locs
 ## save SFE with normed counts and adjusted coords
 saveRDS(hypx,"processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
 
-# now specify which Assays() slot to use for banksy calls
+# now specify which Assays() slot to use for banksy calls (see line 60 in code/04/02
 useassay <- "normcounts"
 
 # aaand run Banksy

@@ -1,7 +1,7 @@
 ---
 title: "11-Marker GSEA supplements output"
 author: "Bernard Mulvey"
-date: "2024-08-06"
+date: "2025-03-15"
 output: html_document
 ---
 
@@ -322,6 +322,8 @@ names(mkdisres)
 
 fwrite(mkdisres,"local_supptab_assembly/marker-disgene-gsea.txt",sep='\t',quote=F)
 ```
+
+## 031525 -- there was an errant line break in the text file that was preventing excel from seeing some rows when filtering and splitting out by gene source when making supp tabs. the source .txt file and onedrive submission 3 copy of ST11 (sheet A, where this issue presented) have been fixed.
 
 ```{r}
 sessionInfo()
