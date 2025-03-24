@@ -137,7 +137,7 @@ hyp2 <- hyp2[rownames(hyp2) %in% orths$ortholog_ensg,]
 stopifnot(nrow(hyp2)==nrow(smrt.sce))
 
 ## cleanup some misc
-rm(dropg,drophg,dropms,multimap,smart_to_sfish,multimapfish)
+rm(dropg,drophg,dropms,multimap,multimapfish)
 gc(full=T)
 ```
 
@@ -145,9 +145,11 @@ gc(full=T)
 ```{r}
 colnames(rowData(smrt.sce)) <- c("gene_id","gene_name")
 
-# fix cluster names spatialLIBD doesn't fix to meet its needs, just bitches about; 
-smrt.sce$smart_seq_cluster_label <- gsub(smrt.sce$smart_seq_cluster_label,pattern=" ",replacement="_")
-smrt.sce$smart_seq_cluster_label <- gsub(smrt.sce$smart_seq_cluster_label,pattern="\\|",replacement="_")
+# fix cluster names thatll cause spatialLIBD issues; make the same changes into smart_to_sfish
+smrt.sce$cca_cluster_label <- gsub(smrt.sce$cca_cluster_label,pattern=" ",replacement="_")
+smrt.sce$cca_cluster_label <- gsub(smrt.sce$cca_cluster_label,pattern="\\|",replacement="_")
+smart_to_sfish[,smartseq_clus:=gsub(smartseq_clus,pattern=" ",replacement="_")]
+smart_to_sfish[,smartseq_clus:=gsub(smartseq_clus,pattern="\\|",replacement="_")]
 
 # ?? it also cant fathom genes starting with a numeral and those are all just 2390457293487297Riks anyhow so drop em
 # dropg <- grep(rownames(smrt.sce),pattern="^[[:digit:]]{1}.*$",value=T)
@@ -160,8 +162,8 @@ assayNames(smrt.sce)[1] <- "counts"
 assays(smrt.sce)[2] <- assays(smrt.sce)[1]
 assayNames(smrt.sce)[2] <- "logcounts"
 
-
-msvmh <- registration_wrapper(smrt.sce,var_registration="smart_seq_cluster_label",var_sample_id="animal_name_label",gene_ensembl="gene_id",gene_name="gene_id",min_ncells = 10)
+## remember, this info all came from a plot with x axis labels using CCA cluster labels, not the smart seq labels
+msvmh <- registration_wrapper(smrt.sce,var_registration="cca_cluster_label",var_sample_id="animal_name_label",gene_ensembl="gene_id",gene_name="gene_id",min_ncells = 10)
 
 # extract global marker t-stats, which are what we need
 msvmh <- as.data.table(msvmh$enrichment)
@@ -183,7 +185,6 @@ gc(full=T)
 lct <- as.data.table(as.data.frame(as.matrix(logcounts(hyp2))),keep.rownames=T)
 ## dont need the spe
 rm(hyp2)
-gc(full=T)
 
 ## some genes aren't well represented enough for SCE regist stats so we can drop those from the logcounts
 lct <- lct[rn %in% msvmh$human_ensg,]
@@ -229,11 +230,29 @@ spotcor <- mcmapply(s=spotsl,
 # fwiw resource monitoring indicates this worked as desired -- 4 processes spawned each using ~"200"% cpu (i.e., 2 cores)
 
 ## put it all together
-spotcor <- rbindlist(spotcor)
+spotcor <- rbindlist(spotcor,idcol="rn")
 
-saveRDS(spotcor,"processed-data/12-Mouse comparisons/06-VMHspot_logct_spearman_to_kim2019smartseq_markerTstats.RDS")
+saveRDS(spotcor,"processed-data/12-Mouse comparisons/06aI-VMHspot_logct_spearman_to_kim2019smartseq_markerTstats.RDS")
+```
 
+## for the moment, let's consider the clusters that we have AP axis information for
+```{r}
+spotcor[,samp:=gsub(rn,pattern="^.*-1_(.*)$",replacement="\\1")]
 
+# so that we can subset to cases where the AP order was given (a-f, a as the most anterior), change a to 0 (because the NAs also contain a, just makes it messy)
+smart_to_sfish[,APorder_fig3d:=gsub(APorder_fig3d,pattern="a",replacement="0")]
+smart_to_sfish <- smart_to_sfish[APorder_fig3d %in% grep(APorder_fig3d,pattern="0|b|c|e|f",value=T)]
+
+spotcor.ap <- spotcor[variable %in% smart_to_sfish$smartseq_clus]
+
+## get mean and median registration per each of these clusters for ea sample. (we can add back donor info in a sec too)
+spotcor.ap2 <- spotcor.ap[,xcds:=value>quantile(value,0.8),by=c("samp","variable")]
+spotcor.ap2 <- spotcor.ap2[xcds==T]
+setnames(spotcor.ap2,"V1","value")
+spotcor.ap2 <- unique(spotcor.ap2[,mean(value,na.rm=T),by=c("samp","variable")])
+spotcor.ap2 <- merge.data.table(spotcor.ap2,smart_to_sfish,by.x="variable",by.y="smartseq_clus")
+
+## very similar stats whether taking sample means for a mouse cluster across all spots, median for same, or mean only across the upper quintile of spot correlations. likewise, very similar stats ACROSS SAMPLES for each mouse cluster, lowest being the ef (posteriormost), anteriormost hovering right around 0 or sliiightly negative, and only positive values being clusters peaking mouse sections 2 and 3 out of 6 (i.e. those skewed toward anterior and dead center of mouse VMH). 
 ```
 
 repinf
