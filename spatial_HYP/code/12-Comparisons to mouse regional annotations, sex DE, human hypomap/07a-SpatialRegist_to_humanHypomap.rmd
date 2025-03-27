@@ -1,0 +1,499 @@
+---
+title: "07a-SpatialRegist_to_humanHypomap"
+format: html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(SpatialExperiment)
+library(Seurat)
+library(spatialLIBD)
+library(biomaRt)
+library(RcppML)
+# library(SpatialFeatureExperiment)
+
+# ## rstudio GUI tweaks
+# require(colorout)
+# ColorOut()
+# options('styler.addins_style_transformer' = 'biocthis::bioc_style()')
+# ##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn='')
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost='localhost')
+
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace('datasets')
+```
+
+load human hypomap data just to get genes for now
+```{r}
+# load hyp spe, pare down to VMH, and clear out unneeded ram heavy bits while were here
+hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+```
+
+load hypomap, convert to sce
+note that genes here are provided as HGNC symbols only, presumably thru seurats gene symbol thesaurus thing. get ensgs to match these
+```{r}
+hmap <- readRDS("raw-data/human_HYPOMAP_snRNASeq_Tadross25.rds")
+hmap <- as.SingleCellExperiment(hmap)
+
+# for spatreg, get rid of logcounts assay to make object smaller
+# logcounts(hmap) <- NULL
+
+rowData(hmap)$gene_name <- rownames(hmap) # so that the rowdata table has something in it
+
+en <- useMart("ENSEMBL_MART_ENSEMBL",dataset="hsapiens_gene_ensembl")
+enslut <- as.data.table(getBM(c("hgnc_symbol","ensembl_gene_id"),filters="hgnc_symbol",values=rownames(hmap),mart=en))
+
+keepg <- enslut[hgnc_symbol %in% rownames(hmap) & ensembl_gene_id %in% rownames(hyp2)]
+
+## save this table if we need it again -- biomart is sloooow
+fwrite(keepg,"processed-data/12-Mouse comparisons/07a-ensg-hgnc_lut.txt",sep='\t',quote=F,row.names=F)
+rm(enslut,en)
+gc(full=T)
+
+## subset hypomap
+hmap <- hmap[rownames(hmap) %in% keepg$hgnc_symbol,]
+
+## unload hyp2 to run hypomap, since the latter is big and we need memory to run registration
+rm(hyp2,keepg,clus)
+gc(full=T)
+```
+
+## define parallelized dupcor
+```{r}
+unwrapdups <- function(M,ndups=2,spacing=1) {
+#	Unwrap M matrix for a series of experiments so that all spots for a given gene are in one row
+#	Gordon Smyth
+#	18 Jan 2002. Last revised 2 Nov 2002.
+
+	if(ndups==1) return(M)
+	M <- as.matrix(M)
+	nspots <- dim(M)[1]
+	nslides <- dim(M)[2]
+	ngroups <- nspots / ndups / spacing
+	dim(M) <- c(spacing,ndups,ngroups,nslides)
+	M <- aperm(M,perm=c(1,3,2,4))
+	dim(M) <- c(spacing*ngroups,ndups*nslides)
+	M
+}
+
+uniquegenelist <- function(genelist,ndups=2,spacing=1) {
+#	Eliminate entries in genelist for duplicate spots
+#	Gordon Smyth
+#	2 Nov 2002.  Last revised 10 Jan 2005
+
+	if(ndups <= 1) return(genelist)
+	i <- drop(unwrapdups(1:NROW(genelist),ndups=ndups,spacing=spacing)[,1])
+	if(is.null(dim(genelist)))
+		return(genelist[i])
+	else
+		return(genelist[i,,drop=FALSE])
+}
+
+pdupcor <- function(object,design=NULL,ndups=2L,spacing=1L,block=NULL,trim=0.15,weights=NULL,cores=4)
+#	Estimate the correlation between duplicates given a series of arrays
+#	Gordon Smyth
+#	25 Apr 2002. Last revised 16 Feb 2021.
+{
+#	Extract components from y
+	y <- limma::getEAWP(object)
+	M <- y$exprs
+	ngenes <- nrow(M)
+	narrays <- ncol(M)
+
+#	Check design matrix
+	if(is.null(design)) design <- y$design
+	if(is.null(design)){
+		design <- matrix(1,ncol(y$exprs),1)} else {
+		design <- as.matrix(design)}
+		if(!identical(mode(design),"numeric")) stop("design must be a numeric matrix")
+	
+	if(!identical(nrow(design),narrays)) stop("Number of rows of design matrix does not match number of arrays")
+	nbeta <- ncol(design)
+
+#	Check whether design and block are of full rank
+	QR <- qr(design)
+	if(QR$rank < nbeta) message("Note: design matrix not of full rank (",nbeta-QR$rank," coef not estimable).")
+	if(!is.null(block)) {
+		MaxBlockSize <- max(table(block))
+		if(identical(MaxBlockSize,1L)) {
+			warning("Blocks all of size 1: setting intrablock correlation to zero.")
+			return( list(consensus.correlation=0,cor=0,atanh.correlations=rep_len(0,nrow(M))) )
+		}
+		design.block <- model.matrix(~factor(block))
+		design.block <- design.block[,-1,drop=FALSE]
+		QtBlock <- qr.qty(QR,design.block)
+		if(max(abs(QtBlock[-(1:QR$rank),])) < 1e-8) {
+			warning("Block factor already encoded in the design matrix: setting intrablock correlation to zero.")
+			return( list(consensus.correlation=0,cor=0,atanh.correlations=rep_len(0,nrow(M))) )
+		}
+	}
+
+#	Check weights
+	if(is.null(weights)) weights <- y$weights
+	if(!is.null(weights)) {
+		weights <- limma::asMatrixWeights(weights,dim(M))
+		weights[weights <= 0] <- NA
+		M[!is.finite(weights)] <- NA
+	}
+
+#	Setup spacing or blocking arguments
+	if(is.null(block)) {
+#		If present, use ndups and spacing stored in object
+		if(!is.null(y$printer$ndups)) ndups <- y$printer$ndups
+		if(!is.null(y$printer$spacing)) spacing <- y$printer$spacing
+		if(ndups<2L) {
+			warning("No duplicates: setting correlation between duplicates to zero.")
+			return( list(consensus.correlation=0,cor=0,atanh.correlations=rep_len(0,nrow(M))) )
+		}
+		if(is.character(spacing)) {
+			if(spacing=="columns") spacing <- 1
+			if(spacing=="rows") spacing <- y$printer$nspot.c
+			if(spacing=="topbottom") spacing <- nrow(M)/2
+		}
+		Array <- rep(1:narrays,each=ndups)
+	} else {
+		ndups <- 1L
+		nspacing <- 1L
+		Array <- block
+	}
+
+#	Unwrap data to get all data for a gene in one row
+	if(is.null(block)) {
+		M <- unwrapdups(M,ndups=ndups,spacing=spacing)
+		ngenes <- nrow(M)
+		if(!is.null(weights)) weights <- unwrapdups(weights,ndups=ndups,spacing=spacing)
+		design <- design %x% rep_len(1,ndups)
+	}
+
+#	Compute genewise correlations
+	nafun <- function(e) NA
+	rho <- mclapply(c(1:ngenes),mc.cores=cores,function(i) {
+		y <- drop(M[i,])
+		o <- is.finite(y)
+		A <- factor(Array[o])
+		nobs <- sum(o)
+		nblocks <- length(levels(A))
+		if(nobs>(nbeta+2L) && nblocks>1L && nblocks<(nobs-1L)) {
+			y <- y[o]
+			X <- design[o,,drop=FALSE]
+			Z <- model.matrix(~0+A)
+			if(!is.null(weights)) {
+				w <- drop(weights[i,])[o]
+				s <- tryCatch(suppressWarnings(statmod::mixedModel2Fit(y,X,Z,w,only.varcomp=TRUE,maxit=20)$varcomp),error=nafun)
+			} else {
+				s <- tryCatch(suppressWarnings(statmod::mixedModel2Fit(y,X,Z,only.varcomp=TRUE,maxit=20)$varcomp),error=nafun) }
+			if(!is.na(s[1])){rho.out <- s[2]/sum(s)}
+		}
+		if(!exists("rho.out")){rho.out <- NA}
+		return(rho.out)
+	})
+	rho <- unlist(rho)
+	rho <- rho[!is.na(rho)]
+
+#	Keep correlations away from limits to ensure correlation matrix is positive-definite
+	rhomax <- 0.99
+	if(is.null(block))
+		rhomin <- 1/(1-ndups) + 0.01
+	else
+		rhomin <- 1/(1-MaxBlockSize) + 0.01
+	m <- min(rho,0,na.rm=TRUE)
+	if(m < rhomin) rho[rho < rhomin] <- rhomin
+	m <- max(rho,0,na.rm=TRUE)
+	if(m > rhomax) rho[rho > rhomax] <- rhomax
+
+	arho <- atanh(rho)
+	mrho <- tanh(mean(arho,trim=trim,na.rm=TRUE))
+	list(consensus.correlation=mrho,cor=mrho,atanh.correlations=arho)
+}
+
+avedups <- function(x,ndups,spacing,weights) UseMethod("avedups")
+
+avedups.default <- function(x,ndups=2,spacing=1,weights=NULL)
+#	Average over duplicate spots, for matrices or vectors
+#	Gordon Smyth
+#	6 Apr 2006.
+{
+	if(ndups==1) return(x)
+	if(is.null(x)) return(NULL)
+	x <- as.matrix(x)
+	nspots <- dim(x)[1]
+	nslides <- dim(x)[2]
+	rn <- rownames(x)
+	cn <- colnames(x)
+	ngroups <- nspots / ndups / spacing
+	dim(x) <- c(spacing,ndups,ngroups*nslides)
+	x <- aperm(x,perm=c(2,1,3))
+	if(mode(x)=="character")
+		x <- x[1,,]
+	else {
+		if(is.null(weights))
+			x <- colMeans(x,na.rm=TRUE)
+		else {
+			weights <- as.matrix(weights)
+			dim(weights) <- c(spacing,ndups,ngroups*nslides)
+			weights <- aperm(weights,perm=c(2,1,3))
+			weights[is.na(weights) | is.na(x)] <- 0
+			weights[weights<0] <- 0
+			x <- colSums(weights*x,na.rm=TRUE)/colSums(weights)
+		}
+	}
+	dim(x) <- c(spacing*ngroups,nslides)
+	colnames(x) <- cn
+	rownames(x) <- avedups(rn,ndups=ndups,spacing=spacing)
+	x
+}
+
+avedups.MAList <- function(x,ndups=x$printer$ndups,spacing=x$printer$spacing,weights=x$weights)
+#	Average over duplicate spots for MAList objects
+#	Gordon Smyth
+#	6 Apr 2006.
+{
+	if(is.null(ndups) || is.null(spacing)) stop("Must specify ndups and spacing")
+	y <- x
+	y$M <- avedups(x$M,ndups=ndups,spacing=spacing,weights=weights)
+	y$A <- avedups(x$A,ndups=ndups,spacing=spacing,weights=weights)
+	other <- names(x$other)
+	for (a in other) object$other[[a]] <- avedups(object$other[[a]],ndups=ndups,spacing=spacing,weights=weights)
+	y$weights <- avedups(x$weights,ndups=ndups,spacing=spacing)
+	y$genes <- uniquegenelist(x$genes,ndups=ndups,spacing=spacing)
+	y$printer <- NULL
+	y
+}
+
+avedups.EList <- function(x,ndups=x$printer$ndups,spacing=x$printer$spacing,weights=x$weights)
+#	Average over duplicate spots for EList objects
+#	Gordon Smyth
+#	2 Apr 2010.
+{
+	if(is.null(ndups) || is.null(spacing)) stop("Must specify ndups and spacing")
+	y <- x
+	y$E <- avedups(x$E,ndups=ndups,spacing=spacing,weights=weights)
+	other <- names(x$other)
+	for (a in other) object$other[[a]] <- avedups(object$other[[a]],ndups=ndups,spacing=spacing,weights=weights)
+	y$weights <- avedups(x$weights,ndups=ndups,spacing=spacing)
+	y$genes <- uniquegenelist(x$genes,ndups=ndups,spacing=spacing)
+	y$printer <- NULL
+	y
+}
+
+avereps <- function(x,...)
+#	4 June 2008
+	UseMethod("avereps")
+
+avereps.default <- function(x,ID=rownames(x),...)
+#	Average over irregular replicate spots, for matrices or vectors
+#	Gordon Smyth
+#	Created 3 June 2008.  Last modified 1 Dec 2010.
+#	Revised 19 Aug 2009 following suggestions from Axel Klenk.
+#	Revised 28 March 2010 following suggestion from Michael Lawrence.
+{
+	if(is.null(x)) return(NULL)
+	x <- as.matrix(x)
+	if(is.null(ID)) stop("No probe IDs")
+	ID <- as.character(ID)
+	if(mode(x)=="character") {
+		d <- duplicated(ID)
+		if(!any(d)) return(x)
+		y <- x[!d,,drop=FALSE]
+		return(y)
+	}
+	ID <- factor(ID,levels=unique(ID))
+#	rowsum(x,ID,reorder=FALSE,na.rm=TRUE)/as.vector(table(ID))
+	y <- rowsum(x,ID,reorder=FALSE,na.rm=TRUE)
+	n <- rowsum(1L-is.na(x),ID,reorder=FALSE)
+	y/n
+}
+
+avereps.MAList <- function(x,ID=NULL,...)
+#	Average over irregular replicate spots for MAList objects
+#	Gordon Smyth
+#	3 June 2008.  Last modified 8 Sep 2010.
+{
+	if(is.null(ID)) {
+		ID <- x$genes$ID
+		if(is.null(ID)) ID <- rownames(x)
+		if(is.null(ID)) stop("Cannot find probe IDs")
+	}
+	y <- x
+	y$M <- avereps(x$M,ID=ID)
+	y$A <- avereps(x$A,ID=ID)
+	other <- names(x$other)
+	for (a in other) y$other[[a]] <- avereps(x$other[[a]],ID=ID)
+	y$weights <- avereps(x$weights,ID=ID)
+	y$genes <- x$genes[!duplicated(ID),]
+	y$printer <- NULL
+	y
+}
+
+avereps.EList <- function(x,ID=NULL,...)
+#	Average over irregular replicate probes for EList objects
+#	Gordon Smyth
+#	2 April 2010.  Last modified 20 May 2011.
+{
+	if(is.null(ID)) {
+		ID <- x$genes$ID
+		if(is.null(ID)) ID <- rownames(x)
+		if(is.null(ID)) stop("Cannot find probe IDs")
+	}
+	y <- x
+	y$E <- avereps(x$E,ID=ID)
+	other <- names(x$other)
+	for (a in other) y$other[[a]] <- avereps(x$other[[a]],ID=ID)
+	y$weights <- avereps(x$weights,ID=ID)
+	y$genes <- x$genes[!duplicated(ID),]
+	y$printer <- NULL
+	y
+}
+
+avereps.RGList <- function(x,ID=NULL,...)
+#	Warn users that averaging should not be applied prior to normalization
+#	Gordon Smyth
+#	2 December 2013.
+{
+	stop("avereps should not be applied to an RGList object")
+	invisible()
+}
+
+
+avereps.EListRaw <- function(x,ID=NULL,...)
+#	Warn users that averaging should not be applied prior to normalization
+#	Gordon Smyth
+#	2 December 2013.
+{
+	stop("avereps should not be applied to an EListRaw object")
+	invisible()
+}
+```
+
+# define registration_wrapper that uses ^
+```{r}
+parblockcor <- function (sce_pseudo, registration_model, var_sample_id = "registration_sample_id",corpar=2) 
+{
+    message(Sys.time(), " run duplicateCorrelation()")
+    corfit <- pdupcor(logcounts(sce_pseudo), 
+        registration_model, block = sce_pseudo[[var_sample_id]],cores=corpar)
+    block_cor <- corfit$consensus.correlation
+    if (!is.finite(block_cor)) {
+        warning("The resulting correlation is not finite! So it won't be used by downstream functions. The value is: ", 
+            block_cor, ".", call. = FALSE)
+    }
+    message(Sys.time(), " The estimated correlation is: ", block_cor)
+    return(block_cor)
+}
+```
+
+### step through registration passing the block_cor we obtain by running dupcor in parallelized form thru modified spatialLIBD fxn
+### this parallelized duplicate correlation function is very RAM intensive, so not really worth it unless on hpc in the future.
+```{r}
+# replace dashes, spaces with underscores to avoid errors
+hmap$C3 <- gsub(hmap$C3,pattern=" ",replacement="_")
+hmap$C3 <- gsub(hmap$C3,pattern="-",replacement="_")
+hmap$C4 <- gsub(hmap$C4,pattern=" ",replacement="_")
+hmap$C4 <- gsub(hmap$C4,pattern="-",replacement="_")
+
+pbulkhmap <- registration_pseudobulk(sce = hmap,var_registration = "C3",var_sample_id = "Sample_ID")
+pbulkhmap4 <- registration_pseudobulk(sce=hmap,var_registration="C4",var_sample_id="Sample_ID")
+rm(hmap)
+gc(full=T)
+
+modhmap <- registration_model(pbulkhmap,var_registration = "C3")
+block_cor <- parblockcor(pbulkhmap,modhmap,var_sample_id="Sample_ID",corpar = 4)
+rm(modhmap)
+
+modhmap4 <- registration_model(pbulkhmap4,var_registration="C4",)
+block_cor4 <- parblockcor(pbulkhmap4,modhmap4,var_sample_id="Sample_ID",corpar=4)
+rm(modhmap4)
+
+c3reg <- registration_stats_enrichment(pbulkhmap,var_sample_id="Sample_ID",var_registration="C3",block_cor=block_cor,gene_ensembl = "gene_name",gene_name="gene_name")
+
+c4reg <- registration_stats_enrichment(pbulkhmap4,var_sample_id="Sample_ID",var_registration="C4",block_cor=block_cor4,gene_ensembl="gene_name",gene_name="gene_name")
+
+```
+
+## NMF of subsetted hmap (neurons only)
+```{r}
+# unique(hmap$C1_named)
+#  [1] "C1-1 Astrocytes"      "C1-2 Ependymal"       "C1-3 Oligo-Precursor"
+#  [4] "C1-4 Oligo-Mature"    "C1-5 Pre-1"           "C1-6 Mid-1"          
+#  [7] "C1-7 Pre-2"           "C1-8 Post-1"          "C1-9 Mid-3"          
+# [10] "C1-10 Mid-2"          "C1-11 Post-2"         "C1-12 Vascular"      
+# [13] "C1-13 Immune"        
+hmap <- hmap[,!(hmap$C1 %in% paste0("C1-",c(1:4,12,13)))]
+dim(hmap)
+# 21k x 166.5k
+# how many C3, C4 level clusters now?
+# > length(unique(hmapcd$C3))
+# [1] 119
+# > length(unique(hmapcd$C4))
+# [1] 415
+# so prob 450 factors
+
+gc(full=T)
+
+hmapcd <- as.data.table(colData(hmap),keep.rownames=T)
+hmaplct <- assay(hmap,'logcounts')
+rm(hmap)
+gc(full=T)
+
+library(Matrix)
+hmapN.nmf <-RcppML::nmf(hmaplct,
+    k=450,
+    tol = 1e-06,
+    maxit = 3000,
+    verbose = T,
+    L1 = 0.1,
+    seed = 42,
+    mask_zeros = FALSE,
+    diag = TRUE,
+    nonneg = TRUE
+)
+
+
+```
+
+
+
+
+
+## clear out the actual hmap sce, load back in the SPE, label, and run regist wrapper
+```{r}
+clus <- fread("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+setnames(clus,2,"cl")
+clus[,cl:=paste0("X",cl)]
+clus[cl=="X7",cl:="VMH1"]
+clus[cl=="X12",cl:="VMH2"]
+clus[cl=="X4",cl:="ARC1"]
+clus[cl=="X6",cl:="ARC2"]
+# WM (optic tract, OT): Clusters 3 5 and 10
+clus[cl=="X3",cl:="OT1"]
+clus[cl=="X10",cl:="OT2"]
+clus[cl=="X5",cl:="OT3"]
+# others:
+clus[cl=="X1",cl:="GABA1"]
+clus[cl=="X2",cl:="PeriVN"]
+clus[cl=="X9",cl:="Vascular"]
+clus[cl=="X8",cl:="SON"]
+clus[cl=="X13",cl:="PortalVasc"]
+clus[cl=="X14",cl:="Astro"]
+clus[cl=="X15",cl:="GABA2"]
+clus[cl=="X11",cl:="DROP"] # sample specific cluster
+
+clus <- DataFrame(clus,row.names=clus$rn)[colnames(hyp2),]
+colLabels(hyp2) <- clus$cl
+hyp2 <- hyp2[,hyp2$label!="DROP"]
+## toss imgData
+imgData(hyp2) <- NULL
+```

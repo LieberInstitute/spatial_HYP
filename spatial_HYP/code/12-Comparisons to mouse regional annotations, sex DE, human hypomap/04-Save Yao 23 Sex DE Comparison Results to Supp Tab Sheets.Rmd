@@ -1,0 +1,215 @@
+---
+title: "04-Save Yao 23 Sex DE Comparison Results to Supp Tab Sheets"
+author: "Bernard Mulvey"
+date: "2024-08-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+```
+
+load + write dreamlet results
+```{r}
+dlt <- fread("processed-data/12-Mouse comparisons/02-Yao23-HYP-subclass-sexDE_dreamlet_donormouse-ranfx.txt")
+dltsupertype <- fread("processed-data/12-Mouse comparisons/02-Yao23-HYP-VMHARCsupertypes-sexDE_dreamlet_donormouse-ranfx.txt")
+
+setnames(dlt,c(1,2),c("Yao23 Cell Subclass","Mouse Gene Symbol"))
+dlt <- dlt[,c(1,2,3,7,5,9,8,6,4)]
+
+setnames(dltsupertype,c(1,2),c("Yao23 Cell Supertype","Mouse Gene Symbol"))
+dltsupertype <- dltsupertype[,c(1,2,3,7,5,9,8,6,4)]
+
+
+saveRDS(dlt,"local_supptab_assembly/Supp Data-Yao23 HYP sex DE with random effect of donor.RDS")
+saveRDS(dltsupertype,"local_supptab_assembly/Supp Data-Yao23 HYP VMHARC supertype sex DE with random effect of donor.RDS")
+
+rm(dlt,dltsupertype)
+```
+
+Not used: Visium cluster to individual subclasses
+load -> write registration results
+```{r}
+# sexreg <- readRDS("processed-data/12-Mouse comparisons/03-Yao23-subclass-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed_bytopNhumanDEGs.RDS")
+# 
+# ## name ARC and VMH clusters for the nnsvg10 harmony lambda=NA bayesspaces
+# sexreg[[2]][human_domain=="X4",human_domain:="ARC.1"]
+# sexreg[[2]][human_domain=="X6",human_domain:="ARC.2"]
+# sexreg[[2]][human_domain=="X7",human_domain:="VMH.1"]
+# sexreg[[2]][human_domain=="X12",human_domain:="VMH.2"]
+# 
+# sexreg[[8]][human_domain=="X2",human_domain:="VMH20.1"]
+# sexreg[[8]][human_domain=="X3",human_domain:="VMH20.2"]
+# sexreg[[8]][human_domain=="X1",human_domain:="ARC20.1"]
+# sexreg[[8]][human_domain=="X4",human_domain:="ARC20.2"]
+# 
+# sexreg[[14]][human_domain=="X6",human_domain:="VMH31.1"]
+# sexreg[[14]][human_domain=="X21",human_domain:="VMH31.2"]
+# sexreg[[14]][human_domain=="X25",human_domain:="VMH31.3"]
+# sexreg[[14]][human_domain=="X26",human_domain:="VMH31.4"]
+# sexreg[[14]][human_domain=="X31",human_domain:="VMH31.5"]
+# sexreg[[14]][human_domain=="X2",human_domain:="ARC31.1"]
+# sexreg[[14]][human_domain=="X4",human_domain:="ARC31.2"]
+# sexreg[[14]][human_domain=="X11",human_domain:="ARC31.3"]
+# sexreg[[14]][human_domain=="X22",human_domain:="ARC31.4"]
+# 
+# names(sexreg)
+# 
+# fn <- names(sexreg)
+# mapply(x=sexreg,y=fn,FUN=function(x,y){fwrite(x,paste0("local_supptab_assembly/Yao Sex DE correls ",y,".txt"),quote=F,sep='\t')})
+# rm(sexreg,fn)
+# 
+# ### same for supertypes
+# sexsuperreg <- readRDS("processed-data/12-Mouse comparisons/03-Yao23-VMHARCsupertype-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed_bytopNhumanDEGs.RDS")
+# 
+# sexsuperreg[[2]][human_domain=="X4",human_domain:="ARC.1"]
+# sexsuperreg[[2]][human_domain=="X6",human_domain:="ARC.2"]
+# sexsuperreg[[2]][human_domain=="X7",human_domain:="VMH.1"]
+# sexsuperreg[[2]][human_domain=="X12",human_domain:="VMH.2"]
+# 
+# sexsuperreg[[8]][human_domain=="X2",human_domain:="VMH20.1"]
+# sexsuperreg[[8]][human_domain=="X3",human_domain:="VMH20.2"]
+# sexsuperreg[[8]][human_domain=="X1",human_domain:="ARC20.1"]
+# sexsuperreg[[8]][human_domain=="X4",human_domain:="ARC20.2"]
+# 
+# sexsuperreg[[14]][human_domain=="X6",human_domain:="VMH31.1"]
+# sexsuperreg[[14]][human_domain=="X21",human_domain:="VMH31.2"]
+# sexsuperreg[[14]][human_domain=="X25",human_domain:="VMH31.3"]
+# sexsuperreg[[14]][human_domain=="X26",human_domain:="VMH31.4"]
+# sexsuperreg[[14]][human_domain=="X31",human_domain:="VMH31.5"]
+# sexsuperreg[[14]][human_domain=="X2",human_domain:="ARC31.1"]
+# sexsuperreg[[14]][human_domain=="X4",human_domain:="ARC31.2"]
+# sexsuperreg[[14]][human_domain=="X11",human_domain:="ARC31.3"]
+# sexsuperreg[[14]][human_domain=="X22",human_domain:="ARC31.4"]
+# 
+# names(sexsuperreg)
+# 
+# fn <- names(sexsuperreg)
+# mapply(x=sexsuperreg,y=fn,FUN=function(x,y){fwrite(x,paste0("local_supptab_assembly/Yao VMHARCsupertype Sex DE correls ",y,".txt"),quote=F,sep='\t')})
+# rm(sexsuperreg,fn)
+```
+
+Visium sex DE registration to aggregated VMH/ARH subclasses
+```{r}
+sexreg <- readRDS("processed-data/12-Mouse comparisons/03-Yao23-VMHARCcollapsedSubclasses-MvFsexDE-tstat_correls_to_k15-20-31-15collapsed_bytopNhumanDEGs.RDS")
+
+sexreg <- sexreg[grep(names(sexreg),pattern="nnsvg10",value=T)]
+sexreg <- sexreg[grep(names(sexreg),pattern="lmbna",value=T)]
+
+sexreg2 <- rbindlist(sexreg,idcol="BayesSpace Clustering")
+setnames(sexreg2,2,"Mouse scRNA-seq Subclasses (Aggregated)")
+setnames(sexreg2,"human_domain","Visium Cluster")
+
+sexreg2[`BayesSpace Clustering`=="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH",`BayesSpace Clustering`:="k15 (Collapsed VMH/ARC)"]
+sexreg2[,`BayesSpace Clustering`:=gsub(`BayesSpace Clustering`,pattern="^BSpace_(k.*)_HARMONY.*$",replacement="\\1")]
+
+## name ARC and VMH clusters for the nnsvg10 harmony lambda=NA bayesspaces
+sexreg2[`BayesSpace Clustering`=="k15"&`Visium Cluster`=="X4",`Visium Cluster`:="ARC.1"]
+sexreg2[`BayesSpace Clustering`=="k15"&`Visium Cluster`=="X6",`Visium Cluster`:="ARC.2"]
+sexreg2[`BayesSpace Clustering`=="k15"&`Visium Cluster`=="X7",`Visium Cluster`:="VMH.1"]
+sexreg2[`BayesSpace Clustering`=="k15"&`Visium Cluster`=="X12",`Visium Cluster`:="VMH.2"]
+
+sexreg2[`BayesSpace Clustering`=="k20"&`Visium Cluster`=="X1",`Visium Cluster`:="ARC20.1"]
+sexreg2[`BayesSpace Clustering`=="k20"&`Visium Cluster`=="X4",`Visium Cluster`:="ARC20.2"]
+sexreg2[`BayesSpace Clustering`=="k20"&`Visium Cluster`=="X2",`Visium Cluster`:="VMH20.1"]
+sexreg2[`BayesSpace Clustering`=="k20"&`Visium Cluster`=="X3",`Visium Cluster`:="VMH20.2"]
+
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X6",`Visium Cluster`:="VMH31.1"]
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X21",`Visium Cluster`:="VMH31.2"]
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X25",`Visium Cluster`:="VMH31.3"]
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X26",`Visium Cluster`:="VMH31.4"]
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X31",`Visium Cluster`:="VMH31.5"]
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X2",`Visium Cluster`:="ARC31.1"]
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X4",`Visium Cluster`:="ARC31.2"]
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X11",`Visium Cluster`:="ARC31.3"]
+sexreg2[`BayesSpace Clustering`=="k31"&`Visium Cluster`=="X22",`Visium Cluster`:="ARC31.4"]
+
+sexreg2[`BayesSpace Clustering`=="k15 (Collapsed VMH/ARC)"&`Visium Cluster`%in%c("VMH","ARC"),`Visium Cluster`:=paste0("v",`Visium Cluster`)]
+
+fwrite(sexreg2,"local_supptab_assembly/Yao23-VMHARHsubclasses-collapsed_Visium_SexDE_regist.txt",sep='\t',quote=F)
+```
+
+
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.1 RC (2024-06-06 r86719)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/New_York
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] default_1.0.0     colorout_1.3-0.2  data.table_1.15.4 rlang_1.1.4      
+
+loaded via a namespace (and not attached):
+ [1] digest_0.6.36     fastmap_1.2.0     xfun_0.45         knitr_1.48       
+ [5] htmltools_0.5.8.1 rmarkdown_2.27    cli_3.6.3         compiler_4.4.1   
+ [9] rprojroot_2.0.4   here_1.0.1        rstudioapi_0.16.0 tools_4.4.1      
+[13] evaluate_0.24.0   yaml_2.3.9       
+> sessioninfo::session_info()
+─ Session info ──────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 RC (2024-06-06 r86719)
+ os       macOS Sonoma 14.5
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/New_York
+ date     2024-11-18
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+
+─ Packages ──────────────────────────────────────────────────────────────────────
+ ! package     * version date (UTC) lib source
+ P cli           3.6.3   2024-06-21 [2] CRAN (R 4.4.0)
+   colorout    * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   data.table  * 1.15.4  2024-03-30 [2] CRAN (R 4.4.0)
+   default     * 1.0.0   2017-08-07 [1] CRAN (R 4.4.0)
+   digest        0.6.36  2024-06-23 [1] CRAN (R 4.4.0)
+   evaluate      0.24.0  2024-06-10 [1] CRAN (R 4.4.0)
+   fastmap       1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   here          1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools     0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   knitr         1.48    2024-07-07 [1] CRAN (R 4.4.1)
+ P rlang       * 1.1.4   2024-06-04 [2] CRAN (R 4.4.1)
+   rmarkdown     2.27    2024-05-17 [1] CRAN (R 4.4.0)
+   rprojroot     2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi    0.16.0  2024-03-24 [1] CRAN (R 4.4.0)
+   sessioninfo   1.2.2   2021-12-06 [1] CRAN (R 4.4.0)
+   xfun          0.45    2024-06-16 [1] CRAN (R 4.4.0)
+   yaml          2.3.9   2024-07-05 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ P ── Loaded and on-disk path mismatch.
+
+─────────────────────────────────────────────────────────────────────────────────

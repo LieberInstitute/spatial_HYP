@@ -1,0 +1,958 @@
+---
+title: "Fig5-TFs_sexDE_disease"
+author: "Bernie Mulvey"
+date: "2025-03-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(SpatialExperiment)
+library(SpatialFeatureExperiment)
+library(escheR)
+library(ggplot2)
+library(gridExtra)
+library(ggtext)
+library(Cairo)
+library(ggrastr)
+library(ggbeeswarm)
+library(ggstance) # vertical dodge
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 14), axis.title.x = element_text(size = 16), axis.text.y = element_text(size = 14), axis.title.y = element_text(size =16), plot.title = element_text(size = 20,hjust=0.5), strip.text = element_text(size=18), legend.text = element_text(size=10), legend.title = element_text(size=11,hjust=0.5)))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+
+A: TF-targ enrichments in visium
+```{r}
+tft <- readRDS("spatial_HYP/processed-data/11-GSEA/02a-Marker TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
+tft <- tft[c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH")]
+tft <- rbindlist(tft)
+tft[spdom=="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC",spdom:="vARC"]
+tft[spdom=="k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH",spdom:="vVMH"]
+
+pltdat <- tft
+
+## extract TFs of note
+pltdat <- pltdat[pathway %in% c(
+    "PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",
+    "PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",
+    "RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",
+    "NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",
+    "EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",
+    "EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",
+    "PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",
+    "PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",
+    "PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors")]
+
+## add column for database source
+pltdat[pathway=="PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",source:="GEO TF Perturbations"]
+pltdat[pathway=="PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",source:="Rummagene"]
+pltdat[pathway=="PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors",source:="Rummagene"]
+
+## fix source names to just TFs
+setnames(pltdat,"pathway","tf")
+
+pltdat[tf=="PMC10242764-CCHTS-26-1560_SD1.pdf-5-RXRA_RXRA_Rummagene_transcription_factors",tf:="RXRA"]
+pltdat[tf=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",tf:="MYT1L"]
+pltdat[tf=="PMC8683635-MGG3-9-e1749-s005.docx-0-NR3C1_NR3C1_Rummagene_transcription_factors",tf:="NR3C1"]
+pltdat[tf=="RARA_KD_HUMAN_GSE26298_CREEDSID_GENE_69_DOWN_TF_Perturbations_Followed_by_Expression",tf:="RARA (KD Down)"]
+pltdat[tf=="NR2F2_KD_HUMAN_GSE47438_CREEDSID_GENE_2217_DOWN_TF_Perturbations_Followed_by_Expression",tf:="NR2F2 (KD Down)"]
+pltdat[tf=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_DOWN_TF_Perturbations_Followed_by_Expression",tf:="EGR1 (KO Down)"]
+pltdat[tf=="EGR1_KO_MOUSE_GSE16974_CREEDSID_GENE_553_UP_TF_Perturbations_Followed_by_Expression",tf:="EGR1 (KO Up)"]
+pltdat[tf=="PMC7005888-41598_2020_58845_MOESM2_ESM.xlsx-Insulinoma-INSM1_INSM1_Rummagene_transcription_factors",tf:="INSM1"]
+pltdat[tf=="PMC9160255-41467_2022_30710_MOESM5_ESM.xlsx-AR-targeted_Enhancer_Peaks_anno-GeneExpression_Symbol_AR_Rummagene_transcription_factors",tf:="AR"]
+pltdat[tf=="PMC4537001-oncotarget-06-13088-s001.pdf-11-Activators_Of_AR_Transcriptional_Activity_AR_Rummagene_transcription_factors",tf:="AR (Activators)"]
+
+pltdat[source=="GEO TF Perturbations",source:="GEO TF\n Perturbations"]
+## make the plot
+breaks <- c(seq(-1, 1, 1),seq(1.5,2.5, 0.5))
+n_breaks <- length(breaks)
+labels <- c(breaks, rep("", n_breaks))
+shapes <- c(rep(16,n_breaks),rep(17,n_breaks))
+breaks2 <- rep(breaks, 2)
+## 
+pdf("manuscript_plots/Fig5/5A-marker_TFtargs_GSEA.pdf",height=3,width=3.5)
+ggplot(pltdat,aes(y=tf,x=-log10(pval)))+
+    geom_point(aes(col=spdom,size=NES,shape=source))+
+    ylab("TF")+
+    scale_color_manual(values=c("#5dd959","#8c63cf"),na.value = NA)+
+    xlab("-log10 (*p*-value)")+
+    labs(col="Domain",shape="So`urce Database")+
+    geom_vline(xintercept=-log10(tft[padj<0.05,max(pval)]),linetype="dashed",linewidth=0.5)+
+    guides(col=guide_legend(byrow=T))+
+    # ^ necess. to get spacing to work in theme
+    guides(col=guide_legend(override.aes=list(size=2.5)),
+           shape=guide_legend(override.aes=list(size = 2.5)))+
+    # ^ make legend points bigger
+    scale_size_continuous(transform="exp",range=c(0.75,3),limits = c(-2,2.5),
+                          breaks = breaks2, 
+                          labels = labels,
+                          guide = guide_legend(ncol=2, nrow=n_breaks,bycol = TRUE,override.aes = list(shape = shapes), label.vjust = 0.5,direction="vertical",label.hjust=0.05,vjust=0))+
+    # ^ show both shapes plotted on the scale
+    theme(axis.text.y = element_text(size = 8), axis.title.x = element_markdown(size = 9), axis.text.x = element_text(size = 8), legend.text = element_text(size=8,hjust = 0.5), legend.title = element_text(size=9,hjust=0.5),legend.spacing.y = ggplot2::unit(0.005, "in"),axis.title.y=element_markdown(size=9,margin=margin(0,0,0,0.02,"in")),legend.box.background = element_blank(),legend.margin = margin(0,0,0,-0.135,unit="in"),plot.margin = margin(0,-0.14,0,0.03))
+dev.off()
+
+```
+
+5B/5D: sex de GSEA for msigdb and TF targets -- with shared legend and combined output plot.
+## define a palette for region-sex
+```{r}
+sexregpal <- c("vVMH Fem. Up"="#8c63cf","vVMH Male Up"="#6A0D53","vARC Fem. Up"="#5dd959","vARC Male Up"="#053b05")
+```
+
+5D- Sex DE msigdb GSEA
+```{r}
+sexreslist <- readRDS("spatial_HYP/processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+
+vmhs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH"]][pathway %in% c("HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR", "GOMF_CHROMATIN_BINDING","HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS", "YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17","GABRIELY_MIR21_TARGETS", "MIR30A_3P","MCLACHLAN_DENTAL_CARIES_UP", "FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2")]
+
+arcs <- sexreslist[["BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC"]][pathway %in% c("HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR", "GOMF_CHROMATIN_BINDING","HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS", "YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17","GABRIELY_MIR21_TARGETS", "MIR30A_3P","MCLACHLAN_DENTAL_CARIES_UP", "FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2")]
+
+msigpltdat <- rbind(vmhs,arcs)
+msigpltdat[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)",replacement="\\1")]
+# msigpltdat[spdom=="VMH",sexreg:=ifelse(NES>0,yes="vVMH Male Up",no="vVMH Fem. Up")]
+# msigpltdat[spdom=="ARC",sexreg:=ifelse(NES>0,yes="vARC Male Up",no="vARC Fem. Up")]
+msigpltdat[spdom=="VMH",sexreg:=ifelse(dir=="male_up",yes="vVMH Male Up",no="vVMH Fem. Up")]
+msigpltdat[spdom=="ARC",sexreg:=ifelse(dir=="male_up",yes="vARC Male Up",no="vARC Fem. Up")]
+# make all NES for female test w/ enrichment, (i.e. negative NES) positive
+msigpltdat[dir=="female_up"&NES<0,NES:=abs(NES)]
+
+rm(vmhs,arcs)
+### extract pathway source db
+
+i<-1
+for (i in c(1:nrow(msigpltdat))){
+    if(i==1){gsrc <- unlist(strsplit(msigpltdat[i,pathway],"_"))[1]}
+    else{gsrc <- c(gsrc,
+                    unlist(strsplit(msigpltdat[i,pathway],"_"))[1])}
+}
+
+## tidy gene sources
+msigpltdat$genesource <- gsrc
+msigpltdat[genesource %in% c("FAN","GABRIELY","MCLACHLAN","YAO"),genesource:="Literature-Curated"]
+msigpltdat[genesource=="GOMF",genesource:="GO Mol. Fxn"]
+msigpltdat[genesource=="HP",genesource:="Human Phenotypes"]
+msigpltdat[genesource=="MIR30A",genesource:="miRNA Targets"]
+
+rm(i,gsrc)
+
+### simplify pathways
+msigpltdat[pathway=="HP_ABNORMAL_AGGRESSIVE_IMPULSIVE_OR_VIOLENT_BEHAVIOR",pathway:="Aggressive/im-\npulsive behavior"]
+msigpltdat[pathway=="GOMF_CHROMATIN_BINDING",pathway:="Chromatin binding"]
+msigpltdat[pathway=="HP_ABNORMALITY_OF_ACID_BASE_HOMEOSTASIS",pathway:="Acid-base ab-\nnormality"]
+msigpltdat[pathway=="YAO_TEMPORAL_RESPONSE_TO_PROGESTERONE_CLUSTER_17",pathway:="Temporal progest-\nerone response"]
+msigpltdat[pathway=="GABRIELY_MIR21_TARGETS",pathway:="miR-21"]
+msigpltdat[pathway=="MIR30A_3P",pathway:="miR-30a_3P"]
+msigpltdat[pathway=="MCLACHLAN_DENTAL_CARIES_UP",pathway:="Dental caries"]
+msigpltdat[pathway=="FAN_OVARY_CL6_PUTATIVE_EARLY_ATRETIC_FOLLICLE_THECAL_CELL_2",pathway:="Thecal cell of ovary\n(early atretic follicle)"]
+
+### flip sign on negative NES scores
+# msigpltdat[NES<0,NES:=-1*NES]
+
+## change source info slightly so we can have msigdb and non-msigdb stuff in one legend
+msigpltdat[genesource=="MSigDB Literature-Curated",source:="Literature-Curated"]
+msigpltdat[genesource=="MSigDB Human Phenotypes",source:="Human Phenotypes"]
+msigpltdat[genesource=="MSigDB miRNA Targets",source:="miRNA Targets"]
+
+
+# pause here to get the TF-targ table made so we can make the shared NES scale+legend for it.
+```
+
+## 6B - TFs ##
+Male both:
+MYT1L: PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors
+
+
+VMH ~UNIQUE Male (FDR 10E-8 vs 0.04):
+TCF20 (rare LOF NDD gene Vetrini '19): PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors
+
+
+VMH UNIQUE Fem:
+PPARA: PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression, PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression
+
+PPARG: PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression, PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression
+
+
+VMH shared-ish
+ESR1 (KD-down, female; ESR1 (targets, interactors male): ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression, 	
+PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors
+
+AR (KD-bidir DE, female; targets male): AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022, AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression, AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression
+
+
+ARC unique male:
+LIN28B (growth phenos): PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors
+
+ASH1L (ID/ASD in mice https://www.nature.com/articles/s42003-021-02282-z ): PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors
+
+
+ARC unique female:
+VDR (KO-bidir DE): VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression, VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression
+
+ESR1 (KO-bidir DE): ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression, ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression
+
+ARC general: 
+STAT3 (required for hypothalamic response to leptin Buettner 06): PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors, STAT3_human_TRRUST_Transcription_Factors_2019
+```{r}
+tfres <- readRDS("spatial_HYP/processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+tfres <- tfres[names(tfres) %in% c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH","BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC")]
+tfres <- rbindlist(tfres)
+
+# remove the leadingedge column, which is a list and doesn't play nice with table format
+tfres[,leadingEdge:=NULL]
+
+## clean up domain name
+tfres[,spdom:=gsub(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
+
+
+
+## subset to TF sets of interest, clean names up
+tfres <- tfres[pathway %in% c(
+    "PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors",
+    "AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression",
+    "PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors",
+    "PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors",
+    "ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",
+    "ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_DOWN_TF_Perturbations_Followed_by_Expression")]
+
+
+
+## data sourcesr
+tfres[pathway %in% grep(pathway,pattern="Rummagene",value=T),source:="Rummagene TFs"]
+# tfres[pathway %in% grep(pathway,pattern="TRRUST",value=T),source:="TRRUST"]
+tfres[pathway %in% grep(pathway,pattern="CREEDSID|_GSE",value=T),source:="GEO TF\nPerturbations"]
+tfres[pathway %in% grep(pathway,pattern="ChEA",value=T),source:="ChEA 2022"]
+
+## TF specifics where applicable
+tfres[pathway %in% c("PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1372_DOWN_TF_Perturbations_Followed_by_Expression",
+    "PPARA_KO_MOUSE_GSE6864_CREEDSID_GENE_1373_UP_TF_Perturbations_Followed_by_Expression"),tf:="PPARA (KO DE)"]
+tfres[pathway %in% c("PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_861_UP_TF_Perturbations_Followed_by_Expression",
+    "PPARG_OE_MOUSE_GSE2192_CREEDSID_GENE_865_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="PPARG (OE DE)"]
+tfres[pathway=="ESR1_KD_HUMAN_GSE26298_CREEDSID_GENE_479_DOWN_TF_Perturbations_Followed_by_Expression",tf:="ESR1 (KD Down)"]
+tfres[pathway=="PMC7162552-pcbi.1007800.s007.txt--ESR1_Interactors_ESR1_Rummagene_transcription_factors",tf:="ESR1 (Interactors)"]
+tfres[pathway %in% c("AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_DOWN_TF_Perturbations_Followed_by_Expression",
+    "AR_KD_HUMAN_GSE22483_CREEDSID_GENE_2194_UP_TF_Perturbations_Followed_by_Expression"),tf:="AR (KD DE)"]
+tfres[pathway %in% c("VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_UP_TF_Perturbations_Followed_by_Expression",
+    "VDR_KO_MOUSE_GSE2421_CREEDSID_GENE_1153_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="VDR (KO DE)"]
+tfres[pathway %in% c(
+    "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_UP_TF_Perturbations_Followed_by_Expression",
+     "ESR1_KO_MOUSE_GSE53812_CREEDSID_GENE_2898_DOWN_TF_Perturbations_Followed_by_Expression"),tf:="ESR1 (KO DE)"]
+tfres[pathway=="ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_UP_TF_Perturbations_Followed_by_Expression",tf:="ZNF142 (KD Up)"]
+tfres[pathway=="ZNF142_SIRNA_MCF7_HUMAN_GSE79586_RNASEQ_DOWN_TF_Perturbations_Followed_by_Expression",tf:="ZNF142 (KD Down)"]
+tfres[pathway %in% c("PMC7801680-41598_2020_79740_MOESM9_ESM.xlsx-STAT3_Target_Genes_In_AD1-STAT3_Target_Genes_Predicted_By_CHIP-seq_Overlap_With_Genes_In_AD_M1_STAT3_Rummagene_transcription_factors","STAT3_human_TRRUST_Transcription_Factors_2019"),tf:="STAT3"]
+tfres[pathway=="PMC7335061-41467_2020_17150_MOESM4_ESM.xlsx-Table_S3-LIN28B_Correlates_LIN28B_Rummagene_transcription_factors",tf:="LIN28B"]
+tfres[pathway=="PMC6815046-13073_2019_678_MOESM2_ESM.xlsx-ASH1L-Unnamed_0_ASH1L_Rummagene_transcription_factors",tf:="ASH1L"]
+tfres[pathway=="PMC6815046-13073_2019_678_MOESM3_ESM.xlsx-TCF20-Unnamed_0_TCF20_Rummagene_transcription_factors",tf:="TCF20"]
+tfres[pathway=="AR_35413990_ChIP-Seq_Human_ARposCRProstateCancer_ChEA_2022",tf:="AR"]
+tfres[pathway=="PMC6815046-13073_2019_678_MOESM4_ESM.xlsx-MYT1L-Unnamed_0_MYT1L_Rummagene_transcription_factors",tf:="MYT1L"]
+
+
+
+### group by sex•region, flip all female enrichments (negative NES and female test) to positive
+tfres[dir=="female_up"&NES<0,NES:=abs(NES)]
+
+tfres[dir=="female_up"&spdom=="ARC",sexreg:="vARC Fem. Up"]
+tfres[dir=="male_up"&spdom=="ARC",sexreg:="vARC Male Up"]
+tfres[dir=="female_up"&spdom=="VMH",sexreg:="vVMH Fem. Up"]
+tfres[dir=="male_up"&spdom=="VMH",sexreg:="vVMH Male Up"]
+
+
+### make data source name consistent across the two result tables
+setnames(tfres,"source","genesource")
+```
+
+### for this to work, we have to manually make a double legend kinda clunkily. modified slightly from https://stackoverflow.com/questions/62541720/ggplot2-show-multiple-keys-shapes-in-size-legend -- speciifically, defining these variables below and then the scale_size_manual call.
+
+we also need to extract just one legend from a not-actually-used plot where the two analyses are strung together for purposes of axis scaling, using this to grab said legend to pass back later to gridExtra:
+```{r}
+### helper function to extract a legend and pipe back to a diff plot: from https://statisticsglobe.com/add-common-legend-to-combined-ggplot2-plots-in-r/#example-2-add-shared-legend-to-ggplot2-plots-using-gridextra-package 
+extract_legend <- function(my_ggp) {
+    step1 <- ggplot_gtable(ggplot_build(my_ggp))
+    step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+    step3 <- step1$grobs[[step2]]
+    return(step3)
+}
+
+## 
+tmpt <- copy(tfres)
+tmpt[,pathway:=tf]
+
+legdat <- rbind(tmpt[,.(pathway,pval,padj,NES,spdom,sexreg,genesource)],msigpltdat[,.(pathway,pval,padj,NES,spdom,sexreg,genesource)])
+
+## get the breaks based on generating the plot once quick, then get a vector of the same values to feed into the legend override
+
+breaks <- seq(min(legdat$NES),(ceiling(max(legdat$NES))-0.5),0.5)
+n_breaks <- length(breaks)
+labels <- c(c(rep("",n_breaks),breaks,rep("",2*n_breaks)))
+## need 8 shapes: use 16 17 18 15 23 25 7 9 or 16-18 15 7 9 10 14
+shapes <- c(rep(16,n_breaks),rep(17,n_breaks),rep(18,n_breaks),rep(15,n_breaks),rep(7,n_breaks),rep(9,n_breaks),rep(23,n_breaks),rep(25,n_breaks))
+breaks2 <- rep(breaks, length(unique(shapes)))
+
+## order source as a factor so the first plots' sets are all the first entries in the legend
+legdat[,genesource:=factor(genesource,levels=c("Literature-Curated","GO Mol. Fxn","Human Phenotypes","miRNA Targets","Rummagene TFs","GEO TF\nPerturbations","ChEA 2022"))]
+
+shapelabs <- c("Literature-Curated"=7,"GO Mol. Fxn"=9,"Human Phenotypes"=10,"miRNA Targets"=14,"Rummagene TFs"=16,"GEO TF\nPerturbations"=18,"ChEA 2022"=17)
+
+shapelabs <- shapelabs[levels(legdat$genesource)]
+
+legplt <- ggplot(legdat,aes(x=-log10(padj),y=pathway,size=NES))+
+   geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=pathway),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
+   scale_color_manual(values=sexregpal)+
+   scale_shape_manual(values=shapelabs)+
+   guides(col=guide_legend(override.aes=list(stroke = 0,size=3.5,alpha=0.7)))+
+   labs(size="NES",shape="Geneset Source",col="DE Pattern",fill="DE Pattern")+
+    # ^ make size legend with all point types
+    theme(legend.text = element_text(size=6), 
+          legend.title = element_text(size=7,hjust=0.5,vjust=0.5,margin=margin(0,0,-0.01,0,"in")),
+          legend.key.height = ggplot2::unit(0.15,"in"),
+          legend.spacing.x = ggplot2::unit(-0.015,"in"),
+          legend.spacing.y = ggplot2::unit(0.05,"in"),
+          legend.background=element_blank(),
+          legend.key=element_blank(),
+          legend.box.background = element_blank(),
+          legend.frame = element_blank(),
+          legend.margin = margin(0,0,0,-0.05,"in"))
+   
+
+### extract and hold onto legend
+legcd <- extract_legend(legplt)
+dev.off()
+
+rm(tmpt,legplt,legdat)
+```
+
+### now make the two plots as entries in a list using the same breaks for NES, same shape palette, etc. arrangegrob with the legend into a single row of panels
+```{r}
+fig5bd <- list()
+
+## make sure the extracted legend and the actual plot shapes are consistent as follows:
+tfres[,genesource:=factor(genesource,levels=c("Rummagene TFs","GEO TF\nPerturbations","ChEA 2022"))]
+msigpltdat[,genesource:=factor(genesource,levels=c("Literature-Curated","GO Mol. Fxn","Human Phenotypes","miRNA Targets"))]
+
+tfshapes <- shapelabs[levels(tfres$genesource)]
+msigshapes <- shapelabs[levels(msigpltdat$genesource)]
+
+#### 5B: TF results #### 
+
+## reorder tfs as factor so TFs are in vaguely functionally-related groups
+tfres[,tf:=factor(tf,levels=c("AR", "AR (KD DE)", "ESR1 (KD Down)", "ESR1 (KO DE)", "ESR1 (Interactors)", "PPARA (KO DE)", "PPARG (OE DE)", "LIN28B", "STAT3", "VDR (KO DE)", "TCF20", "ASH1L", "ZNF142 (KD Down)", "ZNF142 (KD Up)", "MYT1L"))]
+
+
+fig5bd[[1]] <- ggplot(tfres,aes(y=tf,x=-log10(padj),size=NES))+
+    ylab("TF")+
+    scale_color_manual(values=sexregpal)+
+    xlab("-log10 (*p*-value)")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
+    scale_shape_manual(values=tfshapes)+
+    #add minor gridlines between TFs to contain jittered points
+    geom_hline(yintercept = seq(0.5,length(unique(tfres$tf))-0.5),color="grey",linewidth=.375)+
+    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=tf),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
+    scale_size_continuous(range = c(breaks[1],breaks[length(breaks)]),breaks = rep(breaks,length(tfshapes)))+
+    guides(col="none",size="none",shape="none",fill="none")+
+    theme(axis.text.y = element_text(size = 8),
+          axis.title.y=element_text(size=9,margin=margin(0,-0.125,0,0,"in")),
+          axis.title.x = element_markdown(size = 9),
+          axis.text.x = element_text(size = 8), 
+          panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),
+          panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),
+          panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),
+          panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),
+          axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),
+          axis.ticks.y=element_line(color = "#595959",linewidth = 0.25))
+
+#### 5D: MSigDB results
+msigpltdat[,pathway:=factor(pathway,levels=c("Aggressive/im-\npulsive behavior","Dental caries","Acid-base ab-\nnormality","miR-21","miR-30a_3P","Chromatin binding","Thecal cell of ovary\n(early atretic follicle)","Temporal progest-\nerone response"))]
+
+fig5bd[[2]] <- ggplot(msigpltdat,aes(y=pathway,x=-log10(padj),size=NES))+
+    ylab("MSigDB Set")+
+    scale_color_manual(values=sexregpal)+
+    xlab("-log10 (*p*-value)")+
+    labs(shape="none",col="none",fill="none",size="none")+
+    geom_vline(xintercept=-log10(0.05),linetype="dashed",linewidth=0.25,color="darkred")+
+    scale_shape_manual(values=msigshapes)+
+    #add minor gridlines between TFs to contain jittered points
+    geom_hline(yintercept = seq(0.5,length(unique(msigpltdat$pathway))-0.5),color="grey",linewidth=.375)+
+    scale_size_continuous(range = c(breaks[1],breaks[length(breaks)]),breaks = rep(breaks,length(msigshapes)))+
+    geom_point(aes(col=sexreg,fill=sexreg,size=NES,shape=genesource,y=pathway),alpha=0.7,position = position_dodge2v(preserve = "single",height=0.75))+
+    guides(col="none",size="none",shape="none",fill="none")+
+    theme(axis.text.y = element_text(size = 8),
+          axis.title.y=element_text(size=9,margin=margin(0,-0.175,0,0,"in")),
+          axis.title.x = element_markdown(size = 9),
+          axis.text.x = element_text(size = 8), 
+          panel.grid.major.y = element_line(color = "#595959",linewidth = 0.25),
+          panel.grid.minor.y = element_line(color = "#595959",linewidth = 0.25),
+          panel.grid.major.x=element_line(color="#bfbfbf",linewidth=0.25),
+          panel.grid.minor.x=element_line(color="#bfbfbf",linewidth=0.25),
+          axis.ticks.x = element_line(linewidth=0.25,color="#bfbfbf"),
+          axis.ticks.y=element_line(color = "#595959",linewidth = 0.25),
+          legend.spacing.x = ggplot2::unit(-0.015,"in"))
+
+```
+
+## save 6C-D combined
+```{r}
+pdf("manuscript_plots/Fig5/5BandD-sexDE_msigdb_and_TFtargGSEAs.pdf",width=4.25,height=6,onefile = FALSE)
+do.call("grid.arrange",list(
+    arrangeGrob(grobs=fig5bd,ncol=1,widths=3.15),
+    legcd,
+    ncol=2,
+    widths=c(3.15,1.1)))
+dev.off()
+
+```
+
+C-Sex DE/Disease GSEA 
+```{r}
+# read GSEA results of  of sex DEGs in GWAS-derived gene sets
+sxgs <- readRDS("spatial_HYP/processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs.RDS")
+sxgs <- sxgs[genesets_from=="union"]
+
+sxgsunsign <- readRDS("spatial_HYP/processed-data/11-GSEA/06b-Unsigned_Common variant disease gene enrichment in sex DEGs.RDS")
+sxgsunsign <- sxgsunsign[genesets_from=="union"]
+sxgsunsign[,dir:="both"]
+
+sxgs <- rbind(sxgs,sxgsunsign)
+rm(sxgsunsign)
+
+sxgs[dir=="female_up",dir:="Female-\nUpreg."]
+sxgs[dir=="male_up",dir:="Male-\nUpreg."]
+sxgs[dir=="both",dir:="Bidir.\nSex DE"]
+
+# plot
+dsx <- sxgs[spdom %in% c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC","BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH")]
+
+dsx[spdom=="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_ARC",spdom:="ARC"]
+dsx[spdom=="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_VMH",spdom:="VMH"]
+
+## reorder traits of interest into broad groups (not that they will be explicitly labeled as such, but still)
+dsx[,pathway:=factor(pathway,levels=c("Lefthanded","BMI","Anorexia","Panic","PTSD","GAD","OCD","TS","ADHD","NDD","ASD","OUD","AUD","Cannabis","SCZ","BIP","MDD","AD"))]
+
+
+# absolute value NES since we have one-sided tests now
+dsx[dir!="Bidir. Sex DE",NES:=abs(NES)]
+#dsx[NES<0,NES:=0]
+
+dsx[,dir:=factor(dir,levels = c("Male-\nUpreg.","Female-\nUpreg.","Bidir.\nSex DE"))]
+
+## make plot; use a rearranged version of the wesanderson:: palette "Darjeeling2" (colors 3,1,4,2)
+scalefact <- max(dsx$NES)-min(dsx$NES)
+
+cairo_pdf("manuscript_plots/Fig5/5C-DomainSexDE_Dis_GSEA.pdf",height=3,width=3.5)
+ggplot(dsx,aes(x=spdom,y=pathway,fill=NES))+
+    geom_tile(linewidth = 0.25,colour = "black")+
+    geom_text(label=ifelse(dsx$padj<0.05,"*",""),size = 5,nudge_y = -0.2)+
+    geom_text(label=ifelse(dsx$padj>0.05&dsx$pval<0.05,"•",""),size = 4)+
+    facet_grid(.~dir)+
+    # scale_fill_viridis_c(begin=0.15,end=0.37,option="H",direction = 1)+
+    scale_fill_gradientn(colors=c("#ffffff","#F9EFDE","#E8C696","#D69C4E"),values = c(0,min(dsx[dir=="Bidir.\nSex DE",NES])/scalefact,max(dsx[dir=="Bidir.\nSex DE",NES])/scalefact,1))+
+    scale_x_discrete(expand = c(0,0)) +
+    scale_y_discrete(expand = c(0,0)) +
+    labs(fill="Normalized\nEnrichment\nScore (<0:\nDepleted)")+
+    xlab("Visium Domain")+
+    ylab("Disease / Trait\nGene Set") +
+    theme(plot.background = element_blank(),axis.text.x = element_text(size=9,angle=90,vjust=0.5),axis.text.y=element_text(size=9),axis.title.x=element_text(size=10,hjust=0.5),axis.title.y=element_text(size=10,vjust=0.5,margin=margin(0,0.05,0,0,"in")),legend.title = element_text(size=9,hjust=0.5),legend.text=element_text(size=8),legend.margin=margin(0,0,0,-0.1,"in"),strip.text=element_text(size=10),strip.background = element_rect(fill=NA))
+dev.off()
+
+rm(dsx,scalefact)
+```
+
+
+
+
+## 6E: looking at the overlap between leadingEdge genes driving male ASD enrichment in ARC with genes on Xenium, MYT1L, an obesity+ASD syndrome, is nominally sex DE in ARC_4 and much more weakly so in ARC_5. let's take a look at this warlock
+
+```{r}
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+fineanno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+fineanno[plotclusname=="*POMC*-Oligo",plotclusname:="*POMC*-Oligo Mixed"]
+
+## asterisk-markdown for italicization isn't working with the legend extraction + arrangement thing we use for making this plot, so just italicize the gene names in illustrator
+fineanno[,plotclusname:=gsub(plotclusname,pattern="\\*",replacement="")]
+
+smoove <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
+
+setnames(bkcl,2,"cl")
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+
+# drop DISCARDS
+bkanno <- bkanno[!(bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T))]
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+bkcl <- merge.data.table(bkcl,fineanno[,.(bjm_annot,dom.clus,plotclusname)],by="bjm_annot",all.x=T)
+bkcl[!is.na(plotclusname),bjm_annot:=plotclusname]
+
+# add clusters and smoothed domains
+hypx$dom <- DataFrame(smoove[,.(rn,dualVMHARC4)],row.names=smoove$rn)[colnames(hypx),"dualVMHARC4"]
+
+hypx$bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),"bjm_annot"]
+
+```
+
+load cell type palettes
+```{r}
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+
+xenarcpal <- pals[[3]]
+names(xenarcpal)[5] <- "*TAC3*-*ESR1*"
+
+names(xenarcpal) <- gsub(names(xenarcpal),pattern="\\*",replacement="")
+
+
+stopifnot(names(xenarcpal) %in% unique(bkcl[dom.clus %in% grep(dom.clus,pattern="ARC",value=T),plotclusname]))
+```
+
+### plot MYT1L in two male, two female samples showing ARC_4 and ARC_5 (TAC3-ESR1 and POMC-Oligo Mixed). append manuscript sample ids. markdown legends with the extract-and-arrange approach here doesn't work so italicize genes in legends manually in illustrator.
+```{r}
+mytx <- hypx["MYT1L"]
+mytx <- mytx[,mytx$dom=="ARC"]
+mytx <- mytx[,mytx$bkcl %in% c("TAC3-ESR1","POMC-Oligo Mixed")]
+
+# add manuscript identifiers
+mscriptid <- fread("standardized_sampleids_for_plotting.txt")
+tmpcd <- as.data.table(colData(mytx),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,mscriptid[,.(sample_id,manuscript_id)],all.x=T,by="sample_id")
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(mytx),]
+tmpcd$rn <- NULL
+colData(mytx) <- tmpcd
+mytx$sample_id <- mytx$manuscript_id
+
+mytxa <- mytx[,mytx$sample_id %in% c("x1735C_M","x1225B_M","x8741C_F","x6588C_F")]
+mytxa$`log counts` <- logcounts(mytxa)["MYT1L",]
+
+mytx.m1 <- mytxa[,mytxa$sample_id=="x1735C_M"]
+
+mytx.m2 <- mytxa[,mytxa$sample_id=="x1225B_M"]
+
+mytx.f1 <- mytxa[,mytxa$sample_id=="x8741C_F"]
+
+mytx.f2 <-  mytxa[,mytxa$sample_id=="x6588C_F"]
+
+mytxs <- list(mytx.m1,mytx.m2,mytx.f1,mytx.f2)
+
+mytxplt <- lapply(mytxs,FUN=function(m){
+    # m <- m[,m$bkcl=="*TAC3*-*ESR1*"]
+    colData(m)$`log counts` <- logcounts(m)["MYT1L",]
+    p <- as.data.table(cbind(spatialCoords(m),m$`log counts`,m$bkcl))
+    setnames(p,c("sdimx","sdimy","log counts","bkcl"))
+    p[,sdimx:=as.numeric(sdimx)]
+    p[,sdimy:=as.numeric(sdimy)]
+    p[,`log counts`:=as.numeric(`log counts`)]
+    #p <- p |> add_ground("bkcl",stroke = 0.35,point_size = 0.875)
+    #p <- p |> add_fill("log counts",size=0.875,point_size = 0.875)
+    p2 <- ggplot(p,aes(x=bkcl,y=`log counts`,col=bkcl,fill=`log counts`))+
+        #gbeeswarm::geom_beeswarm(size=1.25,stroke =0.45,shape=21,corral.width = 0.1,)+
+        rasterize(geom_quasirandom(dodge.width=1.5,size=0.67,stroke =0.225,shape=21),layers="Points",dpi = 600,dev="cairo_png")+
+        scale_color_manual(values=xenarcpal)+
+        scale_fill_gradient(low="white",high="black",limits=c(min(mytxa$`log counts`),max(mytxa$`log counts`)))+
+        ggtitle(paste0("*MYT1L* ",unique(m$sample_id)))+
+        labs(fill="log counts",color="xARC Cluster")+
+        theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_markdown(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.x=element_blank(),axis.title.y=element_blank(),axis.ticks.x = element_blank(),axis.ticks.y=element_blank())
+    return(p2)
+})
+
+leg.tmp <- extract_legend(mytxplt[[1]])
+dev.off()
+
+mytxplt<- lapply(mytxplt,FUN=function(x){x+guides(fill="none")+guides(color="none")})
+```
+
+```{r}
+pdf("manuscript_plots/Fig6/6E-MYT1L beeswarms.pdf",height=2.75,width=7.5,onefile = FALSE)
+do.call("grid.arrange",list(arrangeGrob(grobs=mytxplt,nrow=1),leg.tmp,ncol=2,widths=c(6.5,1)))
+dev.off()
+
+```
+
+## 5E: looking at the overlap between leadingEdge genes driving male ASD enrichment and genes on Xenium, MYT1L, an obesity+ASD syndrome, is sex DE in xVMH CRHR2 but not LAMP5. let's take a look at this warlock
+
+```{r}
+hypx <- readRDS("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-sfe-in_staggered-coords_genetarg-only_NONlog-norm.RDS")
+
+bkcl <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/01-BanksyClusts_M0lam0_leiden_multisamp.txt")
+bkanno <- fread("xenium_HYP/processed-data/05_Banksy_M0lam0_res2_multisamp/02-M0l0kg6_topClusMarkers_celltypes_annotated.txt")
+fineanno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+
+## asterisk-markdown for italicization isn't working with the legend extraction + arrangement thing we use for making this plot, so just italicize the gene names in illustrator
+fineanno[,plotclusname:=gsub(plotclusname,pattern="\\*",replacement="")]
+
+smoove <- fread("xenium_HYP/processed-data/07_Domains-subdomains_by_knnSmoothing_Banksytypes/03b-ARCVMHdomains_2stepsmooth_VMH-k10-0.2-VMH-k200-0.2_ARC-k50-0.1_ARC-k500-0.5.txt")
+
+setnames(bkcl,2,"cl")
+bkanno <- unique(bkanno[,.(clus,bjm_annot)])
+
+# drop DISCARDS
+bkanno <- bkanno[!(bjm_annot %in% grep(bjm_annot,pattern="DISCARD",value=T))]
+bkcl <- merge.data.table(bkcl,bkanno,by.x="cl",by.y="clus")
+bkcl <- merge.data.table(bkcl,fineanno[,.(bjm_annot,dom.clus,plotclusname)],by="bjm_annot",all.x=T)
+bkcl[!is.na(plotclusname),bjm_annot:=plotclusname]
+
+# add clusters and smoothed domains
+hypx$dom <- DataFrame(smoove[,.(rn,dualVMHARC4)],row.names=smoove$rn)[colnames(hypx),"dualVMHARC4"]
+
+hypx$bkcl <- DataFrame(bkcl,row.names=bkcl$rn)[colnames(hypx),"bjm_annot"]
+
+```
+
+load cell type palettes
+```{r}
+pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
+
+xenvmhpal <- pals$XenVMH
+# as above, markdown for facet titles isn't working so just kick the asterisks
+names(xenvmhpal) <- gsub(names(xenvmhpal),pattern="\\*",replacement="")
+
+
+stopifnot(names(xenvmhpal) %in% unique(bkcl[dom.clus %in% grep(dom.clus,pattern="VMH",value=T),plotclusname]))
+```
+
+### plot MYT1L in two male, two female samples showing VMH CRHR2 and LAMP5. append manuscript sample ids. markdown legends with the extract-and-arrange approach here doesn't work so italicize genes in legends manually in illustrator.
+```{r}
+mytx <- hypx["MYT1L",]
+mytx <- mytx[,mytx$dom=="VMH"]
+mytx <- mytx[,mytx$bkcl %in% c("CRHR2","LAMP5")]
+
+# add manuscript identifiers
+mscriptid <- fread("standardized_sampleids_for_plotting.txt")
+tmpcd <- as.data.table(colData(mytx),keep.rownames=T)
+tmpcd <- merge.data.table(tmpcd,mscriptid[,.(sample_id,manuscript_id)],all.x=T,by="sample_id")
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(mytx),]
+tmpcd$rn <- NULL
+colData(mytx) <- tmpcd
+mytx$sample_id <- mytx$manuscript_id
+
+mytxa <- mytx[,mytx$sample_id %in% c("x1735C_M","x6197B_M","x5993B_F","x6588C_F")]
+mytxa$`log counts` <- logcounts(mytxa)["MYT1L",]
+
+mytx.m1 <- mytxa[,mytxa$sample_id=="x1735C_M"]
+
+mytx.m2 <- mytxa[,mytxa$sample_id=="x6197B_M"]
+
+mytx.f1 <- mytxa[,mytxa$sample_id=="x5993B_F"]
+
+mytx.f2 <-  mytxa[,mytxa$sample_id=="x6588C_F"]
+
+mytxs <- list(mytx.m1,mytx.m2,mytx.f1,mytx.f2)
+
+# make all plots, extract legend from the first one (which scales  the fill by expression across the whole set of samples, i.e. mytxa)
+mytxplt <- lapply(mytxs,FUN=function(m){
+    # m <- m[,m$bkcl=="*TAC3*-*ESR1*"]
+    colData(m)$`log counts` <- logcounts(m)["MYT1L",]
+    p <- as.data.table(cbind(m$`log counts`,m$bkcl))
+    setnames(p,c("log counts","bkcl"))
+    p[,`log counts`:=as.numeric(`log counts`)]
+    p2 <- ggplot(p,aes(x=bkcl,y=`log counts`,col=bkcl,fill=`log counts`))+
+        #gbeeswarm::geom_beeswarm(size=1.25,stroke =0.45,shape=21,corral.width = 0.1,)+
+        rasterize(geom_quasirandom(dodge.width=1.5,size=0.67,stroke =0.225,shape=21),layers="Points",dpi = 600,dev="cairo_png")+
+        scale_color_manual(values=xenvmhpal)+
+        scale_fill_gradient(low="white",high="black",limits=c(min(mytxa$`log counts`),max(mytxa$`log counts`)))+
+        scale_y_continuous(limits=c(0,max(mytxa$`log counts`)))+
+        ggtitle(paste0("*MYT1L* ",unique(m$sample_id)))+
+        labs(fill="log counts",color="xARC Cluster")+
+        theme(plot.title.position = "plot",plot.title = element_markdown(size=10,hjust=0.5),legend.text = element_markdown(size=7),legend.key.size = ggplot2::unit(0.125,"in") ,legend.title=element_text(size=7.5,hjust=0.5),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.title.x=element_blank(),axis.title.y=element_blank(),axis.ticks.x = element_blank(),axis.ticks.y=element_blank())
+    return(p2)
+})
+
+leg.tmp <- extract_legend(mytxplt[[1]])
+dev.off()
+
+# now toss the legends
+mytxplt<- lapply(mytxplt,FUN=function(x){x+guides(fill="none")+guides(color="none")})
+```
+
+```{r}
+pdf("manuscript_plots/Fig5/5E-MYT1L beeswarms.pdf",height=2.75,width=7.5,onefile = FALSE)
+do.call("grid.arrange",list(arrangeGrob(grobs=mytxplt,nrow=1),leg.tmp,ncol=2,widths=c(6.5,1)))
+dev.off()
+
+```
+
+reprod info
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+
+R version 4.4.3 (2025-02-28)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.7.4
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/New_York
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+ [1] BiocParallel_1.40.0            parallelly_1.43.0             
+ [3] colorout_1.3-0.2               ggstance_0.3.7                
+ [5] ggbeeswarm_0.7.2               ggrastr_1.0.2                 
+ [7] Cairo_1.6-2                    ggtext_0.1.2                  
+ [9] gridExtra_2.3                  escheR_1.6.0                  
+[11] ggplot2_3.5.1                  SpatialFeatureExperiment_1.8.6
+[13] SpatialExperiment_1.16.0       SingleCellExperiment_1.28.1   
+[15] SummarizedExperiment_1.36.0    Biobase_2.66.0                
+[17] GenomicRanges_1.58.0           GenomeInfoDb_1.42.3           
+[19] IRanges_2.40.1                 S4Vectors_0.44.0              
+[21] BiocGenerics_0.52.0            MatrixGenerics_1.18.1         
+[23] matrixStats_1.5.0              data.table_1.17.0             
+[25] rlang_1.1.5                   
+
+loaded via a namespace (and not attached):
+  [1] rstudioapi_0.17.1         jsonlite_1.9.1            wk_0.9.4                 
+  [4] magrittr_2.0.3            TH.data_1.1-3             magick_2.8.6             
+  [7] farver_2.1.2              rmarkdown_2.29            zlibbioc_1.52.0          
+ [10] vctrs_0.6.5               spdep_1.3-10              DelayedMatrixStats_1.28.1
+ [13] RCurl_1.98-1.17           terra_1.8-29              htmltools_0.5.8.1        
+ [16] S4Arrays_1.6.0            BiocNeighbors_2.0.1       Rhdf5lib_1.28.0          
+ [19] s2_1.1.7                  SparseArray_1.6.2         rhdf5_2.50.2             
+ [22] LearnBayes_2.15.1         spData_2.3.4              KernSmooth_2.23-26       
+ [25] htmlwidgets_1.6.4         sandwich_3.1-1            zoo_1.8-13               
+ [28] commonmark_1.9.5          lifecycle_1.0.4           pkgconfig_2.0.3          
+ [31] Matrix_1.7-3              R6_2.6.1                  fastmap_1.2.0            
+ [34] GenomeInfoDbData_1.2.13   digest_0.6.37             colorspace_2.1-1         
+ [37] rprojroot_2.0.4           dqrng_0.4.1               beachmat_2.22.0          
+ [40] labeling_0.4.3            spatialreg_1.3-6          httr_1.4.7               
+ [43] abind_1.4-8               compiler_4.4.3            here_1.0.1               
+ [46] proxy_0.4-27              withr_3.0.2               tiff_0.1-12              
+ [49] DBI_1.2.3                 HDF5Array_1.34.0          R.utils_2.13.0           
+ [52] MASS_7.3-65               DelayedArray_0.32.0       rjson_0.2.23             
+ [55] classInt_0.4-11           tools_4.4.3               units_0.8-7              
+ [58] vipor_0.4.7               beeswarm_0.4.0            R.oo_1.27.0              
+ [61] glue_1.8.0                nlme_3.1-167              EBImage_4.48.0           
+ [64] rhdf5filters_1.18.1       gridtext_0.1.5            grid_4.4.3               
+ [67] sf_1.0-19                 generics_0.1.3            gtable_0.3.6             
+ [70] R.methodsS3_1.8.2         class_7.3-23              sp_2.2-0                 
+ [73] xml2_1.3.8                XVector_0.46.0            stringr_1.5.1            
+ [76] markdown_2.0              pillar_1.10.1             limma_3.62.2             
+ [79] splines_4.4.3             dplyr_1.1.4               lattice_0.22-6           
+ [82] survival_3.8-3            deldir_2.0-4              tidyselect_1.2.1         
+ [85] locfit_1.5-9.12           scuttle_1.16.0            sfheaders_0.4.4          
+ [88] knitr_1.50                litedown_0.6              edgeR_4.4.2              
+ [91] xfun_0.51                 statmod_1.5.0             DropletUtils_1.26.0      
+ [94] stringi_1.8.4             UCSC.utils_1.2.0          fftwtools_0.9-11         
+ [97] yaml_2.3.10               boot_1.3-31               evaluate_1.0.3           
+[100] codetools_0.2-20          tibble_3.2.1              cli_3.6.4                
+[103] munsell_0.5.1             Rcpp_1.0.14               zeallot_0.1.0            
+[106] coda_0.19-4.1             png_0.1-8                 parallel_4.4.3           
+[109] jpeg_0.1-11               sparseMatrixStats_1.18.0  bitops_1.0-9             
+[112] mvtnorm_1.3-3             scales_1.3.0              e1071_1.7-16             
+[115] crayon_1.5.3              multcomp_1.4-28          
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.3 (2025-02-28)
+ os       macOS Sonoma 14.7.4
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/New_York
+ date     2025-03-26
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+ quarto   1.4.555 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/quarto
+
+─ Packages ───────────────────────────────────────────────────────────────────────────
+ ! package                  * version   date (UTC) lib source
+   abind                      1.4-8     2024-09-12 [1] CRAN (R 4.4.1)
+   beachmat                   2.22.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   beeswarm                   0.4.0     2021-06-01 [1] CRAN (R 4.4.0)
+   Biobase                  * 2.66.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocGenerics             * 0.52.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocNeighbors              2.0.1     2024-11-28 [1] Bioconductor 3.20 (R 4.4.2)
+   BiocParallel             * 1.40.0    2024-11-23 [1] Bioconductor 3.20 (R 4.4.2)
+   bitops                     1.0-9     2024-10-03 [1] CRAN (R 4.4.1)
+   boot                       1.3-31    2024-08-28 [1] CRAN (R 4.4.3)
+   Cairo                    * 1.6-2     2023-11-28 [1] CRAN (R 4.4.0)
+   class                      7.3-23    2025-01-01 [1] CRAN (R 4.4.3)
+   classInt                   0.4-11    2025-01-08 [1] CRAN (R 4.4.1)
+ P cli                        3.6.4     2025-02-13 [2] CRAN (R 4.4.1)
+   coda                       0.19-4.1  2024-01-31 [1] CRAN (R 4.4.0)
+   codetools                  0.2-20    2024-03-31 [1] CRAN (R 4.4.3)
+   colorout                 * 1.3-0.2   2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   colorspace                 2.1-1     2024-07-26 [1] CRAN (R 4.4.0)
+   commonmark                 1.9.5     2025-03-17 [1] CRAN (R 4.4.1)
+   crayon                     1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
+   data.table               * 1.17.0    2025-02-22 [1] CRAN (R 4.4.1)
+   DBI                        1.2.3     2024-06-02 [1] CRAN (R 4.4.0)
+   DelayedArray               0.32.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   DelayedMatrixStats         1.28.1    2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+   deldir                     2.0-4     2024-02-28 [1] CRAN (R 4.4.0)
+   digest                     0.6.37    2024-08-19 [1] CRAN (R 4.4.1)
+   dplyr                      1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
+   dqrng                      0.4.1     2024-05-28 [1] CRAN (R 4.4.0)
+   DropletUtils               1.26.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   e1071                      1.7-16    2024-09-16 [1] CRAN (R 4.4.1)
+   EBImage                    4.48.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   edgeR                      4.4.2     2025-01-27 [1] Bioconductor 3.20 (R 4.4.2)
+   escheR                   * 1.6.0     2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   evaluate                   1.0.3     2025-01-10 [1] CRAN (R 4.4.1)
+   farver                     2.1.2     2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap                    1.2.0     2024-05-15 [1] CRAN (R 4.4.0)
+   fftwtools                  0.9-11    2021-03-01 [1] CRAN (R 4.4.0)
+   generics                   0.1.3     2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb             * 1.42.3    2025-01-27 [1] Bioconductor 3.20 (R 4.4.2)
+   GenomeInfoDbData           1.2.13    2024-12-12 [1] Bioconductor
+   GenomicRanges            * 1.58.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   ggbeeswarm               * 0.7.2     2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2                  * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
+   ggrastr                  * 1.0.2     2023-06-01 [1] CRAN (R 4.4.0)
+   ggstance                 * 0.3.7     2024-04-05 [1] CRAN (R 4.4.0)
+   ggtext                   * 0.1.2     2022-09-16 [1] CRAN (R 4.4.0)
+   glue                       1.8.0     2024-09-30 [1] CRAN (R 4.4.1)
+   gridExtra                * 2.3       2017-09-09 [1] CRAN (R 4.4.0)
+   gridtext                   0.1.5     2022-09-16 [1] CRAN (R 4.4.0)
+   gtable                     0.3.6     2024-10-25 [1] CRAN (R 4.4.1)
+   HDF5Array                  1.34.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   here                       1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools                  0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets                1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
+   httr                       1.4.7     2023-08-15 [1] CRAN (R 4.4.0)
+   IRanges                  * 2.40.1    2024-12-05 [1] Bioconductor 3.20 (R 4.4.2)
+   jpeg                       0.1-11    2025-03-21 [1] CRAN (R 4.4.1)
+   jsonlite                   1.9.1     2025-03-03 [1] CRAN (R 4.4.1)
+   KernSmooth                 2.23-26   2025-01-01 [1] CRAN (R 4.4.3)
+   knitr                      1.50      2025-03-16 [1] CRAN (R 4.4.2)
+   labeling                   0.4.3     2023-08-29 [1] CRAN (R 4.4.0)
+   lattice                    0.22-6    2024-03-20 [1] CRAN (R 4.4.3)
+   LearnBayes                 2.15.1    2018-03-18 [1] CRAN (R 4.4.0)
+   lifecycle                  1.0.4     2023-11-07 [1] CRAN (R 4.4.0)
+   limma                      3.62.2    2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+   litedown                   0.6       2025-02-27 [1] CRAN (R 4.4.3)
+   locfit                     1.5-9.12  2025-03-05 [1] CRAN (R 4.4.1)
+   magick                     2.8.6     2025-03-23 [1] CRAN (R 4.4.1)
+   magrittr                   2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
+   markdown                   2.0       2025-03-23 [1] CRAN (R 4.4.3)
+   MASS                       7.3-65    2025-02-28 [1] CRAN (R 4.4.1)
+   Matrix                     1.7-3     2025-03-11 [1] CRAN (R 4.4.1)
+   MatrixGenerics           * 1.18.1    2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+   matrixStats              * 1.5.0     2025-01-07 [1] CRAN (R 4.4.1)
+   multcomp                   1.4-28    2025-01-29 [1] CRAN (R 4.4.1)
+   munsell                    0.5.1     2024-04-01 [1] CRAN (R 4.4.0)
+   mvtnorm                    1.3-3     2025-01-10 [1] CRAN (R 4.4.1)
+   nlme                       3.1-167   2025-01-27 [1] CRAN (R 4.4.3)
+   parallelly               * 1.43.0    2025-03-24 [1] CRAN (R 4.4.1)
+   pillar                     1.10.1    2025-01-07 [1] CRAN (R 4.4.1)
+   pkgconfig                  2.0.3     2019-09-22 [1] CRAN (R 4.4.0)
+   png                        0.1-8     2022-11-29 [1] CRAN (R 4.4.0)
+   proxy                      0.4-27    2022-06-09 [1] CRAN (R 4.4.0)
+   R.methodsS3                1.8.2     2022-06-13 [1] CRAN (R 4.4.0)
+   R.oo                       1.27.0    2024-11-01 [1] CRAN (R 4.4.1)
+   R.utils                    2.13.0    2025-02-24 [1] CRAN (R 4.4.1)
+   R6                         2.6.1     2025-02-15 [1] CRAN (R 4.4.1)
+   Rcpp                       1.0.14    2025-01-12 [1] CRAN (R 4.4.1)
+   RCurl                      1.98-1.17 2025-03-22 [1] CRAN (R 4.4.1)
+   rhdf5                      2.50.2    2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+   rhdf5filters               1.18.1    2025-03-06 [1] Bioconductor 3.20 (R 4.4.3)
+   Rhdf5lib                   1.28.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   rjson                      0.2.23    2024-09-16 [1] CRAN (R 4.4.1)
+ P rlang                    * 1.1.5     2025-01-17 [2] CRAN (R 4.4.1)
+   rmarkdown                  2.29      2024-11-04 [1] CRAN (R 4.4.1)
+   rprojroot                  2.0.4     2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi                 0.17.1    2024-10-22 [1] CRAN (R 4.4.1)
+   s2                         1.1.7     2024-07-17 [1] CRAN (R 4.4.0)
+   S4Arrays                   1.6.0     2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   S4Vectors                * 0.44.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   sandwich                   3.1-1     2024-09-15 [1] CRAN (R 4.4.1)
+   scales                     1.3.0     2023-11-28 [1] CRAN (R 4.4.0)
+   scuttle                    1.16.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   sessioninfo                1.2.3     2025-02-05 [1] CRAN (R 4.4.1)
+   sf                         1.0-19    2024-11-05 [1] CRAN (R 4.4.1)
+   sfheaders                  0.4.4     2024-01-17 [1] CRAN (R 4.4.0)
+   SingleCellExperiment     * 1.28.1    2024-11-23 [1] Bioconductor 3.20 (R 4.4.2)
+   sp                         2.2-0     2025-02-01 [1] CRAN (R 4.4.1)
+   SparseArray                1.6.2     2025-02-20 [1] Bioconductor 3.20 (R 4.4.2)
+   sparseMatrixStats          1.18.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   SpatialExperiment        * 1.16.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   SpatialFeatureExperiment * 1.8.6     2025-01-30 [1] Bioconductor 3.20 (R 4.4.3)
+   spatialreg                 1.3-6     2024-12-02 [1] CRAN (R 4.4.1)
+   spData                     2.3.4     2025-01-08 [1] CRAN (R 4.4.1)
+   spdep                      1.3-10    2025-01-20 [1] CRAN (R 4.4.1)
+   statmod                    1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
+   stringi                    1.8.4     2024-05-06 [1] CRAN (R 4.4.0)
+   stringr                    1.5.1     2023-11-14 [1] CRAN (R 4.4.0)
+   SummarizedExperiment     * 1.36.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   survival                   3.8-3     2024-12-17 [1] CRAN (R 4.4.3)
+   terra                      1.8-29    2025-02-26 [1] CRAN (R 4.4.1)
+   TH.data                    1.1-3     2025-01-17 [1] CRAN (R 4.4.1)
+   tibble                     3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
+   tidyselect                 1.2.1     2024-03-11 [1] CRAN (R 4.4.0)
+   tiff                       0.1-12    2023-11-28 [1] CRAN (R 4.4.0)
+   UCSC.utils                 1.2.0     2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   units                      0.8-7     2025-03-11 [2] CRAN (R 4.4.1)
+   vctrs                      0.6.5     2023-12-01 [1] CRAN (R 4.4.0)
+   vipor                      0.4.7     2023-12-18 [1] CRAN (R 4.4.0)
+   withr                      3.0.2     2024-10-28 [1] CRAN (R 4.4.1)
+   wk                         0.9.4     2024-10-11 [1] CRAN (R 4.4.1)
+   xfun                       0.51      2025-02-19 [1] CRAN (R 4.4.1)
+   xml2                       1.3.8     2025-03-14 [1] CRAN (R 4.4.1)
+   XVector                    0.46.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   yaml                       2.3.10    2024-07-26 [1] CRAN (R 4.4.0)
+   zeallot                    0.1.0     2018-01-28 [1] CRAN (R 4.4.0)
+   zlibbioc                   1.52.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   zoo                        1.8-13    2025-02-22 [1] CRAN (R 4.4.1)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ * ── Packages attached to the search path.
+ P ── Loaded and on-disk path mismatch.
+
+──────────────────────────────────────────────────────────────────────────────────────
