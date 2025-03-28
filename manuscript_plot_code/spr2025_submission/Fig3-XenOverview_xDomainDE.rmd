@@ -280,7 +280,7 @@ dompolyf[,ypol:=as.numeric(ypol)]
 rm(panea,panev,panfa,panfv)
 ```
 
-## panel E: MC4R in VMH/ARC domains for male donor and panel F: for female. shared legend so only put in panel H. (max log counts across the gene for the two samples is 5.76)
+## panel E: MC4R in VMH/ARC domains for male donor and panel F: for female. shared legend so only put in panel H. (max log counts across the gene for the two samples is 5.76). MC4R is sparser than some other genes, so make points a little bigger for visibility at size of ultimately plotted img
 ```{r}
 pane$`log counts` <- logcounts(pane)["MC4R",]
 panf$`log counts` <- logcounts(panf)["MC4R",]
@@ -290,7 +290,7 @@ panf <- panf[,panf$`log counts`!=0]
 
 ## panfl d
 p <- make_escheR(pane,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+p <- p |> add_fill("log counts",size=0.175,point_size = 0.175)
 
 p <- p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000",limits=c(0,5.8))+
@@ -311,7 +311,7 @@ rm(pane,p,tmpcoldatae)
 
 ## panfl f
 p <- make_escheR(panf,y_reverse=FALSE)
-p <- p |> add_fill("log counts",size=0.125,point_size = 0.125)
+p <- p |> add_fill("log counts",size=0.175,point_size = 0.175)
 
 p <- p+
     scale_fill_continuous("log\ncounts",low= "#FFFFFF",high="#000000",limits=c(0,5.8))+

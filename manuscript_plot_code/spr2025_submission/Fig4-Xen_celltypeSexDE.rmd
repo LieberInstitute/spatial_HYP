@@ -1,7 +1,7 @@
 ---
 title: "Fig4-Xen_celltype_sexDE"
 output: html_document
-date: "2025-03-26"
+date: "2025-03-28"
 ---
 
 ```{r setup, include=FALSE}
@@ -284,7 +284,7 @@ dev.off()
 ```
 
 
-Panel C: Show a DEG per VMH cluster, shown for all VMH xenium clusters in a violin plot datawide (at the level of pseudobulked samples). VMH_1: MC4R, VMH_2 (and 3): TAC1, VMH_3: TMEM233
+Panel C: Show a DEG per VMH cluster, shown for all VMH xenium clusters in a boxplot datawide (at the level of pseudobulked samples). VMH_1: MC4R, VMH_2 (and 3): TAC1, VMH_1: CYP26A1, and VMH_1: MYT1L.
 ```{r}
 vmhe <- rbindlist(vmhelist,idcol = "celltype",fill=T)
 # append cluster ids
@@ -297,7 +297,7 @@ vmhe <- vmhe[celltype!="xVMH Lateral Border"]
 setnames(vmhe,gsub(names(vmhe),pattern="^elist\\.",replacement=""))
 
 # melt for genes of interest
-vmhe.m <- melt(vmhe[rn %in% c("MC4R","TAC1","MYT1L")],id.vars=c("rn","celltype","clus"))
+vmhe.m <- melt(vmhe[rn %in% c("CYP26A1","MC4R","TAC1","MYT1L")],id.vars=c("rn","celltype","clus"))
 
 # append sex info
 vmhe.m <- merge.data.table(vmhe.m,unique(demos[,.(sample_name_SFEonly,Sex)]),by.x="variable",by.y="sample_name_SFEonly")
@@ -328,7 +328,7 @@ vmhpal2["*afem"] <- "#FFFFFF" # makes the female box value always appear first (
 # make the gene names markdown'ed so they appear in italics
 vmhe.m[,rn:=paste0("*",rn,"*")]
 
-pdf("manuscript_plots/Fig4/4C-VMH_DEGs_boxplot.pdf",height=3,width=3.5)
+pdf("manuscript_plots/Fig4/4C-VMH_DEGs_boxplot.pdf",height=3,width=4.67)
 ggplot(vmhe.m,aes(x=celltype,y=value,col=cluscol,fill=fillcol))+
        geom_boxplot(outliers = FALSE,linewidth = 0.375,aes(alpha=0.5))+
    geom_point(aes(color=cluscol,shape=Sex),size=1,position=position_jitterdodge(jitter.width = 0.15))+
@@ -349,7 +349,7 @@ dev.off()
 rm(vmhe.m,vmhe)
 ```
 
-## for panel D, we want to do the same for three ARC genes of interest. For ARC_4 we have the pick of the litter--we'll go with CDH13, which has known associations to weight. For ARC_3, RXRG is pretty high up there signif wise. And ARC_1 has signif CYP26A1 DE.  
+## for panel D, we want to do the same for three ARC genes of interest. For ARC_4 we have the pick of the litter--we'll go with CDH13, which has known associations to weight. For ARC_3, RXRG is pretty high up there signif wise. And ARC_1 has signif CYP26A1 DE. Lastly, MYT1L.
 ```{r}
 arce <- rbindlist(arcelist,idcol = "celltype",fill=T)
 
@@ -366,7 +366,7 @@ arce[celltype=="*POMC*-Oligo Mixed",celltype:="*POMC*-Oligo<br>Mixed"]
 
 
 # melt for genes of interest
-arce.m <- melt(arce[rn %in% c("CYP26A1","RXRG","MYT1L")],id.vars=c("rn","celltype","clus"))
+arce.m <- melt(arce[rn %in% c("CYP26A1","RXRG","MYT1L","CDH13")],id.vars=c("rn","celltype","clus"))
 
 arce.m <- merge.data.table(arce.m,unique(demos[,.(sample_name_SFEonly,Sex)]),by.x="variable",by.y="sample_name_SFEonly")
 arce.m[,Sex:=gsub(Sex,pattern="^(.).*$",replacement="\\1")]
@@ -399,7 +399,7 @@ names(arcpal2)[names(arcpal2)=="*POMC*-Oligo Mixed"] <- "*POMC*-Oligo<br>Mixed"
 ## order celltype
 arce.m[,celltype:=factor(celltype,levels=c("*TAC3*-*ESR1*","*AGRP*","*GAL*-*GHRH*","*POMC*-Oligo<br>Mixed","*SLC17A7*-Glia<br>Mixed"))]
 
-pdf("manuscript_plots/Fig4/4D-ARC_DEGs_boxplot.pdf",height=3,width=3.5)
+pdf("manuscript_plots/Fig4/4D-ARC_DEGs_boxplot.pdf",height=3,width=4.67)
 ggplot(arce.m,aes(x=celltype,y=value,color=cluscol,fill = fillcol))+
     geom_boxplot(outliers = FALSE,linewidth = 0.375,alpha=0.5)+
     geom_point(size=1,position=position_jitterdodge(jitter.width = 0.15),aes(shape=Sex))+
