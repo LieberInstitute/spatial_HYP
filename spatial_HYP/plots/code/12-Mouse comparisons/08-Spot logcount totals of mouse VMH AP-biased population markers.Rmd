@@ -1,0 +1,98 @@
+---
+title: "08-Spot logcount totals of mouse VMH AP-biased population markers"
+format: html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+# library(SpatialFeatureExperiment)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(parallel)
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+```{r}
+# load hyp spe, pare down to VMH, and clear out unneeded ram heavy bits while were here
+hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+# did we already have the clusters in here? dont think so but check
+# colnames(colData(hyp2))
+# yano
+
+clus <- fread("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+setnames(clus,2,"cl")
+clus[,cl:=paste0("X",cl)]
+clus[,lab:="drop"]
+clus[cl %in% paste0("X",c(7,12)),lab:="VMH"]
+clus <- DataFrame(clus,row.names=clus$rn)[colnames(hyp2),]
+
+colLabels(hyp2) <- clus$lab
+hyp2 <- hyp2[,hyp2$label=="VMH"]
+imgData(hyp2) <- NULL
+
+## drop genes undetected in VMH
+dropg <- rownames(hyp2)[rowSums(counts(hyp2))==0]
+hyp2 <- hyp2[!(rownames(hyp2) %in% dropg),]
+
+## drop image data, dont need it
+imgData(hyp2) <- NULL
+
+rm(clus,dropg)
+gc(full=T)
+
+msAP <- fread("processed-data/12-Mouse comparisons/06aII-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt")
+```
+
+sum spot counts or logcounts by sample and mouse AP cluster set
+```{r}
+sampcts <- lapply(unique(hyp2$sample_id),FUN=function(s){
+    retlist <- list(ct=counts(hyp2[,hyp2$sample_id==s]),lct=logcounts(hyp2[,hyp2$sample_id==s]))
+    return(retlist)
+})
+
+apsets <- lapply(unique(msAP$variable),FUN=function(s){
+    unique(msAP[variable==s,human_ensg])
+})
+names(apsets) <- unique(msAP$variable)
+
+
+ans <- lapply(sampcts,FUN=function(s){
+    subans <- lapply(s,FUN=function(m){
+        clustans <- lapply(apsets,FUN=function(a){
+            tmpm <- m[a,]
+            return(colSums(tmpm))
+        })
+        #names(clustans) <- names(apsets)
+    })
+})
+
+anscts <- lapply(ans,FUN=function(x){as.data.table(as.data.frame(x[[1]]),keep.rownames=T)})
+anscts <- rbindlist(anscts)
+anscts <- melt(anscts,id.vars="rn")
+anscts[,samp:=gsub(rn,pattern="^.*-1_(V.*)$",replacement="\\1")]
+
+anslcts <- lapply(ans,FUN=function(x){as.data.table(as.data.frame(x[[2]]),keep.rownames=T)})
+anslcts <- rbindlist(anslcts)
+anslcts <- melt(anslcts,id.vars="rn")
+anslcts[,samp:=gsub(rn,pattern="^.*-1_(V.*)$",replacement="\\1")]
+
+png("plots/12-Comparisons to other mouse and human datasets/08-Spot sum logcounts of KimAP markers per AP pop by vVMH sample.png",height=1500,width=3000)
+ggplot(anslcts,aes(x=variable,y=value,fill=samp))+geom_violin()+labs(y="Sum (spot logcounts) of top 5 markers of AP-biased mouse population")
+dev.off()
+```

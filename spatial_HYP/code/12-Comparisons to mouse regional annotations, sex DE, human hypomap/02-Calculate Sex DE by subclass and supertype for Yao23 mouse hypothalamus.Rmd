@@ -33,11 +33,13 @@ data obtained from NeMO identifiers nemo:dat-kjseyhn and nemo:dat5ue6x8t and Bra
 bothhyp <- readRDS("raw-data/ABA_Whole_Mouse_Brain_Yao23_HYP/bothdatasets_raw_asSCE.RDS")
 ```
 
-## get VMH and ARH subclass pseudobulk DE for plotting in the future if we want it
+## get VMH and ARH subclass pseudobulk DE, along with that for oligos (as a comparator), for plotting in the future if we want it
 ```{r}
 ## subclass (218 types); samples labeled by library label; unique donor mice by donor_label
-vasubc <- grep(unique(bothhyp$subclass),pattern="VMH|ARH",value=T)
+vasubc <- c("x295_Oligo_NN",grep(unique(bothhyp$subclass),pattern="VMH|ARH",value=T))
 tmpsub <- bothhyp[,bothhyp$subclass %in% vasubc]
+
+sbp <- MulticoreParam(8)
 tmp.subag <- aggregateToPseudoBulk(tmpsub,sample_id = "library_label.x",cluster_id = "subclass",assay = "counts",BPPARAM = sbp)
 
 ## convert to expression with same parameters we're using for the DE analysis below

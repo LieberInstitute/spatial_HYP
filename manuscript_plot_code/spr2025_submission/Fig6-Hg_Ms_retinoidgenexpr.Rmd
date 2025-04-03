@@ -1,0 +1,298 @@
+---
+title: "Fig6-Hg_Ms_retinoidgenexpr"
+author: "Bernie Mulvey"
+date: "2025-03-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+library(gridExtra)
+library(grid)
+library(rlang)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 9), axis.title.x = element_text(size = 8), axis.text.y = element_text(size = 8), axis.title.y = element_text(size =9), plot.title = element_markdown(size = 11,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),plot.title.position="plot"))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+```{r}
+retr <- readRDS("spatial_HYP/processed-data/12-Mouse comparisons/05b-retinoid metabolism and receptor genes ABAmsScrnaseq23 and visium pseudobulk xprs_normedToPbulkGlialGenes.RDS")
+
+# subset to genes that were represented in both spp. store the ones that weren't to note in the legend instead.
+dualsp <- lapply(retr,function(x){unique(x[,.(ensg,spp)])[,.N,by=c("ensg")][N==2]})
+
+retr.plt <- mapply(X=retr,Y=dualsp,SIMPLIFY = FALSE,FUN=function(X,Y){
+    Z <- X[ensg %in% Y$ensg]
+    Z <- rbind(Z,X[symb.hg %in% c("CYP26A1","CYP26B1","ALDH1A1")])
+    return(Z)
+})
+
+# one species only:
+spspec <- lapply(retr,function(x){unique(x[,.(symb.hg,spp)])[,.(spp,symb.hg,.N),by="symb.hg"][N!=2]})
+# hang onto the latter for part of a supp tab in a sec; remove the loaded file
+rm(retr)
+
+
+# make a column for italicized, newlined x axis labels with hg and mm gene symbols
+retr.plt <- lapply(retr.plt,FUN=function(x){x[,gene:=paste0("*",symb.hg,"*<br>(*",mouseGene,"*)")]})
+
+# saving a bunch of text here using paste0 to list the gene names out in the order i want (easy), and tack on the markdown language and mouse ortholog for plotting. makes this kind of unreadable. apologies.
+
+# vmh:
+vord <- c("ALDH1A1","RDH10","CYP26A1","CYP26B1","RARA","RXRA","RXRB","RXRG")#,"FABP5","PDHA1","PDHB","PDHX","PDK1","PDK2","PDK3","DHRS3","DLAT","DLD","PPARD",paste0("RDH",c(10,11,13:14)))
+vgns <- as.data.frame(unique(retr.plt[["vmh"]][,.(symb.hg,mouseGene)]))
+
+v.retlvl <- unique(paste0(
+    "*",
+    vord,
+    "*<br>(*",
+    vgns[match(vord,vgns$symb.hg),"mouseGene"],
+    "*)")
+)
+
+stopifnot(all(v.retlvl %in% retr.plt[["vmh"]]$gene))
+retr.plt[["vmh"]] <- retr.plt[["vmh"]][gene %in% v.retlvl]
+retr.plt[["vmh"]][,gene:=factor(gene,levels=v.retlvl)]
+
+# arc:
+aord <- c("ALDH1A1","RDH10","CYP26A1","CYP26B1","RARA","RXRA","RXRB","RXRG")#,"FABP5","PDHA1","PDHB","PDHX","PDK1","PDK2","PDK3","DHRS3","DLAT","DLD","PPARD",paste0("RDH",c(10,11,13:14)))
+agns <- as.data.frame(unique(retr.plt[["arc"]][,.(symb.hg,mouseGene)]))
+
+a.retlvl <- unique(paste0(
+    "*",
+    aord,
+    "*<br>(*",
+    agns[match(aord,agns$symb.hg),"mouseGene"],
+    "*)")
+)
+
+stopifnot(all(a.retlvl %in% retr.plt[["arc"]]$gene))
+retr.plt[["arc"]] <- retr.plt[["arc"]][gene %in% a.retlvl]
+retr.plt[["arc"]][,gene:=factor(gene,levels=a.retlvl)]
+
+
+## tweak cell type names a bit further for plot space
+retr.plt[["vmh"]][,assay:=as.character(assay)]
+retr.plt[["vmh"]][assay=="Ms VMH *Fezf1*",assay:="Ms *Fezf1*"]
+retr.plt[["vmh"]][assay=="Ms VMH *Nr5a1*",assay:="Ms *Nr5a1*"]
+retr.plt[["vmh"]][,assay:=factor(assay,levels=c("vVMH","Ms *Fezf1*","Ms *Nr5a1*"))]
+
+retr.plt[["arc"]][,assay:=as.character(assay)]
+retr.plt[["arc"]][assay=="Ms ARC *Otp*-*Six6*\n(GABAergic)",assay:="Ms *Otp*-*Six6*<br>(GABAergic)"]
+retr.plt[["arc"]][assay=="Ms ARC *Six3*\n(DA/GABAergic)",assay:="Ms *Six3* (DA/<br>GABAergic)"]
+retr.plt[["arc"]][assay=="Ms ARC *Tbx3*\n(GABAergic)",assay:="Ms *Tbx3* <br>(GABAergic)"]
+retr.plt[["arc"]][assay=="Ms ARC *Tbx3*\n(Glutamatergic)",assay:="Ms *Tbx3* <br>(Glutamatergic)"]
+retr.plt[["arc"]][,assay:=factor(assay,levels=c(
+    "vARC",
+    "Ms *Otp*-*Six6*<br>(GABAergic)",
+    "Ms *Tbx3* <br>(GABAergic)",
+    "Ms *Tbx3* <br>(Glutamatergic)",
+    "Ms *Six3* (DA/<br>GABAergic)"))]
+```
+
+save plots
+### for the ARC one, we have to go to obnoxious lengths to keep the keys from stretching to be the same height as the text.
+https://stackoverflow.com/questions/65812949/set-standard-legend-key-size-with-long-label-names-ggplot
+
+```{r}
+draw_square <- function(data, params, size) {
+  if (is.null(data$size)) {
+    data$size <- 0.5
+  }
+  lwd <- min(data$size, min(size) /4)
+  grid::rectGrob(
+    width  = unit(1, "snpc") - ggplot2::unit(lwd, "mm"),
+    height = unit(1, "snpc") - ggplot2::unit(lwd, "mm"),
+    gp = gpar(
+      col = data$colour %||% NA,
+      fill = alpha(data$fill %||% "grey20", data$alpha),
+      lty = data$linetype %||% 1,
+      lwd = lwd * .pt,
+      linejoin = params$linejoin %||% "mitre",
+      lineend = if (identical(params$linejoin, "round")) "round" else "square"
+    )
+  )
+}
+```
+
+## so for consistency, use this ^ in both plots
+```{r}
+pdf("manuscript_plots/Fig6/6A-retinoidgenes_mmHg_vVMH.pdf",width=4.9,height=3)
+ggplot(retr.plt[["vmh"]],aes(y=MBPnorm,x=assay,fill=assay))+
+    geom_violin(position=position_dodge(width=0.9),linewidth = 0.1,key_glyph=draw_square)+
+    labs(fill="vVMH or\nMouse VMH\nSubclass")+
+    guides(fill=guide_legend(nrow=1))+
+    theme_minimal()+
+    facet_wrap(~gene,nrow=2)+
+    # Add vertical lines between each gene
+    geom_vline(xintercept = as.numeric(unique(retr.plt[["vmh"]]$gene)) + 0.5,
+               color = "black",
+               linetype = "solid",
+               linewidth = 0.2)+
+    ylab("Pseudobulk Expression Ratio\n(Gene in Cells/Spots vs MBP in WM)")+
+    theme(axis.text.x=element_blank(),
+          strip.background = element_blank(),
+          axis.text.y=element_text(size=7),
+          axis.title.x=element_blank(),
+          axis.title.y=element_text(size=8),
+          legend.text=element_markdown(size=6.5,vjust=0.5),
+          legend.title=element_text(size=8,hjust=0.5),
+          strip.text = element_markdown(size=7,hjust=0.5,margin=margin(0.025,0,0,0,"in")),
+          plot.margin = margin(0,0,-0.125,0.01,unit="in"),
+          legend.position="bottom",
+          legend.margin = margin(-0.15,0,0,-0.05,unit="in"),
+          legend.key.size = ggplot2::unit(0.125,"in"))
+dev.off()
+
+pdf("manuscript_plots/Fig6/6B-retinoidgenes_mmHg_vARC.pdf",width=4.9,height=3)
+ggplot(retr.plt[["arc"]],aes(y=MBPnorm,x=assay,fill=assay))+
+    geom_violin(position=position_dodge(width=0.9),linewidth = 0.1,key_glyph=draw_square)+
+    labs(fill="vARC or\nMouse ARC\nSubclass")+
+    guides(fill=guide_legend(nrow = 2,byrow=TRUE))+
+    theme_minimal()+
+    facet_wrap(~gene,nrow=2)+
+    # Add vertical lines between each gene
+    geom_vline(xintercept = as.numeric(unique(retr.plt[["arc"]]$gene)) + 0.5,
+               color = "black",
+               linetype = "solid",
+               linewidth = 0.2)+
+    ylab("Pseudobulk Expression Ratio\n(Gene in Cells/Spots vs MBP in WM)")+
+    theme(axis.text.x=element_blank(),
+          strip.background = element_blank(),
+          axis.text.y=element_text(size=7),
+          axis.title.x=element_blank(),
+          axis.title.y=element_text(size=8),
+          legend.text=element_markdown(size=6.5,vjust=0.5),
+          legend.title=element_text(size=8,hjust=0.5),
+          strip.text = element_markdown(size=7,hjust=0.5,margin=margin(0.025,0,0,0,"in")),
+          plot.margin = margin(0,0,-0.1,0.01,unit="in"),
+          legend.position="bottom",
+          legend.margin = margin(-0.175,0,0,-0.125,unit="in"),
+          legend.key.spacing.x=ggplot2::unit(0.01,"in"),
+          legend.key.spacing.y=ggplot2::unit(0.01,"in"),
+          legend.key=element_blank(),
+          legend.key.size = ggplot2::unit(0.125,"in"))
+dev.off()
+```
+
+Now, get xARC and xVMH cluster level pseudobulk and make similar plots. Normalize by the xenium cluster X7, an oligo cluster that was found in both VMH and ARC.
+```{r}
+xpba <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02c-pseudobulkARC_voomLmFitELists.RDS")
+xpbv <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02d-pseudobulkVMH_voomLmFitELists.RDS")
+
+anno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
+
+xpba <- rbindlist(xpba[names(xpba) %in% c("X7",anno[subclus_domain=="ARC",cluster_id])],idcol="cluster_id",fill=T)
+xpbv <- rbindlist(xpbv[names(xpbv) %in% c("X7",anno[subclus_domain=="VMH",cluster_id])],idcol="cluster_id",fill=T)
+
+xbpanorm <- xpba[cluster_id=="X7"&elist.rn=="MOBP"]
+xpbanorm <- melt(xbpanorm,id.vars=c("elist.rn","cluster_id"),variable.name="samp",value.name="MOBP")
+
+xpbvnorm <- xpbv[cluster_id=="X7"&elist.rn=="MOBP"]
+xpbvnorm <- melt(xpbvnorm,id.vars=c("elist.rn","cluster_id"),variable.name="samp",value.name="MOBP")
+
+xpbs <- list(vmh=xpbv[cluster_id!="X7"],arc=xpba[cluster_id!="X7"])
+norms <- list(vmh=xpbvnorm,arc=xpbanorm)
+
+xpbs <- mapply(x=xpbs,m=retr.plt,n=norms,SIMPLIFY=FALSE,FUN=function(x,m,n){
+  y <- merge.data.table(as.data.table(x),anno[,.(cluster_id,plotclusname)],by="cluster_id")
+  y <- y[elist.rn %in% c("CYP26A1","CYP26B1","ALDH1A1","RDH10","RARA","RXRA","RXRB","RXRG")]
+  y[,cluster_id:=NULL]
+  y <- melt.data.table(y,id.vars=c("elist.rn","plotclusname"),variable.name="samp",value.name="expr")
+  setnames(y,"plotclusname","assay")
+  
+  ## append normalization value
+  y <- merge.data.table(y,n[,.(samp,MOBP)],by="samp")
+  y[!is.na(MOBP),MOBPnorm:=expr/MOBP]
+  
+  y[,spp:="Human"]
+  y <- merge.data.table(unique(m[,.(ensg,symb.hg,mouseGene,gene)]),y,by.x="symb.hg",by.y="elist.rn",all.x=F)
+  z <- rbind(y,m[spp!="Human"],fill=T) # didnt get rid of mouse sample_id column, no big
+  # drop genes not measured on xenium
+  z <- z[symb.hg %in% unique(c(xpbv$elist.rn,xpba$elist.rn))] 
+  return(z)
+})
+
+```
+
+plot em
+```{r}
+pdf("manuscript_plots/Fig6/6C-retinoidgenes_mmHg_xVMHtypes.pdf",width=4.9,height=1.5)
+ggplot(xpbs[["vmh"]],aes(y=MOBPnorm,x=assay,fill=assay))+
+    geom_violin(position=position_dodge(width=0.9),linewidth = 0.1,key_glyph=draw_square)+
+    labs(fill="xVMH Cluster or\nMouse VMH\nSubclass")+
+    guides(fill=guide_legend(nrow=1))+
+    theme_minimal()+
+    facet_wrap(~gene,nrow=1)+
+    # Add vertical lines between each gene
+    geom_vline(xintercept = as.numeric(unique(retr.plt[["vmh"]]$gene)) + 0.5,
+               color = "black",
+               linetype = "solid",
+               linewidth = 0.2)+
+    ylab("Pseudobulk Expression Ratio\n(Gene in Cells vs MOBP in Oligos)")+
+    theme(axis.text.x=element_blank(),
+          strip.background = element_blank(),
+          axis.text.y=element_text(size=7),
+          axis.title.x=element_blank(),
+          axis.title.y=element_text(size=8),
+          legend.text=element_markdown(size=6.5,vjust=0.5),
+          legend.title=element_text(size=8,hjust=0.5),
+          strip.text = element_markdown(size=7,hjust=0.5,margin=margin(0.025,0,0,0,"in")),
+          plot.margin = margin(0,0,-0.125,0.01,unit="in"),
+          legend.position="bottom",
+          legend.margin = margin(-0.15,0,0,-0.05,unit="in"),
+          legend.key.size = ggplot2::unit(0.125,"in"))
+dev.off()
+
+pdf("manuscript_plots/Fig6/6D-retinoidgenes_mmHg_xARCtypes.pdf",width=4.9,height=1.5)
+ggplot(xpbs[["arc"]],aes(y=MOBPnorm,x=assay,fill=assay))+
+    geom_violin(position=position_dodge(width=0.9),linewidth = 0.1,key_glyph=draw_square)+
+    labs(fill="xARC Cluster or\nMouse ARC\nSubclass")+
+    guides(fill=guide_legend(nrow=1))+
+    theme_minimal()+
+    facet_wrap(~gene,nrow=1)+
+    # Add vertical lines between each gene
+    geom_vline(xintercept = as.numeric(unique(retr.plt[["arc"]]$gene)) + 0.5,
+               color = "black",
+               linetype = "solid",
+               linewidth = 0.2)+
+    ylab("Pseudobulk Expression Ratio\n(Gene in Cells vs MOBP in Oligos)")+
+    theme(axis.text.x=element_blank(),
+          strip.background = element_blank(),
+          axis.text.y=element_text(size=7),
+          axis.title.x=element_blank(),
+          axis.title.y=element_text(size=8),
+          legend.text=element_markdown(size=6.5,vjust=0.5),
+          legend.title=element_text(size=8,hjust=0.5),
+          strip.text = element_markdown(size=7,hjust=0.5,margin=margin(0.025,0,0,0,"in")),
+          plot.margin = margin(0,0,-0.125,0.01,unit="in"),
+          legend.position="bottom",
+          legend.margin = margin(-0.15,0,0,-0.05,unit="in"),
+          legend.key.size = ggplot2::unit(0.125,"in"))
+dev.off()
+```

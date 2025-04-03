@@ -1,0 +1,76 @@
+---
+title: "07-Plot_hypomapVMH_med-lat-clus_NMFweights_projected_onto_VMHARCspe"
+author: "Bernie Mulvey"
+date: "2025-04-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+library(gridExtra)
+library(escheR)
+library(SpatialExperiment)
+# library(SpatialFeatureExperiment)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 9), axis.title.x = element_text(size = 8), axis.text.y = element_text(size = 8), axis.title.y = element_text(size =9), plot.title = element_markdown(size = 11,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),plot.title.position="plot"))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+## load SPE, append NMF projection results saved as an extended coldata table
+## the clusters they found had a medial-lateral gradient were C118-C122. these weren't specific (enough) to be programmatically retained, but clusters 121/122: V50
+118, 120: V46
+
+```{r}
+hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+proj <- readRDS("processed-data/12-Mouse comparisons/07b-hmapN150_projIntoSPE.RDS")
+proj <- proj[,c("V46","V50")]
+colData(hyp2) <- cbind(colData(hyp2),proj)
+```
+
+```{r}
+samps <- lapply(unique(hyp2$sample_id),FUN=function(x){hyp2[,hyp2$sample_id==x]})
+names(samps) <- unique(hyp2$sample_id)
+rm(hyp2)
+
+lapply(c("V46","V50"),function(n){
+    plts <- lapply(samps,function(s){
+        p <- make_escheR(s)
+        p <- p |> add_fill(n,size=1.1,point_size = 1.1)
+        p <- rasterize(p,layers="Points",dpi=300,dev="cairo_png")
+        return(p)
+    })
+    pdf(paste0("plots/12-Comparisons to other mouse and human datasets/07c-HumanHypomapMedLatVMHclusts_NMFfactor_",n,"_projectionVals.pdf"),height=10,width=10)
+    do.call("grid.arrange",c(plts,ncol=3))
+    dev.off()
+})
+
+
+
+
+```

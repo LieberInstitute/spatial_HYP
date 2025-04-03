@@ -14,6 +14,8 @@ library(Seurat)
 library(spatialLIBD)
 library(biomaRt)
 library(RcppML)
+library(ggplot2)
+library(dplyr)
 # library(SpatialFeatureExperiment)
 
 # ## rstudio GUI tweaks
@@ -36,7 +38,7 @@ options(bphost='localhost')
 unloadNamespace('datasets')
 ```
 
-load human hypomap data just to get genes for now
+load our hyp visium data just to get genes for now
 ```{r}
 # load hyp spe, pare down to VMH, and clear out unneeded ram heavy bits while were here
 hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
@@ -48,380 +50,39 @@ note that genes here are provided as HGNC symbols only, presumably thru seurats 
 hmap <- readRDS("raw-data/human_HYPOMAP_snRNASeq_Tadross25.rds")
 hmap <- as.SingleCellExperiment(hmap)
 
-# for spatreg, get rid of logcounts assay to make object smaller
-# logcounts(hmap) <- NULL
+# for nmf, get rid of counts assay to make object smaller
+counts(hmap) <- NULL
 
 rowData(hmap)$gene_name <- rownames(hmap) # so that the rowdata table has something in it
+```
+# one time run:
 
-en <- useMart("ENSEMBL_MART_ENSEMBL",dataset="hsapiens_gene_ensembl")
-enslut <- as.data.table(getBM(c("hgnc_symbol","ensembl_gene_id"),filters="hgnc_symbol",values=rownames(hmap),mart=en))
-
-keepg <- enslut[hgnc_symbol %in% rownames(hmap) & ensembl_gene_id %in% rownames(hyp2)]
+```{r}
+# en <- useMart("ENSEMBL_MART_ENSEMBL",dataset="hsapiens_gene_ensembl")
+# enslut <- as.data.table(getBM(c("hgnc_symbol","ensembl_gene_id"),filters="hgnc_symbol",values=rownames(hmap),mart=en))
+# 
+# keepg <- enslut[hgnc_symbol %in% rownames(hmap) & ensembl_gene_id %in% rownames(hyp2)]
 
 ## save this table if we need it again -- biomart is sloooow
-fwrite(keepg,"processed-data/12-Mouse comparisons/07a-ensg-hgnc_lut.txt",sep='\t',quote=F,row.names=F)
-rm(enslut,en)
-gc(full=T)
+# fwrite(keepg,"processed-data/12-Mouse comparisons/07a-ensg-hgnc_lut.txt",sep='\t',quote=F,row.names=F)
+# rm(enslut,en)
+# gc(full=T)
+```
+
+```{r}
+keepg <- fread("processed-data/12-Mouse comparisons/07a-ensg-hgnc_lut.txt")
 
 ## subset hypomap
 hmap <- hmap[rownames(hmap) %in% keepg$hgnc_symbol,]
 
+## store rowname order so we can get the target SPE into the same roworder for projection
+hmaprnord <- rownames(hmap)
 ## unload hyp2 to run hypomap, since the latter is big and we need memory to run registration
 rm(hyp2,keepg,clus)
 gc(full=T)
 ```
 
-## define parallelized dupcor
-```{r}
-unwrapdups <- function(M,ndups=2,spacing=1) {
-#	Unwrap M matrix for a series of experiments so that all spots for a given gene are in one row
-#	Gordon Smyth
-#	18 Jan 2002. Last revised 2 Nov 2002.
-
-	if(ndups==1) return(M)
-	M <- as.matrix(M)
-	nspots <- dim(M)[1]
-	nslides <- dim(M)[2]
-	ngroups <- nspots / ndups / spacing
-	dim(M) <- c(spacing,ndups,ngroups,nslides)
-	M <- aperm(M,perm=c(1,3,2,4))
-	dim(M) <- c(spacing*ngroups,ndups*nslides)
-	M
-}
-
-uniquegenelist <- function(genelist,ndups=2,spacing=1) {
-#	Eliminate entries in genelist for duplicate spots
-#	Gordon Smyth
-#	2 Nov 2002.  Last revised 10 Jan 2005
-
-	if(ndups <= 1) return(genelist)
-	i <- drop(unwrapdups(1:NROW(genelist),ndups=ndups,spacing=spacing)[,1])
-	if(is.null(dim(genelist)))
-		return(genelist[i])
-	else
-		return(genelist[i,,drop=FALSE])
-}
-
-pdupcor <- function(object,design=NULL,ndups=2L,spacing=1L,block=NULL,trim=0.15,weights=NULL,cores=4)
-#	Estimate the correlation between duplicates given a series of arrays
-#	Gordon Smyth
-#	25 Apr 2002. Last revised 16 Feb 2021.
-{
-#	Extract components from y
-	y <- limma::getEAWP(object)
-	M <- y$exprs
-	ngenes <- nrow(M)
-	narrays <- ncol(M)
-
-#	Check design matrix
-	if(is.null(design)) design <- y$design
-	if(is.null(design)){
-		design <- matrix(1,ncol(y$exprs),1)} else {
-		design <- as.matrix(design)}
-		if(!identical(mode(design),"numeric")) stop("design must be a numeric matrix")
-	
-	if(!identical(nrow(design),narrays)) stop("Number of rows of design matrix does not match number of arrays")
-	nbeta <- ncol(design)
-
-#	Check whether design and block are of full rank
-	QR <- qr(design)
-	if(QR$rank < nbeta) message("Note: design matrix not of full rank (",nbeta-QR$rank," coef not estimable).")
-	if(!is.null(block)) {
-		MaxBlockSize <- max(table(block))
-		if(identical(MaxBlockSize,1L)) {
-			warning("Blocks all of size 1: setting intrablock correlation to zero.")
-			return( list(consensus.correlation=0,cor=0,atanh.correlations=rep_len(0,nrow(M))) )
-		}
-		design.block <- model.matrix(~factor(block))
-		design.block <- design.block[,-1,drop=FALSE]
-		QtBlock <- qr.qty(QR,design.block)
-		if(max(abs(QtBlock[-(1:QR$rank),])) < 1e-8) {
-			warning("Block factor already encoded in the design matrix: setting intrablock correlation to zero.")
-			return( list(consensus.correlation=0,cor=0,atanh.correlations=rep_len(0,nrow(M))) )
-		}
-	}
-
-#	Check weights
-	if(is.null(weights)) weights <- y$weights
-	if(!is.null(weights)) {
-		weights <- limma::asMatrixWeights(weights,dim(M))
-		weights[weights <= 0] <- NA
-		M[!is.finite(weights)] <- NA
-	}
-
-#	Setup spacing or blocking arguments
-	if(is.null(block)) {
-#		If present, use ndups and spacing stored in object
-		if(!is.null(y$printer$ndups)) ndups <- y$printer$ndups
-		if(!is.null(y$printer$spacing)) spacing <- y$printer$spacing
-		if(ndups<2L) {
-			warning("No duplicates: setting correlation between duplicates to zero.")
-			return( list(consensus.correlation=0,cor=0,atanh.correlations=rep_len(0,nrow(M))) )
-		}
-		if(is.character(spacing)) {
-			if(spacing=="columns") spacing <- 1
-			if(spacing=="rows") spacing <- y$printer$nspot.c
-			if(spacing=="topbottom") spacing <- nrow(M)/2
-		}
-		Array <- rep(1:narrays,each=ndups)
-	} else {
-		ndups <- 1L
-		nspacing <- 1L
-		Array <- block
-	}
-
-#	Unwrap data to get all data for a gene in one row
-	if(is.null(block)) {
-		M <- unwrapdups(M,ndups=ndups,spacing=spacing)
-		ngenes <- nrow(M)
-		if(!is.null(weights)) weights <- unwrapdups(weights,ndups=ndups,spacing=spacing)
-		design <- design %x% rep_len(1,ndups)
-	}
-
-#	Compute genewise correlations
-	nafun <- function(e) NA
-	rho <- mclapply(c(1:ngenes),mc.cores=cores,function(i) {
-		y <- drop(M[i,])
-		o <- is.finite(y)
-		A <- factor(Array[o])
-		nobs <- sum(o)
-		nblocks <- length(levels(A))
-		if(nobs>(nbeta+2L) && nblocks>1L && nblocks<(nobs-1L)) {
-			y <- y[o]
-			X <- design[o,,drop=FALSE]
-			Z <- model.matrix(~0+A)
-			if(!is.null(weights)) {
-				w <- drop(weights[i,])[o]
-				s <- tryCatch(suppressWarnings(statmod::mixedModel2Fit(y,X,Z,w,only.varcomp=TRUE,maxit=20)$varcomp),error=nafun)
-			} else {
-				s <- tryCatch(suppressWarnings(statmod::mixedModel2Fit(y,X,Z,only.varcomp=TRUE,maxit=20)$varcomp),error=nafun) }
-			if(!is.na(s[1])){rho.out <- s[2]/sum(s)}
-		}
-		if(!exists("rho.out")){rho.out <- NA}
-		return(rho.out)
-	})
-	rho <- unlist(rho)
-	rho <- rho[!is.na(rho)]
-
-#	Keep correlations away from limits to ensure correlation matrix is positive-definite
-	rhomax <- 0.99
-	if(is.null(block))
-		rhomin <- 1/(1-ndups) + 0.01
-	else
-		rhomin <- 1/(1-MaxBlockSize) + 0.01
-	m <- min(rho,0,na.rm=TRUE)
-	if(m < rhomin) rho[rho < rhomin] <- rhomin
-	m <- max(rho,0,na.rm=TRUE)
-	if(m > rhomax) rho[rho > rhomax] <- rhomax
-
-	arho <- atanh(rho)
-	mrho <- tanh(mean(arho,trim=trim,na.rm=TRUE))
-	list(consensus.correlation=mrho,cor=mrho,atanh.correlations=arho)
-}
-
-avedups <- function(x,ndups,spacing,weights) UseMethod("avedups")
-
-avedups.default <- function(x,ndups=2,spacing=1,weights=NULL)
-#	Average over duplicate spots, for matrices or vectors
-#	Gordon Smyth
-#	6 Apr 2006.
-{
-	if(ndups==1) return(x)
-	if(is.null(x)) return(NULL)
-	x <- as.matrix(x)
-	nspots <- dim(x)[1]
-	nslides <- dim(x)[2]
-	rn <- rownames(x)
-	cn <- colnames(x)
-	ngroups <- nspots / ndups / spacing
-	dim(x) <- c(spacing,ndups,ngroups*nslides)
-	x <- aperm(x,perm=c(2,1,3))
-	if(mode(x)=="character")
-		x <- x[1,,]
-	else {
-		if(is.null(weights))
-			x <- colMeans(x,na.rm=TRUE)
-		else {
-			weights <- as.matrix(weights)
-			dim(weights) <- c(spacing,ndups,ngroups*nslides)
-			weights <- aperm(weights,perm=c(2,1,3))
-			weights[is.na(weights) | is.na(x)] <- 0
-			weights[weights<0] <- 0
-			x <- colSums(weights*x,na.rm=TRUE)/colSums(weights)
-		}
-	}
-	dim(x) <- c(spacing*ngroups,nslides)
-	colnames(x) <- cn
-	rownames(x) <- avedups(rn,ndups=ndups,spacing=spacing)
-	x
-}
-
-avedups.MAList <- function(x,ndups=x$printer$ndups,spacing=x$printer$spacing,weights=x$weights)
-#	Average over duplicate spots for MAList objects
-#	Gordon Smyth
-#	6 Apr 2006.
-{
-	if(is.null(ndups) || is.null(spacing)) stop("Must specify ndups and spacing")
-	y <- x
-	y$M <- avedups(x$M,ndups=ndups,spacing=spacing,weights=weights)
-	y$A <- avedups(x$A,ndups=ndups,spacing=spacing,weights=weights)
-	other <- names(x$other)
-	for (a in other) object$other[[a]] <- avedups(object$other[[a]],ndups=ndups,spacing=spacing,weights=weights)
-	y$weights <- avedups(x$weights,ndups=ndups,spacing=spacing)
-	y$genes <- uniquegenelist(x$genes,ndups=ndups,spacing=spacing)
-	y$printer <- NULL
-	y
-}
-
-avedups.EList <- function(x,ndups=x$printer$ndups,spacing=x$printer$spacing,weights=x$weights)
-#	Average over duplicate spots for EList objects
-#	Gordon Smyth
-#	2 Apr 2010.
-{
-	if(is.null(ndups) || is.null(spacing)) stop("Must specify ndups and spacing")
-	y <- x
-	y$E <- avedups(x$E,ndups=ndups,spacing=spacing,weights=weights)
-	other <- names(x$other)
-	for (a in other) object$other[[a]] <- avedups(object$other[[a]],ndups=ndups,spacing=spacing,weights=weights)
-	y$weights <- avedups(x$weights,ndups=ndups,spacing=spacing)
-	y$genes <- uniquegenelist(x$genes,ndups=ndups,spacing=spacing)
-	y$printer <- NULL
-	y
-}
-
-avereps <- function(x,...)
-#	4 June 2008
-	UseMethod("avereps")
-
-avereps.default <- function(x,ID=rownames(x),...)
-#	Average over irregular replicate spots, for matrices or vectors
-#	Gordon Smyth
-#	Created 3 June 2008.  Last modified 1 Dec 2010.
-#	Revised 19 Aug 2009 following suggestions from Axel Klenk.
-#	Revised 28 March 2010 following suggestion from Michael Lawrence.
-{
-	if(is.null(x)) return(NULL)
-	x <- as.matrix(x)
-	if(is.null(ID)) stop("No probe IDs")
-	ID <- as.character(ID)
-	if(mode(x)=="character") {
-		d <- duplicated(ID)
-		if(!any(d)) return(x)
-		y <- x[!d,,drop=FALSE]
-		return(y)
-	}
-	ID <- factor(ID,levels=unique(ID))
-#	rowsum(x,ID,reorder=FALSE,na.rm=TRUE)/as.vector(table(ID))
-	y <- rowsum(x,ID,reorder=FALSE,na.rm=TRUE)
-	n <- rowsum(1L-is.na(x),ID,reorder=FALSE)
-	y/n
-}
-
-avereps.MAList <- function(x,ID=NULL,...)
-#	Average over irregular replicate spots for MAList objects
-#	Gordon Smyth
-#	3 June 2008.  Last modified 8 Sep 2010.
-{
-	if(is.null(ID)) {
-		ID <- x$genes$ID
-		if(is.null(ID)) ID <- rownames(x)
-		if(is.null(ID)) stop("Cannot find probe IDs")
-	}
-	y <- x
-	y$M <- avereps(x$M,ID=ID)
-	y$A <- avereps(x$A,ID=ID)
-	other <- names(x$other)
-	for (a in other) y$other[[a]] <- avereps(x$other[[a]],ID=ID)
-	y$weights <- avereps(x$weights,ID=ID)
-	y$genes <- x$genes[!duplicated(ID),]
-	y$printer <- NULL
-	y
-}
-
-avereps.EList <- function(x,ID=NULL,...)
-#	Average over irregular replicate probes for EList objects
-#	Gordon Smyth
-#	2 April 2010.  Last modified 20 May 2011.
-{
-	if(is.null(ID)) {
-		ID <- x$genes$ID
-		if(is.null(ID)) ID <- rownames(x)
-		if(is.null(ID)) stop("Cannot find probe IDs")
-	}
-	y <- x
-	y$E <- avereps(x$E,ID=ID)
-	other <- names(x$other)
-	for (a in other) y$other[[a]] <- avereps(x$other[[a]],ID=ID)
-	y$weights <- avereps(x$weights,ID=ID)
-	y$genes <- x$genes[!duplicated(ID),]
-	y$printer <- NULL
-	y
-}
-
-avereps.RGList <- function(x,ID=NULL,...)
-#	Warn users that averaging should not be applied prior to normalization
-#	Gordon Smyth
-#	2 December 2013.
-{
-	stop("avereps should not be applied to an RGList object")
-	invisible()
-}
-
-
-avereps.EListRaw <- function(x,ID=NULL,...)
-#	Warn users that averaging should not be applied prior to normalization
-#	Gordon Smyth
-#	2 December 2013.
-{
-	stop("avereps should not be applied to an EListRaw object")
-	invisible()
-}
-```
-
-# define registration_wrapper that uses ^
-```{r}
-parblockcor <- function (sce_pseudo, registration_model, var_sample_id = "registration_sample_id",corpar=2) 
-{
-    message(Sys.time(), " run duplicateCorrelation()")
-    corfit <- pdupcor(logcounts(sce_pseudo), 
-        registration_model, block = sce_pseudo[[var_sample_id]],cores=corpar)
-    block_cor <- corfit$consensus.correlation
-    if (!is.finite(block_cor)) {
-        warning("The resulting correlation is not finite! So it won't be used by downstream functions. The value is: ", 
-            block_cor, ".", call. = FALSE)
-    }
-    message(Sys.time(), " The estimated correlation is: ", block_cor)
-    return(block_cor)
-}
-```
-
-### step through registration passing the block_cor we obtain by running dupcor in parallelized form thru modified spatialLIBD fxn
-### this parallelized duplicate correlation function is very RAM intensive, so not really worth it unless on hpc in the future.
-```{r}
-# replace dashes, spaces with underscores to avoid errors
-hmap$C3 <- gsub(hmap$C3,pattern=" ",replacement="_")
-hmap$C3 <- gsub(hmap$C3,pattern="-",replacement="_")
-hmap$C4 <- gsub(hmap$C4,pattern=" ",replacement="_")
-hmap$C4 <- gsub(hmap$C4,pattern="-",replacement="_")
-
-pbulkhmap <- registration_pseudobulk(sce = hmap,var_registration = "C3",var_sample_id = "Sample_ID")
-pbulkhmap4 <- registration_pseudobulk(sce=hmap,var_registration="C4",var_sample_id="Sample_ID")
-rm(hmap)
-gc(full=T)
-
-modhmap <- registration_model(pbulkhmap,var_registration = "C3")
-block_cor <- parblockcor(pbulkhmap,modhmap,var_sample_id="Sample_ID",corpar = 4)
-rm(modhmap)
-
-modhmap4 <- registration_model(pbulkhmap4,var_registration="C4",)
-block_cor4 <- parblockcor(pbulkhmap4,modhmap4,var_sample_id="Sample_ID",corpar=4)
-rm(modhmap4)
-
-c3reg <- registration_stats_enrichment(pbulkhmap,var_sample_id="Sample_ID",var_registration="C3",block_cor=block_cor,gene_ensembl = "gene_name",gene_name="gene_name")
-
-c4reg <- registration_stats_enrichment(pbulkhmap4,var_sample_id="Sample_ID",var_registration="C4",block_cor=block_cor4,gene_ensembl="gene_name",gene_name="gene_name")
-
-```
+### registration is pointlessly slow with this many clusters (their C3/C4 levels, which they showed had spatial subarrangements in their visium VMH).
 
 ## NMF of subsetted hmap (neurons only)
 ```{r}
@@ -439,18 +100,22 @@ dim(hmap)
 # [1] 119
 # > length(unique(hmapcd$C4))
 # [1] 415
-# so prob 450 factors
+# so prob 150 or 450 factors depending on cluster level
 
 gc(full=T)
 
 hmapcd <- as.data.table(colData(hmap),keep.rownames=T)
 hmaplct <- assay(hmap,'logcounts')
-rm(hmap)
+rm(hmap) # as long as we dont fuck with the coldata data table, row order is unpertrubed and we can safely cbind nmf output columns in after
 gc(full=T)
 
 library(Matrix)
-hmapN.nmf <-RcppML::nmf(hmaplct,
-    k=450,
+setRcppMLthreads(10)
+# just in case:
+setDTthreads(1,restore_after_fork=F)
+
+hmapN.nmf <- nmf(hmaplct,
+    k=150,
     tol = 1e-06,
     maxit = 3000,
     verbose = T,
@@ -460,16 +125,288 @@ hmapN.nmf <-RcppML::nmf(hmaplct,
     diag = TRUE,
     nonneg = TRUE
 )
+```
+iter |      tol 
+---------------
+   1 | 8.78e-01
+   2 | 1.04e-01
+   3 | 3.98e-02
+   4 | 2.18e-02
+   5 | 1.56e-02
+   6 | 1.33e-02
+   7 | 1.22e-02
+   8 | 1.13e-02
+   9 | 9.81e-03
+  10 | 8.41e-03
+  11 | 7.75e-03
+  12 | 7.06e-03
+  13 | 5.39e-03
+  14 | 4.89e-03
+  15 | 4.39e-03
+  16 | 3.84e-03
+  17 | 3.19e-03
+  18 | 2.63e-03
+  19 | 2.34e-03
+  20 | 1.97e-03
+  21 | 1.62e-03
+  22 | 1.28e-03
+  23 | 9.59e-04
+  24 | 7.79e-04
+  25 | 7.30e-04
+  26 | 6.86e-04
+  27 | 6.73e-04
+  28 | 6.60e-04
+  29 | 5.92e-04
+  30 | 5.60e-04
+  31 | 5.44e-04
+  32 | 5.16e-04
+  33 | 5.01e-04
+  34 | 4.71e-04
+  35 | 4.33e-04
+  36 | 3.96e-04
+  37 | 3.39e-04
+  38 | 2.87e-04
+  39 | 2.23e-04
+  40 | 1.86e-04
+  41 | 1.62e-04
+  42 | 1.42e-04
+  43 | 1.45e-04
+  44 | 1.51e-04
+  45 | 1.62e-04
+  46 | 1.65e-04
+  47 | 1.65e-04
+  48 | 1.60e-04
+  49 | 1.37e-04
+  50 | 1.31e-04
+  51 | 1.20e-04
+  52 | 1.12e-04
+  53 | 1.06e-04
+  54 | 9.83e-05
+  55 | 9.03e-05
+  56 | 8.65e-05
+  57 | 8.32e-05
+  58 | 7.95e-05
+  59 | 7.55e-05
+  60 | 7.07e-05
+  61 | 6.84e-05
+  62 | 6.46e-05
+  63 | 6.38e-05
+  64 | 6.47e-05
+  65 | 6.61e-05
+  66 | 5.30e-05
+  67 | 5.13e-05
+  68 | 5.28e-05
+  69 | 5.34e-05
+  70 | 5.41e-05
+  71 | 5.42e-05
+  72 | 5.73e-05
+  73 | 5.91e-05
+  74 | 6.14e-05
+  75 | 6.30e-05
+  76 | 6.45e-05
+  77 | 6.53e-05
+  78 | 6.48e-05
+  79 | 6.27e-05
+  80 | 5.98e-05
+  81 | 5.76e-05
+  82 | 5.29e-05
+  83 | 5.12e-05
+  84 | 5.12e-05
+  85 | 5.24e-05
+  86 | 5.37e-05
+  87 | 5.60e-05
+  88 | 5.70e-05
+  89 | 5.87e-05
+  90 | 5.89e-05
+  91 | 5.63e-05
+  92 | 5.38e-05
+  93 | 4.78e-05
+  94 | 4.37e-05
+  95 | 3.82e-05
+  96 | 3.54e-05
+  97 | 3.38e-05
+  98 | 3.24e-05
+  99 | 2.86e-05
+ 100 | 2.67e-05
+ 101 | 2.48e-05
+ 102 | 2.32e-05
+ 103 | 2.17e-05
+ 104 | 2.03e-05
+ 105 | 1.94e-05
+ 106 | 1.89e-05
+ 107 | 1.81e-05
+ 108 | 1.78e-05
+ 109 | 1.77e-05
+ 110 | 1.77e-05
+ 111 | 1.74e-05
+ 112 | 1.71e-05
+ 113 | 1.57e-05
+ 114 | 1.52e-05
+ 115 | 1.54e-05
+ 116 | 1.48e-05
+ 117 | 1.40e-05
+ 118 | 1.37e-05
+ 119 | 1.19e-05
+ 120 | 1.01e-05
+ 121 | 9.32e-06
+ 122 | 8.63e-06
+ 123 | 8.03e-06
+ 124 | 7.62e-06
+ 125 | 7.26e-06
+ 126 | 6.96e-06
+ 127 | 6.70e-06
+ 128 | 6.44e-06
+ 129 | 6.29e-06
+ 130 | 6.32e-06
+ 131 | 6.44e-06
+ 132 | 6.01e-06
+ 133 | 5.87e-06
+ 134 | 6.07e-06
+ 135 | 6.10e-06
+ 136 | 6.28e-06
+ 137 | 6.51e-06
+ 138 | 6.04e-06
+ 139 | 6.34e-06
+ 140 | 6.93e-06
+ 141 | 7.62e-06
+ 142 | 8.53e-06
+ 143 | 1.00e-05
+ 144 | 1.19e-05
+ 145 | 1.42e-05
+ 146 | 1.71e-05
+ 147 | 2.07e-05
+ 148 | 2.44e-05
+ 149 | 2.54e-05
+ 150 | 2.69e-05
+ 151 | 2.78e-05
+ 152 | 2.67e-05
+ 153 | 2.43e-05
+ 154 | 2.22e-05
+ 155 | 2.02e-05
+ 156 | 1.78e-05
+ 157 | 1.57e-05
+ 158 | 1.16e-05
+ 159 | 8.73e-06
+ 160 | 7.11e-06
+ 161 | 6.07e-06
+ 162 | 5.30e-06
+ 163 | 4.56e-06
+ 164 | 3.96e-06
+ 165 | 3.41e-06
+ 166 | 3.05e-06
+ 167 | 2.76e-06
+ 168 | 2.54e-06
+ 169 | 2.25e-06
+ 170 | 1.97e-06
+ 171 | 1.82e-06
+ 172 | 1.69e-06
+ 173 | 1.54e-06
+ 174 | 1.29e-06
+ 175 | 1.19e-06
+ 176 | 1.13e-06
+ 177 | 1.08e-06
+ 178 | 1.04e-06
+ 179 | 1.02e-06
+ 180 | 1.01e-06
+ 181 | 9.87e-07
+ 
+append cell patterns to sce; save nmf mat
+```{r}
+th <- t(hmapN.nmf$h)
+hmapcd<-cbind(hmapcd,th)
+
+saveRDS(hmapN.nmf,"processed-data/12-Mouse comparisons/07a-hmapN.nmf_150factors.RDS")
+``` 
 
 
+## now to figure out what factor is what in the source data. see jacqui's code at https://github.com/LieberInstitute/spatial_hpc/blob/main/code/revision/plots_nmf-general-specific.R
+```{r}
+nfacts <- 150
+getname <- paste0("V",1:nfacts)
+seed1 = as.matrix(hmapcd[,..getname])
+seed1 = seed1>0
+d1 = cbind.data.frame(authlabel=hmapcd$C3_named,
+                      seed1) %>% 
+  group_by(authlabel) %>% add_tally(name="total") %>%
+    group_by(authlabel, total) %>%
+  summarise_at(paste0("V",1:nfacts), sum) %>%
+  tidyr::pivot_longer(paste0("V",1:nfacts), values_to="n", names_to="nmf") %>%
+  mutate(prop=n/total)
+
+seed2 = as.matrix(hmapcd[,..getname])
+seed2 = apply(seed2, 2, scale)
+d2 = cbind.data.frame(authlabel=hmapcd$C3_named,
+                      seed2) %>% 
+  group_by(authlabel) %>%
+  summarise_at(paste0("V",1:nfacts), mean) %>% 
+  tidyr::pivot_longer(paste0("V",1:nfacts), values_to="scaled.avg", names_to="nmf")
+
+pltdat <- left_join(d1[,c("authlabel","nmf","prop")], 
+                   d2[,c("authlabel","nmf","scaled.avg")])
+
+# data table-ize for ease of use -- dplyr code is jacqui's almost verbatim
+pltdat <- as.data.table(pltdat)
+```
+
+## extract some strongly specific factors
+```{r}
+pltdat[,third_highest_scaleavg:=quantile(scaled.avg,(nfacts-2)/nfacts),by="authlabel"]
+pltdat[scaled.avg>1.25*third_highest_scaleavg,specavg:=T]
+
+pltdat[,prop90:=quantile(prop,0.9),by="authlabel"]
+pltdat[prop>(0.1+prop90),specprop:=T]
+
+nmfcluspairs <- pltdat[specprop==T|specavg==T]
+## get rid of ones that are specific to multiple clusters
+dropfact <- nmfcluspairs[,.N,by=c("nmf")][N>1,nmf]
+
+nmfcluspairs <- nmfcluspairs[!(nmf %in% dropfact)]
+
+
+nmford <- nmfcluspairs$nmf
+authlabelord <- nmfcluspairs$authlabel
+
+## plot order once pairings assigned
+nmfmisc <- paste0("V",c(1:150))
+nmford <- c(nmford,nmfmisc[!(nmfmisc %in% nmford)])
+stopifnot(length(nmford)==length(unique(nmford)))
+
+## make sure all auth labels accounted for--some authlabels may occur twice for pairings if they have multiple specific factors
+authlabelord <- c(authlabelord,pltdat[!(authlabel %in% authlabelord),unique(authlabel)])
+stopifnot(all(unique(pltdat$authlabel) %in% authlabelord))
+
+
+## once pairings assigned
+pltdat[,authlabel:=factor(authlabel,levels=unique(authlabelord))]
+pltdat[,nmf:=factor(nmf,levels=nmford)]
+
+
+## save plot
+png("plots/12-Comparisons to other mouse and human datasets/07a-HumanHypomapNMF150.png",height=2000,width=2000)
+ggplot(pltdat, aes(x=nmf, y=authlabel, size=prop, color=scaled.avg))+
+  geom_count()+
+  theme_bw()+
+  scale_size(range=c(0,3))+
+  scale_color_viridis_c(option="F", direction=-1)+
+  labs(x="NMF Factor",y="Human hypomap C3 cluster (named)")+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=.5,size=10),
+        axis.text.y=element_text(size=10),
+        axis.title.x=element_text(size=12),
+        axis.title.y=element_text(size=12))
+dev.off()
+```
+
+## clean up
+```{r}
+rm(d1,d2,seed1,seed2,nmfmisc,pltdat,dropfact,getname,hmaplct)
+gc(full=T)
 ```
 
 
-
-
-
-## clear out the actual hmap sce, load back in the SPE, label, and run regist wrapper
+## load back in the SPE, label, and run regist wrapper
 ```{r}
+hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
 clus <- fread("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
 setnames(clus,2,"cl")
 clus[,cl:=paste0("X",cl)]
@@ -496,4 +433,375 @@ colLabels(hyp2) <- clus$cl
 hyp2 <- hyp2[,hyp2$label!="DROP"]
 ## toss imgData
 imgData(hyp2) <- NULL
+gc(full=T)
 ```
+
+reorder rows to match nmf matrix; 
+```{r}
+keepg <- fread("processed-data/12-Mouse comparisons/07a-ensg-hgnc_lut.txt")
+## there's two ensg's listed for GOLGA8M, which is in our data?
+rowData(hyp2)[rowData(hyp2)$gene_name=="GOLGA8M",]
+
+## both...so fuck that, drop golga8m from the w matrix from nmf and from this
+
+keepg <- keepg[hgnc_symbol!="GOLGA8M",]
+nmf.w.keeprows <- which(hmaprnord %in% keepg$hgnc_symbol)
+matchw <- hmapN.nmf$w[nmf.w.keeprows,]
+# update our vector of rownames from hmap to only be those retained
+hmaprnord <- hmaprnord[nmf.w.keeprows]
+
+## get the ensembl ids in the same order as the symbols from hypomap
+ensord <- unlist(lapply(hmaprnord,FUN=function(x){keepg[hgnc_symbol==x,ensembl_gene_id]}))
+
+hyp2 <- hyp2[ensord,]
+rm(clus,ensord,nmf.w.keeprows,th)
+gc(full=T)
+## project
+set.seed(42)
+hmapprojinto.hyp2 <- RcppML::project(A=logcounts(hyp2),w=matchw)#,L2=0.00005)
+hmapprojinto.hyp2 <- t(hmapprojinto.hyp2)
+
+## add row/colnames
+stopifnot(nrow(hmapprojinto.hyp2)==ncol(hyp2))
+rownames(hmapprojinto.hyp2) <- colnames(hyp2)
+colnames(hmapprojinto.hyp2) <- paste0("V",c(1:nfacts))
+
+## save
+saveRDS(hmapprojinto.hyp2,"processed-data/12-Mouse comparisons/07b-hmapN150_projIntoSPE.RDS")
+```
+
+## append the hypomap-cluster-specific NMF factors into the spe
+```{r}
+colData(hyp2) <- cbind(colData(hyp2),hmapprojinto.hyp2[,nmfcluspairs$nmf])
+
+## swap colnames to be the paired cluster
+tmpcd <- as.data.table(colData(hyp2),keep.rownames=T)
+
+setnames(tmpcd,nmfcluspairs$nmf,nmfcluspairs$authlabel)
+tmpcd <- DataFrame(tmpcd,row.names=tmpcd$rn)[colnames(hyp2),]
+tmpcd$rn <- NULL
+colData(hyp2) <- tmpcd
+
+fwrite(as.data.table(tmpcd,keep.rownames=T),"processed-data/12-Mouse comparisons/07c-SPEcoldata_withHMAPclusSpecWeights_named_by_hmapcluster.txt",sep='\t',quote=F,row.names=F)
+```
+
+
+plot from those separately
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.3 (2025-02-28)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.7.4
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/New_York
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+ [1] ggplot2_3.5.1               dplyr_1.1.4                 tidyr_1.3.1                
+ [4] Matrix_1.7-3                BiocParallel_1.40.0         parallelly_1.43.0          
+ [7] RcppML_0.3.7                biomaRt_2.62.1              spatialLIBD_1.18.0         
+[10] Seurat_5.2.1                SeuratObject_5.0.2          sp_2.2-0                   
+[13] SpatialExperiment_1.16.0    SingleCellExperiment_1.28.1 SummarizedExperiment_1.36.0
+[16] Biobase_2.66.0              GenomicRanges_1.58.0        GenomeInfoDb_1.42.3        
+[19] IRanges_2.40.1              S4Vectors_0.44.0            BiocGenerics_0.52.0        
+[22] MatrixGenerics_1.18.1       matrixStats_1.5.0           data.table_1.17.0          
+[25] rlang_1.1.5                
+
+loaded via a namespace (and not attached):
+  [1] spatstat.sparse_3.1-0    bitops_1.0-9             httr_1.4.7              
+  [4] RColorBrewer_1.1-3       doParallel_1.0.17        tools_4.4.3             
+  [7] sctransform_0.4.1        R6_2.6.1                 DT_0.33                 
+ [10] lazyeval_0.2.2           uwot_0.2.3               withr_3.0.2             
+ [13] prettyunits_1.2.0        gridExtra_2.3            progressr_0.15.1        
+ [16] cli_3.6.4                spatstat.explore_3.4-2   fastDummies_1.7.5       
+ [19] labeling_0.4.3           sass_0.4.9               spatstat.data_3.1-6     
+ [22] ggridges_0.5.6           pbapply_1.7-2            Rsamtools_2.22.0        
+ [25] scater_1.34.1            sessioninfo_1.2.3        attempt_0.3.1           
+ [28] maps_3.4.2.1             limma_3.62.2             rstudioapi_0.17.1       
+ [31] RSQLite_2.3.9            generics_0.1.3           BiocIO_1.16.0           
+ [34] ica_1.0-3                spatstat.random_3.3-3    ggbeeswarm_0.7.2        
+ [37] abind_1.4-8              lifecycle_1.0.4          yaml_2.3.10             
+ [40] edgeR_4.4.2              SparseArray_1.6.2        BiocFileCache_2.14.0    
+ [43] Rtsne_0.17               paletteer_1.6.0          grid_4.4.3              
+ [46] blob_1.2.4               promises_1.3.2           ExperimentHub_2.14.0    
+ [49] crayon_1.5.3             miniUI_0.1.1.1           lattice_0.22-6          
+ [52] beachmat_2.22.0          cowplot_1.1.3            KEGGREST_1.46.0         
+ [55] magick_2.8.6             pillar_1.10.1            knitr_1.50              
+ [58] rjson_0.2.23             future.apply_1.11.3      codetools_0.2-20        
+ [61] glue_1.8.0               spatstat.univar_3.1-2    vctrs_0.6.5             
+ [64] png_0.1-8                spam_2.11-1              gtable_0.3.6            
+ [67] rematch2_2.1.2           cachem_1.1.0             xfun_0.51               
+ [70] S4Arrays_1.6.0           mime_0.13                survival_3.8-3          
+ [73] iterators_1.0.14         fields_16.3.1            statmod_1.5.0           
+ [76] fitdistrplus_1.2-2       ROCR_1.0-11              nlme_3.1-167            
+ [79] bit64_4.6.0-1            progress_1.2.3           filelock_1.0.3          
+ [82] RcppAnnoy_0.0.22         rprojroot_2.0.4          bslib_0.9.0             
+ [85] irlba_2.3.5.1            vipor_0.4.7              KernSmooth_2.23-26      
+ [88] colorspace_2.1-1         DBI_1.2.3                tidyselect_1.2.1        
+ [91] bit_4.6.0                compiler_4.4.3           curl_6.2.2              
+ [94] httr2_1.1.1              BiocNeighbors_2.0.1      xml2_1.3.8              
+ [97] DelayedArray_0.32.0      plotly_4.10.4            rtracklayer_1.66.0      
+[100] scales_1.3.0             lmtest_0.9-40            rappdirs_0.3.3          
+[103] stringr_1.5.1            digest_0.6.37            goftest_1.2-3           
+[106] spatstat.utils_3.1-3     rmarkdown_2.29           benchmarkmeData_1.0.4   
+[109] XVector_0.46.0           htmltools_0.5.8.1        pkgconfig_2.0.3         
+[112] dbplyr_2.5.0             fastmap_1.2.0            htmlwidgets_1.6.4       
+[115] UCSC.utils_1.2.0         shiny_1.10.0             jquerylib_0.1.4         
+[118] farver_2.1.2             zoo_1.8-13               jsonlite_1.9.1          
+[121] config_0.3.2             BiocSingular_1.22.0      RCurl_1.98-1.17         
+[124] magrittr_2.0.3           scuttle_1.16.0           GenomeInfoDbData_1.2.13 
+[127] dotCall64_1.2            patchwork_1.3.0          munsell_0.5.1           
+[130] Rcpp_1.0.14              viridis_0.6.5            reticulate_1.41.0.1     
+[133] stringi_1.8.4            zlibbioc_1.52.0          MASS_7.3-65             
+[136] AnnotationHub_3.14.0     plyr_1.8.9               parallel_4.4.3          
+[139] listenv_0.9.1            ggrepel_0.9.6            deldir_2.0-4            
+[142] Biostrings_2.74.1        splines_4.4.3            tensor_1.5              
+[145] hms_1.1.3                locfit_1.5-9.12          igraph_2.1.4            
+[148] spatstat.geom_3.3-6      RcppHNSW_0.6.0           reshape2_1.4.4          
+[151] ScaledMatrix_1.14.0      BiocVersion_3.20.0       XML_3.99-0.18           
+[154] evaluate_1.0.3           golem_0.5.1              BiocManager_1.30.25     
+[157] foreach_1.5.2            httpuv_1.6.15            RANN_2.6.2              
+[160] purrr_1.0.4              polyclip_1.10-7          future_1.34.0           
+[163] benchmarkme_1.0.8        scattermore_1.2          rsvd_1.0.5              
+[166] xtable_1.8-4             restfulr_0.0.15          RSpectra_0.16-2         
+[169] later_1.4.1              viridisLite_0.4.2        tibble_3.2.1            
+[172] beeswarm_0.4.0           memoise_2.0.1            AnnotationDbi_1.68.0    
+[175] GenomicAlignments_1.42.0 cluster_2.1.8.1          shinyWidgets_0.9.0      
+[178] globals_0.16.3           here_1.0.1              
+> sessioninfo::session_info()
+─ Session info ────────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.3 (2025-02-28)
+ os       macOS Sonoma 14.7.4
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/New_York
+ date     2025-04-03
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+ quarto   1.4.555 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/quarto
+
+─ Packages ────────────────────────────────────────────────────────────────────────────
+ ! package              * version   date (UTC) lib source
+   abind                  1.4-8     2024-09-12 [1] CRAN (R 4.4.1)
+   AnnotationDbi          1.68.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   AnnotationHub          3.14.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   attempt                0.3.1     2020-05-03 [1] CRAN (R 4.4.0)
+   beachmat               2.22.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   beeswarm               0.4.0     2021-06-01 [1] CRAN (R 4.4.0)
+   benchmarkme            1.0.8     2022-06-12 [1] CRAN (R 4.4.0)
+   benchmarkmeData        1.0.4     2020-04-23 [1] CRAN (R 4.4.0)
+   Biobase              * 2.66.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocFileCache          2.14.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocGenerics         * 0.52.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocIO                 1.16.0    2024-12-12 [1] Github (Bioconductor/BiocIO@8e80624)
+   BiocManager            1.30.25   2024-08-28 [1] CRAN (R 4.4.1)
+   BiocNeighbors          2.0.1     2024-11-28 [1] Bioconductor 3.20 (R 4.4.2)
+   BiocParallel         * 1.40.0    2024-11-23 [1] Bioconductor 3.20 (R 4.4.2)
+   BiocSingular           1.22.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocVersion            3.20.0    2024-05-04 [1] Bioconductor 3.20 (R 4.4.0)
+   biomaRt              * 2.62.1    2025-01-30 [1] Bioconductor 3.20 (R 4.4.2)
+   Biostrings             2.74.1    2024-12-16 [1] Bioconductor 3.20 (R 4.4.2)
+   bit                    4.6.0     2025-03-06 [1] CRAN (R 4.4.1)
+   bit64                  4.6.0-1   2025-01-16 [1] CRAN (R 4.4.1)
+   bitops                 1.0-9     2024-10-03 [1] CRAN (R 4.4.1)
+   blob                   1.2.4     2023-03-17 [1] CRAN (R 4.4.0)
+   bslib                  0.9.0     2025-01-30 [1] CRAN (R 4.4.1)
+   cachem                 1.1.0     2024-05-16 [1] CRAN (R 4.4.0)
+ P cli                    3.6.4     2025-02-13 [2] CRAN (R 4.4.1)
+   cluster                2.1.8.1   2025-03-12 [1] CRAN (R 4.4.1)
+   codetools              0.2-20    2024-03-31 [1] CRAN (R 4.4.3)
+   colorspace             2.1-1     2024-07-26 [1] CRAN (R 4.4.0)
+   config                 0.3.2     2023-08-30 [1] CRAN (R 4.4.0)
+   cowplot                1.1.3     2024-01-22 [1] CRAN (R 4.4.0)
+   crayon                 1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
+   curl                   6.2.2     2025-03-24 [1] CRAN (R 4.4.1)
+   data.table           * 1.17.0    2025-02-22 [1] CRAN (R 4.4.1)
+   DBI                    1.2.3     2024-06-02 [1] CRAN (R 4.4.0)
+   dbplyr                 2.5.0     2024-03-19 [1] CRAN (R 4.4.0)
+   DelayedArray           0.32.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   deldir                 2.0-4     2024-02-28 [1] CRAN (R 4.4.0)
+   digest                 0.6.37    2024-08-19 [1] CRAN (R 4.4.1)
+   doParallel             1.0.17    2022-02-07 [1] CRAN (R 4.4.1)
+   dotCall64              1.2       2024-10-04 [1] CRAN (R 4.4.1)
+   dplyr                * 1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
+   DT                     0.33      2024-04-04 [1] CRAN (R 4.4.0)
+   edgeR                  4.4.2     2025-01-27 [1] Bioconductor 3.20 (R 4.4.2)
+   evaluate               1.0.3     2025-01-10 [1] CRAN (R 4.4.1)
+   ExperimentHub          2.14.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   farver                 2.1.2     2024-05-13 [1] CRAN (R 4.4.0)
+   fastDummies            1.7.5     2025-01-20 [1] CRAN (R 4.4.1)
+   fastmap                1.2.0     2024-05-15 [1] CRAN (R 4.4.0)
+   fields                 16.3.1    2025-03-08 [1] CRAN (R 4.4.1)
+   filelock               1.0.3     2023-12-11 [1] CRAN (R 4.4.0)
+   fitdistrplus           1.2-2     2025-01-07 [1] CRAN (R 4.4.1)
+   foreach                1.5.2     2022-02-02 [1] CRAN (R 4.4.0)
+   future                 1.34.0    2024-07-29 [1] CRAN (R 4.4.0)
+   future.apply           1.11.3    2024-10-27 [1] CRAN (R 4.4.1)
+   generics               0.1.3     2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb         * 1.42.3    2025-01-27 [1] Bioconductor 3.20 (R 4.4.2)
+   GenomeInfoDbData       1.2.13    2024-12-12 [1] Bioconductor
+   GenomicAlignments      1.42.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   GenomicRanges        * 1.58.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   ggbeeswarm             0.7.2     2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2              * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
+   ggrepel                0.9.6     2024-09-07 [1] CRAN (R 4.4.1)
+   ggridges               0.5.6     2024-01-23 [1] CRAN (R 4.4.0)
+   globals                0.16.3    2024-03-08 [1] CRAN (R 4.4.0)
+   glue                   1.8.0     2024-09-30 [1] CRAN (R 4.4.1)
+   goftest                1.2-3     2021-10-07 [1] CRAN (R 4.4.0)
+   golem                  0.5.1     2024-08-27 [1] CRAN (R 4.4.1)
+   gridExtra              2.3       2017-09-09 [1] CRAN (R 4.4.0)
+   gtable                 0.3.6     2024-10-25 [1] CRAN (R 4.4.1)
+   here                   1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
+   hms                    1.1.3     2023-03-21 [1] CRAN (R 4.4.0)
+   htmltools              0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets            1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
+   httpuv                 1.6.15    2024-03-26 [1] CRAN (R 4.4.0)
+   httr                   1.4.7     2023-08-15 [1] CRAN (R 4.4.0)
+   httr2                  1.1.1     2025-03-08 [1] CRAN (R 4.4.1)
+   ica                    1.0-3     2022-07-08 [1] CRAN (R 4.4.0)
+   igraph                 2.1.4     2025-01-23 [1] CRAN (R 4.4.1)
+   IRanges              * 2.40.1    2024-12-05 [1] Bioconductor 3.20 (R 4.4.2)
+   irlba                  2.3.5.1   2022-10-03 [1] CRAN (R 4.4.0)
+   iterators              1.0.14    2022-02-05 [1] CRAN (R 4.4.0)
+   jquerylib              0.1.4     2021-04-26 [1] CRAN (R 4.4.0)
+   jsonlite               1.9.1     2025-03-03 [1] CRAN (R 4.4.1)
+   KEGGREST               1.46.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   KernSmooth             2.23-26   2025-01-01 [1] CRAN (R 4.4.3)
+   knitr                  1.50      2025-03-16 [1] CRAN (R 4.4.2)
+   labeling               0.4.3     2023-08-29 [1] CRAN (R 4.4.0)
+   later                  1.4.1     2024-11-27 [1] CRAN (R 4.4.1)
+   lattice                0.22-6    2024-03-20 [1] CRAN (R 4.4.3)
+   lazyeval               0.2.2     2019-03-15 [1] CRAN (R 4.4.0)
+   lifecycle              1.0.4     2023-11-07 [1] CRAN (R 4.4.0)
+   limma                  3.62.2    2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+   listenv                0.9.1     2024-01-29 [1] CRAN (R 4.4.0)
+   lmtest                 0.9-40    2022-03-21 [1] CRAN (R 4.4.0)
+   locfit                 1.5-9.12  2025-03-05 [1] CRAN (R 4.4.1)
+   magick                 2.8.6     2025-03-23 [1] CRAN (R 4.4.1)
+   magrittr               2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
+   maps                   3.4.2.1   2024-11-10 [1] CRAN (R 4.4.1)
+   MASS                   7.3-65    2025-02-28 [1] CRAN (R 4.4.1)
+   Matrix               * 1.7-3     2025-03-11 [1] CRAN (R 4.4.1)
+   MatrixGenerics       * 1.18.1    2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+   matrixStats          * 1.5.0     2025-01-07 [1] CRAN (R 4.4.1)
+   memoise                2.0.1     2021-11-26 [1] CRAN (R 4.4.0)
+   mime                   0.13      2025-03-17 [1] CRAN (R 4.4.1)
+   miniUI                 0.1.1.1   2018-05-18 [1] CRAN (R 4.4.0)
+   munsell                0.5.1     2024-04-01 [1] CRAN (R 4.4.0)
+   nlme                   3.1-167   2025-01-27 [1] CRAN (R 4.4.3)
+   paletteer              1.6.0     2024-01-21 [1] CRAN (R 4.4.0)
+   parallelly           * 1.43.0    2025-03-24 [1] CRAN (R 4.4.1)
+   patchwork              1.3.0     2024-09-16 [1] CRAN (R 4.4.1)
+   pbapply                1.7-2     2023-06-27 [1] CRAN (R 4.4.0)
+   pillar                 1.10.1    2025-01-07 [1] CRAN (R 4.4.1)
+   pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.4.0)
+   plotly                 4.10.4    2024-01-13 [1] CRAN (R 4.4.0)
+   plyr                   1.8.9     2023-10-02 [1] CRAN (R 4.4.0)
+   png                    0.1-8     2022-11-29 [1] CRAN (R 4.4.0)
+   polyclip               1.10-7    2024-07-23 [1] CRAN (R 4.4.0)
+   prettyunits            1.2.0     2023-09-24 [1] CRAN (R 4.4.0)
+   progress               1.2.3     2023-12-06 [1] CRAN (R 4.4.0)
+   progressr              0.15.1    2024-11-22 [1] CRAN (R 4.4.1)
+   promises               1.3.2     2024-11-28 [1] CRAN (R 4.4.1)
+   purrr                  1.0.4     2025-02-05 [1] CRAN (R 4.4.1)
+   R6                     2.6.1     2025-02-15 [1] CRAN (R 4.4.1)
+   RANN                   2.6.2     2024-08-25 [1] CRAN (R 4.4.1)
+   rappdirs               0.3.3     2021-01-31 [1] CRAN (R 4.4.0)
+   RColorBrewer           1.1-3     2022-04-03 [1] CRAN (R 4.4.0)
+   Rcpp                   1.0.14    2025-01-12 [1] CRAN (R 4.4.1)
+   RcppAnnoy              0.0.22    2024-01-23 [1] CRAN (R 4.4.0)
+   RcppHNSW               0.6.0     2024-02-04 [1] CRAN (R 4.4.0)
+   RcppML               * 0.3.7     2021-09-21 [1] CRAN (R 4.4.2)
+   RCurl                  1.98-1.17 2025-03-22 [1] CRAN (R 4.4.1)
+   rematch2               2.1.2     2020-05-01 [1] CRAN (R 4.4.0)
+   reshape2               1.4.4     2020-04-09 [1] CRAN (R 4.4.0)
+   restfulr               0.0.15    2022-06-16 [1] CRAN (R 4.4.0)
+   reticulate             1.41.0.1  2025-03-09 [1] CRAN (R 4.4.1)
+   rjson                  0.2.23    2024-09-16 [1] CRAN (R 4.4.1)
+ P rlang                * 1.1.5     2025-01-17 [2] CRAN (R 4.4.1)
+   rmarkdown              2.29      2024-11-04 [1] CRAN (R 4.4.1)
+   ROCR                   1.0-11    2020-05-02 [1] CRAN (R 4.4.0)
+   rprojroot              2.0.4     2023-11-05 [1] CRAN (R 4.4.0)
+   Rsamtools              2.22.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   RSpectra               0.16-2    2024-07-18 [1] CRAN (R 4.4.0)
+   RSQLite                2.3.9     2024-12-03 [1] CRAN (R 4.4.1)
+   rstudioapi             0.17.1    2024-10-22 [1] CRAN (R 4.4.1)
+   rsvd                   1.0.5     2021-04-16 [1] CRAN (R 4.4.0)
+   rtracklayer            1.66.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   Rtsne                  0.17      2023-12-07 [1] CRAN (R 4.4.0)
+   S4Arrays               1.6.0     2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   S4Vectors            * 0.44.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   sass                   0.4.9     2024-03-15 [1] CRAN (R 4.4.0)
+   ScaledMatrix           1.14.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   scales                 1.3.0     2023-11-28 [1] CRAN (R 4.4.0)
+   scater                 1.34.1    2025-03-03 [1] Bioconductor 3.20 (R 4.4.2)
+   scattermore            1.2       2023-06-12 [1] CRAN (R 4.4.0)
+   sctransform            0.4.1     2023-10-19 [1] CRAN (R 4.4.0)
+   scuttle                1.16.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   sessioninfo            1.2.3     2025-02-05 [1] CRAN (R 4.4.1)
+   Seurat               * 5.2.1     2025-01-24 [1] CRAN (R 4.4.1)
+   SeuratObject         * 5.0.2     2024-05-08 [1] CRAN (R 4.4.0)
+   shiny                  1.10.0    2024-12-14 [1] CRAN (R 4.4.1)
+   shinyWidgets           0.9.0     2025-02-21 [1] CRAN (R 4.4.1)
+   SingleCellExperiment * 1.28.1    2024-11-23 [1] Bioconductor 3.20 (R 4.4.2)
+   sp                   * 2.2-0     2025-02-01 [1] CRAN (R 4.4.1)
+   spam                   2.11-1    2025-01-20 [1] CRAN (R 4.4.1)
+   SparseArray            1.6.2     2025-02-20 [1] Bioconductor 3.20 (R 4.4.2)
+   SpatialExperiment    * 1.16.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   spatialLIBD          * 1.18.0    2024-11-07 [1] Bioconductor 3.20 (R 4.4.3)
+   spatstat.data          3.1-6     2025-03-17 [1] CRAN (R 4.4.2)
+   spatstat.explore       3.4-2     2025-03-21 [1] CRAN (R 4.4.1)
+   spatstat.geom          3.3-6     2025-03-18 [1] CRAN (R 4.4.1)
+   spatstat.random        3.3-3     2025-03-19 [1] CRAN (R 4.4.1)
+   spatstat.sparse        3.1-0     2024-06-21 [1] CRAN (R 4.4.0)
+   spatstat.univar        3.1-2     2025-03-05 [1] CRAN (R 4.4.1)
+   spatstat.utils         3.1-3     2025-03-15 [1] CRAN (R 4.4.1)
+   statmod                1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
+   stringi                1.8.4     2024-05-06 [1] CRAN (R 4.4.0)
+   stringr                1.5.1     2023-11-14 [1] CRAN (R 4.4.0)
+   SummarizedExperiment * 1.36.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   survival               3.8-3     2024-12-17 [1] CRAN (R 4.4.3)
+   tensor                 1.5       2012-05-05 [1] CRAN (R 4.4.0)
+   tibble                 3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr                * 1.3.1     2024-01-24 [1] CRAN (R 4.4.0)
+   tidyselect             1.2.1     2024-03-11 [1] CRAN (R 4.4.0)
+   UCSC.utils             1.2.0     2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   uwot                   0.2.3     2025-02-24 [1] CRAN (R 4.4.1)
+   vctrs                  0.6.5     2023-12-01 [1] CRAN (R 4.4.0)
+   vipor                  0.4.7     2023-12-18 [1] CRAN (R 4.4.0)
+   viridis                0.6.5     2024-01-29 [1] CRAN (R 4.4.0)
+   viridisLite            0.4.2     2023-05-02 [1] CRAN (R 4.4.0)
+   withr                  3.0.2     2024-10-28 [1] CRAN (R 4.4.1)
+   xfun                   0.51      2025-02-19 [1] CRAN (R 4.4.1)
+   XML                    3.99-0.18 2025-01-01 [1] CRAN (R 4.4.1)
+   xml2                   1.3.8     2025-03-14 [1] CRAN (R 4.4.1)
+   xtable                 1.8-4     2019-04-21 [1] CRAN (R 4.4.0)
+   XVector                0.46.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   yaml                   2.3.10    2024-07-26 [1] CRAN (R 4.4.0)
+   zlibbioc               1.52.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   zoo                    1.8-13    2025-02-22 [1] CRAN (R 4.4.1)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ * ── Packages attached to the search path.
+ P ── Loaded and on-disk path mismatch.
+
+───────────────────────────────────────────────────────────────────────────────────────
