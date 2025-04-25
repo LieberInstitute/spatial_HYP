@@ -37,6 +37,8 @@ library(parallel)
 unloadNamespace("datasets")
 ```
 
+note--allusions to "fig3" are really fig2 in the kim paper. the legend for figure 2 is a page after that of figure 3 in the pdf version of the publication 
+
 load smartseq cpm dgcmatrix and metadata (both at https://data.mendeley.com/datasets/ypx3sw2f7c/3 ) --> SCE
 ```{r}
 load("raw-data/KimAnderson19_msVMHprofiles/smartseq_cpm.rda")
@@ -69,7 +71,7 @@ multimap <- rbindlist(multimap)
 smart_to_sfish <- as.data.table(rbind(smart_to_sfish[!(smartseq_clus %in% multimapfish)],multimap))
 stopifnot(all(unique(smart_to_sfish$smartseq_clus) %in% met$cca_cluster_label))
 
-## get those clusters that were illustrated with an anteroposterior pattern in fig3d. replace 'a' (first/anteriormost seqfish section) with 0 to prevent propagation of NAs.
+## get those clusters that were illustrated with an anteroposterior pattern in fig2d. replace 'a' (first/anteriormost seqfish section) with 0 to prevent propagation of NAs.
 smart_to_sfish[,APorder_fig3d:=gsub(APorder_fig3d,pattern="a",replacement="0")]
 apannod <- smart_to_sfish[APorder_fig3d %in% grep(APorder_fig3d,pattern="0|b|c|e|f",value=T)]
 ```
@@ -135,10 +137,16 @@ orths <- orths[ortholog_ensg %in% rownames(hyp2)]
 
 stopifnot(nrow(unique(orths[,c("input_ensg","ortholog_ensg")]))==nrow(orths))
 
+
+## save for later use if/once full seqfish dataset is received
+fwrite(orths,"processed-data/12-Mouse comparisons/06a-1to1_orths_in_KimSmartseq_and_vVMH.txt",sep='\t',quote=F,row.names=F)
+
 ## subset both datasets to the orths
 smrt.sce <- smrt.sce[rownames(smrt.sce) %in% orths$input,]
 hyp2 <- hyp2[rownames(hyp2) %in% orths$ortholog_ensg,]
 stopifnot(nrow(hyp2)==nrow(smrt.sce))
+
+
 
 ## cleanup some misc
 rm(drophg,dropms)
@@ -151,12 +159,13 @@ colnames(rowData(smrt.sce)) <- c("gene_id","gene_name")
 # model factors can't start with numerals here which could be a problem for the animal nname labels, which are gibberish and mostly strings of numbers, so append a character to the front of those just in case.
 smrt.sce$animal_name_label <- paste0("x",smrt.sce$animal_name_label)
 
-# for fucks sake it won't run if there's only one assay, even with the expected name "logcounts". the cpm here are are all the authors provide, and not the now-standard logcounts, so w/e just deceive the package into getting what it wants)
+# for fucks sake it won't run if there's only one assay?. the cpm here are are all the authors provide, and not the now-standard logcounts, so w/e just deceive the package into getting what it wants)
 assayNames(smrt.sce)[1] <- "counts"
 assays(smrt.sce)[2] <- assays(smrt.sce)[1]
 assayNames(smrt.sce)[2] <- "logcounts"
 
 ## remember, this info all came from a plot with x axis labels using CCA cluster labels, not the smart seq labels
+assayNames(smrt.sce)[1] <- "counts"
 msvmh <- registration_wrapper(smrt.sce,var_registration="cca_cluster_label",var_sample_id="animal_name_label",gene_ensembl="gene_id",gene_name="gene_id",min_ncells = 10)
 
 # extract global marker t-stats, which are what we need
@@ -173,15 +182,18 @@ msvmh.ap.topmk <- msvmh[,..msvmh.ap.topmk]
 msvmh.ap.topmk <- melt(msvmh.ap.topmk,id.vars = c("gene","human_ensg"))
 msvmh.ap.topmk <- msvmh.ap.topmk[,.SD[order(-value)][1:5],by="variable"]
 
-## save for plotting individual genes as a simplistic check across samples
-fwrite(msvmh.ap.topmk,"processed-data/12-Mouse comparisons/06aII-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt",sep='\t',quote=F,row.names=F)
+## save top markers for plotting individual genes as a simplistic check across samples
+fwrite(msvmh.ap.topmk,"processed-data/12-Mouse comparisons/06a-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt",sep='\t',quote=F,row.names=F)
+
+## save full marker analysis tables for later use with hypomnap spatial
+fwrite(msvmh,"processed-data/12-Mouse comparisons/06a-Kim19msVMH_Fig2_APclustsOnly_smartseq_markerTstat.txt",sep='\t',quote=F,row.names=F)
 
 # don't need the sce now
 rm(smrt.sce,msvmh.ap.topmk)
 gc(full=T)
 ```
 
-## to do this at the spot level, we actually don't need to use a registration wrapper at all: we can just spearman correlate the spot's logcounts with the marker stats from the single-nucleus. (If a spot and cell perfectly matched and have a tissue-wide exclusive marker, for example, that marker would have a stratospheric t stat and, assuming it is equally likely to be detected as any other gene--ok that's a big if--they would be the top-ranked entry in both datsets. nonparametrics ftw). plus, there's no need to normalize anything across samples or etc since we're using the normalized data (logcounts), and not calculating any sample-specific anything from the visium.
+## to do this at the spot level, we actually don't need to use a registration wrapper at all: we can just spearman correlate the spot's logcounts with the marker stats from the single-nucleus. (If a spot and cell perfectly matched and have a tissue-wide exclusive marker, for example, that marker would have a stratospheric t stat and, assuming it is equally likely to be detected as any other gene--ok that's a big if--they would be the top-ranked entry in both datsets. nonparametrics ftw). plus, there's no need to normalize anything in our data across samples or etc since we're using the normalized data (logcounts), and not calculating any sample-pre-adjusted anything from the visium.
 
 ```{r}
 ## get spot logcounts
@@ -222,7 +234,7 @@ spotcor <- mcmapply(s=spotsl,
 
   tmpd <- merge.data.table(s,msvmh,by.x="rn",by.y="human_ensg")
   tmpd[,gene:=NULL]
-  sdnames <- grep(names(tmpd),pattern="rn|-1_V",value=T)
+  sdnames <- grep(names(tmpd),pattern="rn|-1_V",value=T,invert=T)
 
   ans <- tmpd[,lapply(.SD,FUN=function(x){cor(get(n),x,method="spearman")}),.SDcols=sdnames]
   ans[,spot:=n] # temporarily, just to rotate around; this is a chonk column so we'll drop it agn
@@ -236,7 +248,7 @@ spotcor <- mcmapply(s=spotsl,
 ## put it all together
 spotcor <- rbindlist(spotcor,idcol="rn")
 
-saveRDS(spotcor,"processed-data/12-Mouse comparisons/06aI-VMHspot_logct_spearman_to_kim2019smartseq_markerTstats.RDS")
+saveRDS(spotcor,"processed-data/12-Mouse comparisons/06a-VMHspot_logct_spearman_to_kim2019smartseq_markerTstats.RDS")
 ```
 
 ## for the moment, let's consider the clusters that we have AP axis information for
@@ -269,7 +281,7 @@ spotcor.ap2 <- merge.data.table(spotcor.ap2,apannod,by.x="variable",by.y="smarts
 ## very similar stats whether taking sample means for a mouse cluster across all spots, median for same, or mean only across the upper quintile of spot correlations. likewise, very similar stats ACROSS SAMPLES for each mouse cluster, lowest being the ef (posteriormost), anteriormost hovering right around 0 or sliiightly negative, and only positive values being clusters peaking mouse sections 2 and 3 out of 6 (i.e. those skewed toward anterior and dead center of mouse VMH).
 
 # save
-fwrite(spotcor.ap2,"processed-data/12-Mouse comparisons/06aIII-samplewise_meanMed_spotLogct_spear_to_APmapped_markerTstats.txt",sep='\t',quote=F,row.names=F)
+fwrite(spotcor.ap2,"processed-data/12-Mouse comparisons/06a-samplewise_meanMed_spotLogct_spear_to_APmapped_markerTstats.txt",sep='\t',quote=F,row.names=F)
 ```
 
 repinf

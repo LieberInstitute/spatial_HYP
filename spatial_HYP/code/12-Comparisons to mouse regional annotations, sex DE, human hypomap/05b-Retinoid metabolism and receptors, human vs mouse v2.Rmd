@@ -4,6 +4,8 @@ output: html_document
 date: "2025-04-01"
 ---
 
+## NOT USED -- MOBP (or any other gene, oligodendrocytes or within cell type) does not show an appropriate relationship to use this. virtually all genes will have a higher ratio in human xen than mouse single cell, either as an intrnsic aspect of hyb-based seq or the probe-number-optimization that 10x does for custom panels. ##  
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
 #### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different

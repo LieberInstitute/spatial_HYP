@@ -36,7 +36,7 @@ unloadNamespace('datasets')
 
 read genes to be plotted; SPE for plotting, dump stuff we wont need (most genes and non-VMH spots)
 ```{r}
-msapmk <- fread("processed-data/12-Mouse comparisons/06aII-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt")
+msapmk <- fread("processed-data/12-Mouse comparisons/06a-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt")
 
 hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
 

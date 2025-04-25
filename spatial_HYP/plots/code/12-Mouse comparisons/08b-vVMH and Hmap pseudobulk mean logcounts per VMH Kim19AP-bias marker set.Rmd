@@ -1,0 +1,243 @@
+---
+title: "08b-vVMH and Hmap pseudobulk mean logcounts per VMH Kim19AP-bias marker set"
+format: html
+author: "Bernie Mulvey"
+date: "04-12-2025"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+library(gridExtra)
+library(SpatialExperiment)
+library(dreamlet)
+library(edgeR)
+library(limma)
+# library(SpatialFeatureExperiment)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn='')
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost='localhost')
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 9), axis.title.x = element_text(size = 8), axis.text.y = element_text(size = 8), axis.title.y = element_text(size =9), plot.title = element_markdown(size = 11,hjust=0.5), strip.text = element_text(size=11), legend.text = element_text(size=8), legend.title = element_text(size=9,hjust=0.5),plot.title.position='plot'))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace('datasets')
+```
+
+pseudobulk vVMH and hypomap, each subsetted to the 1-1 orthologs from the mouse smartseq for comparability
+```{r}
+hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+
+bscl <- fread("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+setnames(bscl,2,"cl")
+bscl[,cl:=paste0("X",cl)]
+bscl[cl %in% c("X7","X12"),cl:="vVMH"]
+bscl <- DataFrame(bscl,row.names=bscl$rn)[colnames(hyp2),]
+colLabels(hyp2) <- bscl$cl
+hyp2 <- hyp2[,hyp2$label=="vVMH"]
+
+apmk <- fread("processed-data/12-Mouse comparisons/06b-Top5_smartseq_mks_with1to1_hgorths_per_seqFishclust_peakAPloc.txt")
+```
+
+load hypomap, subset to vmh, subset both datasets to orthologs in smartseq, pseudobulk both using the code from sex DE analyses
+```{r}
+hmap <- readRDS("~/Desktop/humanHYPOMAP_spatial.rds")
+## convert to SPE using code from https://github.com/drighelli/SpatialExperiment/issues/115 
+seurat_to_spe <- function(seu, sample_id, img_id) {
+     
+     ## Convert to SCE
+     sce <- Seurat::as.SingleCellExperiment(seu)
+     
+     ## Extract spatial coordinates
+     spatialCoords <- as.matrix(
+         seu@images[[img_id]]@coordinates[, c("imagecol", "imagerow")])
+     
+     ## Extract and process image data
+     img <- SpatialExperiment::SpatialImage(
+         x = as.raster(seu@images[[img_id]]@image))
+     
+     imgData <- DataFrame(
+         sample_id = sample_id,
+         image_id = img_id,
+         data = I(list(img)),
+         scaleFactor = seu@images[[img_id]]@scale.factors$lowres)
+     
+     # Convert to SpatialExperiment
+     spe <- SpatialExperiment(
+         assays = assays(sce),
+         rowData = rowData(sce),
+         colData = colData(sce),
+         metadata = metadata(sce),
+         reducedDims = reducedDims(sce),
+         altExps = altExps(sce),
+         sample_id = sample_id,
+         spatialCoords = spatialCoords,
+         imgData = imgData
+     )
+     # indicate all spots are on the tissue since the data is already processed
+     spe$in_tissue <- 1
+     spe$sample_id <- sample_id
+     # Return Spatial Experiment object
+     spe
+ }
+ 
+ 
+ ## sample_ids and image_ids are permutations of the following:
+ ## sampleid = hmap$captureArea (b2,a3,...)
+ ## image id is a permutation of this (slice2B, slice3A..)
+
+
+ spat_metas <- list(c("b2","slice2B"),
+                    c("a3","slice3A"),
+                    c("b4","slice4B"),
+                    c("a5","slice5A"),
+                    c("b6","slice6B"),
+                    c("a7","slice7A"),
+                    c("b8","slice8B"),
+                    c("b1_b","sliceB1B"),
+                    c("c1_a","sliceC1A"))
+ names(spat_metas) <- unlist(lapply(spat_metas,function(x){x[2]}))
+ 
+ spe_ls <- lapply(spat_metas, function(m) {
+     seurat_to_spe(seu = hmap[,hmap$captureArea==m[1]], sample_id = m[1], img_id = m[2])
+ })
+ 
+ spe <- Reduce(cbind, spe_ls)
+ rm(hmap,spat_metas,spe_ls)
+ gc(full=T)
+
+unique(c(grep(spe$regional_clusters_named,pattern="VMH",value=T),grep(spe$regional_clusters_grouped,pattern="VMH",value=T)))
+# oh, they're all just called VMH in both cols.
+ 
+spe <- spe[,spe$regional_clusters_named=="VMH"|spe$regional_clusters_grouped=="VMH"]
+ 
+# the hypomap spatial only has gene symbols, no ENSGs
+# get genes that are in at least one of the 2 mouse marker analyses and the respective SPE
+orths <- fread("processed-data/12-Mouse comparisons/06a-1to1_orths_in_KimSmartseq_and_vVMH.txt")
+ 
+fig2mks <- fread("processed-data/12-Mouse comparisons/06a-Kim19msVMH_Fig2_APclustsOnly_smartseq_markerTstat.txt")
+fig2mks[,gene:=NULL]
+ss.apmk <- fread("processed-data/12-Mouse comparisons/06b-AllKim19_sFISH-matched-smartseq-clusts_mkTstats_by_peakAPloc.txt")
+ss.apmk[,gene:=NULL]
+
+keepg.h <- orths[ortholog_name %in% rownames(spe) & orths$ortholog_ensg %in% c(fig2mks$human_ensg,ss.apmk$human_ensg),.(ortholog_name,ortholog_ensg)]
+spe <- spe[keepg.h$ortholog_name,] #13684 genes retained
+
+keepg.v <- orths[ortholog_ensg %in% rownames(hyp2) & orths$ortholog_ensg %in% c(fig2mks$human_ensg,ss.apmk$human_ensg),.(ortholog_name,ortholog_ensg)]
+hyp2 <- hyp2[keepg.v$ortholog_ensg,] # 13285 genes retained
+
+
+## check that the hypomap regional clusters labels, named and grouped, are equivalent for VMH (i.e., whether it matters which we pass as the label column for pbulking)
+stopifnot(sum(spe$regional_clusters_named!=spe$regional_clusters_grouped)==0)
+
+## make a 'label' column so we can lapply the pb
+spe$label <- spe$regional_clusters_named
+
+## make the donor/brnum column the same for same reason
+colnames(colData(spe))[colnames(colData(spe))=="donorID"] <- "brnum"
+```
+
+ # run dreamlet only to pseudobulk each cluster or collapsed clusters 
+```{r}
+
+elists <- lapply(list(hmap=spe,vVMH=hyp2),function(x){
+ ag <- dreamlet::aggregateToPseudoBulk(x,sample_id="sample_id",cluster_id = "label")
+ 
+ # extract colData to feed into DGEList as the "samples" data
+ agcd <- as.data.frame(colData(ag))
+ 
+ # get the aggregated counts
+ ag <- assays(ag)[[1]] # there is only 1 here
+   
+ ## make the DGEList:
+ X <- ag[,colSums(ag)!=0]
+ s <- copy(agcd)[colnames(X),]
+ 
+ dge <- DGEList(counts=as.matrix(X),samples=s)
+ dge <- normLibSizes(dge,method = "TMM")
+   
+ ## find the smaller group for this cluster -- this is for consistency with vVMH pbulk filtering steps
+ smolgrp <- table(dge$samples$Sex)[which.min(table(dge$samples$Sex))]
+   
+ ## for the smallest group, determine low expression cutoff
+ rowmn.m <- as.numeric(rowMeans(cpm(dge[,(dge$samples$Sex==names(smolgrp)[1])],log=TRUE)))
+   
+ ## get histogram distribution with 10 bins at the low end of the logcpm space
+ h <- hist(rowmn.m[which(rowmn.m>min(rowmn.m)&rowmn.m<(4+min(rowmn.m)))],breaks=10,plot=FALSE)
+   
+ ## get the minimum in this low logcpm range and its corresponding bin (x axis value, i.e. log cpm)
+ minc <- h$breaks[which(h$counts==min(h$counts))]
+   
+ ## get the corresponding smallest-library count value for this minimum^
+ smollib <- min(dge$samples[(dge$samples$Sex==names(smolgrp)[1]),"lib.size"])
+ countthresh <- (minc^2)*(as.numeric(smollib)/10^6)
+   
+ ## and convert that smallest count to the logcpm value in said smallest library to use as a low-expression threshold
+ cpmthresh <- log2(countthresh/(as.numeric(smollib)*10^-6))
+
+## filter for genes with at least thresh counts in at least (smaller sex group size) samples
+ keep <- rowSums(cpm(dge,log=T)>=cpmthresh) >= as.numeric(smolgrp)
+ ## 10k genes
+   
+ ## recalc lib factors after dropping low-expressed genes
+ dge <- dge[keep,,keep.lib.sizes=FALSE]
+ dge <- calcNormFactors(dge,method = "TMM")
+ 
+ ### run voomLmFit and extract EList. they have one donor sampled twice here so we can specify that in the voomLmFit call, matching our modeling approach for vvmh
+ des <- model.matrix(~0+Sex, data = dge$samples)
+ # INITIALIZE the voomwithqualityweights model, equivalent to pseudobulkDGE(method="voom",qualities=T)
+ sexdif <- makeContrasts(SexMale-SexFemale,levels=des)
+ 
+ # run voomLmFit for the pseudobulked data, referring donor to duplicateCorrelation; using an adaptive span (number of genes, based on the number of genes in the dge) for smoothing the mean-variance trend
+ v.swt <- voomLmFit(dge,design = des,block = as.factor(dge$samples$brnum),adaptive.span = T,sample.weights = T)
+ 
+ ## get the Elist
+ v.swt.elist <- as.data.table(v.swt$EList$E,keep.rownames=T)   
+ return(v.swt.elist)
+})
+
+ 
+ 
+ ## append orthology/ensg ids
+elists$hmap <- merge.data.table(elists$hmap,orths[,.(ortholog_name,ortholog_ensg)],by.x="rn",by.y="ortholog_name")
+elists$vVMH <- merge.data.table(elists$vVMH,orths[,.(ortholog_name,ortholog_ensg)],by.x="rn",by.y="ortholog_ensg")
+setnames(elists$vVMH,"rn","ortholog_ensg")
+## get respective mean logcounts per samplecluster
+anses <- lapply(elists,FUN=function(l){
+    ans <- l[ortholog_ensg %in% apmk$human_ensg]
+    ans <- merge.data.table(ans,apmk[,.(human_ensg,peak)],by.x="ortholog_ensg",by.y="human_ensg")
+    ans[,rn:=NULL] # get rid of whichever other gene identifier column we have
+    ans[,ortholog_name:=NULL] # ibid
+
+    ans[,ortholog_ensg:=NULL] # no longer needed
+
+    ans[,nset:=.N,by="peak"]
+    ans <- melt.data.table(ans,id.vars=c("peak","nset"))
+    ans2 <- ans[,.(nset,sum(value)),by=c("peak","variable")]
+    ans2 <- unique(ans2)
+    setnames(ans2,4,"value")
+    ans2[,value:=value/nset]
+    return(ans2)
+})
+
+ansplt <- rbindlist(anses,idcol="dataset")
+ansplt[dataset=="hmap",dataset:="Hypomap VMH"]
+
+pdf("plots/12-Comparisons to other mouse and human datasets/08b-Pbulk mean logcounts of KimAP markers per AP pop peak position group.pdf",height=8,width=12)
+ggplot(ansplt,aes(x=variable,y=value,fill=dataset))+geom_col()+facet_wrap(~peak,scales="free_x",nrow=2)+labs(x="Sample ID",y="Mean logcounts of top <= 5 markers of AP-biased cluster set in pseudobulked VMH spots")+theme(axis.text.x=element_text(size=7,angle=45,vjust=1,hjust=1))
+dev.off()
+
+```

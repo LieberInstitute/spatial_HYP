@@ -40,6 +40,8 @@ theme_set(theme_bw()+theme(axis.text.x = element_text(size = 9), axis.title.x = 
 unloadNamespace("datasets")
 ```
 
+## NOT USED -- MOBP (or any other gene, oligodendrocytes or within cell type) does not show an appropriate relationship to use this. virtually all genes will have a higher ratio in human xen than mouse single cell, either as an intrnsic aspect of hyb-based seq or the probe-number-optimization that 10x does for custom panels. ##  
+
 ```{r}
 retr <- readRDS("spatial_HYP/processed-data/12-Mouse comparisons/05b-retinoid metabolism and receptor genes ABAmsScrnaseq23 and visium pseudobulk xprs_normedToPbulkGlialGenes.RDS")
 
@@ -204,19 +206,37 @@ Now, get xARC and xVMH cluster level pseudobulk and make similar plots. Normaliz
 ```{r}
 xpba <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02c-pseudobulkARC_voomLmFitELists.RDS")
 xpbv <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02d-pseudobulkVMH_voomLmFitELists.RDS")
+## the colnames in these are screwed up, fix them
+lapply(xpba,function(x){
+  setnames(x,gsub(names(x),pattern="elist\\.(X.*)$",replacement="\\1"))
+})
 
+lapply(xpbv,function(x){
+  setnames(x,gsub(names(x),pattern="elist\\.(X.*)$",replacement="\\1"))
+})
+
+# get pan-oligo pseudobulked (all as one cluster) for normalization in this case.
+xpbo <- readRDS("xenium_HYP/processed-data/08_VMH-ARC cell type sex DE within domains/02z_AllOligosPbulked_for_retinoidgenecompare.RDS")
+xpbo[,cluster_id:="Alloligo"]
+setnames(xpbo,"rn","elist.rn")
+# the other names already are the same format as the arc/vmh pbulks
 anno <- fread("manuscript_plot_code/xARCxVMH_cluster_detailedlabs_andplotformatnames.txt")
 
-xpba <- rbindlist(xpba[names(xpba) %in% c("X7",anno[subclus_domain=="ARC",cluster_id])],idcol="cluster_id",fill=T)
-xpbv <- rbindlist(xpbv[names(xpbv) %in% c("X7",anno[subclus_domain=="VMH",cluster_id])],idcol="cluster_id",fill=T)
+# xpba <- rbindlist(xpba[names(xpba) %in% c("X7",anno[subclus_domain=="ARC",cluster_id])],idcol="cluster_id",fill=T)
+# xpbv <- rbindlist(xpbv[names(xpbv) %in% c("X7",anno[subclus_domain=="VMH",cluster_id])],idcol="cluster_id",fill=T)
+xpba <- rbindlist(xpba[names(xpba) %in% anno[subclus_domain=="ARC",cluster_id]],idcol="cluster_id",fill=T)
+xpbv <- rbindlist(xpbv[names(xpbv) %in% anno[subclus_domain=="VMH",cluster_id]],idcol="cluster_id",fill=T)
 
-xbpanorm <- xpba[cluster_id=="X7"&elist.rn=="MOBP"]
-xpbanorm <- melt(xbpanorm,id.vars=c("elist.rn","cluster_id"),variable.name="samp",value.name="MOBP")
+# xbpanorm <- xpbo[cluster_id=="X7"&elist.rn=="MOBP"]
+xpbanorm <- xpbo[elist.rn=="MOBP"]
+xpbanorm <- melt(xpbanorm,id.vars=c("elist.rn","cluster_id"),variable.name="samp",value.name="MOBP")
 
-xpbvnorm <- xpbv[cluster_id=="X7"&elist.rn=="MOBP"]
+# xpbvnorm <- xpbv[cluster_id=="X7"&elist.rn=="MOBP"]
+xpbvnorm <- xpbo[elist.rn=="MOBP"]
 xpbvnorm <- melt(xpbvnorm,id.vars=c("elist.rn","cluster_id"),variable.name="samp",value.name="MOBP")
 
-xpbs <- list(vmh=xpbv[cluster_id!="X7"],arc=xpba[cluster_id!="X7"])
+# xpbs <- list(vmh=xpbv[cluster_id!="X7"],arc=xpba[cluster_id!="X7"])
+xpbs <- list(vmh=xpbv,arc=xpba)
 norms <- list(vmh=xpbvnorm,arc=xpbanorm)
 
 xpbs <- mapply(x=xpbs,m=retr.plt,n=norms,SIMPLIFY=FALSE,FUN=function(x,m,n){
@@ -243,7 +263,7 @@ xpbs <- mapply(x=xpbs,m=retr.plt,n=norms,SIMPLIFY=FALSE,FUN=function(x,m,n){
 plot em
 ```{r}
 pdf("manuscript_plots/Fig6/6C-retinoidgenes_mmHg_xVMHtypes.pdf",width=4.9,height=1.5)
-ggplot(xpbs[["vmh"]],aes(y=MOBPnorm,x=assay,fill=assay))+
+ggplot(xpbs[["vmh"]][symb.hg!="MOBP"],aes(y=MOBPnorm,x=assay,fill=assay))+
     geom_violin(position=position_dodge(width=0.9),linewidth = 0.1,key_glyph=draw_square)+
     labs(fill="xVMH Cluster or\nMouse VMH\nSubclass")+
     guides(fill=guide_legend(nrow=1))+
@@ -270,7 +290,7 @@ ggplot(xpbs[["vmh"]],aes(y=MOBPnorm,x=assay,fill=assay))+
 dev.off()
 
 pdf("manuscript_plots/Fig6/6D-retinoidgenes_mmHg_xARCtypes.pdf",width=4.9,height=1.5)
-ggplot(xpbs[["arc"]],aes(y=MOBPnorm,x=assay,fill=assay))+
+ggplot(xpbs[["arc"]][symb.hg!="MOBP"],aes(y=MOBPnorm,x=assay,fill=assay))+
     geom_violin(position=position_dodge(width=0.9),linewidth = 0.1,key_glyph=draw_square)+
     labs(fill="xARC Cluster or\nMouse ARC\nSubclass")+
     guides(fill=guide_legend(nrow=1))+

@@ -436,27 +436,27 @@ xpb <- melt(xpb,id.vars=c("domain","gene_name"))
 xpb <- merge.data.table(xpb,mscriptids[,.(sample_id,manuscript_id)],by.x="variable",by.y="sample_id")
 xpb[,Sex:=gsub(manuscript_id,pattern="^.*_(.*)$",replacement="\\1")]
 
-pdf("manuscript_plots/Fig3/xVMH_MC4R_pbulks.pdf",height=1,width=0.6)
+pdf("manuscript_plots/Fig3/xVMH_MC4R_pbulks.pdf",height=1,width=0.75)
 ggplot(xpb[gene_name=="MC4R"&domain=="VMH"],aes(x=Sex,y=value,col=domain,fill=Sex))+
-  geom_boxplot(outliers = FALSE)+
+  geom_boxplot(outliers = FALSE,linewidth=0.25)+
   scale_color_manual(values=pal)+
   ylab("Pseudobulk Expr.")+
   scale_fill_manual(values=c("#FFFFFF","#000000"))+
   guides(col="none",fill="none")+
   geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
-  theme(axis.text.x=element_text(size=7),axis.text.y=element_blank(),axis.title.y=element_text(size=7),axis.title.x=element_blank())
+  theme(axis.text.x=element_text(size=7),axis.text.y=element_text(size=7),axis.title.y=element_text(size=7),axis.title.x=element_blank(),panel.grid.major = element_line(linewidth=0.2),panel.grid.minor=element_line(linewidth=0.1),axis.ticks=element_line(linewidth=0.2,color = "#000000"))
 dev.off()
 
 
-pdf("manuscript_plots/Fig3/xARC_RDH10_pbulks.pdf",height=1,width=0.6)
+pdf("manuscript_plots/Fig3/xARC_RDH10_pbulks.pdf",height=1,width=0.75)
 ggplot(xpb[gene_name=="RDH10"&domain=="ARC"],aes(x=Sex,y=value,col=domain,fill=Sex))+
-  geom_boxplot(outliers = FALSE)+
+  geom_boxplot(outliers = FALSE,linewidth=0.25)+
   scale_color_manual(values=pal)+
   ylab("Pseudobulk Expr.")+
   scale_fill_manual(values=c("#FFFFFF","#000000"))+
   guides(col="none",fill="none")+
   geom_point(size=0.35,position=position_jitterdodge(jitter.width = 0.15))+
-  theme(axis.text.x=element_text(size=7),axis.text.y=element_blank(),axis.title.y=element_text(size=7),axis.title.x=element_blank())
+  theme(axis.text.x=element_text(size=7),axis.text.y=element_text(size=7),axis.title.y=element_text(size=7),axis.title.x=element_blank(),panel.grid.major = element_line(linewidth=0.2),panel.grid.minor=element_line(linewidth=0.1),axis.ticks=element_line(linewidth=0.2,color = "#000000"))
 dev.off()
 ```
 

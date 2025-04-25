@@ -1,0 +1,799 @@
+---
+title: "06b-vVMH check in full Kim19 AP seqfish and 10x"
+author: "Bernie Mulvey"
+date: "2025-04-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10, fig.width = 7, include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+library(gridExtra)
+library(SpatialExperiment)
+library(spatialLIBD)
+library(gprofiler2)
+# library(SpatialFeatureExperiment)
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn = "")
+options(parallelly.fork.enable = TRUE)
+library(parallel)
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+load smartseq cpm dgcmatrix and metadata (both at https://data.mendeley.com/datasets/ypx3sw2f7c/3 ) --> SCE
+```{r}
+load("raw-data/KimAnderson19_msVMHprofiles/smartseq_cpm.rda")
+# drop undetected genes if any
+dropg <- rownames(cpm)[rowSums(cpm) == 0]
+cpm <- cpm[!rownames(cpm) %in% dropg, ]
+rm(dropg)
+
+met <- fread("raw-data/KimAnderson19_msVMHprofiles/SMART-seq_VMH_metadata.csv")
+
+# there isnt a tabular form of cllusterwise matching between smartseq profiles and the anterior-posterior Seqfish clusters that I can find, so we'll need to make based on Fig 2? 3? panel C (heatmap of smartseq cluster corresp. to the anteroposterior seqfish clusters). the labels they have on the x axis match to those in met$cca_cluster_label. 
+
+# not really fig 3c, fig2d because poor page layout by cell on this one. the seqfish cluster numbers here are the ones displayed in fig2, consistent with the newer seqfish metadata well use below.
+smart_to_sfish <- fread("raw-data/KimAnderson19_msVMHprofiles/KimAnderson19_smart_seqfishpairs_fromfig3c.txt")
+
+```
+
+# 3, 5, 10, 11, 26 (based on figure 2) are the AP clusters they plotted.
+
+# load seqfish data from dongwook kim now at allen institute (direct correspondence)
+# additional correspondence was needed to get metadata with the cluster labels that match figure 2. load that one, not the originally received. (notes on original table at end of script)
+```{r}
+seqf.rn <- read.csv("raw-data/KimAnderson19_msVMHprofiles/Kim Anderson 2019 VMH sex differences behavior 10x and seqfish datasets/seqFISH/New_genes_use.txt", header = F) # just a vector of rownames
+
+seqf.cd <- fread("raw-data/KimAnderson19_msVMHprofiles/Kim Anderson 2019 VMH sex differences behavior 10x and seqfish datasets/Seqfish_meta_F_vl_updated.csv") # those are wildly different numberings but ok they do match the figure
+# names are very r unfriendly, fix em
+setnames(seqf.cd, c("seqfish_clust_orig","seqfish_clust_fig2","bigROIno", "APpos_mm", "xcentroid_mm", "ycentroid_mm"))
+seqf.cd[,seqfish_clust_fig2_str:=paste0("seqfish_cluster_",seqfish_clust_fig2)]
+
+seqf.znormct <- read.csv("raw-data/KimAnderson19_msVMHprofiles/Kim Anderson 2019 VMH sex differences behavior 10x and seqfish datasets/seqFISH/New_Zcounts_F_vl.csv", header = F) # just an unnamed matrix on both axes
+```
+
+1. From full seqfish data, calculate proportions of each type in each section to see if any other AP biased clusters not in their fig 3d. two ways they couldve calculated try both
+```{r}
+plotprop <- copy(seqf.cd)
+plotprop <- plotprop[,.N,by=c("seqfish_clust_fig2_str","seqfish_clust_fig2","APpos_mm")] # to carry the numeric cluster id thru
+plotprop[,Ntot:=sum(N),by="seqfish_clust_fig2_str"]
+# plotprop[,Ntot:=sum(N),by="APpos_mm"]
+plotprop[,prop:=N/Ntot]
+
+## for reference in comparing to fig 3, make a column of A-G (A anteriormost) for AP position
+atop_mm <- unique(plotprop$APpos_mm)[order(unique(plotprop$APpos_mm),decreasing = T)]
+tmp <- as.data.table(cbind(atop_mm,c("a","b","c","d","e","f","g")))
+setnames(tmp,c("APpos_mm","APpos_AtoP"))
+
+# set tmp appos as numeric numeric
+tmp[,APpos_mm:=as.numeric(APpos_mm)]
+plotprop <- merge.data.table(plotprop,tmp,by="APpos_mm")
+plotprop[,APpos_AtoP:=factor(APpos_AtoP,levels=c("a","b","c","d","e","f","g"))]
+
+## they plotted these props only for cells within VMHvl, as anterior being the smallest x value. they also didn't plot the most posterior section at all.
+ggplot(plotprop[seqfish_clust_fig2_str %in% c("seqfish_cluster_3","seqfish_cluster_5","seqfish_cluster_10","seqfish_cluster_11","seqfish_cluster_26")],aes(x=APpos_AtoP,y=prop,col=seqfish_clust_fig2_str,group=seqfish_clust_fig2_str)) + geom_point()+geom_line()
+dev.off()
+
+## since this is all cells and not just vmhvl it looks a little different but now we're in business. so let's look at the other clusters. keep 3 (anterior) and 26 (posterior) as comparators and plot a handful of others
+othercl <- unique(plotprop[!(seqfish_clust_fig2_str %in% c("seqfish_cluster_3","seqfish_cluster_5","seqfish_cluster_10","seqfish_cluster_11","seqfish_cluster_26")),seqfish_clust_fig2])
+plotprop2 <- plotprop[seqfish_clust_fig2 %in% c(othercl,3,26),]
+
+clsets <- list(othercl[1:5],othercl[6:10],othercl[11:15],othercl[16:20],othercl[20:22])
+
+plt <- lapply(clsets, function(x) {
+    pltcl <- c(3,x,26)
+    tmp <- plotprop2[seqfish_clust_fig2 %in% pltcl]
+    ggplot(tmp,aes(x=APpos_AtoP,y=prop,col=as.factor(seqfish_clust_fig2),group=as.factor(seqfish_clust_fig2))) + geom_point()+geom_line()+
+        geom_hline(yintercept=1/length(unique(plotprop2$APpos_AtoP)),linetype="dashed")+
+        guides(color=guide_legend(title="sfish clust\nfig2 #"))
+})
+
+pdf("plots/12-Comparisons to other mouse and human datasets/06b-vVMH check in full Kim19 AP seqfish and 10x/propseqfish_clusters_asnumberedInFig2_butNotInFig2dLinePlot.pdf",width=10,height=7.5)
+do.call("grid.arrange",plt)
+dev.off()
+```
+
+## well then, that's pretty much every cluster showing some AP pattern, except 17.
+# clean up
+```{r}
+rm(tmp,plotprop,plotprop2,atop_mm,clsets,othercl,plt)
+gc(full=T)
+```
+
+## via inspection, manually made a table of plot cluster # to peak AP ranges (where the proportion of that cell type exceeds the chance proportion line, i.e. 1/number of AP sections) and single highest point along AP axis, including for the 5 clusters they plotted. but we also have the smartseq integrated cell clusters each corresponds to so join all this info together for a comprehensive label (though we don't want the AP range/peak notes from there because those were from a figure only considering intra-VMHvl cells).
+```{r}
+sfish_ap2 <- fread("processed-data/12-Mouse comparisons/06b-peakAPrange_per_seqfishCluster_asLabeledKimFig2.txt")
+
+# make character versions of labels to merge
+smart_to_sfish[,fig2lab:=paste0("seqfish_cluster_",seqfish_clus)]
+sfish_ap2[,fig2lab:=paste0("seqfish_cluster_",seqfish_clust_fig2)]
+
+sfish_ap2 <- merge.data.table(smart_to_sfish[,.(fig2lab,smartseq_clus)],sfish_ap2,all.y=T,by="fig2lab")
+# reconcile original and newly added ap positions annots
+
+# make useful labels (seqfish id, marker cluster, ap range)
+sfish_ap2[,fullanno:=paste0(gsub(fig2lab,pattern="seqfish_cluster_",replacement="Fig2sFISH_"),"_",smartseq_clus,"_",apstart_apend)]
+
+# append these to the fig2-oriented metadata, including the smartseq-matched clusters so we can use those labels for marker analyses and cross-map to their AP seqfish clusters
+seqf.cd <- merge.data.table(seqf.cd,sfish_ap2[,.(fig2lab,fullanno,smartseq_clus)],by.x="seqfish_clust_fig2_str",by.y="fig2lab",all.x=T)
+
+# any(is.na(seqf.cd$fullanno)) 
+# # yes - cluster #1; clusters 1, 2, and 19 were not shown in the paper's figure at all.
+# dong-wook says 2 clusters were discarded, so not sure what's up with one of these and we'll hang onto all 3. (besides, they were focused on vmhvl but we want things that might be elsewhere in vmh)
+seqf.cd[seqfish_clust_fig2_str=="seqfish_cluster_1",fullanno:="Fig2omitted_seqfish_cluster_1"]
+
+stopifnot(nrow(seqf.cd[is.na(fullanno)])==0)
+
+# so this should give us 27 clusters including the undisplayed ones
+length(unique(seqf.cd$fullanno))==27 # yup. finally
+
+# a couple esr clusters were collapsed in the figures' cca_cluster_labels so we need to account for that too
+sfish_ap2[!(smartseq_clus %in% met$cca_cluster_label),unique(smartseq_clus)] # Esr1_2, esr1_3
+grep(unique(met$cca_cluster_label),pattern="Esr1_",value=T) # those two clusters are collapsed as Esr1_2|3 i guess
+sfish_ap2[smartseq_clus %in% c("Esr1_2","Esr1_3"),smartseq_clus:="Esr1_2|3"]
+
+# now we have to circle back and fix the fact that we have multiple rows for one cca cluster...
+# View(sfish_ap2[smartseq_clus=="Esr1_2|3"])
+
+## seqfish clusters 8 and 9 were slice F-specific, cluster 4 was max at c. so i guess let's say cluster range is their union (c-g) and peak is f. Fig2sFISH_4_8_9_Esr1_2and3 c_g ff
+sfish_ap2[smartseq_clus=="Esr1_2|3",seqfish_clust_fig2:=8] # doesn't matter, we're not using the individual numbers at this point
+sfish_ap2[smartseq_clus=="Esr1_2|3",fig2lab:="seqfish_clusters_4_8_9"]
+sfish_ap2[smartseq_clus=="Esr1_2|3",apstart_apend:="c_g"]
+sfish_ap2[smartseq_clus=="Esr1_2|3",fullanno:="Fig2sFISH_4_8_9_Esr1_2and3_c_g_ff"]
+sfish_ap2[smartseq_clus=="Esr1_2|3",peak:="ff"]
+sfish_ap2 <- unique(sfish_ap2)
+
+## resolve a couple seqfish clusters that mapped to multiple CCA clusters into consensus AP ranges/peaks
+sfish_ap2[,.(.N,smartseq_clus,peak,apstart_apend),by="smartseq_clus"][N>1] # 2 NA, 3 Nr5a1_3, 2 Nr5a1_Foxp2_1, 2 Nr5a1_1
+## these other ones have disparate AP patterns between the seqfish clusters. however (while the paper's figure only was considering VMHvl), two of these (5a1_3, 5a1_foxp2_1) are ones mapped to seqfish clusters presented in the data as peaking at A which leads me to think that was the result they were most confident about. so, considering that set the peak position on those to a.
+## nr5a1_1 registered to a cluster (23) that by the plotting we did exceeds chance line only at a, and another that only does so at d-e-f/peak f (23). since that's also not very helpful, just use the peak for whichever cluster registered better in the plot, which was...23 by the slightest margin (actually had to use a little color dropper tool thing to figure which had the lower pvalue from the smart-sfish heatmap it's so close -_- ).
+#  1:       Nr5a1_3      e
+#  2:       Nr5a1_3      a --> use a per above
+#  5: Nr5a1_Foxp2_1      d
+#  6: Nr5a1_Foxp2_1     ff
+#  7: Nr5a1_Foxp2_1      a --> use a per above
+#  8:       Nr5a1_1      a 
+#  9:       Nr5a1_1     ff --> use ff per above
+
+sfish_ap_groupings <- sfish_ap2[,.(smartseq_clus,peak)]
+sfish_ap_groupings[smartseq_clus=="Nr5a1_3",peak:="a"]
+sfish_ap_groupings[smartseq_clus=="Nr5a1_Foxp2_1",peak:="a"]
+sfish_ap_groupings[smartseq_clus=="Nr5a1_1",peak:="ff"]
+sfish_ap_groupings <- unique(sfish_ap_groupings)
+# make sure we have all the smartseq clusters covered
+stopifnot(nrow(sfish_ap_groupings[!(smartseq_clus %in% met$cca_cluster_label)])==0)
+
+# cleanup agn
+rm(smart_to_sfish)
+```
+
+2. Calculate markers of addnl AP clusts in smartseq, save top 5  w 1-1 orths (as in code/12/06a) if we want to spatial xpr plot these as we did for those in 06a. 
+
+Because there's too much multimapping and nonmapping between the two kim dataset clusterings, this gets a little nightmarish (see 6a code (search 'multimap') plus the thing with ESR1_2|3 above. old code where my patience ran out trying to reconcile all these is down in appendix 2.) 
+
+instead just make clusters by peak AP position. 
+    2.1 reconcile everything and append peak AP position to metadata --> make SCE
+```{r}
+# fix cluster  names thatll cause spatialLIBD issues; make the same changes into smart_to_sfish
+met[,cca_cluster_label:=gsub(cca_cluster_label,pattern=" ",replacement="_")]
+met[,cca_cluster_label:=gsub(cca_cluster_label,pattern="\\|",replacement="_")]
+sfish_ap_groupings[,smartseq_clus:=gsub(smartseq_clus,pattern=" ",replacement="_")]
+sfish_ap_groupings[,smartseq_clus:=gsub(smartseq_clus,pattern="\\|",replacement="_")]
+
+
+stopifnot(nrow(sfish_ap_groupings[!is.na(smartseq_clus) & !(smartseq_clus %in% met$cca_cluster_label)])==0)
+
+# append seqfish-smartseq correspondences, except for the seqfish clusters that didnt have a smartseq match (na), which we will drop from everything downstream
+met <- merge.data.table(met[!is.na(cca_cluster_label)],sfish_ap_groupings[!is.na(smartseq_clus)],by.x="cca_cluster_label",by.y="smartseq_clus",all.x=T)
+
+cpm <- cpm[,colnames(cpm) %in% met$sample_name]
+
+stopifnot(ncol(cpm)==nrow(met))
+stopifnot(all(colnames(cpm) %in% met$sample_name))
+
+met <- DataFrame(met,row.names=met$sample_name)[colnames(cpm),]
+smrt.sce <- SingleCellExperiment(assays = list(cpm = cpm), colData = met,rowData=DataFrame(cbind(rownames(cpm),rownames(cpm))))
+
+rm(cpm)
+gc(full=T)
+```
+
+    2.2 load the SPE and orthologs table; determine what genes not only have 1-1 orthologs, but are represented in both datasets so we only run marker analyses on mouse considering genes we can do something with.
+
+```{r}
+# load hyp spe, pare down to VMH, and clear out unneeded ram heavy bits while were here
+hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+# did we already have the clusters in here? dont think so but check
+# colnames(colData(hyp2))
+# yano
+
+clus <- fread("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/BSpace_k15_HARMONYlmbna_nnsvg10.txt")
+setnames(clus,2,"cl")
+clus[,cl:=paste0("X",cl)]
+clus[,lab:="drop"]
+clus[cl %in% paste0("X",c(7,12)),lab:="VMH"]
+clus <- DataFrame(clus,row.names=clus$rn)[colnames(hyp2),]
+
+colLabels(hyp2) <- clus$lab
+hyp2 <- hyp2[,hyp2$label=="VMH"]
+imgData(hyp2) <- NULL
+
+## drop genes undetected in VMH
+dropg <- rownames(hyp2)[rowSums(counts(hyp2))==0]
+hyp2 <- hyp2[!(rownames(hyp2) %in% dropg),]
+
+## read in our orthologs table and subset smartseq and SPE
+orths <- fread("processed-data/12-Mouse comparisons/06a-1to1_orths_in_KimSmartseq_and_vVMH.txt")
+hyp2 <- hyp2[rownames(hyp2) %in% orths$ortholog_ensg,]
+smrt.sce <- smrt.sce[rownames(smrt.sce) %in% orths$input,]
+
+rm(clus,dropg)
+gc(full=T)
+```
+
+    2.3 run registration wrapper to get marker stats for clusters peaking at each AP position
+```{r}
+colnames(rowData(smrt.sce)) <- c("gene_id", "gene_name")
+
+# model factors can't start with numerals here which could be a problem for the animal nname labels, which are gibberish and mostly strings of numbers, so append a character to the front of those just in case.
+smrt.sce$animal_name_label <- paste0("x", smrt.sce$animal_name_label)
+
+# the cpm here are are all the authors provide, and not the now-standard logcounts, so w/e just deceive the package into getting what it wants)
+## remember, our grouping variable is the AP-max-abundance-for-type
+assayNames(smrt.sce)[1] <- "counts"
+msvmh_by_aploc <- registration_wrapper(
+  smrt.sce,
+  var_registration = "peak",
+  var_sample_id = "animal_name_label",
+  gene_ensembl = "gene_id",
+  gene_name = "gene_id",
+  min_ncells = 10
+)
+
+# extract enrichment table and save
+# extract global marker t-stats, which are what we need
+keepcols <- c(
+  "gene",
+  grep(colnames(msvmh_by_aploc$enrichment), pattern = "t_stat", value = T)
+)
+msvmh_by_aploc <- as.data.table(msvmh_by_aploc$enrichment)[, ..keepcols]
+
+## add human ensg names for matching
+msvmh_by_aploc[,human_ensg := orths[
+   match(msvmh_by_aploc$gene, orths$input), ortholog_ensg]]
+
+setnames(msvmh_by_aploc,
+  gsub(names(msvmh_by_aploc), pattern = "t_stat_", replacement = "")
+)
+
+## extract the top five markers that have 1-1 orthologs for each cluster with AP annotation info )
+msvmh.ap.topmk.mostsmrt <- melt(
+  msvmh_by_aploc,
+  id.vars = c("gene", "human_ensg")
+)
+msvmh.ap.topmk.mostsmrt <- msvmh.ap.topmk.mostsmrt[,
+  .SD[order(-value)][1:5],
+  by = "variable"
+]
+
+## append info on which seqfish clusters these are
+jt.sftosm <- unique(sfish_ap2[,
+  .(
+    clusts = paste0(
+      "sfishFig2clusts_",
+      paste0(seqfish_clust_fig2, collapse = "_")
+    )
+  ),
+  by = "peak"
+])
+
+msvmh.ap.topmk.mostsmrt <- merge.data.table(
+  jt.sftosm,
+  msvmh.ap.topmk.mostsmrt,
+  all.y = T,
+  by.x = "peak",
+  by.y = "variable"
+)
+
+## save for plotting individual genes as a simplistic check across samples
+fwrite(
+  msvmh.ap.topmk.mostsmrt,
+  "processed-data/12-Mouse comparisons/06b-Top5_smartseq_mks_with1to1_hgorths_per_seqFishclust_peakAPloc.txt",
+  sep = '\t',
+  quote = F,
+  row.names = F
+)
+
+## save marker t stat results for later spot correlation testing in hypomap spatial VMH
+fwrite(
+  msvmh_by_aploc,
+  "processed-data/12-Mouse comparisons/06b-AllKim19_sFISH-matched-smartseq-clusts_mkTstats_by_peakAPloc.txt",
+  sep = '\t',
+  quote = F,
+  row.names = F
+)
+
+# don't need the sce now
+rm(smrt.sce, msvmh.ap.topmk.mostsmrt,keepcols)
+gc(full = T)
+```
+
+2.4 spot correlations as in code/12/06a.
+```{r}
+## get spot logcounts
+lct <- as.data.table(as.data.frame(as.matrix(logcounts(hyp2))),keep.rownames=T)
+## dont need the spe
+rm(hyp2)
+
+## some genes aren't well represented enough for SCE regist stats so we can drop those from the logcounts
+lct <- lct[rn %in% msvmh_by_aploc$human_ensg,]
+stopifnot(nrow(lct)==nrow(msvmh_by_aploc))
+
+# divy up the data so we don't have to pass the whole logcount table to each worker
+spots <- names(lct)[2:ncol(lct)]
+spotsl <- lapply(spots,function(s){
+    getcol <- c("rn",s)
+    o<- lct[,..getcol]
+    return(o)
+})
+names(spotsl) <- spots
+rm(spots,lct)
+gc(full=T)
+
+## run it
+setDTthreads(threads=2,restore_after_fork = F) # prevent resource overcommiting; restore after fork set to F per their docs on misbehavior on mac
+is <- c(1:length(spotsl))
+spotcor <- mcmapply(s=spotsl,
+                    i=is,
+                    n=names(spotsl),
+                    mc.cores=5,
+                    SIMPLIFY=FALSE,
+                    FUN=function(s,i,n){
+  setDTthreads(2,restore_after_fork = T) # since DT is not too nice about mac implementation, put it here too, and assuming some forking happens during loop execution because i dont get when it happens. and they provide no context for when restore_after_fork does/doesn't work as expected on mac so taking a wild guess tehre
+
+  tmpd <- merge.data.table(s,msvmh_by_aploc,by.x="rn",by.y="human_ensg")
+  tmpd[,gene:=NULL]
+  sdnames <- grep(names(tmpd),pattern="rn|-1_V",value=T,invert=T)
+
+  ans <- tmpd[,lapply(.SD,FUN=function(x){cor(get(n),x,method="spearman")}),.SDcols=sdnames]
+  ans[,spot:=n] # temporarily, just to rotate around; this is a chonk column so we'll drop it agn
+  ans <- melt.data.table(ans,id.vars="spot")
+  ans[,spot:=NULL]
+
+  return(ans)
+})
+# fwiw resource monitoring indicates this worked as desired -- 4 processes spawned each using ~"200"% cpu (i.e., 2 cores)
+
+## put it all together
+spotcor <- rbindlist(spotcor,idcol="rn")
+
+saveRDS(spotcor,"processed-data/12-Mouse comparisons/06b-VMHspot_logct_spearman_to_Kim19smrts_by_matchedSfish_APpeaklocs_mkTstats.RDS")
+```
+
+## get summary metrics per sample
+```{r}
+spotcor[,samp:=gsub(rn,pattern="^.*-1_(.*)$",replacement="\\1")]
+setnames(spotcor,"variable","peakAPlocSet")
+spotcor.ap <- copy(spotcor)
+## get mean and median registration per each of these clusters for ea sample. (we can add back donor info in a sec too)
+spotcor.ap[,sampMean_spotSpear:=mean(value,na.rm=T),by=c("samp","peakAPlocSet")]
+spotcor.ap[,sampMed_spotSpear:=median(value,na.rm=T),by=c("samp","peakAPlocSet")]
+spotcor.ap[,topquint:=value>quantile(value,0.8),by=c("samp","peakAPlocSet")]
+spotcor.ap[,botquint:=value<quantile(value,0.2),by=c("samp","peakAPlocSet")]
+spotcor.ap[topquint==T,sampMean_topquint:=mean(value,na.rm=T),by=c("samp","peakAPlocSet")]
+spotcor.ap[botquint==T,sampMean_botquint:=mean(value,na.rm=T),by=c("samp","peakAPlocSet")]
+spotcor.ap[,topquint:=NULL]
+spotcor.ap[,botquint:=NULL]
+
+# drop spot values and get the summary metrics
+spotcor.ap[,value:=NULL]
+spotcor.ap[,rn:=NULL]
+spotcor.apb <- unique(spotcor.ap[!is.na(sampMean_botquint)])
+spotcor.apt <- unique(spotcor.ap[!is.na(sampMean_topquint)])
+spotcor.ap2 <- merge.data.table(spotcor.apb[,.SD,.SDcols=names(spotcor.apb)!="sampMean_topquint"],
+                              spotcor.apt[,.SD,.SDcols=c("samp","peakAPlocSet","sampMean_topquint")],
+                              by=c("samp","peakAPlocSet"))
+
+spotcor.ap2 <- merge.data.table(spotcor.ap2,jt.sftosm,by.x="peakAPlocSet",by.y="peak")
+```
+
+
+## a little different results from before, but same general thing holds: sample correlation patterns are very similar for each AP position marker set. AP positions d and e (which are actually from a-g, not a-f as depicted in kim '19 figure) are the two with positive correlations and that's the case for all samples. so a little more middle-hyp than anterior hyp. but this is by far the more thorough and approp analysis, because the 06a analysis was based on only 5 of the seqfish clusters examined in a figure only considering vmhvl seqfish cells (vs all vmh cells here). 
+
+# save
+```{r}
+fwrite(spotcor.ap2,"processed-data/12-Mouse comparisons/06b-samplewise_meanMed_spotLogct_spear_to_Sfish_APpeakClustSets.txt",sep='\t',quote=F,row.names=F)
+```
+
+## if we later decide we're still really unsure about this, could look to 10x dataset also shared by dongwook kim and see if there's any difference. (but smartseq data is generally yields more comprehensive seq libs, so this is sufficient for now)
+
+repinf, appendices
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+
+R version 4.4.3 (2025-02-28)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.7.4
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] parallel  stats4    stats    
+[4] graphics  grDevices utils    
+[7] methods   base     
+
+other attached packages:
+ [1] parallelly_1.43.0          
+ [2] gprofiler2_0.2.3           
+ [3] spatialLIBD_1.18.0         
+ [4] SpatialExperiment_1.16.0   
+ [5] SingleCellExperiment_1.28.1
+ [6] SummarizedExperiment_1.36.0
+ [7] Biobase_2.66.0             
+ [8] GenomicRanges_1.58.0       
+ [9] GenomeInfoDb_1.42.3        
+[10] IRanges_2.40.1             
+[11] S4Vectors_0.44.0           
+[12] BiocGenerics_0.52.0        
+[13] MatrixGenerics_1.18.1      
+[14] matrixStats_1.5.0          
+[15] gridExtra_2.3              
+[16] ggtext_0.1.2               
+[17] ggplot2_3.5.1              
+[18] data.table_1.17.0          
+[19] rlang_1.1.5                
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3      
+  [2] jsonlite_1.9.1          
+  [3] magrittr_2.0.3          
+  [4] ggbeeswarm_0.7.2        
+  [5] magick_2.8.6            
+  [6] farver_2.1.2            
+  [7] BiocIO_1.16.0           
+  [8] fields_16.3.1           
+  [9] zlibbioc_1.52.0         
+ [10] vctrs_0.6.5             
+ [11] memoise_2.0.1           
+ [12] config_0.3.2            
+ [13] Rsamtools_2.22.0        
+ [14] paletteer_1.6.0         
+ [15] RCurl_1.98-1.17         
+ [16] benchmarkme_1.0.8       
+ [17] htmltools_0.5.8.1       
+ [18] S4Arrays_1.6.0          
+ [19] AnnotationHub_3.14.0    
+ [20] curl_6.2.2              
+ [21] BiocNeighbors_2.0.1     
+ [22] SparseArray_1.6.2       
+ [23] sass_0.4.9              
+ [24] bslib_0.9.0             
+ [25] htmlwidgets_1.6.4       
+ [26] plotly_4.10.4           
+ [27] cachem_1.1.0            
+ [28] GenomicAlignments_1.42.0
+ [29] mime_0.13               
+ [30] lifecycle_1.0.4         
+ [31] iterators_1.0.14        
+ [32] pkgconfig_2.0.3         
+ [33] rsvd_1.0.5              
+ [34] Matrix_1.7-3            
+ [35] R6_2.6.1                
+ [36] fastmap_1.2.0           
+ [37] GenomeInfoDbData_1.2.13 
+ [38] shiny_1.10.0            
+ [39] digest_0.6.37           
+ [40] colorspace_2.1-1        
+ [41] rematch2_2.1.2          
+ [42] AnnotationDbi_1.68.0    
+ [43] scater_1.34.1           
+ [44] rprojroot_2.0.4         
+ [45] irlba_2.3.5.1           
+ [46] ExperimentHub_2.14.0    
+ [47] RSQLite_2.3.9           
+ [48] beachmat_2.22.0         
+ [49] labeling_0.4.3          
+ [50] filelock_1.0.3          
+ [51] httr_1.4.7              
+ [52] abind_1.4-8             
+ [53] compiler_4.4.3          
+ [54] here_1.0.1              
+ [55] bit64_4.6.0-1           
+ [56] withr_3.0.2             
+ [57] doParallel_1.0.17       
+ [58] attempt_0.3.1           
+ [59] BiocParallel_1.40.0     
+ [60] viridis_0.6.5           
+ [61] DBI_1.2.3               
+ [62] maps_3.4.2.1            
+ [63] sessioninfo_1.2.3       
+ [64] rappdirs_0.3.3          
+ [65] DelayedArray_0.32.0     
+ [66] rjson_0.2.23            
+ [67] tools_4.4.3             
+ [68] vipor_0.4.7             
+ [69] beeswarm_0.4.0          
+ [70] httpuv_1.6.15           
+ [71] glue_1.8.0              
+ [72] restfulr_0.0.15         
+ [73] promises_1.3.2          
+ [74] gridtext_0.1.5          
+ [75] grid_4.4.3              
+ [76] generics_0.1.3          
+ [77] gtable_0.3.6            
+ [78] tidyr_1.3.1             
+ [79] ScaledMatrix_1.14.0     
+ [80] BiocSingular_1.22.0     
+ [81] xml2_1.3.8              
+ [82] XVector_0.46.0          
+ [83] ggrepel_0.9.6           
+ [84] BiocVersion_3.20.0      
+ [85] foreach_1.5.2           
+ [86] pillar_1.10.1           
+ [87] spam_2.11-1             
+ [88] limma_3.62.2            
+ [89] later_1.4.1             
+ [90] benchmarkmeData_1.0.4   
+ [91] dplyr_1.1.4             
+ [92] BiocFileCache_2.14.0    
+ [93] lattice_0.22-6          
+ [94] rtracklayer_1.66.0      
+ [95] bit_4.6.0               
+ [96] tidyselect_1.2.1        
+ [97] locfit_1.5-9.12         
+ [98] scuttle_1.16.0          
+ [99] Biostrings_2.74.1       
+[100] knitr_1.50              
+[101] edgeR_4.4.2             
+[102] xfun_0.51               
+[103] statmod_1.5.0           
+[104] DT_0.33                 
+[105] UCSC.utils_1.2.0        
+[106] lazyeval_0.2.2          
+[107] yaml_2.3.10             
+[108] shinyWidgets_0.9.0      
+[109] evaluate_1.0.3          
+[110] codetools_0.2-20        
+[111] tibble_3.2.1            
+[112] BiocManager_1.30.25     
+[113] cli_3.6.4               
+[114] xtable_1.8-4            
+[115] jquerylib_0.1.4         
+[116] munsell_0.5.1           
+[117] golem_0.5.1             
+[118] Rcpp_1.0.14             
+[119] dbplyr_2.5.0            
+[120] png_0.1-8               
+[121] XML_3.99-0.18           
+[122] blob_1.2.4              
+[123] dotCall64_1.2           
+[124] bitops_1.0-9            
+[125] viridisLite_0.4.2       
+[126] scales_1.3.0            
+[127] purrr_1.0.4             
+[128] crayon_1.5.3            
+[129] cowplot_1.1.3           
+[130] KEGGREST_1.46.0         
+> sessioninfo::session_info()
+─ Session info ──────────────────────
+ setting  value
+ version  R version 4.4.3 (2025-02-28)
+ os       macOS Sonoma 14.7.4
+ system   aarch64, darwin20
+ ui       X11
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2025-04-08
+ pandoc   NA
+ quarto   1.6.40 @ /Applications/Positron.app/Contents/Resources/app/quarto/bin/quarto
+
+─ Packages ──────────────────────────
+ ! package              * version   date (UTC) lib source
+   abind                  1.4-8     2024-09-12 [1] CRAN (R 4.4.1)
+   AnnotationDbi          1.68.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   AnnotationHub          3.14.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   attempt                0.3.1     2020-05-03 [1] CRAN (R 4.4.0)
+   beachmat               2.22.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   beeswarm               0.4.0     2021-06-01 [1] CRAN (R 4.4.0)
+   benchmarkme            1.0.8     2022-06-12 [1] CRAN (R 4.4.0)
+   benchmarkmeData        1.0.4     2020-04-23 [1] CRAN (R 4.4.0)
+   Biobase              * 2.66.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocFileCache          2.14.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocGenerics         * 0.52.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocIO                 1.16.0    2024-12-12 [1] Github (Bioconductor/BiocIO@8e80624)
+   BiocManager            1.30.25   2024-08-28 [1] CRAN (R 4.4.1)
+   BiocNeighbors          2.0.1     2024-11-28 [1] Bioconductor 3.20 (R 4.4.2)
+   BiocParallel           1.40.0    2024-11-23 [1] Bioconductor 3.20 (R 4.4.2)
+   BiocSingular           1.22.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   BiocVersion            3.20.0    2024-05-04 [1] Bioconductor 3.20 (R 4.4.0)
+   Biostrings             2.74.1    2024-12-16 [1] Bioconductor 3.20 (R 4.4.2)
+   bit                    4.6.0     2025-03-06 [1] CRAN (R 4.4.1)
+   bit64                  4.6.0-1   2025-01-16 [1] CRAN (R 4.4.1)
+   bitops                 1.0-9     2024-10-03 [1] CRAN (R 4.4.1)
+   blob                   1.2.4     2023-03-17 [1] CRAN (R 4.4.0)
+   bslib                  0.9.0     2025-01-30 [1] CRAN (R 4.4.1)
+   cachem                 1.1.0     2024-05-16 [1] CRAN (R 4.4.0)
+ P cli                    3.6.4     2025-02-13 [2] CRAN (R 4.4.1)
+   codetools              0.2-20    2024-03-31 [1] CRAN (R 4.4.3)
+   colorspace             2.1-1     2024-07-26 [1] CRAN (R 4.4.0)
+   config                 0.3.2     2023-08-30 [1] CRAN (R 4.4.0)
+   cowplot                1.1.3     2024-01-22 [1] CRAN (R 4.4.0)
+   crayon                 1.5.3     2024-06-20 [1] CRAN (R 4.4.0)
+   curl                   6.2.2     2025-03-24 [1] CRAN (R 4.4.1)
+   data.table           * 1.17.0    2025-02-22 [1] CRAN (R 4.4.1)
+   DBI                    1.2.3     2024-06-02 [1] CRAN (R 4.4.0)
+   dbplyr                 2.5.0     2024-03-19 [1] CRAN (R 4.4.0)
+   DelayedArray           0.32.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   digest                 0.6.37    2024-08-19 [1] CRAN (R 4.4.1)
+   doParallel             1.0.17    2022-02-07 [1] CRAN (R 4.4.1)
+   dotCall64              1.2       2024-10-04 [1] CRAN (R 4.4.1)
+   dplyr                  1.1.4     2023-11-17 [1] CRAN (R 4.4.0)
+   DT                     0.33      2024-04-04 [1] CRAN (R 4.4.0)
+   edgeR                  4.4.2     2025-01-27 [1] Bioconductor 3.20 (R 4.4.2)
+   evaluate               1.0.3     2025-01-10 [1] CRAN (R 4.4.1)
+   ExperimentHub          2.14.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   farver                 2.1.2     2024-05-13 [1] CRAN (R 4.4.0)
+   fastmap                1.2.0     2024-05-15 [1] CRAN (R 4.4.0)
+   fields                 16.3.1    2025-03-08 [1] CRAN (R 4.4.1)
+   filelock               1.0.3     2023-12-11 [1] CRAN (R 4.4.0)
+   foreach                1.5.2     2022-02-02 [1] CRAN (R 4.4.0)
+   generics               0.1.3     2022-07-05 [1] CRAN (R 4.4.0)
+   GenomeInfoDb         * 1.42.3    2025-01-27 [1] Bioconductor 3.20 (R 4.4.2)
+   GenomeInfoDbData       1.2.13    2024-12-12 [1] Bioconductor
+   GenomicAlignments      1.42.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   GenomicRanges        * 1.58.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   ggbeeswarm             0.7.2     2023-04-29 [1] CRAN (R 4.4.0)
+   ggplot2              * 3.5.1     2024-04-23 [1] CRAN (R 4.4.0)
+   ggrepel                0.9.6     2024-09-07 [1] CRAN (R 4.4.1)
+   ggtext               * 0.1.2     2022-09-16 [1] CRAN (R 4.4.0)
+   glue                   1.8.0     2024-09-30 [1] CRAN (R 4.4.1)
+   golem                  0.5.1     2024-08-27 [1] CRAN (R 4.4.1)
+   gprofiler2           * 0.2.3     2024-02-23 [1] CRAN (R 4.4.0)
+   gridExtra            * 2.3       2017-09-09 [1] CRAN (R 4.4.0)
+   gridtext               0.1.5     2022-09-16 [1] CRAN (R 4.4.0)
+   gtable                 0.3.6     2024-10-25 [1] CRAN (R 4.4.1)
+   here                   1.0.1     2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools              0.5.8.1   2024-04-04 [1] CRAN (R 4.4.0)
+   htmlwidgets            1.6.4     2023-12-06 [1] CRAN (R 4.4.0)
+   httpuv                 1.6.15    2024-03-26 [1] CRAN (R 4.4.0)
+   httr                   1.4.7     2023-08-15 [1] CRAN (R 4.4.0)
+   IRanges              * 2.40.1    2024-12-05 [1] Bioconductor 3.20 (R 4.4.2)
+   irlba                  2.3.5.1   2022-10-03 [1] CRAN (R 4.4.0)
+   iterators              1.0.14    2022-02-05 [1] CRAN (R 4.4.0)
+   jquerylib              0.1.4     2021-04-26 [1] CRAN (R 4.4.0)
+   jsonlite               1.9.1     2025-03-03 [1] CRAN (R 4.4.1)
+   KEGGREST               1.46.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   knitr                  1.50      2025-03-16 [1] CRAN (R 4.4.2)
+   labeling               0.4.3     2023-08-29 [1] CRAN (R 4.4.0)
+   later                  1.4.1     2024-11-27 [1] CRAN (R 4.4.1)
+   lattice                0.22-6    2024-03-20 [1] CRAN (R 4.4.3)
+   lazyeval               0.2.2     2019-03-15 [1] CRAN (R 4.4.0)
+   lifecycle              1.0.4     2023-11-07 [1] CRAN (R 4.4.0)
+   limma                  3.62.2    2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+   locfit                 1.5-9.12  2025-03-05 [1] CRAN (R 4.4.1)
+   magick                 2.8.6     2025-03-23 [1] CRAN (R 4.4.1)
+   magrittr               2.0.3     2022-03-30 [1] CRAN (R 4.4.0)
+   maps                   3.4.2.1   2024-11-10 [1] CRAN (R 4.4.1)
+   Matrix                 1.7-3     2025-03-11 [1] CRAN (R 4.4.1)
+   MatrixGenerics       * 1.18.1    2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+   matrixStats          * 1.5.0     2025-01-07 [1] CRAN (R 4.4.1)
+   memoise                2.0.1     2021-11-26 [1] CRAN (R 4.4.0)
+   mime                   0.13      2025-03-17 [1] CRAN (R 4.4.1)
+   munsell                0.5.1     2024-04-01 [1] CRAN (R 4.4.0)
+   paletteer              1.6.0     2024-01-21 [1] CRAN (R 4.4.0)
+   parallelly           * 1.43.0    2025-03-24 [1] CRAN (R 4.4.1)
+   pillar                 1.10.1    2025-01-07 [1] CRAN (R 4.4.1)
+   pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.4.0)
+   plotly                 4.10.4    2024-01-13 [1] CRAN (R 4.4.0)
+   png                    0.1-8     2022-11-29 [1] CRAN (R 4.4.0)
+   promises               1.3.2     2024-11-28 [1] CRAN (R 4.4.1)
+   purrr                  1.0.4     2025-02-05 [1] CRAN (R 4.4.1)
+   R6                     2.6.1     2025-02-15 [1] CRAN (R 4.4.1)
+   rappdirs               0.3.3     2021-01-31 [1] CRAN (R 4.4.0)
+   RColorBrewer           1.1-3     2022-04-03 [1] CRAN (R 4.4.0)
+   Rcpp                   1.0.14    2025-01-12 [1] CRAN (R 4.4.1)
+   RCurl                  1.98-1.17 2025-03-22 [1] CRAN (R 4.4.1)
+   rematch2               2.1.2     2020-05-01 [1] CRAN (R 4.4.0)
+   restfulr               0.0.15    2022-06-16 [1] CRAN (R 4.4.0)
+   rjson                  0.2.23    2024-09-16 [1] CRAN (R 4.4.1)
+ P rlang                * 1.1.5     2025-01-17 [2] CRAN (R 4.4.1)
+   rprojroot              2.0.4     2023-11-05 [1] CRAN (R 4.4.0)
+   Rsamtools              2.22.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   RSQLite                2.3.9     2024-12-03 [1] CRAN (R 4.4.1)
+   rsvd                   1.0.5     2021-04-16 [1] CRAN (R 4.4.0)
+   rtracklayer            1.66.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   S4Arrays               1.6.0     2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   S4Vectors            * 0.44.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   sass                   0.4.9     2024-03-15 [1] CRAN (R 4.4.0)
+   ScaledMatrix           1.14.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   scales                 1.3.0     2023-11-28 [1] CRAN (R 4.4.0)
+   scater                 1.34.1    2025-03-03 [1] Bioconductor 3.20 (R 4.4.2)
+   scuttle                1.16.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   sessioninfo            1.2.3     2025-02-05 [1] CRAN (R 4.4.1)
+   shiny                  1.10.0    2024-12-14 [1] CRAN (R 4.4.1)
+   shinyWidgets           0.9.0     2025-02-21 [1] CRAN (R 4.4.1)
+   SingleCellExperiment * 1.28.1    2024-11-23 [1] Bioconductor 3.20 (R 4.4.2)
+   spam                   2.11-1    2025-01-20 [1] CRAN (R 4.4.1)
+   SparseArray            1.6.2     2025-02-20 [1] Bioconductor 3.20 (R 4.4.2)
+   SpatialExperiment    * 1.16.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   spatialLIBD          * 1.18.0    2024-11-07 [1] Bioconductor 3.20 (R 4.4.3)
+   statmod                1.5.0     2023-01-06 [1] CRAN (R 4.4.0)
+   SummarizedExperiment * 1.36.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   tibble                 3.2.1     2023-03-20 [1] CRAN (R 4.4.0)
+   tidyr                  1.3.1     2024-01-24 [1] CRAN (R 4.4.0)
+   tidyselect             1.2.1     2024-03-11 [1] CRAN (R 4.4.0)
+   UCSC.utils             1.2.0     2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   vctrs                  0.6.5     2023-12-01 [1] CRAN (R 4.4.0)
+   vipor                  0.4.7     2023-12-18 [1] CRAN (R 4.4.0)
+   viridis                0.6.5     2024-01-29 [1] CRAN (R 4.4.0)
+   viridisLite            0.4.2     2023-05-02 [1] CRAN (R 4.4.0)
+   withr                  3.0.2     2024-10-28 [1] CRAN (R 4.4.1)
+   xfun                   0.51      2025-02-19 [1] CRAN (R 4.4.1)
+   XML                    3.99-0.18 2025-01-01 [1] CRAN (R 4.4.1)
+   xml2                   1.3.8     2025-03-14 [1] CRAN (R 4.4.1)
+   xtable                 1.8-4     2019-04-21 [1] CRAN (R 4.4.0)
+   XVector                0.46.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+   yaml                   2.3.10    2024-07-26 [1] CRAN (R 4.4.0)
+   zlibbioc               1.52.0    2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ * ── Packages attached to the search path.
+ P ── Loaded and on-disk path mismatch.
+
+─────────────────────────────────────
+
+
+## APPENDIX: seqfish original metadata (ie, not fig2-matched) notes ## 
+```{r}
+# seqf.cd <- fread("raw-data/KimAnderson19_msVMHprofiles/Kim Anderson 2019 VMH sex differences behavior 10x and seqfish datasets/seqFISH/New_meta_F_vl.csv") # these are not R friendly names at all so fix em
+# # names(seqf.cd)
+# [1] "cluster (seqFISH)"
+# [2] "Big ROI #"
+# [3] "AP Position (mm)"
+# [4] "x-centroid (\xb5m)"
+# [5] "y-centroid (\xb5m)"
+# setnames(seqf.cd, c("seqfish_clust", "bigROIno", "APpos_mm", "xcentroid_mm", "ycentroid_mm"))
+## ssomething else is off here: the paper reports 27 seqfish clusters. there are 27 unique values (0-indexed) in the seqfish cluter column, but they range 0 to 28 and dont have a cluster #18 or #26 (both of which are shown in fig 2)
+```
+
+
+APPENDIX 2: trying to reconcile seqfish cluster mapping to CCA cluster labels; too many multi-mapped cluster pairs from the heatmap in fig2. probably more informative to just collapse by peak AP position by cluster as we did above anyhow
+appendix 2
+```{r}
+# fix cluster names thatll cause spatialLIBD issues; make the same changes into smart_to_sfish
+# met[,cca_cluster_label:=gsub(cca_cluster_label,pattern=" ",replacement="_")]
+# met[,cca_cluster_label:=gsub(cca_cluster_label,pattern="\\|",replacement="_")]
+# sfish_ap2[,smartseq_clus:=gsub(smartseq_clus,pattern=" ",replacement="_")]
+# sfish_ap2[,smartseq_clus:=gsub(smartseq_clus,pattern="\\|",replacement="_")]
+
+# # a couple esr clusters were collapsed in the figures' cca_cluster_labels so we need to account for that too
+# # sfish_ap2[!(smartseq_clus %in% met$cca_cluster_label),unique(smartseq_clus)] # Esr1_2, esr1_3
+# # grep(unique(met$cca_cluster_label),pattern="Esr1_",value=T) # those two clusters are collapsed as Esr1_2|3 i guess
+# # sfish_ap2[smartseq_clus %in% c("Esr1_2","Esr1_3"),smartseq_clus:="Esr1_2|3"]
+# stopifnot(nrow(sfish_ap2[!(smartseq_clus %in% met$cca_cluster_label)])==0)
+```

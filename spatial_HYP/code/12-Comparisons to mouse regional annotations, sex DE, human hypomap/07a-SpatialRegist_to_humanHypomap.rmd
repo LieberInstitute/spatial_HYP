@@ -44,7 +44,7 @@ load our hyp visium data just to get genes for now
 hyp2 <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
 ```
 
-load hypomap, convert to sce
+load hypomap, available at https://doi.org/10.17863/CAM.111988  (here, downloaded 3/24/25), convert to sce
 note that genes here are provided as HGNC symbols only, presumably thru seurats gene symbol thesaurus thing. get ensgs to match these
 ```{r}
 hmap <- readRDS("raw-data/human_HYPOMAP_snRNASeq_Tadross25.rds")

@@ -115,7 +115,7 @@ gc(full=T)
 
 ```{r}
 ## load the mouse VMH AP genes
-msap <- fread("spatial_HYP/processed-data/12-Mouse comparisons/06aII-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt")
+msap <- fread("spatial_HYP/processed-data/12-Mouse comparisons/06a-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt")
 msap[,gene:=toupper(gene)]
 msap <- msap[gene %in% rownames(spe)]
 

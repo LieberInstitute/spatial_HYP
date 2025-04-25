@@ -1,0 +1,154 @@
+---
+title: "06d-vVMH_pseudobulk_logCPM_spear_to_Kim19_AP"
+author: "Bernie Mulvey"
+date: "2025-04-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(parallel)
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+The other way we can do this is to assume that all Visium samples are truly, exactly coronal sections, in which case AP values should not vary 'medial' to 'lateral'. (by contrast, if the sections had been from tissue that was 30deg med/lat off coronal, for example, then one edge of VMH would've been more anterior and the other posterior; thus the spot-level analyses we already ran).
+
+if we assume we have a perfectly coronal slice, then we can just take the pseudobulk of vVMH from each sample and correlate THOSE values to each mouse AP marker t stat set. (this is probably more reliable than relying on a few thou reads from single spots anyhow)
+
+so read in: vVMH pseudobulks and mouse AP marker stats as calculated in 06a and 06b and table of 1-1 mouse/human orthologs we identified for these
+```{r}
+orths <- fread("processed-data/12-Mouse comparisons/06a-1to1_orths_in_KimSmartseq_and_vVMH.txt")
+
+fig2mks <- fread("processed-data/12-Mouse comparisons/06a-Kim19msVMH_Fig2_APclustsOnly_smartseq_markerTstat.txt")
+fig2mks[,gene:=NULL]
+
+ss.apmk <- fread("processed-data/12-Mouse comparisons/06b-AllKim19_sFISH-matched-smartseq-clusts_mkTstats_by_peakAPloc.txt")
+ss.apmk[,gene:=NULL]
+
+vvmhpb <- readRDS("processed-data/09-Sex DE/01d-pseudobulkExpr_01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+
+vvmhpb <- vvmhpb$BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH[assay=="VMH"]
+vvmhpb[,assay:=NULL]
+vvmhpb[,gene_name:=NULL]
+```
+
+run correls for each pb sample
+```{r}
+sampcor.list <- lapply(list(fig2mks,ss.apmk),FUN=function(m){
+    
+    samps <- names(vvmhpb)[names(vvmhpb)!="gene_id"]
+    sampcors <- lapply(samps,FUN=function(s){
+        
+        vvnames <- c("gene_id",s)
+        
+        tmpd <- merge.data.table(vvmhpb[,..vvnames],m,by.x="gene_id",by.y="human_ensg")
+        sdnames <- grep(names(tmpd),pattern="gene|V.*_..",value=T,invert=T)
+        
+        ans <- tmpd[,lapply(.SD,FUN=function(x){cor(get(s),x,method="spearman")}),.SDcols=sdnames]
+        ans[,samp:=s] 
+        ans <- melt.data.table(ans,id.vars="samp")
+
+        return(ans)
+    })
+    rettab <- rbindlist(sampcors)
+    return(rettab)
+})
+
+
+# save
+saveRDS(sampcor.list,"processed-data/12-Mouse comparisons/06d-vVMH_pseudobulk_logCPM_spear_to_Kim19_APmkSets.RDS")
+```
+
+repinf
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+
+R version 4.4.3 (2025-02-28)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.7.4
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] parallel  stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+[1] parallelly_1.43.0 colorout_1.3-0.2  data.table_1.17.0 rlang_1.1.5      
+
+loaded via a namespace (and not attached):
+ [1] digest_0.6.37     fastmap_1.2.0     xfun_0.51         knitr_1.50       
+ [5] htmltools_0.5.8.1 rmarkdown_2.29    cli_3.6.4         sessioninfo_1.2.3
+ [9] compiler_4.4.3    rprojroot_2.0.4   here_1.0.1        rstudioapi_0.17.1
+[13] tools_4.4.3       evaluate_1.0.3    yaml_2.3.10      
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.3 (2025-02-28)
+ os       macOS Sonoma 14.7.4
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2025-04-09
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+ quarto   1.4.555 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/quarto
+
+─ Packages ───────────────────────────────────────────────────────────────────────────
+ ! package     * version date (UTC) lib source
+ P cli           3.6.4   2025-02-13 [2] CRAN (R 4.4.1)
+   colorout    * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+   data.table  * 1.17.0  2025-02-22 [1] CRAN (R 4.4.1)
+   digest        0.6.37  2024-08-19 [1] CRAN (R 4.4.1)
+   evaluate      1.0.3   2025-01-10 [1] CRAN (R 4.4.1)
+   fastmap       1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+   here          1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+   htmltools     0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+   knitr         1.50    2025-03-16 [1] CRAN (R 4.4.2)
+   parallelly  * 1.43.0  2025-03-24 [1] CRAN (R 4.4.1)
+ P rlang       * 1.1.5   2025-01-17 [2] CRAN (R 4.4.1)
+   rmarkdown     2.29    2024-11-04 [1] CRAN (R 4.4.1)
+   rprojroot     2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+   rstudioapi    0.17.1  2024-10-22 [1] CRAN (R 4.4.1)
+   sessioninfo   1.2.3   2025-02-05 [1] CRAN (R 4.4.1)
+   xfun          0.51    2025-02-19 [1] CRAN (R 4.4.1)
+   yaml          2.3.10  2024-07-26 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ * ── Packages attached to the search path.
+ P ── Loaded and on-disk path mismatch.
+
+──────────────────────────────────────────────────────────────────────────────────────

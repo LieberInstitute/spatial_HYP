@@ -56,7 +56,7 @@ imgData(hyp2) <- NULL
 rm(clus,dropg)
 gc(full=T)
 
-msAP <- fread("processed-data/12-Mouse comparisons/06aII-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt")
+msAP <- fread("processed-data/12-Mouse comparisons/06a-Top5mks_per_APmapped_mspop_with1to1_hgorths.txt")
 ```
 
 sum spot counts or logcounts by sample and mouse AP cluster set

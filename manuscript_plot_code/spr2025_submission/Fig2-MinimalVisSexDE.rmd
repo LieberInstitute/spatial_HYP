@@ -93,6 +93,10 @@ rm(genelut)
 pals <- readRDS("manuscript_plot_code/domain_and_xencluster_palettes_CHECKPALNAMESBEFOREUS.RDS")
 
 pal <- pals[["Domains"]]
+
+ 
+### also load manuscript plotting ids
+mscriptids <- fread("standardized_sampleids_for_plotting.txt")
 ```
 
 
@@ -394,7 +398,7 @@ vpb <- merge.data.table(vpb,mscriptids,by.x="variable",by.y="sample_id")
 vpb[,Sex:=gsub(manuscript_id,pattern="^.*_(.*)$",replacement="\\1")]
 
 ### plots
-pdf("manuscript_plots/Fig2/vVMH_MC4R_pbulks.pdf",height=1,width=0.6)
+pdf("manuscript_plots/Fig2/vVMH_MC4R_pbulks.pdf",height=1,width=0.75)
 ggplot(vpb[gene_name=="MC4R"&domain=="VMH"],aes(x=Sex,y=value,col=domain,fill=Sex))+
   geom_boxplot(outliers = FALSE,linewidth=0.25)+
   scale_color_manual(values=pal)+
@@ -402,10 +406,10 @@ ggplot(vpb[gene_name=="MC4R"&domain=="VMH"],aes(x=Sex,y=value,col=domain,fill=Se
   scale_fill_manual(values=c("#FFFFFF","#000000"))+
   guides(col="none",fill="none")+
   geom_point(size=0.25,position=position_jitterdodge(jitter.width = 0.35))+
-  theme(axis.text.x=element_text(size=7),axis.text.y=element_blank(),axis.title.y=element_text(size=7),axis.title.x=element_blank(),panel.grid.major = element_line(linewidth=0.2),panel.grid.minor=element_line(linewidth=0.1),axis.ticks=element_line(linewidth=0.2,color = "#000000"))
+  theme(axis.text.x=element_text(size=7),axis.text.y=element_text(size=7),axis.title.y=element_text(size=7),axis.title.x=element_blank(),panel.grid.major = element_line(linewidth=0.2),panel.grid.minor=element_line(linewidth=0.1),axis.ticks=element_line(linewidth=0.2,color = "#000000"))
 dev.off()
 
-pdf("manuscript_plots/Fig2/vARC_RDH10_pbulks.pdf",height=1,width=0.6)
+pdf("manuscript_plots/Fig2/vARC_RDH10_pbulks.pdf",height=1,width=0.75)
 ggplot(vpb[gene_name=="RDH10"&domain=="ARC"],aes(x=Sex,y=value,col=domain,fill=Sex))+
   geom_boxplot(outliers = FALSE,linewidth=0.25)+
   scale_color_manual(values=pal)+
@@ -413,7 +417,7 @@ ggplot(vpb[gene_name=="RDH10"&domain=="ARC"],aes(x=Sex,y=value,col=domain,fill=S
   scale_fill_manual(values=c("#FFFFFF","#000000"))+
   guides(col="none",fill="none")+
   geom_point(size=0.25,position=position_jitterdodge(jitter.width = 0.15))+
-  theme(axis.text.x=element_text(size=7),axis.text.y=element_blank(),axis.title.y=element_text(size=7),axis.title.x=element_blank(),panel.grid.major = element_line(linewidth=0.2),panel.grid.minor=element_line(linewidth=0.1),axis.ticks=element_line(linewidth=0.2,color = "#000000"))
+  theme(axis.text.x=element_text(size=7),axis.text.y=element_text(size=7),axis.title.y=element_text(size=7),axis.title.x=element_blank(),panel.grid.major = element_line(linewidth=0.2),panel.grid.minor=element_line(linewidth=0.1),axis.ticks=element_line(linewidth=0.2,color = "#000000"))
 dev.off()
 ```
 
