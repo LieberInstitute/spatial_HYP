@@ -136,10 +136,10 @@ hgref <- pbxp[symb.hg %in% c("GFAP","ALDH1L1","MBP","MOBP")&assay=="vX3",.(symb.
 hgrefd <- dcast(hgref,formula =  variable~symb.hg)
 
 pbxp <- merge.data.table(pbxp,hgrefd,by="variable",all.x=T)
-pbxp[,GFAPnorm:=expr/GFAP]
+pbxp[,GFAPnorm:=expr-GFAP]
 # pbxp[,ALDH1L1norm:=expr/ALDH1L1] none in the WM i guess?
-pbxp[,MBPnorm:=expr/MBP]
-pbxp[,MOBPnorm:=expr/MOBP]
+pbxp[,MBPnorm:=expr-MBP]
+pbxp[,MOBPnorm:=expr-MOBP]
 
 pbxpnorm <- pbxp[,.(variable,assay,symb.hg,gene_id,spp,mouseGene,GFAPnorm,MBPnorm,MOBPnorm)]
 
@@ -148,9 +148,9 @@ msref <- mspb[symb.hg %in% c("GFAP","MBP","MOBP")&assay=="x295_Oligo_NN",.(symb.
 msrefd <- dcast(msref,formula =  sample_id~symb.hg)
 
 mspb <- merge.data.table(mspb,msrefd,by="sample_id",all.x=T)
-mspb[,GFAPnorm:=expr/GFAP]
-mspb[,MBPnorm:=expr/MBP]
-mspb[,MOBPnorm:=expr/MOBP]
+mspb[,GFAPnorm:=expr-GFAP]
+mspb[,MBPnorm:=expr-MBP]
+mspb[,MOBPnorm:=expr-MOBP]
 
 mspbnorm <- mspb[,.(sample_id,assay,symb.hg,ensg,mouseGene,spp,GFAPnorm,MBPnorm,MOBPnorm)]
 ```
