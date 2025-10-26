@@ -112,14 +112,16 @@ for (ann in unique(mks$anno)){
 hg19g <- fread("spatial_HYP/raw-data/dcs04sharedStatsgenLDSCbase_gene_meta_hg19.txt")
 setnames(hg19g,c("ensg","ensgver","chr","start","end","gene_name","pctgc","gtype","entrez"))
 
-lapply(names(allg)[3:ncol(allg)],function(x){
-    tmp <- copy(hg19g[ensg %in% allg[get(x)==1,ensembl]])[,.(ensg,chr,start,end)]
-    tmp[,start:=max(0,(start-100000))]
+for (n in names(allg)[3:ncol(allg)]){
+    tmp <- copy(hg19g[ensg %in% allg[get(n)==1,ensembl]])[,.(ensg,chr,start,end)]
+    tmp[,start:=ifelse(start-100000<0,0,start-100000)]
     tmp[,end:=end+100000]
     tmp[,newchr:=paste0("chr",chr)]
     tmp[,chr:=NULL]
     setnames(tmp,"newchr","chr")
     tmp <- tmp[!(chr %in% paste0("chr",c("Y","X","MT")))]
-    fwrite(tmp,paste0("spatial_HYP/processed-data/15-sLDSC-seg/bedfiles/",x,".bed"),sep='\t',quote=F,row.names=F,col.names=F)
-})
+    stopifnot(nrow(tmp[start>end])==0)
+    tmp <- tmp[,.(chr,start,end)]
+    fwrite(tmp,paste0("spatial_HYP/code/15-sLDSC-seg/bedfiles/",n,".bed"),sep='\t',quote=F,row.names=F,col.names=F)
+}
 ```
