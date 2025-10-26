@@ -1,0 +1,125 @@
+---
+title: "01-Write_out_gene_sets"
+author: "Bernie Mulvey"
+date: "2025-10-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+# library(SpatialFeatureExperiment)
+
+```
+
+```{r}
+mks <- readRDS("spatial_HYP/processed-data/07-Marker_genes/01b-BSpace_allruns_spatialLIBD-regwrap-enrichment_full.RDS")
+
+# get "k15_HARMONYlmbna_nnsvg10_60kiter"  and "k15_HARMONYlmbna_nnsvg10_60kiter_collapsed" 
+mks <- mks[c("k15_HARMONYlmbna_nnsvg10_60kiter","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed")]
+
+## make a table with the cluster annots
+anno <- as.data.table(as.data.frame(matrix(nrow=15,ncol=1)))
+setnames(anno,c("clusid"))
+anno[,clusid:=paste0("X",c(1:15))]
+anno[clusid=="X7",anno:="VMH.1"]
+anno[clusid=="X12",anno:="VMH.2"]
+anno[clusid=="X4",anno:="ARC.1"]
+anno[clusid=="X6",anno:="ARC.2"]
+anno[clusid=="X3",anno:="OT.1"]
+anno[clusid=="X10",anno:="OT.2"]
+anno[clusid=="X5",anno:="OT.3"]
+anno[clusid=="X1",anno:="GABA.1"]
+anno[clusid=="X2",anno:="PeriVN"]
+anno[clusid=="X9",anno:="Vascular"]
+anno[clusid=="X8",anno:="SON"]
+anno[clusid=="X13",anno:="PortalVasc"]
+anno[clusid=="X14",anno:="Astro"]
+anno[clusid=="X15",anno:="GABA.2"]
+anno[clusid=="X11",anno:="DROP"] # sample specific cluster
+
+mks[[1]] <- melt.data.table(mks[[1]],id.vars=c("ensembl","gene"))
+mks[[1]][,clusid:=gsub(variable,pattern="^.*_(X.*)",replacement="\\1")]
+mks[[1]][,stat:=gsub(variable,pattern="^(.*)_X.*$",replacement="\\1")]
+mks[[1]] <- mks[[1]][stat %in% c("fdr","logFC")]
+mks[[1]] <- dcast(mks[[1]],ensembl+gene+clusid~stat,value.var=c("value"))
+### get all genes (needed for LDSC input) before filtering
+allg <- unique(mks[[1]][,.(ensembl,gene)])
+
+mks[[1]] <- mks[[1]][fdr<0.1&logFC>0]
+mks[[1]] <- merge.data.table(mks[[1]],anno,by="clusid")
+mks[[1]] <- mks[[1]][anno!="DROP"]
+
+
+## get collapsed VMH and ARC
+keepclps <- c("ensembl","gene",grep(names(mks[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]]),pattern="XARC|XVMH",value=T))
+mks[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]] <- mks[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]][,..keepclps]
+mks[[2]] <- melt.data.table(mks[[2]],id.vars=c("ensembl","gene"))
+mks[[2]][,clusid:=gsub(variable,pattern="^.*_(X.*)",replacement="\\1")]
+mks[[2]][,stat:=gsub(variable,pattern="^(.*)_X.*$",replacement="\\1")]
+mks[[2]] <- mks[[2]][stat %in% c("fdr","logFC")]
+mks[[2]] <- dcast(mks[[2]],ensembl+gene+clusid~stat,value.var=c("value"))
+mks[[2]] <- mks[[2]][fdr<0.1&logFC>0]
+mks[[2]][,anno:=gsub(clusid,pattern="X(.*)",replacement=paste0("v","\\1"))]
+
+mks <- rbindlist(mks,use.names=T)
+```
+
+sex DEGs
+```{r}
+sexde.sing <- fread("spatial_HYP/processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt")
+sexde.jt <- fread("spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+
+sexde.jt <- sexde.jt[assay %in% c("ARC","VMH")]
+sexde.jt <- sexde.jt[,assay:=paste0("v",assay)]
+sexde <- as.data.table(rbind(sexde.jt,sexde.sing))
+
+## get all genes tested before filtering
+setnames(sexde,c("gene_id","gene_name"),c("ensembl","gene"))
+allg <- as.data.table(unique(rbind(allg,sexde[,.(ensembl,gene)])))
+
+sexde <- sexde[adj.P.Val<0.1]
+sexde <- merge.data.table(sexde,anno,by.x="assay",by.y="clusid",all.x=T)
+sexde[assay %in% c("vARC","vVMH"),anno:=assay]
+
+rm(sexde.jt,sexde.sing)
+```
+
+## make a master table binarized by DE/marker y/n for all genes tested
+```{r}
+for (ann in unique(sexde$anno)){
+    allg[,newcol:=0]
+    allg[ensembl %in% sexde[anno==ann,ensembl],newcol:=1]
+    setnames(allg,"newcol",paste0(gsub(ann,pattern="\\.",replacement=""),"_sexDE"))
+}
+
+for (ann in unique(mks$anno)){
+    allg[,newcol:=0]
+    allg[ensembl %in% mks[anno==ann,ensembl],newcol:=1]
+    setnames(allg,"newcol",paste0(gsub(ann,pattern="\\.",replacement=""),"_mk"))
+}
+
+
+
+
+```
+  
+## get gene coords--hg19? are the GWASes in hg19?---LEFT OFF HERE
+```{r}
+hg19g <- fread("spatial_HYP/raw-data/dcs04sharedStatsgenLDSCbase_gene_meta_hg19.txt")
+setnames(hg19g,c("ensg","ensgver","chr","start","end","gene_name","pctgc","gtype","entrez"))
+
+lapply(names(allg)[3:ncol(allg)],function(x){
+    tmp <- copy(hg19g[ensg %in% allg[get(x)==1,ensembl]])[,.(ensg,chr,start,end)]
+    tmp[,start:=max(0,(start-100000))]
+    tmp[,end:=end+100000]
+    tmp[,newchr:=paste0("chr",chr)]
+    tmp[,chr:=NULL]
+    setnames(tmp,"newchr","chr")
+    tmp <- tmp[!(chr %in% paste0("chr",c("Y","X","MT")))]
+    fwrite(tmp,paste0("spatial_HYP/processed-data/15-sLDSC-seg/bedfiles/",x,".bed"),sep='\t',quote=F,row.names=F,col.names=F)
+})
+```
