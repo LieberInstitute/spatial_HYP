@@ -1,0 +1,122 @@
+Loading LIBD SLURM module for ldsc/1.0.1
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 372, in estimate_h2
+    df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 398, in _overlap_output
+    overlap_matrix_prop[i, :] = overlap_matrix[i, :] / M_annot
+ValueError: operands could not be broadcast together with shapes (1,98) (1,97) 
+slurmstepd: error: Detected 5 oom-kill event(s) in StepId=23561749.batch. Some of your processes may have been killed by the cgroup out-of-memory handler.

@@ -1,0 +1,199 @@
+Loading LIBD SLURM module for ldsc/1.0.1
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Traceback (most recent call last):
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldsc.py", line 644, in <module>
+    sumstats.estimate_h2(args, log)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/sumstats.py", line 359, in estimate_h2
+    twostep=args.two_step, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 346, in __init__
+    slow=slow, step1_ii=step1_ii, old_weights=old_weights)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/regressions.py", line 208, in __init__
+    jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 310, in __init__
+    self.delete_values = self.block_values_to_delete_values(xty, xtx)
+  File "/dcs04/lieber/shared/statsgen/LDSC/base/scripts/ldscore/jackknife.py", line 424, in block_values_to_delete_values
+    delete_xtx, delete_xty).reshape((1, p))
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 403, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/jhpce/shared/libd/core/ldsc/1.0.1/ldsc_env/lib/python2.7/site-packages/numpy/linalg/linalg.py", line 97, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
