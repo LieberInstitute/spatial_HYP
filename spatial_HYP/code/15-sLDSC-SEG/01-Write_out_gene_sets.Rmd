@@ -15,6 +15,8 @@ library(data.table)
 
 ```
 
+Sets should be approx equal in terms of number of genes. therefore, use top 5% t stats (positive values) for markers, and top 5% abs t stats for sex DEGs. 
+
 ```{r}
 mks <- readRDS("spatial_HYP/processed-data/07-Marker_genes/01b-BSpace_allruns_spatialLIBD-regwrap-enrichment_full.RDS")
 
@@ -44,12 +46,9 @@ anno[clusid=="X11",anno:="DROP"] # sample specific cluster
 mks[[1]] <- melt.data.table(mks[[1]],id.vars=c("ensembl","gene"))
 mks[[1]][,clusid:=gsub(variable,pattern="^.*_(X.*)",replacement="\\1")]
 mks[[1]][,stat:=gsub(variable,pattern="^(.*)_X.*$",replacement="\\1")]
-mks[[1]] <- mks[[1]][stat %in% c("fdr","logFC")]
+mks[[1]] <- mks[[1]][stat=="t_stat"]
 mks[[1]] <- dcast(mks[[1]],ensembl+gene+clusid~stat,value.var=c("value"))
-### get all genes (needed for LDSC input) before filtering
-allg <- unique(mks[[1]][,.(ensembl,gene)])
 
-mks[[1]] <- mks[[1]][fdr<0.1&logFC>0]
 mks[[1]] <- merge.data.table(mks[[1]],anno,by="clusid")
 mks[[1]] <- mks[[1]][anno!="DROP"]
 
@@ -60,9 +59,8 @@ mks[["k15_HARMONYlmbna_nnsvg10_60kiter_collapsed"]] <- mks[["k15_HARMONYlmbna_nn
 mks[[2]] <- melt.data.table(mks[[2]],id.vars=c("ensembl","gene"))
 mks[[2]][,clusid:=gsub(variable,pattern="^.*_(X.*)",replacement="\\1")]
 mks[[2]][,stat:=gsub(variable,pattern="^(.*)_X.*$",replacement="\\1")]
-mks[[2]] <- mks[[2]][stat %in% c("fdr","logFC")]
+mks[[2]] <- mks[[2]][stat=="t_stat"]
 mks[[2]] <- dcast(mks[[2]],ensembl+gene+clusid~stat,value.var=c("value"))
-mks[[2]] <- mks[[2]][fdr<0.1&logFC>0]
 mks[[2]][,anno:=gsub(clusid,pattern="X(.*)",replacement=paste0("v","\\1"))]
 
 mks <- rbindlist(mks,use.names=T)
@@ -77,13 +75,13 @@ sexde.jt <- sexde.jt[assay %in% c("ARC","VMH")]
 sexde.jt <- sexde.jt[,assay:=paste0("v",assay)]
 sexde <- as.data.table(rbind(sexde.jt,sexde.sing))
 
-## get all genes tested before filtering
+## get all starting genes in a table to binarize w/
 setnames(sexde,c("gene_id","gene_name"),c("ensembl","gene"))
-allg <- as.data.table(unique(rbind(allg,sexde[,.(ensembl,gene)])))
+allg <- as.data.table(unique(rbind(mks[,.(ensembl,gene)],sexde[,.(ensembl,gene)])))
 
-sexde <- sexde[adj.P.Val<0.1]
 sexde <- merge.data.table(sexde,anno,by.x="assay",by.y="clusid",all.x=T)
 sexde[assay %in% c("vARC","vVMH"),anno:=assay]
+setnames(sexde,"t","t_stat")
 
 rm(sexde.jt,sexde.sing)
 ```
@@ -91,15 +89,27 @@ rm(sexde.jt,sexde.sing)
 ## make a master table binarized by DE/marker y/n for all genes tested
 ```{r}
 for (ann in unique(sexde$anno)){
+    tmpdat <- copy(sexde[anno==ann])
+    tmpdat[,abst:=abs(t_stat)]
+    setorderv(tmpdat,"abst",-1) # descending
+    tmpdat <- tmpdat[c(1:ceiling(0.05*nrow(tmpdat)))]
+    
+
     allg[,newcol:=0]
-    allg[ensembl %in% sexde[anno==ann,ensembl],newcol:=1]
+    allg[ensembl %in% tmpdat$ensembl,newcol:=1]
     setnames(allg,"newcol",paste0(gsub(ann,pattern="\\.",replacement=""),"_sexDE"))
+    rm(tmpdat)
 }
 
 for (ann in unique(mks$anno)){
+    tmpdat <- copy(mks[anno==ann])
+    setorderv(tmpdat,"t_stat",-1) # descending, signed (i.e getting highly + enriched genes)
+    tmpdat <- tmpdat[c(1:ceiling(0.05*nrow(tmpdat)))]
+  
     allg[,newcol:=0]
-    allg[ensembl %in% mks[anno==ann,ensembl],newcol:=1]
+    allg[ensembl %in% tmpdat$ensembl,newcol:=1]
     setnames(allg,"newcol",paste0(gsub(ann,pattern="\\.",replacement=""),"_mk"))
+    rm(tmpdat)
 }
 
 
