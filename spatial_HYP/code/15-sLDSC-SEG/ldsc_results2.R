@@ -1,5 +1,5 @@
 
-
+library(data.table)
 # read data 
 dat <- read.table("ldsc_results.txt",as.is=T,header=T,sep="\t")
 
@@ -41,14 +41,30 @@ dat$trait[dat$trait=="Type_2_Diabetes"] <- "Type 2 Diabetes"
 dat$trait[dat$trait=="Alzheimer Disease3"] <- "Alzheimer Disease"
 dat$trait[dat$trait=="mdd2019edinburgh"] <- "Depression"
 
-# FDR
+tmpdat <- copy(as.data.table(dat))
+
+# FDR correction -- sex de and marker tests jointly
 dat$p_zcore <- pnorm(abs(dat$Coefficient_z.score),lower.tail=F)*2
 dat$FDR <- p.adjust(dat$p_zcore,method="fdr")
 
 
-write.csv(dat,"ldsc_results.csv")
+write.csv(dat,"ldsc_results_MkAndSexFDRcorrection.csv")
+
+# FDR correction by gene set type
+datmk <- copy(tmpdat)[cell %in% grep(cell,pattern="mk",value=T)]
+datmk[,p_zcore:=pnorm(abs(Coefficient_z.score),lower.tail=F)*2]
+datmk[,FDR:=p.adjust(p_zcore,method="fdr")]
 
 
+write.csv(datmk,"ldsc_results_MkSetsFDR.csv")
+
+
+datsex <- copy(tmpdat)[cell %in% grep(cell,pattern="sexDE",value=T)]
+datsex[,p_zcore:=pnorm(abs(Coefficient_z.score),lower.tail=F)*2]
+datsex[,FDR:=p.adjust(p_zcore,method="fdr")]
+
+
+write.csv(datsex,"ldsc_results_SexDEsetsFDR.csv")
 
 
 
