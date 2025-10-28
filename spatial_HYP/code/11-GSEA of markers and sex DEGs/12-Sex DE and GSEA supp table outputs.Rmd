@@ -24,7 +24,7 @@ default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
 
 ### read in, write out sex DE tabs
 ```{r}
-sexde <- readRDS("processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+sexde <- readRDS("processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd_k15ARC2fixed.RDS")
 
 ## get just the nnsvg10 harmony lambda=NA result sets
 tmp <- sexde[grep(names(sexde),pattern="nnsvg10",value=T)]
@@ -269,9 +269,7 @@ rm(y,z,tftargsets,tftargtab,tftarg,sourcename,tftargs)
 
 ### write out sex DE-TF target results; append the TF symbol; append whether that TF is among those that passed the domain-expression threshold
 ```{r}
-tffull <- readRDS("processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
-
-tfcollapsed <- readRDS("processed-data/11-GSEA/04c-Sex DE TF-target GSEA clpspath mainPathways-only.RDS")
+tffull <- readRDS("processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd_ARC15.2fixed.RDS")
 
 tfxprd <- readRDS("processed-data/11-GSEA/09-Sex DE TF-target GSEA results from 04a filtered to TFs expressed in at least one sex at avg 2.5pct of cluster spots and at least 1pct of cluster spots in 3samps.RDS")
 
@@ -353,17 +351,18 @@ rm(clustres,tfcollapsed,tffull,tfbindpatterns,fix)
 
 ### write out sex DE - disease GSEA results
 ```{r}
-sexdisres <- readRDS("processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs.RDS")
+sexdisres <- readRDS("processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs_ARC15.2fix.RDS")
+sexdisres.us <- readRDS("processed-data/11-GSEA/06b-Unsigned_Common variant disease gene enrichment in sex DEGs_ARC15.2fix.RDS")
+sexdisres.us[,dir:="Both (enrichment test for sex DE generally)"]
 
-unique(sexdisres$spdom)
-
-spdompatt <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10_X","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
+sexdisres <- as.data.table(rbind(sexdisres,sexdisres.us))
+spdompatt <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10_","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
 
 i<-1
 for (i in c(1:4)){
     
     if(i==2){
-        sexdisres[spdom %in% grep(spdom, pattern=spdompatt[i],value=T),Domain:=gsub(spdom,pattern=paste0(spdompatt[i],"(.*)"),replacement=paste0("X","\\1"))]
+        sexdisres[spdom %in% grep(spdom, pattern=spdompatt[i],value=T),Domain:=gsub(spdom,pattern=paste0(spdompatt[i],"(.*)"),replacement=paste0("\\1"))]
     }
     
     else{
@@ -379,12 +378,8 @@ sexdisres[spdom %in% grep(spdom,pattern=spdompatt[1],value=T),`BayesSpace Run`:=
 sexdisres[,spdom:=NULL]
 
 ### add cluster identifiers as above
-## remove collapsed cluster results from the k=15 single domain results. not sure why i copied them there before. assign X3/5/11/12 the respective VMH and ARC ids previously used
-sexdisres[Domain=="X4"&`BayesSpace Run`=="k15",Domain:="ARC.1"]
-sexdisres[Domain=="X6"&`BayesSpace Run`=="k15",Domain:="ARC.2"]
-sexdisres[Domain=="X7"&`BayesSpace Run`=="k15",Domain:="VMH.1"]
-sexdisres[Domain=="X12"&`BayesSpace Run`=="k15",Domain:="VMH.2"]
-
+sexdisres[Domain=="clpsdARC_clpsdVMH_VMH",Domain:="vVMH.combined"]
+sexdisres[Domain=="clpsdARC_clpsdVMH_ARC",Domain:="vARC.combined"]
 ### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
 sexdisres[Domain=="X2"&`BayesSpace Run`=="k20",Domain:="VMH20.1"]
 sexdisres[Domain=="X3"&`BayesSpace Run`=="k20",Domain:="VMH20.2"]
@@ -407,9 +402,9 @@ sexdisres[,leadingEdge:=gsub(leadingEdge,pattern="  ",replacement=" ")]
 
 
 names(sexdisres)
-setnames(sexdisres,c("Diagnosis or Trait","P.Value","P.Adj","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Data or Publication Type from Which Geneset Derives","Domain","BayesSpace Run"))
+setnames(sexdisres,c("Diagnosis or Trait","P.Value","P.Adj","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","DE direction tested for enrichment","Data or Publication Type from Which Geneset Derives","Domain","BayesSpace Run"))
 sexdisres[1,]
-sexdisres <- sexdisres[,c(1,9,11,10,3,6,5,4,7,2,8)]
+sexdisres <- sexdisres[,c(1,10,12,11,9,3,6,5,4,7,2,8)]
 names(sexdisres)
 
 fwrite(sexdisres,"local_supptab_assembly/sex-disgene-gsea.txt",sep='\t',quote=F)

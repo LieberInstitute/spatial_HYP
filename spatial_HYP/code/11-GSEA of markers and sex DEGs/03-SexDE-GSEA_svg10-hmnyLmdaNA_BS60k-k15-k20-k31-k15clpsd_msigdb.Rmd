@@ -142,27 +142,27 @@ saveRDS(sexderes,"processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg1
 
 # clear some memory for the next step which is more intensive
 gc(full=T)
-### collapse pathways-this part is WAY WAY slower than the GSEA itself, in part because it's single processor.
-
-sexderes2 <- mcmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, mc.cores=9,FUN=function(X,Y){
-    tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = sets)
-    return(tmpres)
-})
-names(sexderes2) <- names(sexderes)
-saveRDS(sexderes2,"processed-data/11-GSEA/03b-Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
-
-
-rm(sexdelist)
-gc(full=T)
-
-### subset to main enrichments
-sexderes3 <- mapply(X=sexderes,Y=sexderes2,SIMPLIFY = FALSE,FUN=function(X,Y){
-    X[pathway %in% Y[[1]]]
-})
-saveRDS(sexderes3,"processed-data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
-# clean up
-rm(sexderes,sexderes2,sexderes3)
-gc(full=T)
+### collapse pathways-this part is WAY WAY slower than the GSEA itself, in part because it's single processor. not even run in the end.
+# 
+# sexderes2 <- mcmapply(X=sexderes,Y=sexdelist,SIMPLIFY = FALSE, mc.cores=9,FUN=function(X,Y){
+#     tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = sets)
+#     return(tmpres)
+# })
+# names(sexderes2) <- names(sexderes)
+# saveRDS(sexderes2,"processed-data/11-GSEA/03b-Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS") # intermediate file for saving progress. can be deleted after running next step:
+# 
+# 
+# rm(sexdelist)
+# gc(full=T)
+# 
+# ### subset to main enrichments
+# sexderes3 <- mapply(X=sexderes,Y=sexderes2,SIMPLIFY = FALSE,FUN=function(X,Y){
+#     X[pathway %in% Y[[1]]]
+# })
+# saveRDS(sexderes3,"processed-data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
+# # clean up
+# rm(sexderes,sexderes2,sexderes3)
+# gc(full=T)
 ```
 
 
@@ -220,27 +220,27 @@ saveRDS(sexderes.unsign,"processed-data/11-GSEA/03d-Unsigned Sex DE msigdb_1,2,3
 # clear some memory for the next step which is more intensive
 
 gc(full=T)
-### collapse pathways-this part is WAY WAY slower than the GSEA itself
-
-sexderes.unsign2 <- mcmapply(X=sexderes.unsign,Y=sexdelist.unsign,SIMPLIFY = FALSE, mc.cores=7,FUN=function(X,Y){
-    tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = sets)
-    return(tmpres)
-})
-names(sexderes.unsign2) <- names(sexderes.unsign)
-saveRDS(sexderes.unsign2,"processed-data/11-GSEA/03e-Unsigned Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
-
-
-rm(sexde)
-gc(full=T)
-
-### subset to main enrichments
-sexderes3 <- mapply(X=sexderes.unsign,Y=sexderes.unsign2,SIMPLIFY = FALSE,FUN=function(X,Y){
-    X[pathway %in% Y[[1]]]
-})
-saveRDS(sexderes3,"processed-data/11-GSEA/03f-Unsigned Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
-# clean up
-rm(sexderes.unsign,sexderes.unsign2)
-gc(full=T)
+### collapse pathways-this part is WAY WAY slower than the GSEA itself. doesnt even complete so not run.
+# 
+# sexderes.unsign2 <- mcmapply(X=sexderes.unsign,Y=sexdelist.unsign,SIMPLIFY = FALSE, mc.cores=7,FUN=function(X,Y){
+#     tmpres <- fgsea::collapsePathways(fgseaRes = X,stats=Y,pathways = sets)
+#     return(tmpres)
+# })
+# names(sexderes.unsign2) <- names(sexderes.unsign)
+# saveRDS(sexderes.unsign2,"processed-data/11-GSEA/03e-Unsigned Sex DE mSigDB_1,2,3,5,6,8 fGSEA-collapsePathways output.RDS")
+# 
+# 
+# rm(sexde)
+# gc(full=T)
+# 
+# ### subset to main enrichments
+# sexderes3 <- mapply(X=sexderes.unsign,Y=sexderes.unsign2,SIMPLIFY = FALSE,FUN=function(X,Y){
+#     X[pathway %in% Y[[1]]]
+# })
+# saveRDS(sexderes3,"processed-data/11-GSEA/03f-Unsigned Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
+# # clean up
+# rm(sexderes.unsign,sexderes.unsign2)
+# gc(full=T)
 ```
 
 ```{r}

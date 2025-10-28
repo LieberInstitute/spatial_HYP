@@ -70,7 +70,7 @@ library(parallel)
 
 ```{r}
 ## load hyp spe
-hyp <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+hyp <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
 
 ### remove components we don't need here: 10x dimreds, img data, logcount mat
 hyp2 <- SpatialExperiment(assays=list(counts=counts(hyp)),rowData=rowData(hyp),colData=colData(hyp),sample_id = colData(hyp)$sample_id,spatialCoords = spatialCoords(hyp))
@@ -100,14 +100,14 @@ rm(genchr)
 ```
 
 ```{r}
-bscl <- list.files("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out",pattern = ".txt",recursive=F,full.names = T)
+bscl <- list.files("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out",pattern = ".txt",recursive=F,full.names = T)
 bscls <- lapply(bscl,FUN=function(x){
     y <- fread(x)
     setnames(y,c("rn","cl"))
     y[,cl:=paste0("X",cl)]
     return(y)
 })
-names(bscls) <- gsub(bscl,pattern="spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/(.*)\\.txt$",replacement="\\1")
+names(bscls) <- gsub(bscl,pattern="processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/(.*)\\.txt$",replacement="\\1")
 
 bscl <- bscls$BSpace_k15_HARMONYlmbna_nnsvg10
 
@@ -180,7 +180,7 @@ setnames(v.swt.e.tt,"rn","gene_id")
 reordnames <- c("gene_name","logFC","P.Value","adj.P.Val","t","B","chromosome_name","AveExpr","gene_id")
 v.swt.e.tt <- v.swt.e.tt[,..reordnames])
 
-fwrite(v.swt.e.tt,"spatial_HYP/processed-data/09-Sex DE/02-k15_svg10_ARC.2_sexDE_correctedRun_102725.txt",sep='\t',quote=F,row.names=F,col.names=T)
+fwrite(v.swt.e.tt,"processed-data/09-Sex DE/02-k15_svg10_ARC.2_sexDE_correctedRun_102725.txt",sep='\t',quote=F,row.names=F,col.names=T)
 ```
 
 ## replace previous ARC2 results in the RDS, tables written out previously
@@ -189,21 +189,21 @@ rm(list=grep(ls(),pattern="v.swt.e.tt",value=T,invert=T))
 
 v.swt.e.tt[,assay:="X6"] # to match existing table formats
 
-sexderds <- readRDS("spatial_HYP/processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+sexderds <- readRDS("processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
 
 sexderds$BSpace_k15_HARMONYlmbna_nnsvg10 <- sexderds$BSpace_k15_HARMONYlmbna_nnsvg10[assay!="X6"]
 sexderds$BSpace_k15_HARMONYlmbna_nnsvg10 <- rbind(sexderds$BSpace_k15_HARMONYlmbna_nnsvg10,v.swt.e.tt)
-saveRDS(sexderds,"spatial_HYP/processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd_k15ARC2fixed.RDS")
+saveRDS(sexderds,"processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd_k15ARC2fixed.RDS")
 ### 
 
 
-sexdetab <- fread("spatial_HYP/processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt")
+sexdetab <- fread("processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt")
 
 sexdetab <- sexdetab[assay!="X6"]
 v.swt.e.tt[,chromosome_name:=NULL]
 sexdetab <- rbind(sexdetab,v.swt.e.tt)
 
-fwrite(sexdetab,"spatial_HYP/processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts_ARC2fixed.txt",sep='\t',quote=F,row.names=F,col.names=T)
+fwrite(sexdetab,"processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts_ARC2fixed.txt",sep='\t',quote=F,row.names=F,col.names=T)
 ```
 seshinf
 ```{r}

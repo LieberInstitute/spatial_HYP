@@ -48,7 +48,7 @@ dissets <- fread("spatial_HYP/raw-data/Genesets from GWAS pubs, TWAS, and disgen
 ## WHERE IS THE EXPRESSION FILTERING? the info from the filtering of these on expression tho?
 mkdisres <- readRDS("spatial_HYP/processed-data/11-GSEA/05-Common variant disease gene enrichment in markers.RDS")
 
-sexdisres <- readRDS("spatial_HYP/processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs.RDS")
+sexdisres <- fread("local_supptab_assembly/sex-disgene-gsea.txt")
 
 mktfres <- readRDS("spatial_HYP/processed-data/11-GSEA/08-Marker TF-target GSEA results from 02a filtered to TFs expressed in avg 5pct of cluster spots and at least 1pct of cluster spots in 5samps.RDS")
 mktfres <- mktfres[c("k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XARC","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed_XVMH")]

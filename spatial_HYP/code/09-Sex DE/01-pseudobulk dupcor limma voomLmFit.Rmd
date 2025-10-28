@@ -34,7 +34,7 @@ library(parallel)
 
 ```{r}
 ## load hyp spe
-hyp <- readRDS("spatial_HYP/processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
+hyp <- readRDS("processed-data/03-QC_filters/hypN10_umi210_gene126_chrm50_spotsweeped_lognorm_rotsNmirrors_072224.RDS")
 
 ### remove components we don't need here: 10x dimreds, img data, logcount mat
 hyp2 <- SpatialExperiment(assays=list(counts=counts(hyp)),rowData=rowData(hyp),colData=colData(hyp),sample_id = colData(hyp)$sample_id,spatialCoords = spatialCoords(hyp))
@@ -67,14 +67,14 @@ rm(genchr)
 ## re run with a hardcoded fix that should only change results for k=15 nnsvg10 ARC.2 (X6) on 10/27/25. -- separate script
 ```{r}
 # get cluster assignment files
-bscl <- list.files("spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out",pattern = ".txt",recursive=F,full.names = T)
+bscl <- list.files("processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out",pattern = ".txt",recursive=F,full.names = T)
 bscls <- lapply(bscl,FUN=function(x){
     y <- fread(x)
     setnames(y,c("rn","cl"))
     y[,cl:=paste0("X",cl)]
     return(y)
 })
-names(bscls) <- gsub(bscl,pattern="spatial_HYP/processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/(.*)\\.txt$",replacement="\\1")
+names(bscls) <- gsub(bscl,pattern="processed-data/06-BayesSpace/01-bayesspace60kiter_k15-20-31_out/(.*)\\.txt$",replacement="\\1")
 
 # add a second instance of the k15 clustering so we can also run collapsed VMH/ARC clusters DE. (k15 only, since collapsing all of the VMH clusters will be ~ the same regardless of how it was divied up in the first place) VMH = 11,12; ARC=3,5.
 collapsed <- copy(bscls[["BSpace_k15_HARMONYlmbna_nnsvg10"]])
@@ -242,12 +242,12 @@ bsHna60sOutE <- lapply(X=bsHna60sOutE,FUN=function(X){
 saveRDS(bsHna60sOut2,"processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
 
 # save table with the single-cluster and collapsed cluster DE as plaintext since those are the primary results going forward
-fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_nnsvg10"]],"spatial_HYP/processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt",sep="\t",quote=F)
-fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_hvg20_clpsdARC_clpsdVMH"]],"spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_nnsvg10"]],"processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt",sep="\t",quote=F)
+fwrite(bsHna60sOut2[["BSpace_k15_HARMONYlmbna_hvg20_clpsdARC_clpsdVMH"]],"processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 
 
 ## save RDS of pseudobulk expression values for plotting aggregate results
-saveRDS(bsHna60sOutE,"spatial_HYP/processed-data/09-Sex De/01d-pseudobulkExpr_01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
+saveRDS(bsHna60sOutE,"processed-data/09-Sex De/01d-pseudobulkExpr_01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd.RDS")
 
 ```
 

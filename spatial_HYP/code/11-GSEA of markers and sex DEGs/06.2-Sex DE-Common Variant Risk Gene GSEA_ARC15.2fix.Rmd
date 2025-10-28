@@ -1,0 +1,488 @@
+---
+title: "06.2-Sex DE-Common Variant Risk Gene GSEA_ARC15.2fix"
+author: "Bernard Mulvey"
+date: "2025-10-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+knitr::opts_chunk$set(fig.width=7,fig.height=10)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(clusterProfiler) ## appears necessary for parallelization to work
+library(fgsea)
+
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+
+## change write.table to output a TSV without quotes or rownames by default
+library(default)
+default(write.table) <- list(row.names=F,col.names=T,sep='\t',quote=F)
+
+
+library(parallel)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(parallelly)
+options(bphost="localhost")
+library(BiocParallel)
+```
+
+### load aggregated disease-gene lists and reformat
+```{r}
+#setDTthreads(1,restore_after_fork=FALSE)
+
+gwas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/gwassets.txt",header=T)
+twas <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/twassets.txt")
+dgn <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/disgenet_curated_genes.txt")
+setnames(dgn,"gene_symbol","symbol")
+un <- fread("raw-data/Genesets from GWAS pubs, TWAS, and disgenet/nonredundant_union_set_genesymbols.txt")
+
+dissets <- list(gwas,twas,dgn,un)
+names(dissets) <- c("gwas","twas","dgn","union")
+
+# make a list object of identifiers per gene set
+# result is a list of lists by modality
+dissets <- lapply(dissets,FUN=function(x){
+    dissets2 <- copy(x)
+    q <- split(dissets2$symbol,dissets2$dx)
+    d <- lapply(q,FUN=function(x){x[!duplicated(x)]})
+    return(d)
+})
+
+rm(gwas,twas,dgn,un)
+gc(full=T)
+```
+
+
+### sex DEG setup
+```{r}
+sexde <- readRDS("processed-data/09-Sex DE/01-voomLmFit_svg10-svg20-hvg20_Hmnydflt-mnn30-HmnylmbNA_BS-15-20-31-15VMHARCclpsd_k15ARC2fixed.RDS")
+
+## subset to the nnsvg10 k15 ARC2 result
+sexde <- sexde[grep(names(sexde),pattern="HARMONYlmbna_nnsvg10")]
+detab <- sexde$BSpace_k15_HARMONYlmbna_nnsvg10[assay=="X6"]
+
+### get named vectors of marker t-stats for each cluster in each result set (15+20+31+13)=79. we need symbols since not all of the dis-gene data sources provide ens identifiers
+### drop mito and sex chr genes
+detab <- detab[!(chromosome_name %in% grep(chromosome_name,pattern="MT|X|Y",value=T))]
+
+### get vector of t-stats for ARC15.2 cluster
+setnames(detab,"t","tstat")
+tmp <- copy(detab)[,.(gene_name,tstat)]
+tmp <- tmp[!duplicated(gene_name)]
+setorderv(tmp,"tstat",-1)
+## get the stat column as a vector and give it the gene ids as names for fgsea
+## note that since data.table (invisibly) uses list() for column data, its cleaner to just make the working table a data frame for this last bit
+tmp <- as.data.frame(tmp)
+v <- tmp$tstat
+names(v) <- tmp$gene_name
+deset <- list(v)
+names(deset)[1] <- "ARC.2"
+rm(i,v,tmp)
+
+```
+
+```{r}
+### loop through each domain and modality-disease gene set (each run is very fast with 10 cpus in biocparallel, so just serially run 10cpu GSEA for each cluster)
+dissets.res <- list()
+
+i<-1
+for (i in c(1:length(dissets))){
+    cursets <- copy(dissets[[i]])
+    
+    sexderes <- mapply(X=deset,Y=names(deset),SIMPLIFY=FALSE,FUN=function(X,Y){
+        # max size for dis gene sets is BMI at 8100-some, so set max size to 8200 
+        register(MulticoreParam())
+        
+        # get male-up enriched results
+        z1<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,nPermSimple = 50000,nproc=10,scoreType = "pos")
+        # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
+        z1$leadingEdge <- as.character(z1$leadingEdge)
+        z1$leadingEdge <- gsub(z1$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+        z1$leadingEdge <- gsub(z1$leadingEdge,pattern='"',replacement='')
+        # drop newlines from leadingEdge
+        z1$leadingEdge <- gsub(z1$leadingEdge,pattern=", \n",replacement=", ")
+        z1 <- as.data.table(z1)
+        z1[,spdom:=Y]
+        z1[,dir:="male_up"]
+        
+        # get female-up enriched results
+        register(MulticoreParam())
+        z2<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,nPermSimple = 50000,nproc=10,scoreType = "neg")
+        # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
+        z2$leadingEdge <- as.character(z2$leadingEdge)
+        z2$leadingEdge <- gsub(z2$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+        z2$leadingEdge <- gsub(z2$leadingEdge,pattern='"',replacement='')
+        # drop newlines from leadingEdge
+        z2$leadingEdge <- gsub(z2$leadingEdge,pattern=", \n",replacement=", ")
+        z2 <- as.data.table(z2)
+        z2[,spdom:=Y]
+        z2[,dir:="female_up"]
+        
+        z<-rbind(z1,z2)
+        return(z)
+    })
+    dissets.res[[i]] <- sexderes
+    names(dissets.res)[i] <- names(dissets)[i]
+    rm(cursets,sexderes)
+}
+rm(i)
+```
+
+
+#### concatenate
+```{r}
+i <-1
+for (i in c(1:length(dissets.res))){
+    j<-1
+    for (j in c(1:length(dissets.res[[i]]))){
+        if(i==1 & j==1){
+            allsexdedisres <- copy(dissets.res[[i]][[j]])
+            allsexdedisres[,genesets_from:=names(dissets.res)[i]]
+        }
+        else{
+            tmp <- copy(dissets.res[[i]][[j]])
+            tmp[,genesets_from:=names(dissets.res)[i]]
+            allsexdedisres <- rbind(allsexdedisres,tmp)
+            rm(tmp)
+        }
+    }
+}
+```
+
+## drop in ARC.2 results in place of previous (erroneous) ones, and tidy up some other misc while we've got it open
+```{r}
+allsexdedisresorig <- readRDS("processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs.RDS")
+allsexdedisresorig <- allsexdedisresorig[spdom!="BSpace_k15_HARMONYlmbna_nnsvg10_X6"]
+allsexdedisres[,spdom:="BSpace_k15_HARMONYlmbna_nnsvg10_X6"]
+allsexdedisresorig <- as.data.table(rbind(allsexdedisresorig,allsexdedisres))
+
+## drop the redundant results from k15 with collapsed arc/vmh
+allsexdedisresorig <- allsexdedisresorig[!(spdom %in% grep(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_X.*",value=T))]
+
+anno <- as.data.table(paste0("X",c(1:15)))
+setnames(anno,"V1","clusid")
+anno[clusid=="X7",anno:="VMH.1"]
+anno[clusid=="X12",anno:="VMH.2"]
+anno[clusid=="X4",anno:="ARC.1"]
+anno[clusid=="X6",anno:="ARC.2"]
+anno[clusid=="X3",anno:="OT.1"]
+anno[clusid=="X10",anno:="OT.2"]
+anno[clusid=="X5",anno:="OT.3"]
+anno[clusid=="X1",anno:="GABA.1"]
+anno[clusid=="X2",anno:="PeriVN"]
+anno[clusid=="X9",anno:="Vascular"]
+anno[clusid=="X8",anno:="SON"]
+anno[clusid=="X13",anno:="PortalVasc"]
+anno[clusid=="X14",anno:="Astro"]
+anno[clusid=="X15",anno:="GABA.2"]
+anno[clusid=="X11",anno:="DROP"] # sample specific cluster
+anno[,clusid:=paste0("BSpace_k15_HARMONYlmbna_nnsvg10_",clusid)]
+
+allsexdedisresorig.hold <- copy(allsexdedisresorig)[!(spdom %in% grep(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T))]
+allsexdedisresorig.tmp <- copy(allsexdedisresorig)[spdom %in% grep(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T)]
+allsexdedisresorig.tmp <- merge.data.table(allsexdedisresorig.tmp,anno,by.x="spdom",by.y="clusid")
+allsexdedisresorig.tmp[,spdom:=anno]
+allsexdedisresorig.tmp[,anno:=NULL]
+allsexdedisresorig.tmp[,spdom:=paste0("BSpace_k15_HARMONYlmbna_nnsvg10_",spdom)]
+allsexdedisresorig <- rbind(allsexdedisresorig.hold,allsexdedisresorig.tmp)
+
+saveRDS(allsexdedisresorig,"processed-data/11-GSEA/06-Common variant disease gene enrichment in sex DEGs_ARC15.2fix.RDS")
+
+rm(list=grep(ls(),pattern="detab|dissets|anno",value=T,invert=T))
+```
+
+### PT2: unsigned DE stats
+```{r}
+### get vector of ABSOLUTE VAL t-stats for ARC15.2 cluster
+tmp <- copy(detab)[,.(gene_name,abs(tstat))]
+setnames(tmp,2,"tstat")
+tmp <- tmp[!duplicated(gene_name)]
+setorderv(tmp,"tstat",-1)
+## get the stat column as a vector and give it the gene ids as names for fgsea
+## note that since data.table (invisibly) uses list() for column data, its cleaner to just make the working table a data frame for this last bit
+tmp <- as.data.frame(tmp)
+v <- tmp$tstat
+names(v) <- tmp$gene_name
+deset <- list(v)
+names(deset)[1] <- "ARC.2"
+rm(i,v,tmp)
+```
+
+unsigned GSEA (pos enrichment)
+```{r}
+dissets.res.unsign <- list()
+
+i<-1
+for (i in c(1:length(dissets))){
+    cursets <- copy(dissets[[i]])
+    sexderes <- mapply(X=deset,Y=names(deset),SIMPLIFY=FALSE,FUN=function(X,Y){
+        # max size for dis gene sets is BMI at 8100-some, so set max size to 8200 
+        register(MulticoreParam())
+        z<-fgseaMultilevel(pathways=cursets,stats = X,minSize = 15,maxSize = 8200,eps=0.0,nPermSimple = 50000,nproc=10,scoreType="pos")
+        # coonvert leadingedge to one long string (it's returned as a list which is not compatible with data.table)
+        z$leadingEdge <- as.character(z$leadingEdge)
+        z$leadingEdge <- gsub(z$leadingEdge,pattern="^c\\((.*)\\)$",replacement="\\1")
+        z$leadingEdge <- gsub(z$leadingEdge,pattern='"',replacement='')
+        z <- as.data.table(z)
+        z[,spdom:=Y]
+        return(z)
+    })
+    dissets.res.unsign[[i]] <- sexderes
+    names(dissets.res.unsign)[i] <- names(dissets)[i]
+    rm(cursets,sexderes)
+}
+rm(i)
+
+### concatenate
+i <-1
+for (i in c(1:length(dissets.res.unsign))){
+    j<-1
+    for (j in c(1:length(dissets.res.unsign[[i]]))){
+        if(i==1 & j==1){
+            allsexdedisres.unsign <- copy(dissets.res.unsign[[i]][[j]])
+            allsexdedisres.unsign[,genesets_from:=names(dissets.res.unsign)[i]]
+        }
+        else{
+            tmp <- copy(dissets.res.unsign[[i]][[j]])
+            tmp[,genesets_from:=names(dissets.res.unsign)[i]]
+            allsexdedisres.unsign <- rbind(allsexdedisres.unsign,tmp)
+            rm(tmp)
+        }
+    }
+}
+```
+
+same fixes and drop ins as above for this result set:
+## drop in ARC.2 results in place of previous (erroneous) ones, and tidy up some other misc while we've got it open
+```{r}
+allsexdedisres.unsign.orig <- readRDS("processed-data/11-GSEA/06b-Unsigned_Common variant disease gene enrichment in sex DEGs.RDS")
+allsexdedisres.unsign.orig <- allsexdedisres.unsign.orig[spdom!="BSpace_k15_HARMONYlmbna_nnsvg10_X6"]
+allsexdedisres.unsign[,spdom:="BSpace_k15_HARMONYlmbna_nnsvg10_X6"]
+allsexdedisres.unsign.orig <- as.data.table(rbind(allsexdedisres.unsign.orig,allsexdedisres.unsign))
+
+## drop the redundant results from k15 with collapsed arc/vmh
+allsexdedisres.unsign.orig <- allsexdedisres.unsign.orig[!(spdom %in% grep(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_X.*",value=T))]
+
+anno <- as.data.table(paste0("X",c(1:15)))
+setnames(anno,"V1","clusid")
+anno[clusid=="X7",anno:="VMH.1"]
+anno[clusid=="X12",anno:="VMH.2"]
+anno[clusid=="X4",anno:="ARC.1"]
+anno[clusid=="X6",anno:="ARC.2"]
+anno[clusid=="X3",anno:="OT.1"]
+anno[clusid=="X10",anno:="OT.2"]
+anno[clusid=="X5",anno:="OT.3"]
+anno[clusid=="X1",anno:="GABA.1"]
+anno[clusid=="X2",anno:="PeriVN"]
+anno[clusid=="X9",anno:="Vascular"]
+anno[clusid=="X8",anno:="SON"]
+anno[clusid=="X13",anno:="PortalVasc"]
+anno[clusid=="X14",anno:="Astro"]
+anno[clusid=="X15",anno:="GABA.2"]
+anno[clusid=="X11",anno:="DROP"] # sample specific cluster
+anno[,clusid:=paste0("BSpace_k15_HARMONYlmbna_nnsvg10_",clusid)]
+
+allsexdedisres.unsign.orig.hold <- copy(allsexdedisres.unsign.orig)[!(spdom %in% grep(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T))]
+allsexdedisres.unsign.orig.tmp <- copy(allsexdedisres.unsign.orig)[spdom %in% grep(spdom,pattern="BSpace_k15_HARMONYlmbna_nnsvg10_X",value=T)]
+allsexdedisres.unsign.orig.tmp <- merge.data.table(allsexdedisres.unsign.orig.tmp,anno,by.x="spdom",by.y="clusid")
+allsexdedisres.unsign.orig.tmp[,spdom:=anno]
+allsexdedisres.unsign.orig.tmp[,anno:=NULL]
+allsexdedisres.unsign.orig.tmp[,spdom:=paste0("BSpace_k15_HARMONYlmbna_nnsvg10_",spdom)]
+allsexdedisres.unsign.orig <- rbind(allsexdedisres.unsign.orig.hold,allsexdedisres.unsign.orig.tmp)
+
+saveRDS(allsexdedisres.unsign.orig,"processed-data/11-GSEA/06b-Unsigned_Common variant disease gene enrichment in sex DEGs_ARC15.2fix.RDS")
+```
+
+
+
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.3 (2025-02-28)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sequoia 15.3.2
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] parallel  stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] BiocParallel_1.40.0    parallelly_1.43.0      default_1.0.0         
+[4] colorout_1.3-0.2       fgsea_1.32.4           clusterProfiler_4.14.6
+[7] data.table_1.17.4      rlang_1.1.5           
+
+loaded via a namespace (and not attached):
+ [1] DBI_1.2.3               gson_0.1.0              magrittr_2.0.3         
+ [4] DOSE_4.0.0              compiler_4.4.3          RSQLite_2.3.9          
+ [7] png_0.1-8               vctrs_0.6.5             reshape2_1.4.4         
+[10] stringr_1.5.1           pkgconfig_2.0.3         crayon_1.5.3           
+[13] fastmap_1.2.0           XVector_0.46.0          rmarkdown_2.29         
+[16] sessioninfo_1.2.3       enrichplot_1.26.6       UCSC.utils_1.2.0       
+[19] purrr_1.0.4             bit_4.6.0               xfun_0.52              
+[22] zlibbioc_1.52.0         cachem_1.1.0            aplot_0.2.5            
+[25] GenomeInfoDb_1.42.3     jsonlite_2.0.0          blob_1.2.4             
+[28] R6_2.6.1                stringi_1.8.7           RColorBrewer_1.1-3     
+[31] GOSemSim_2.32.0         Rcpp_1.0.14             knitr_1.50             
+[34] ggtangle_0.0.6          R.utils_2.13.0          IRanges_2.40.1         
+[37] Matrix_1.7-3            splines_4.4.3           igraph_2.1.4           
+[40] tidyselect_1.2.1        qvalue_2.38.0           rstudioapi_0.17.1      
+[43] dichromat_2.0-0.1       yaml_2.3.10             codetools_0.2-20       
+[46] lattice_0.22-6          tibble_3.2.1            plyr_1.8.9             
+[49] Biobase_2.66.0          treeio_1.30.0           KEGGREST_1.46.0        
+[52] evaluate_1.0.3          gridGraphics_0.5-1      Biostrings_2.74.1      
+[55] pillar_1.10.2           ggtree_3.14.0           stats4_4.4.3           
+[58] ggfun_0.1.8             generics_0.1.4          rprojroot_2.0.4        
+[61] S4Vectors_0.44.0        ggplot2_3.5.2           scales_1.4.0           
+[64] tidytree_0.4.6          glue_1.8.0              lazyeval_0.2.2         
+[67] tools_4.4.3             fs_1.6.6                fastmatch_1.1-6        
+[70] cowplot_1.1.3           grid_4.4.3              tidyr_1.3.1            
+[73] ape_5.8-1               AnnotationDbi_1.68.0    colorspace_2.1-1       
+[76] nlme_3.1-167            GenomeInfoDbData_1.2.13 patchwork_1.3.0        
+[79] cli_3.6.4               dplyr_1.1.4             gtable_0.3.6           
+[82] R.methodsS3_1.8.2       yulab.utils_0.2.0       digest_0.6.37          
+[85] BiocGenerics_0.52.0     ggrepel_0.9.6           ggplotify_0.1.2        
+[88] farver_2.1.2            memoise_2.0.1           htmltools_0.5.8.1      
+[91] R.oo_1.27.0             lifecycle_1.0.4         httr_1.4.7             
+[94] here_1.0.1              GO.db_3.20.0            bit64_4.6.0-1          
+> sessioninfo::session_info()
+─ Session info ─────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.3 (2025-02-28)
+ os       macOS Sequoia 15.3.2
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2025-10-28
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+ quarto   1.4.555 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/quarto
+
+─ Packages ─────────────────────────────────────────────────────────────────────────
+ !  package          * version date (UTC) lib source
+    AnnotationDbi      1.68.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    ape                5.8-1   2024-12-16 [1] CRAN (R 4.4.1)
+    aplot              0.2.5   2025-02-27 [1] CRAN (R 4.4.1)
+    Biobase            2.66.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    BiocGenerics       0.52.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    BiocParallel     * 1.40.0  2024-11-23 [1] Bioconductor 3.20 (R 4.4.2)
+    Biostrings         2.74.1  2024-12-16 [1] Bioconductor 3.20 (R 4.4.2)
+    bit                4.6.0   2025-03-06 [1] CRAN (R 4.4.1)
+    bit64              4.6.0-1 2025-01-16 [1] CRAN (R 4.4.1)
+    blob               1.2.4   2023-03-17 [1] CRAN (R 4.4.0)
+    cachem             1.1.0   2024-05-16 [1] CRAN (R 4.4.0)
+ VP cli                3.6.4   2025-04-23 [2] CRAN (R 4.4.1) (on disk 3.6.5)
+    clusterProfiler  * 4.14.6  2025-02-27 [1] Bioconductor 3.20 (R 4.4.2)
+    codetools          0.2-20  2024-03-31 [1] CRAN (R 4.4.3)
+    colorout         * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+    colorspace         2.1-1   2024-07-26 [1] CRAN (R 4.4.0)
+    cowplot            1.1.3   2024-01-22 [1] CRAN (R 4.4.0)
+    crayon             1.5.3   2024-06-20 [1] CRAN (R 4.4.0)
+    data.table       * 1.17.4  2025-05-26 [1] CRAN (R 4.4.3)
+    DBI                1.2.3   2024-06-02 [1] CRAN (R 4.4.0)
+    default          * 1.0.0   2017-08-07 [1] CRAN (R 4.4.0)
+    dichromat          2.0-0.1 2022-05-02 [1] CRAN (R 4.4.0)
+    digest             0.6.37  2024-08-19 [1] CRAN (R 4.4.1)
+    DOSE               4.0.0   2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    dplyr              1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
+    enrichplot         1.26.6  2025-01-09 [1] Bioconductor 3.20 (R 4.4.2)
+    evaluate           1.0.3   2025-01-10 [1] CRAN (R 4.4.1)
+    farver             2.1.2   2024-05-13 [1] CRAN (R 4.4.0)
+    fastmap            1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+    fastmatch          1.1-6   2024-12-23 [1] CRAN (R 4.4.1)
+    fgsea            * 1.32.4  2025-03-20 [1] Bioconductor 3.20 (R 4.4.3)
+    fs                 1.6.6   2025-04-12 [1] CRAN (R 4.4.1)
+    generics           0.1.4   2025-05-09 [1] CRAN (R 4.4.1)
+    GenomeInfoDb       1.42.3  2025-01-27 [1] Bioconductor 3.20 (R 4.4.2)
+    GenomeInfoDbData   1.2.13  2024-12-12 [1] Bioconductor
+    ggfun              0.1.8   2024-12-03 [1] CRAN (R 4.4.1)
+    ggplot2            3.5.2   2025-04-09 [1] CRAN (R 4.4.1)
+    ggplotify          0.1.2   2023-08-09 [1] CRAN (R 4.4.0)
+    ggrepel            0.9.6   2024-09-07 [1] CRAN (R 4.4.1)
+    ggtangle           0.0.6   2024-12-18 [1] CRAN (R 4.4.1)
+    ggtree             3.14.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    glue               1.8.0   2024-09-30 [1] CRAN (R 4.4.1)
+    GO.db              3.20.0  2024-12-12 [1] Bioconductor
+    GOSemSim           2.32.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    gridGraphics       0.5-1   2020-12-13 [1] CRAN (R 4.4.0)
+    gson               0.1.0   2023-03-07 [1] CRAN (R 4.4.0)
+    gtable             0.3.6   2024-10-25 [1] CRAN (R 4.4.1)
+    here               1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+    htmltools          0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+    httr               1.4.7   2023-08-15 [1] CRAN (R 4.4.0)
+    igraph             2.1.4   2025-01-23 [1] CRAN (R 4.4.1)
+    IRanges            2.40.1  2024-12-05 [1] Bioconductor 3.20 (R 4.4.2)
+    jsonlite           2.0.0   2025-03-27 [1] CRAN (R 4.4.1)
+    KEGGREST           1.46.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    knitr              1.50    2025-03-16 [1] CRAN (R 4.4.2)
+    lattice            0.22-6  2024-03-20 [1] CRAN (R 4.4.3)
+    lazyeval           0.2.2   2019-03-15 [1] CRAN (R 4.4.0)
+    lifecycle          1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
+    magrittr           2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
+    Matrix             1.7-3   2025-03-11 [1] CRAN (R 4.4.1)
+    memoise            2.0.1   2021-11-26 [1] CRAN (R 4.4.0)
+    nlme               3.1-167 2025-01-27 [1] CRAN (R 4.4.3)
+    parallelly       * 1.43.0  2025-03-24 [1] CRAN (R 4.4.1)
+    patchwork          1.3.0   2024-09-16 [1] CRAN (R 4.4.1)
+    pillar             1.10.2  2025-04-05 [1] CRAN (R 4.4.1)
+    pkgconfig          2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
+    plyr               1.8.9   2023-10-02 [1] CRAN (R 4.4.0)
+    png                0.1-8   2022-11-29 [1] CRAN (R 4.4.0)
+    purrr              1.0.4   2025-02-05 [1] CRAN (R 4.4.1)
+    qvalue             2.38.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    R.methodsS3        1.8.2   2022-06-13 [1] CRAN (R 4.4.0)
+    R.oo               1.27.0  2024-11-01 [1] CRAN (R 4.4.1)
+    R.utils            2.13.0  2025-02-24 [1] CRAN (R 4.4.1)
+    R6                 2.6.1   2025-02-15 [1] CRAN (R 4.4.1)
+    RColorBrewer       1.1-3   2022-04-03 [1] CRAN (R 4.4.0)
+    Rcpp               1.0.14  2025-01-12 [1] CRAN (R 4.4.1)
+    reshape2           1.4.4   2020-04-09 [1] CRAN (R 4.4.0)
+ VP rlang            * 1.1.5   2025-04-11 [2] CRAN (R 4.4.1) (on disk 1.1.6)
+    rmarkdown          2.29    2024-11-04 [1] CRAN (R 4.4.1)
+    rprojroot          2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+    RSQLite            2.3.9   2024-12-03 [1] CRAN (R 4.4.1)
+    rstudioapi         0.17.1  2024-10-22 [1] CRAN (R 4.4.1)
+    S4Vectors          0.44.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    scales             1.4.0   2025-04-24 [1] CRAN (R 4.4.1)
+    sessioninfo        1.2.3   2025-02-05 [1] CRAN (R 4.4.1)
+    stringi            1.8.7   2025-03-27 [1] CRAN (R 4.4.1)
+    stringr            1.5.1   2023-11-14 [1] CRAN (R 4.4.0)
+    tibble             3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
+    tidyr              1.3.1   2024-01-24 [1] CRAN (R 4.4.0)
+    tidyselect         1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
+    tidytree           0.4.6   2023-12-12 [1] CRAN (R 4.4.0)
+    treeio             1.30.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    UCSC.utils         1.2.0   2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    vctrs              0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
+    xfun               0.52    2025-04-02 [1] CRAN (R 4.4.1)
+    XVector            0.46.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+    yaml               2.3.10  2024-07-26 [1] CRAN (R 4.4.0)
+    yulab.utils        0.2.0   2025-01-29 [1] CRAN (R 4.4.1)
+    zlibbioc           1.52.0  2024-11-08 [1] Bioconductor 3.20 (R 4.4.1)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ * ── Packages attached to the search path.
+ V ── Loaded and on-disk version mismatch.
+ P ── Loaded and on-disk path mismatch.
+
+────────────────────────────────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ library(data.table)
 Sets should be approx equal in terms of number of genes. therefore, use top 5% t stats (positive values) for markers, and top 5% abs t stats for sex DEGs. 
 
 ```{r}
-mks <- readRDS("spatial_HYP/processed-data/07-Marker_genes/01b-BSpace_allruns_spatialLIBD-regwrap-enrichment_full.RDS")
+mks <- readRDS("processed-data/07-Marker_genes/01b-BSpace_allruns_spatialLIBD-regwrap-enrichment_full.RDS")
 
 # get "k15_HARMONYlmbna_nnsvg10_60kiter"  and "k15_HARMONYlmbna_nnsvg10_60kiter_collapsed" 
 mks <- mks[c("k15_HARMONYlmbna_nnsvg10_60kiter","k15_HARMONYlmbna_nnsvg10_60kiter_collapsed")]
@@ -68,8 +68,8 @@ mks <- rbindlist(mks,use.names=T)
 
 sex DEGs
 ```{r}
-sexde.sing <- fread("spatial_HYP/processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts_ARC2fixed.txt")
-sexde.jt <- fread("spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
+sexde.sing <- fread("processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts_ARC2fixed.txt")
+sexde.jt <- fread("processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 
 sexde.jt <- sexde.jt[assay %in% c("ARC","VMH")]
 sexde.jt <- sexde.jt[,assay:=paste0("v",assay)]
@@ -119,7 +119,7 @@ for (ann in unique(mks$anno)){
   
 ## get gene coords--hg19? are the GWASes in hg19?---LEFT OFF HERE
 ```{r}
-hg19g <- fread("spatial_HYP/raw-data/dcs04sharedStatsgenLDSCbase_gene_meta_hg19.txt")
+hg19g <- fread("raw-data/dcs04sharedStatsgenLDSCbase_gene_meta_hg19.txt")
 setnames(hg19g,c("ensg","ensgver","chr","start","end","gene_name","pctgc","gtype","entrez"))
 
 for (n in names(allg)[3:ncol(allg)]){
@@ -132,6 +132,6 @@ for (n in names(allg)[3:ncol(allg)]){
     tmp <- tmp[!(chr %in% paste0("chr",c("Y","X","MT")))]
     stopifnot(nrow(tmp[start>end])==0)
     tmp <- tmp[,.(chr,start,end)]
-    fwrite(tmp,paste0("spatial_HYP/code/15-sLDSC-seg/bedfiles/",n,".bed"),sep='\t',quote=F,row.names=F,col.names=F)
+    fwrite(tmp,paste0("code/15-sLDSC-seg/bedfiles/",n,".bed"),sep='\t',quote=F,row.names=F,col.names=F)
 }
 ```
