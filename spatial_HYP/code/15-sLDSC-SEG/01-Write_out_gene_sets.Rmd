@@ -68,7 +68,7 @@ mks <- rbindlist(mks,use.names=T)
 
 sex DEGs
 ```{r}
-sexde.sing <- fread("spatial_HYP/processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts.txt")
+sexde.sing <- fread("spatial_HYP/processed-data/09-Sex DE/01b-voomLmFit_nnsvg10-HmnylmbNA-BS-15-singleClusts_ARC2fixed.txt")
 sexde.jt <- fread("spatial_HYP/processed-data/09-Sex DE/01c-voomLmFit_nnsvg10-HmnylmbNA-BS-15-VMHARCclpsd.txt")
 
 sexde.jt <- sexde.jt[assay %in% c("ARC","VMH")]
