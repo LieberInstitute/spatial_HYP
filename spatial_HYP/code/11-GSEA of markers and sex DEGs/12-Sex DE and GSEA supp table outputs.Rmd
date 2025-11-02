@@ -65,11 +65,11 @@ mapply(x=sexde,y=ofile,FUN=function(x,y){
 rm(sexde,ofile)
 ```
 
-### read in msigdb pre and post "collapsePathways" results
+### read in msigdb results
 ```{r}
-msigdbfull <- readRDS("processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+msigdbfull <- readRDS("processed-data/11-GSEA/03a-Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd_ARC15.2fixed.RDS")
 
-msigfull.unsign <- readRDS("processed-data/11-GSEA/03d-Unsigned Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd.RDS")
+msigfull.unsign <- readRDS("processed-data/11-GSEA/03d-Unsigned Sex DE msigdb_1,2,3,5,6,8 GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd_ARC15.2fixed.RDS")
 
 # msigdbcollapsed <- readRDS("processed-data/11-GSEA/03c-Sex DE mSigDB_1,2,3,5,6,8 GSEA clpspath mainPathways-only.RDS")
 
@@ -89,10 +89,11 @@ for (i in c(1:length(msigbindpatterns))){
     j<-1
     for (j in c(1:length(subfull))){
         tmpres <- subfull[[j]]
-        tmpres[,spdom:=gsub(spdom,pattern="^.*_(X.*)$",replacement="\\1")]
+        fixpat <- paste0("^.*",curpatt,"_(X.*)$")
+        tmpres[,spdom:=gsub(spdom,pattern=fixpat,replacement="\\1")]
         
         tmpres.us <- subfull.us[[j]]
-        tmpres.us[,spdom:=gsub(spdom,pattern="^_.*_(X.*)$",replacement="\\1")]
+        tmpres.us[,spdom:=gsub(spdom,pattern=fixpat,replacement="\\1")]
         
         #tmpres[,mainPathway:="No"]
         #tmpres[pathway %in% msigdbcollapsed[[names(subfull)[j]]]$pathway,mainPathway:="Yes"]
@@ -115,11 +116,16 @@ for (i in c(1:length(msigbindpatterns))){
 }
 rm(i,catres,catusres)
 
-### fix VMH/ARC cluster labels for the collapsed case
-clustres[[1]][,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
-clustres[[2]][,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
+### fix VMH/ARC cluster labels for the collapsed case and remove other single clusters from collapsed results. redundant.
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH[,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
+clustres$unsigned_BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH[,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
 
-## remove collapsed cluster results from the k=15 single domain results. not sure how/why i copied them there before. 
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH <- clustres$BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH[spdom %in% c("ARC","VMH")]
+
+clustres$unsigned_BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH <- clustres$unsigned_BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH[spdom %in% c("ARC","VMH")]
+
+
+## remove collapsed from singles. also redundant.
 clustres[[3]] <- clustres[[3]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
 clustres[[4]] <- clustres[[4]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
 
@@ -163,15 +169,49 @@ clustres[[8]][spdom=="X4",spdom:="ARC31.2"]
 clustres[[8]][spdom=="X11",spdom:="ARC31.3"]
 clustres[[8]][spdom=="X22",spdom:="ARC31.4"]
 
+### append other domain annots to the k15 results
+anno <- as.data.table(paste0("X",c(1:15)))
+setnames(anno,"clusid")
+anno[clusid=="X7",anno:="VMH.1"]
+anno[clusid=="X12",anno:="VMH.2"]
+anno[clusid=="X4",anno:="ARC.1"]
+anno[clusid=="X6",anno:="ARC.2"]
+anno[clusid=="X3",anno:="OT.1"]
+anno[clusid=="X10",anno:="OT.2"]
+anno[clusid=="X5",anno:="OT.3"]
+anno[clusid=="X1",anno:="GABA.1"]
+anno[clusid=="X2",anno:="PeriVN"]
+anno[clusid=="X9",anno:="Vascular"]
+anno[clusid=="X8",anno:="SON"]
+anno[clusid=="X13",anno:="PortalVasc"]
+anno[clusid=="X14",anno:="Astro"]
+anno[clusid=="X15",anno:="GABA.2"]
+anno[clusid=="X11",anno:="DROP"] # sample specific cluster
+
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10 <- merge.data.table(clustres$BSpace_k15_HARMONYlmbna_nnsvg10,anno,by.x="spdom",by.y="clusid",all.x=T)
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10[!is.na(anno),spdom:=anno]
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10[,anno:=NULL]
+
+clustres$unsigned_BSpace_k15_HARMONYlmbna_nnsvg10 <- merge.data.table(clustres$unsigned_BSpace_k15_HARMONYlmbna_nnsvg10 ,anno,by.x="spdom",by.y="clusid",all.x=T)
+clustres$unsigned_BSpace_k15_HARMONYlmbna_nnsvg10[!is.na(anno),spdom:=anno]
+clustres$unsigned_BSpace_k15_HARMONYlmbna_nnsvg10[,anno:=NULL]
 
 clustres <- lapply(clustres,function(x){
   if(ncol(x)==9){
-    setnames(x,c(1:9),c("Pathway","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain"))
-    x <- x[,c(1,9,3,6,5,7,4,2,8)]
+    setnames(x,
+             c("pathway","pval","padj","log2err","ES","NES","size","leadingEdge","spdom"),
+             c("Pathway","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain"))
+    
+    reordnames <- c("Pathway","Visium Domain","Adj.P","Normalized Enrichment Score","Enrichment Score","Geneset Size","log2err","P.Value","Leading Edge Genes")
+    x <- x[,..reordnames]
   } else {
     
-    setnames(x,c(1:10),c("Pathway","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain","Tested Sex-Enrichment Direction"))
-    x <- x[,c(9,1,10,3,6,5,7,4,2,8)]
+    setnames(x,
+             c("pathway","pval","padj","log2err","ES","NES","size","leadingEdge","spdom","dir"),
+             c("Pathway","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain","Tested Sex-Enrichment Direction"))
+    
+    reordnames <- c("Pathway","Visium Domain","Tested Sex-Enrichment Direction","Adj.P","Normalized Enrichment Score","Enrichment Score","Geneset Size","log2err","P.Value","Leading Edge Genes")
+    x <- x[,..reordnames]
   }  
   
     return(x)
@@ -179,7 +219,7 @@ clustres <- lapply(clustres,function(x){
 
 saveRDS(clustres,"local_supptab_assembly/Supp Data-Sex DE msigdb GSEA results.RDS")
 
-rm(clustres,msigdbcollapsed,msigdbfull,msigbindpatterns)
+rm(clustres,msigfull.unsign,msigdbfull,msigbindpatterns)
 ```
 
 ### write out the table of TF-target sets tested for GSEA
@@ -272,43 +312,47 @@ rm(y,z,tftargsets,tftargtab,tftarg,sourcename,tftargs)
 tffull <- readRDS("processed-data/11-GSEA/04a-Sex DE TF-target GSEA svg10-hmnyLmdaNA_BS60k-k15-k20-k31-k15clpsd_ARC15.2fixed.RDS")
 
 tfxprd <- readRDS("processed-data/11-GSEA/09-Sex DE TF-target GSEA results from 04a filtered to TFs expressed in at least one sex at avg 2.5pct of cluster spots and at least 1pct of cluster spots in 3samps.RDS")
+tfxprd <- tfxprd[1:4] #(exclude unsigned)
 
 tfbindpatterns <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
+
 
 clustres <- list()
 i<-1
 for (i in c(1:length(tfbindpatterns))){
     curpatt <- tfbindpatterns[i]
     subfull <- tffull[grep(names(tffull),pattern=curpatt)]
-    subclps <- tfcollapsed[grep(names(tfcollapsed),pattern=curpatt)]
-    subxpr <- tfxprd[grep(names(tfcollapsed),pattern=curpatt)]
+    subxpr <- tfxprd[[grep(names(tfxprd),pattern=paste0(curpatt,"$"),value=T)]]
     j<-1
     for (j in c(1:length(subfull))){
         tmpres <- subfull[[j]]
-        tmpres[,spdom:=gsub(spdom,pattern="^.*_(X.*)$",replacement="\\1")]
-        
-        tmpres[,mainPathway:="No"]
-        tmpres[pathway %in% tfcollapsed[[names(subfull)[j]]]$pathway,mainPathway:="Yes"]
         
         tmpres[,Expressed_TF:="No"]
         tmpres[pathway %in% subxpr[[names(subfull)[j]]]$pathway,Expressed_TF:="Yes"]
 
+        
+        fixpat <- paste0("^.*",curpatt,"_(X.*)$")
+        tmpres[,spdom:=gsub(spdom,pattern=fixpat,replacement="\\1")]
         
         if(j==1){catres <- copy(tmpres)}
         else{catres <- rbind(catres,tmpres)}
         rm(tmpres)
     }
     clustres[[i]] <- catres
-    rm(subfull,subclps,curpatt,j)
+    rm(subfull,curpatt,j,fixpat,subxpr)
 }
 rm(i,catres)
+names(clustres) <- tfbindpatterns
 
-### fix VMH/ARC cluster labels for the collapsed case
-clustres[[1]][,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
-clustres[[1]][spdom=="X13",spdom:="ARC.ventral"]
 
-## remove collapsed cluster results from the k=15 single domain results. not sure how/why i copied them there before. 
-clustres[[2]] <- clustres[[2]][!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
+
+### fix VMH/ARC cluster labels for the collapsed case and remove other single clusters from collapsed results. redundant.
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH[,spdom:=gsub(spdom,pattern="^BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_(.*)$",replacement="\\1")]
+
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH <- clustres$BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH[spdom %in% c("ARC","VMH")]
+
+## remove collapsed from singles. also redundant.
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10 <- clustres$BSpace_k15_HARMONYlmbna_nnsvg10[!(spdom %in% paste0("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH_",c("ARC","VMH")))]
 
 # assign respective VMH and ARC ids previously used
 
@@ -317,7 +361,6 @@ clustres[[2]][spdom=="X4",spdom:="ARC.1"]
 clustres[[2]][spdom=="X6",spdom:="ARC.2"]
 clustres[[2]][spdom=="X7",spdom:="VMH.1"]
 clustres[[2]][spdom=="X12",spdom:="VMH.2"]
-
 ### add the k20/k31 ARC and VMH cluster identifiers as used elsewhere
 clustres[[3]][spdom=="X2",spdom:="VMH20.1"]
 clustres[[3]][spdom=="X3",spdom:="VMH20.2"]
@@ -334,15 +377,43 @@ clustres[[4]][spdom=="X4",spdom:="ARC31.2"]
 clustres[[4]][spdom=="X11",spdom:="ARC31.3"]
 clustres[[4]][spdom=="X22",spdom:="ARC31.4"]
 
-# name lists and save RDS
+### append other domain annots to the k15 results
+anno <- as.data.table(paste0("X",c(1:15)))
+setnames(anno,"clusid")
+anno[clusid=="X7",anno:="VMH.1"]
+anno[clusid=="X12",anno:="VMH.2"]
+anno[clusid=="X4",anno:="ARC.1"]
+anno[clusid=="X6",anno:="ARC.2"]
+anno[clusid=="X3",anno:="OT.1"]
+anno[clusid=="X10",anno:="OT.2"]
+anno[clusid=="X5",anno:="OT.3"]
+anno[clusid=="X1",anno:="GABA.1"]
+anno[clusid=="X2",anno:="PeriVN"]
+anno[clusid=="X9",anno:="Vascular"]
+anno[clusid=="X8",anno:="SON"]
+anno[clusid=="X13",anno:="PortalVasc"]
+anno[clusid=="X14",anno:="Astro"]
+anno[clusid=="X15",anno:="GABA.2"]
+anno[clusid=="X11",anno:="DROP"] # sample specific cluster
+
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10 <- merge.data.table(clustres$BSpace_k15_HARMONYlmbna_nnsvg10,anno,by.x="spdom",by.y="clusid",all.x=T)
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10[!is.na(anno),spdom:=anno]
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10[,anno:=NULL]
+
+# name lists, add column with just the TF symbol, and save RDS
 names(clustres) <- c("BSpace_k15_HARMONYlmbna_nnsvg10_clpsdARC_clpsdVMH","BSpace_k15_HARMONYlmbna_nnsvg10","BSpace_k20_HARMONYlmbna_nnsvg10","BSpace_k31_HARMONYlmbna_nnsvg10")
 
 clustres <- lapply(clustres,function(x){
     z <- merge.data.table(fix[,.(tf,setname)],x,by.x="setname",by.y="pathway",all.y=T)
-    setnames(z,c("TF Target Set","TF Symbol","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain","Main Geneset after fgsea::collapsePathways","Expressed TF"))
-    z <- z[,c(2,10:12,4,7,6,5,1,8,3,9)]
+    setnames(z,
+             c("setname","tf","pval","padj","log2err","ES","NES","size","leadingEdge","spdom","dir","Expressed_TF"),
+             c("TF Target Set","TF Symbol","P.Value","Adj.P","log2err","Enrichment Score","Normalized Enrichment Score","Geneset Size","Leading Edge Genes","Visium Domain","Sex DE Direction Tested for Enrichment","Expressed TF"))
+    reordnames <- c("TF Symbol","Visium Domain","Sex DE Direction Tested for Enrichment","Expressed TF","Adj.P","Normalized Enrichment Score","Enrichment Score","Geneset Size","log2err","P.Value","Leading Edge Genes")
+    z <- z[,..reordnames]
     return(z)
 })
+
+clustres$BSpace_k15_HARMONYlmbna_nnsvg10 <- clustres$BSpace_k15_HARMONYlmbna_nnsvg10[!(`Visium Domain` %in% grep(`Visium Domain`,pattern="clpsdARC_",value=T))]
 
 saveRDS(clustres,"local_supptab_assembly/Supp Data-sexDE_TFtarget_GSEA_results.RDS")
 
