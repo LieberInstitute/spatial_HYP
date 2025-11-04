@@ -1,0 +1,116 @@
+---
+title: "Cleanup_CYP26A1_smFISH_Cellcount_Tables"
+format: html
+date: "2025-11-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+library(gridExtra)
+library(UpSetR)
+# library(SpatialFeatureExperiment)
+
+## rstudio GUI tweaks
+# require(colorout)
+# ColorOut()
+options('styler.addins_style_transformer' = 'biocthis::bioc_style()')
+##/
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn='')
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost='localhost')
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 8,color = '#000000'), axis.title.x = element_text(size = 9,color = '#000000'), axis.text.y = element_text(size = 8,color = '#000000'), axis.title.y = element_text(size =9,color = '#000000'), plot.title = element_markdown(size = 10,hjust=0.5,color = '#000000'), strip.text = element_text(size=11), legend.text = element_text(size=7,color = '#000000'), legend.title = element_text(size=8,hjust=0.5,color = '#000000'),axis.ticks = element_line(linewidth=0.5),panel.grid.major = element_line(linewidth=0.5),panel.grid.minor=element_line(linewidth=0.25),plot.title.position='plot'))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace('datasets')
+```
+
+```{r}
+vmhres <- fread("NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/Results/HYP_VMH_cellcounts.txt")
+vmhres[,dom:="VMH"]
+arcres <- fread("NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/Results/HYP_ARC_cellcounts.txt")
+arcres[,dom:="ARC"]
+reord <- names(vmhres)
+arcres <- arcres[,..reord]
+cypres <- rbind(vmhres,arcres)
+cypres[,file_name:=NULL]
+rm(reord,arcres,vmhres)
+
+demos <- fread("spatial_HYP/raw-data/demos.txt")
+## total up each cell type by sex and domain
+cypres[,maletot:=rowSums(.SD),.SDcols=paste0(c("Br1735","Br5459","Br6197","Br1225"),"_VMH_ARC")]
+cypres[,femtot:=rowSums(.SD),.SDcols=paste0(c("Br5993","Br6588","Br8667","Br8741"),"_VMH_ARC")]
+
+cypres[,maleprop:=maletot/sum(maletot),by="dom"]
+cypres[,femprop:=femtot/sum(femtot),by="dom"]
+
+chanlut <- fread("NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/channel-gene_pairs.txt")
+chanlut[,chan:=as.character(chan)]
+
+lapply(chanlut$chan,function(x){
+    cypres[,phenotype:=gsub(phenotype,pattern=x,replacement = paste0(" ",chanlut[chan==x,gene]))]
+})
+cypres[,phenotype:=gsub(phenotype,pattern="^\\s",replacement="")]
+
+fwrite(cypres,"NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/Results/VMH_and_ARC_phenocounts_with_genesymbs.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```
+
+make upset plot using UpSetR
+```{r}
+# 2. Convert to 'fromExpression' Format
+# This format is a named vector.
+# The *value* is the count (Total).
+# The *name* is the combination string, e.g., "Var1&Var3&Var4"
+
+# Create a list of set names
+set_names <- c("NR5A1", "NPY", "CRHR2", "CYP26A1")
+
+# This function builds the combination string
+build_expression <- function(row) {
+  # Find which variables are "Pos"
+  positive_sets <- set_names[row == "+"]
+  # Paste them together with "&"
+  paste(positive_sets, collapse = "&")
+}
+
+UpSetR::upset(as.data.frame(cypres[,.(NR5A1,NPY,CRHR2,CYP26A1)]),sets=c("NR5A1","NPY","CRHR2","CYP26A1"),query=TRUE)
+
+# Apply the function to each row
+cypres2 <- copy(cypres)
+cypres2[, Expression := apply(.SD, 1, build_expression), .SDcols = set_names]
+
+# Create the named vector
+expression_vector <- setNames(dt_agg$Total, dt_agg$Expression)
+
+print("Converted data (named vector):")
+print(head(expression_vector))
+
+# 3. Generate the UpSet Plot
+# We use fromExpression() to load the pre-computed data
+upset_plot_2 <- upset(
+  fromExpression(expression_vector),
+  order.by = "freq",
+  mainbar.y.label = "Intersection Size",
+  sets.x.label = "Total Samples in Set"
+)
+
+print(upset_plot_2)
+
+cypres[,phenotype:=factor(phenotype,levels=rev(unique(phenotype)))]
+```
+
+cypres
