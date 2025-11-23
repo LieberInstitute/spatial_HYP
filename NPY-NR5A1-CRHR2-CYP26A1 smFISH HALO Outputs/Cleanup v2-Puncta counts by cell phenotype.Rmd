@@ -1,0 +1,265 @@
+---
+title: "Cleanup v2-Puncta counts by cell phenotype"
+author: "Bernie Mulvey"
+date: "2025-11-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height = 10,fig.width = 7,include = FALSE)
+#### sets tab autocompletion for directories to begin from the directory containing the .Rproj session, instead of the script's directory if different
+knitr::opts_knit$set(root.dir = here::here())
+
+library(data.table)
+library(ggplot2)
+library(ggtext)
+library(gridExtra)
+
+## rstudio GUI tweaks
+require(colorout)
+ColorOut()
+options("styler.addins_style_transformer" = "biocthis::bioc_style()")
+##
+
+## enable forked parallel processing with BiocParallel::multicoreParam, future::, etc. seemed to need this a couple times, but otherwise havent so its here as a preventative measure. part of this is adding the line 
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+# to Renviron.site. see e.g. top response on https://stackoverflow.com/questions/73638290/python-on-mac-is-it-safe-to-set-objc-disable-initialize-fork-safety-yes-globall 
+library(parallelly)
+options(parallelly.supportsMulticore.disableOn="")
+options(parallelly.fork.enable=TRUE)
+library(BiocParallel)
+options(bphost="localhost")
+
+
+## ggplot defaults
+theme_set(theme_bw()+theme(axis.text.x = element_text(size = 8,color = "#000000"), axis.title.x = element_text(size = 9,color = "#000000"), axis.text.y = element_text(size = 8,color = "#000000"), axis.title.y = element_text(size =9,color = "#000000"), plot.title = element_markdown(size = 10,hjust=0.5,color = "#000000"), strip.text = element_text(size=11), legend.text = element_text(size=7,color = "#000000"), legend.title = element_text(size=8,hjust=0.5,color = "#000000"),axis.ticks = element_line(linewidth=0.5),panel.grid.major = element_line(linewidth=0.5),panel.grid.minor=element_line(linewidth=0.25),plot.title.position="plot"))
+
+## last of all, unload the base package datasets, whose data keep getting in the way of autocompletions (e.g., Theoph is priortized over TRUE)
+unloadNamespace("datasets")
+```
+
+```{r}
+vmh <- fread("NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/Data/VMH/HYP - VMH Selected 1111 NPY CRHR2 NR5A1 CYP26A1 selected 11.txt")
+## despite the column values saying "entire tissue", the file name "VMH selected" or "ARC selected" signifies that only the ROI specified was considered. so change this column to reflect the domain and we can bind it all
+arc <- fread("NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/Data/ARC/HYP - ARC Selected 2 NPY CRHR2 NR5A1 CYP26A1 selected.txt")
+
+vmh[,Analysis.Region:="VMH"]
+arc[,Analysis.Region:="ARC"]
+punc <- as.data.table(rbind(vmh,arc))
+rm(vmh,arc)
+gc(full=T)
+
+### 
+setnames(punc,"Algorithm.Name","Donor")
+
+punc[,Donor:=gsub(Donor,pattern="^(Br....).*$",replacement="\\1")]
+## no donor ID was provided in filename for one sample (Br8667), and 8741 was entered as 8471
+punc[Donor=="Br8471",Donor:="Br8741"]
+punc[Donor=="VMH_ARC",Donor:="Br8667"]
+unique(punc$phenotype)
+## replace the wavelengths with corresponding gene symbs in phenotype
+
+
+chanlut <- fread("NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/channel-gene_pairs.txt")
+chanlut[,chan:=as.character(chan)]
+
+lapply(chanlut$chan,function(x){
+    punc[,phenotype:=gsub(phenotype,pattern=x,replacement = paste0(" ",chanlut[chan==x,gene]))]
+})
+punc[,phenotype:=gsub(phenotype,pattern="^\\s",replacement="")]
+
+### append sex info
+demos <- fread("spatial_HYP/raw-data/demos.txt")
+demos <- demos[BrNum %in% punc$Donor]
+punc <- merge.data.table(punc,demos,by.x="Donor",by.y="BrNum")
+
+### t.test copy count per cell area for CRHR2+ VMH cells
+t.test(punc[Analysis.Region=="VMH"&Sex=="Male"&phenotype %in% grep(phenotype,pattern="CRHR2\\+",value=T),X20x.Opal.690.Copies/Cell.Area],punc[Analysis.Region=="VMH"&Sex=="Female"&phenotype %in% grep(phenotype,pattern="CRHR2\\+",value=T),X20x.Opal.690.Copies/Cell.Area])
+## t = -5.739 (female up), p<1.1e-08
+
+library(lme4)
+car::Anova(lmer(X20x.Opal.690.Copies ~ Sex + Cell.Area + (1|Donor),data=punc[Analysis.Region=="VMH"&phenotype %in% grep(phenotype,pattern="CRHR2\\+",value=T)]))
+## not significant as repeated measures test.
+```
+
+```{r}
+keepnames <- c("Analysis.Region","Donor","Object.Id","X20x.DAPI.Positive.Nucleus","X25xSil.Opal.520.Copies",paste0("X20x.Opal.",c("570","620","690"),".Copies"),"Cell.Area","phenotype") 
+
+punc2 <- punc[,..keepnames]
+## make sure every cell has unique identifier
+stopifnot(nrow(punc2)==length(unique(punc2$Object.Id)))
+punc2[,Object.Id:=paste0(Donor,"_",Analysis.Region,"_",Object.Id)]
+##
+
+punccols <- c("X25xSil.Opal.520.Copies",paste0("X20x.Opal.",c("570","620","690"),".Copies"))
+names(punccols) <- c("NPY","CRHR2","NR5A1","CYP26A1")
+
+i<-1
+for (i in c(1:length(punccols))){
+    punc2[,newcol:=sum(get(punccols[i])),by=c("Donor","Analysis.Region","phenotype")]
+    setnames(punc2,"newcol",paste0(names(punccols)[i],"_puncta"))
+}
+
+punc3 <- unique(copy(punc2[,.(Donor,Analysis.Region,phenotype,NPY_puncta,CRHR2_puncta,NR5A1_puncta,CYP26A1_puncta)]))
+
+ncell <- punc2[,ncell:=.N,by=c("Donor","Analysis.Region","phenotype")]
+ncell <- unique(ncell[,.(Donor,Analysis.Region,phenotype,ncell)])
+
+punc3 <- merge.data.table(punc3,ncell,by=c("Donor","Analysis.Region","phenotype"))
+
+### clean up
+rm(punc,punc2,ncell,chanlut,i,keepnames,punccols)
+
+## calc puncta per cell
+puncnames <- c("NPY_puncta","CRHR2_puncta","NR5A1_puncta","CYP26A1_puncta")
+lapply(puncnames,function(x){
+    punc3[,newcol:=get(x)/ncell]
+    setnames(punc3,"newcol",paste0(x,"_percell"))
+})
+
+### annotate sexes
+demos <- fread("spatial_HYP/raw-data/demos.txt")
+demos <- demos[,.(BrNum,Sex)]
+## check that we have dmeog for all donors
+stopifnot(all(punc3$Donor %in% demos$BrNum))
+
+punc3<-merge.data.table(punc3,demos,by.x="Donor",by.y="BrNum",all.x=T)
+
+arc2 <- punc3[Analysis.Region=="ARC"]
+vmh2 <- punc3[Analysis.Region=="VMH"]
+
+
+
+fwrite(arc2,"NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/Data/ARC/ARC_puncta_counts_bycellphenotype_perDonor.txt",sep='\t',quote=F,row.names=F,col.names=T)
+fwrite(vmh2,"NPY-NR5A1-CRHR2-CYP26A1 smFISH HALO Outputs/Data/VMH/VMH_puncta_counts_bycellphenotype_perDonor.txt",sep='\t',quote=F,row.names=F,col.names=T)
+```
+
+## for VMH CRHR2+, consider all CRHR2+ classes
+```{r}
+plt <- copy(punc)
+plt <- plt[Analysis.Region=="VMH"]
+plt[,totarea:=sum(Cell.Area),by="Donor"]
+
+plt <- plt[phenotype %in% grep(phenotype,pattern="CRHR2\\+",value=T)]
+plt[,ncrhr:=.N,by="Donor"]
+plt[,acrhr:=sum(Cell.Area),by="Donor"]
+
+plt <- plt[phenotype %in% grep(phenotype,pattern="CYP26A1\\+",value=T)]
+plt[,a690:=sum(X20x.Opal.690.Area),by="Donor"]
+# plt <- plt[phenotype %in% grep(phenotype,pattern="NPY-",value=T)]
+
+plt[,puncs:=sum(X20x.Opal.690.Copies),by="Donor"]
+plt[,ncell:=.N,by="Donor"]
+plt[,totarea:=sum(Cell.Area),by="Donor"]
+ 
+ggplot(unique(plt[,.(Sex,puncs,ncell,ncrhr,acrhr,a690)]),aes(x=Sex,y=puncs/a690))+geom_point(position="jitter") 
+
+```
+
+repinf
+```{r}
+sessionInfo()
+sessioninfo::session_info()
+```
+R version 4.4.3 (2025-02-28)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sequoia 15.3.2
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/Chicago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     methods   base     
+
+other attached packages:
+[1] BiocParallel_1.40.0 parallelly_1.43.0   colorout_1.3-0.2    gridExtra_2.3      
+[5] ggtext_0.1.2        ggplot2_3.5.2       data.table_1.17.4   rlang_1.1.5        
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.6       dplyr_1.1.4        compiler_4.4.3     tidyselect_1.2.1  
+ [5] Rcpp_1.0.14        xml2_1.3.8         parallel_4.4.3     dichromat_2.0-0.1 
+ [9] scales_1.4.0       yaml_2.3.10        fastmap_1.2.0      here_1.0.1        
+[13] R6_2.6.1           generics_0.1.4     knitr_1.50         tibble_3.2.1      
+[17] rprojroot_2.0.4    pillar_1.10.2      RColorBrewer_1.1-3 xfun_0.52         
+[21] cli_3.6.4          withr_3.0.2        magrittr_2.0.3     digest_0.6.37     
+[25] grid_4.4.3         gridtext_0.1.5     rstudioapi_0.17.1  lifecycle_1.0.4   
+[29] vctrs_0.6.5        evaluate_1.0.3     glue_1.8.0         farver_2.1.2      
+[33] sessioninfo_1.2.3  codetools_0.2-20   rsconnect_1.3.4    rmarkdown_2.29    
+[37] tools_4.4.3        pkgconfig_2.0.3    htmltools_0.5.8.1 
+> sessioninfo::session_info()
+─ Session info ─────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.3 (2025-02-28)
+ os       macOS Sequoia 15.3.2
+ system   aarch64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/Chicago
+ date     2025-11-05
+ rstudio  2024.07.0-daily+219 Cranberry Hibiscus (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
+ quarto   1.4.555 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/quarto
+
+─ Packages ─────────────────────────────────────────────────────────────────────────
+ !  package      * version date (UTC) lib source
+    BiocParallel * 1.40.0  2024-11-23 [1] Bioconductor 3.20 (R 4.4.2)
+ VP cli            3.6.4   2025-04-23 [2] CRAN (R 4.4.1) (on disk 3.6.5)
+    codetools      0.2-20  2024-03-31 [1] CRAN (R 4.4.3)
+    colorout     * 1.3-0.2 2024-05-01 [1] Github (jalvesaq/colorout@c6113a2)
+    data.table   * 1.17.4  2025-05-26 [1] CRAN (R 4.4.3)
+    dichromat      2.0-0.1 2022-05-02 [1] CRAN (R 4.4.0)
+    digest         0.6.37  2024-08-19 [1] CRAN (R 4.4.1)
+    dplyr          1.1.4   2023-11-17 [1] CRAN (R 4.4.0)
+    evaluate       1.0.3   2025-01-10 [1] CRAN (R 4.4.1)
+    farver         2.1.2   2024-05-13 [1] CRAN (R 4.4.0)
+    fastmap        1.2.0   2024-05-15 [1] CRAN (R 4.4.0)
+    generics       0.1.4   2025-05-09 [1] CRAN (R 4.4.1)
+    ggplot2      * 3.5.2   2025-04-09 [1] CRAN (R 4.4.1)
+    ggtext       * 0.1.2   2022-09-16 [1] CRAN (R 4.4.0)
+    glue           1.8.0   2024-09-30 [1] CRAN (R 4.4.1)
+    gridExtra    * 2.3     2017-09-09 [1] CRAN (R 4.4.0)
+    gridtext       0.1.5   2022-09-16 [1] CRAN (R 4.4.0)
+    gtable         0.3.6   2024-10-25 [1] CRAN (R 4.4.1)
+    here           1.0.1   2020-12-13 [1] CRAN (R 4.4.0)
+    htmltools      0.5.8.1 2024-04-04 [1] CRAN (R 4.4.0)
+    knitr          1.50    2025-03-16 [1] CRAN (R 4.4.2)
+    lifecycle      1.0.4   2023-11-07 [1] CRAN (R 4.4.0)
+    magrittr       2.0.3   2022-03-30 [1] CRAN (R 4.4.0)
+    parallelly   * 1.43.0  2025-03-24 [1] CRAN (R 4.4.1)
+    pillar         1.10.2  2025-04-05 [1] CRAN (R 4.4.1)
+    pkgconfig      2.0.3   2019-09-22 [1] CRAN (R 4.4.0)
+    R6             2.6.1   2025-02-15 [1] CRAN (R 4.4.1)
+    RColorBrewer   1.1-3   2022-04-03 [1] CRAN (R 4.4.0)
+    Rcpp           1.0.14  2025-01-12 [1] CRAN (R 4.4.1)
+ VP rlang        * 1.1.5   2025-04-11 [2] CRAN (R 4.4.1) (on disk 1.1.6)
+    rmarkdown      2.29    2024-11-04 [1] CRAN (R 4.4.1)
+    rprojroot      2.0.4   2023-11-05 [1] CRAN (R 4.4.0)
+    rsconnect      1.3.4   2025-01-22 [1] CRAN (R 4.4.1)
+    rstudioapi     0.17.1  2024-10-22 [1] CRAN (R 4.4.1)
+    scales         1.4.0   2025-04-24 [1] CRAN (R 4.4.1)
+    sessioninfo    1.2.3   2025-02-05 [1] CRAN (R 4.4.1)
+    tibble         3.2.1   2023-03-20 [1] CRAN (R 4.4.0)
+    tidyselect     1.2.1   2024-03-11 [1] CRAN (R 4.4.0)
+    vctrs          0.6.5   2023-12-01 [1] CRAN (R 4.4.0)
+    withr          3.0.2   2024-10-28 [1] CRAN (R 4.4.1)
+    xfun           0.52    2025-04-02 [1] CRAN (R 4.4.1)
+    xml2           1.3.8   2025-03-14 [1] CRAN (R 4.4.1)
+    yaml           2.3.10  2024-07-26 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+ [2] /Users/bmulvey/Library/R/arm64/4.4/library
+
+ * ── Packages attached to the search path.
+ V ── Loaded and on-disk version mismatch.
+ P ── Loaded and on-disk path mismatch.
+
+────────────────────────────────────────────────────────────────────────────────────

@@ -22,7 +22,7 @@ create folder "bedfiles", run "bed.R"
 perl ldsc_anno_jobs.pl
 
 perl simpleArray.pl -j ldsc_anno_jobs.txt -n 20 -o ldsc_anno_jobs.pbs
-change "module load conda_R/4.0" to "source activate ldsc" in above job submission file
+change "module load conda_R/4.0" to "module load ldsc" in above job submission file
 
 sbatch ldsc_anno_jobs.pbs
 
@@ -30,15 +30,14 @@ sbatch ldsc_anno_jobs.pbs
 perl ldsc_score_jobs.pl
 
 perl simpleArray.pl -j ldsc_score_jobs.txt -n 20 -o ldsc_score_jobs.pbs
-change "module load conda_R/4.0" to "source activate ldsc" in above job submission file
+change "module load conda_R/4.0" to "module load ldsc"  in above job submission file
 
 sbatch ldsc_score_jobs.pbs
 
 3. jobs for generating h2 files
 perl ldsc_h2_jobs.pl
 
-perl simpleArray.pl -j ldsc_h2_jobs.txt -n 20 -o ldsc_h2_jobs.pbs
-change "module load conda_R/4.0" to "source activate ldsc" in above job submission file
+ change "module load conda_R/4.0" to "module load ldsc" in above job submission file
 
 sbatch ldsc_h2_jobs.pbs
 
