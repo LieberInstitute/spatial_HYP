@@ -2,7 +2,7 @@
 library(data.table)
 # read data 
 setwd("/dcs04/lieber/marmaypag/spatialHYP_LIBD4195/spatial_HYP/spatial_HYP/code/16-sLDSC-SEG_vARCvVMH_directionalSexDE")
-dat <- fread("ldsc_results.txt",as.is=T,header=T,sep="\t")
+dat <- fread("ldsc_results.txt",header=T,sep='\t')
 
 traits <- c(
 "ADHD",
@@ -50,23 +50,23 @@ traits <- c(
 dat <- dat[trait %in% traits]
 
 # rename traits
-dat$trait[trait=="GSCAN_AgeSmk"] <- "Age of smoking"
-dat$trait[trait=="GSCAN_CigDay"] <- "Cigarettes per day"
-dat$trait[trait=="GSCAN_DrnkWk"] <- "Drinks per week"
-dat$trait[trait=="GSCAN_SmkCes"] <- "Smoking cessation"
-dat$trait[trait=="GSCAN_SmkInit"] <- "Smoking initiation"
-dat$trait[trait=="Schizophrenia_PGC3"] <- "Schizophrenia (PGC3)"
-dat$trait[trait=="Bipolar Disorder2"] <- "Bipolar (PGC2)"
-dat$trait[trait=="epilepsy"] <- "Epilepsy"
-dat$trait[trait=="Type_2_Diabetes"] <- "Type 2 Diabetes"
-dat$trait[trait=="Alzheimer Disease3"] <- "Alzheimer Disease v3"
-dat$trait[trait=="mdd2019edinburgh"] <- "Depression"
+dat[trait=="GSCAN_AgeSmk",trait:="Age of smoking"]
+dat[trait=="GSCAN_CigDay",trait:="Cigarettes per day"]
+dat[trait=="GSCAN_DrnkWk",trait:="Drinks per week"]
+dat[trait=="GSCAN_SmkCes",trait:="Smoking cessation"]
+dat[trait=="GSCAN_SmkInit",trait:="Smoking initiation"]
+dat[trait=="Schizophrenia_PGC3",trait:="Schizophrenia (PGC3)"]
+dat[trait=="Bipolar Disorder2",trait:="Bipolar (PGC2)"]
+dat[trait=="epilepsy",trait:="Epilepsy"]
+dat[trait=="Type_2_Diabetes",trait:="Type 2 Diabetes"]
+dat[trait=="Alzheimer Disease3",trait:="Alzheimer Disease v3"]
+dat[trait=="mdd2019edinburgh",trait:="Depression"]
 
 tmpdat <- copy(as.data.table(dat))
 
 # FDR correction
-dat$p_zcore <- pnorm(abs(dat$Coefficient_z.score),lower.tail=F)*2
-dat$FDR <- p.adjust(dat$p_zcore,method="fdr")
+dat[,p_zcore:=pnorm(abs(`Coefficient_z-score`),lower.tail=F)*2]
+dat[,FDR:=p.adjust(dat$p_zcore,method="fdr")]
 
 
 write.csv(dat,"ldsc_results_directional_SexDEsetsFDR_vVMH_vARC_only.csv")
